@@ -8,5 +8,10 @@
       "root": "frontend",
       "framework": "vite"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/app/(.*)", "destination": { "service": "frontend" } },
+    { "source": "/app", "destination": { "service": "frontend" } },
+    { "source": "/(.*)", "destination": { "service": "landing" } }
+  ]
 }
