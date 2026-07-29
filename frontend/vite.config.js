@@ -9,8 +9,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'JourneyFlow CRM',
-        short_name: 'JourneyFlow',
+        name: 'EzzySync CRM',
+        short_name: 'EzzySync',
         description: 'Travel CRM - bookings, quotations, leads and invoicing.',
         theme_color: '#f97316',
         background_color: '#f8fafc',

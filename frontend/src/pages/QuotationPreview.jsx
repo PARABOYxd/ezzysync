@@ -93,7 +93,7 @@ export default function QuotationPreview() {
             <img src={settings.companyLogoUrl} alt="Logo" className="h-10 object-contain mb-2" />
           ) : (
             <div className="h-10 flex items-center justify-center font-bold text-slate-800 text-lg">
-              {settings.companyName || 'JourneyFlow Travels'}
+              {settings.companyName || 'EzzySync Travels'}
             </div>
           )}
           <p className="text-[10px] text-slate-400 uppercase tracking-widest">Personalized Travel Proposal</p>
@@ -216,7 +216,7 @@ export default function QuotationPreview() {
       </main>
 
       <footer className="max-w-4xl mx-auto text-center text-[10px] text-slate-400 mt-12 px-4 leading-normal">
-        <p>{settings.companyName || 'JourneyFlow Travels'} | Address: {settings.address || '-'}</p>
+        <p>{settings.companyName || 'EzzySync Travels'} | Address: {settings.address || '-'}</p>
         {settings.invoiceFooter && <p className="mt-1">{settings.invoiceFooter}</p>}
       </footer>
     </div>

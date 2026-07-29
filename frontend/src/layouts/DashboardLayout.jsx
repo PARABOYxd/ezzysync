@@ -21,7 +21,7 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const title = TITLES[location.pathname]
-    || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'JourneyFlow');
+    || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'EzzySync');
 
   return (
     <div className="min-h-screen flex bg-slate-50">

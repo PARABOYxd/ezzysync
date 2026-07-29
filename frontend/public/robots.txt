@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /login
+Allow: /register
+Disallow: /
+
+Sitemap: https://www.ezzysync.com/app/sitemap.xml

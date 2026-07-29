@@ -43,7 +43,7 @@ export default function AITools() {
         key: order.key_id,
         amount: order.amount,
         currency: order.currency,
-        name: 'JourneyFlow Premium',
+        name: 'EzzySync Premium',
         description: 'Unlock AI Travel Tools',
         order_id: order.id,
         handler: async function (response) {
@@ -485,7 +485,7 @@ export default function AITools() {
             </h5>
             <p className="text-xs text-slate-500 mt-0.5">
               {user?.planId === 'PRO' 
-                ? 'Your AI tools are fully unlocked. Thank you for subscribing to JourneyFlow Pro!' 
+                ? 'Your AI tools are fully unlocked. Thank you for subscribing to EzzySync Pro!' 
                 : 'All AI features are currently locked. Upgrade to unlock the full AI Travel CRM Suite.'}
             </p>
           </div>

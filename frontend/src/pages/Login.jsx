@@ -57,7 +57,7 @@ export default function Login() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 text-white flex items-center justify-center mb-3 shadow-lg shadow-brand-500/20">
             <Compass size={24} />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">JourneyFlow</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">EzzySync</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1.5 text-center">Sign in to manage your travel bookings</p>
         </div>
 

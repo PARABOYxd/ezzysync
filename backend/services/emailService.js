@@ -117,7 +117,7 @@ async function sendOTPEmail({ tenantId, to, otp, subject: customSubject }) {
 }
 
 async function sendRegistrationOTPEmail({ to, otp }) {
-  return sendOTPEmail({ tenantId: null, to, otp, subject: 'Verify Your Email - JourneyFlow Registration' });
+  return sendOTPEmail({ tenantId: null, to, otp, subject: 'Verify Your Email - EzzySync Registration' });
 }
 
 async function sendInvoiceEmail({

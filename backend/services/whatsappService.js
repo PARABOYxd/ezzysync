@@ -4,7 +4,7 @@ const env = require('../config/env');
 function buildMessageText(booking, settings) {
   return (
     `Hello ${booking.customerName},\n\n` +
-    `Thank you for booking with ${settings.companyName || 'JourneyFlow'}.\n\n` +
+    `Thank you for booking with ${settings.companyName || 'EzzySync'}.\n\n` +
     `Trip: ${booking.trip}\n` +
     `Departure: ${booking.departure}\n` +
     `Pickup: ${booking.pickup || '-'}\n` +

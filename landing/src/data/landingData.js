@@ -14,14 +14,14 @@ export const faqData = [
   },
   {
     q: "Is my agency's client data secure and isolated?",
-    a: "Absolutely. JourneyFlow CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is isolated using a strict tenant filtering policy at the database query level. No agency can ever read or write another agency's data.",
+    a: "Absolutely. EzzySync CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is isolated using a strict tenant filtering policy at the database query level. No agency can ever read or write another agency's data.",
   },
   {
     q: "Can I export invoices and reports to Excel or PDF?",
     a: "Yes, you can download any invoice as a beautifully formatted PDF directly from the interface, and you can export all your bookings and financial reports to standard CSV/Excel format with a single click.",
   },
   {
-    q: "Does JourneyFlow support multiple agents with different permissions?",
+    q: "Does EzzySync support multiple agents with different permissions?",
     a: "Currently, our system supports agency-wide credentials. We are rolling out multi-agent role-based permissions (Admin, Agent, Finance) in our upcoming release next month.",
   },
 ];
@@ -29,12 +29,12 @@ export const faqData = [
 export const whatsappTemplates = {
   lead: {
     title: "New Lead Welcome",
-    msg: "Hello *Rahul Sharma*! 👋 Thank you for choosing JourneyFlow. We have received your inquiry for the *Bali Adventure Tour*. Our agent is preparing the best customized itinerary for you. Stay tuned!",
+    msg: "Hello *Rahul Sharma*! 👋 Thank you for choosing EzzySync. We have received your inquiry for the *Bali Adventure Tour*. Our agent is preparing the best customized itinerary for you. Stay tuned!",
     badge: "Auto-sent on inquiry",
   },
   itinerary: {
     title: "Itinerary Ready",
-    msg: "Hi *Rahul Sharma*! ✈️ Your customized Bali itinerary is ready! Check the day-by-day hotels, sightseeing details, and costs here: \n\n🔗 _https://app.journeyflowcrm.com/public/itinerary/bali-xyz_\n\nLet us know if you want to make any changes!",
+    msg: "Hi *Rahul Sharma*! ✈️ Your customized Bali itinerary is ready! Check the day-by-day hotels, sightseeing details, and costs here: \n\n🔗 _https://www.ezzysync.com/app/public/itinerary/bali-xyz_\n\nLet us know if you want to make any changes!",
     badge: "One-click share",
   },
   invoice: {

@@ -104,7 +104,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register({ ...form, otp, regToken });
-      toast.success('Account created! Welcome to JourneyFlow. 🎉');
+      toast.success('Account created! Welcome to EzzySync. 🎉');
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed.');

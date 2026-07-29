@@ -10,7 +10,7 @@ const router = express.Router();
 /**
  * Tenant-scoped lead capture for agencies' own marketing sites/landing
  * pages (distinct from the /walkthrough endpoint above, which is
- * JourneyFlow's own demo-request funnel, not a per-tenant feature).
+ * EzzySync's own demo-request funnel, not a per-tenant feature).
  * publicLeadKey is a rotatable public identifier - never the internal
  * tenant UUID - looked up via Settings > Lead Capture.
  */

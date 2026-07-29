@@ -77,7 +77,7 @@ async function start() {
   }
 
   app.listen(env.port, () => {
-    logger.info({ port: env.port, env: env.nodeEnv }, 'JourneyFlow API started');
+    logger.info({ port: env.port, env: env.nodeEnv }, 'EzzySync API started');
     initScheduler();
   });
 }

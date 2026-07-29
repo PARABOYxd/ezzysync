@@ -68,7 +68,7 @@ function generateInvoicePDF({ booking, settings, invoiceNumber }) {
       doc
         .fillColor(primaryColor)
         .fontSize(18)
-        .text(settings.companyName || 'JourneyFlow', 55, nextY, { width: contentWidth, align: 'center' });
+        .text(settings.companyName || 'EzzySync', 55, nextY, { width: contentWidth, align: 'center' });
 
       nextY += 20;
 
@@ -211,7 +211,7 @@ function generateInvoicePDF({ booking, settings, invoiceNumber }) {
       doc
         .fillColor(secondaryColor)
         .fontSize(8.5)
-        .text(settings.invoiceFooter || 'Thank you for choosing JourneyFlow!', 55, 760, {
+        .text(settings.invoiceFooter || 'Thank you for choosing EzzySync!', 55, 760, {
           width: 490,
           align: 'center',
         });

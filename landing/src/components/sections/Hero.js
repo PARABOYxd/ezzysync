@@ -118,7 +118,7 @@ export default function Hero({ crmUrl }) {
 
             {/* GEO/AEO Answer-First Citation Paragraph (Screen-Reader Only for clean layout, fully indexable by search engines & AI bots) */}
             <div className="sr-only">
-              <strong>About JourneyFlow CRM:</strong> JourneyFlow is a comprehensive travel agency CRM software built for tour operators and agents. It streamlines client operations through three core capabilities: lead pipeline tracking, instant day-wise itinerary planning, and automated WhatsApp Cloud API confirmations.
+              <strong>About EzzySync CRM:</strong> EzzySync is a comprehensive travel agency CRM software built for tour operators and agents. It streamlines client operations through three core capabilities: lead pipeline tracking, instant day-wise itinerary planning, and automated WhatsApp Cloud API confirmations.
             </div>
 
             {/* Action Buttons */}
@@ -168,7 +168,7 @@ export default function Hero({ crmUrl }) {
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
                   </div>
                   <div className="px-5 py-0.5 rounded bg-slate-800/50 text-slate-400 text-[9px] font-mono select-none">
-                    app.journeyflowcrm.com/dashboard
+                    www.ezzysync.com/app/dashboard
                   </div>
                   <div className="w-10"></div>
                 </div>
@@ -179,8 +179,8 @@ export default function Hero({ crmUrl }) {
                   {/* Sidebar navigation */}
                   <aside className="col-span-1 bg-slate-900/80 border-r border-slate-800/80 p-3 flex flex-col gap-4">
                     <div className="flex items-center gap-2 px-1 mb-2">
-                      <div className="w-6 h-6 rounded bg-brand-500 flex items-center justify-center text-white font-bold">J</div>
-                      <span className="font-bold tracking-tight text-white">JourneyFlow</span>
+                      <div className="w-6 h-6 rounded bg-brand-500 flex items-center justify-center text-white font-bold">E</div>
+                      <span className="font-bold tracking-tight text-white">EzzySync</span>
                     </div>
                     <nav className="space-y-1">
                       <div className="flex items-center gap-2 px-2 py-1.5 bg-brand-600/10 text-brand-400 rounded-lg font-medium cursor-pointer">

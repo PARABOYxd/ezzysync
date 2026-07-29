@@ -33,7 +33,7 @@ export default function InstallAppButton() {
   return (
     <button
       onClick={handleInstall}
-      title="Install JourneyFlow as an app"
+      title="Install EzzySync as an app"
       className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100"
     >
       <Download size={14} /> Install App

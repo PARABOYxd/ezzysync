@@ -73,7 +73,7 @@ export default function DemoForm() {
               Ready to Automate Your Travel Business?
             </h2>
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Sign up for an online product walkthrough. Discover how JourneyFlow CRM simplifies lead management, automates itinerary building, and keeps agency files organized.
+              Sign up for an online product walkthrough. Discover how EzzySync CRM simplifies lead management, automates itinerary building, and keeps agency files organized.
             </p>
             <div className="flex gap-4 items-center justify-center lg:justify-start pt-2">
               <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 flex-shrink-0">

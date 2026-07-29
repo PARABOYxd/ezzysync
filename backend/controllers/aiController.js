@@ -272,7 +272,7 @@ async function downloadItinerary(req, res, next) {
         const secondaryColor = '#4b5563';
 
         // Title and Header metadata
-        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(22).text('JourneyFlow Travel Itinerary', 50, 50);
+        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(22).text('EzzySync Travel Itinerary', 50, 50);
         doc.fillColor(secondaryColor).font('Helvetica').fontSize(10).text(`Trip: ${tripName}`, 50, 78);
         doc.fillColor(secondaryColor).fontSize(9).text(`Generated Date: ${new Date().toLocaleDateString('en-IN')}`, 50, 92);
         

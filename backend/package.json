@@ -1,5 +1,5 @@
 {
-  "name": "journeyflow-backend",
+  "name": "ezzysync-backend",
   "version": "1.0.0",
   "description": "Multi-tenant travel booking management backend using PostgreSQL as database",
   "main": "server.js",

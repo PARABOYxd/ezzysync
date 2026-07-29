@@ -348,7 +348,7 @@ export default function SettingsPage() {
                         className="text-lg font-bold leading-tight"
                         style={{ color: settings.invoiceAccentColor || '#0f766e' }}
                       >
-                        {settings.companyName || 'JourneyFlow Travels'}
+                        {settings.companyName || 'EzzySync Travels'}
                       </h4>
                       <p className="text-[9px] mt-0.5 text-slate-400">{settings.address || '42, MG Road, New Delhi'}</p>
                       {settings.invoiceShowGst && settings.gstNumber && (
@@ -448,7 +448,7 @@ export default function SettingsPage() {
 
                 {/* Footer center */}
                 <div className="absolute bottom-4 left-6 right-6 text-center text-[8px] text-slate-300">
-                  {settings.invoiceFooter || 'Thank you for choosing JourneyFlow!'}
+                  {settings.invoiceFooter || 'Thank you for choosing EzzySync!'}
                 </div>
               </div>
             </div>
@@ -461,7 +461,7 @@ export default function SettingsPage() {
               <h3 className="font-bold text-slate-800">Landing Page Lead Capture</h3>
               <p className="text-xs text-slate-400 mt-1">
                 Embed this form on your own website to capture customer inquiries directly into your Leads pipeline.
-                This is separate from JourneyFlow's own demo-request form.
+                This is separate from EzzySync's own demo-request form.
               </p>
             </div>
 
@@ -502,7 +502,7 @@ export default function SettingsPage() {
           <div className="card space-y-4 max-w-4xl p-6">
             <div>
               <h3 className="font-bold text-slate-800">Landing Page Walkthrough Requests</h3>
-              <p className="text-xs text-slate-400">Leads captured from "Book Your Walkthrough" form on JourneyFlow marketing site</p>
+              <p className="text-xs text-slate-400">Leads captured from "Book Your Walkthrough" form on EzzySync marketing site</p>
             </div>
 
             <div className="overflow-x-auto border border-slate-100 rounded-xl">

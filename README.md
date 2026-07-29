@@ -1,12 +1,12 @@
-# JourneyFlow — Travel CRM & Booking Management Suite
+# EzzySync — Travel CRM & Booking Management Suite
 
-A highly scalable, multi-tenant booking and operations management suite designed specifically for travel agencies and tour operators. JourneyFlow features strict tenant isolation, granular role-based access control, Google single-sign-on, and scheduled background workers.
+A highly scalable, multi-tenant booking and operations management suite designed specifically for travel agencies and tour operators. EzzySync features strict tenant isolation, granular role-based access control, Google single-sign-on, and scheduled background workers.
 
 ---
 
 ## ⚡ Tech Stack & Architecture
 
-JourneyFlow uses a clean, separation-of-concerns architecture designed to scale with your business operations:
+EzzySync uses a clean, separation-of-concerns architecture designed to scale with your business operations:
 
 * **Frontend:** React (Vite) + Tailwind CSS + Lucide Icons + Axios Clients
 * **Backend:** Node.js + Express.js (N-Tier Architecture separating controllers, services, and repositories)
@@ -96,7 +96,7 @@ Copy `.env.example` to `.env` in both folders and fill in your keys:
 
 **Backend (`backend/.env`):**
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/journeyflow
+DATABASE_URL=postgresql://postgres:password@localhost:5432/ezzysync
 JWT_SECRET=your_super_secret_jwt_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret

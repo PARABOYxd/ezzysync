@@ -14,10 +14,10 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Travel CRM Software for Travel Agencies | JourneyFlow",
+  title: "Travel CRM Software for Travel Agencies | EzzySync",
   description: "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
-  metadataBase: new URL("https://www.journeyflowcrm.com"),
-  keywords: ["travel crm", "travel agency crm", "crm for travel agencies", "tour operator crm", "itinerary builder", "lead management", "whatsapp crm", "invoice generator", "journeyflow"],
+  metadataBase: new URL("https://www.ezzysync.com"),
+  keywords: ["travel crm", "travel agency crm", "crm for travel agencies", "tour operator crm", "itinerary builder", "lead management", "whatsapp crm", "invoice generator", "ezzysync"],
   alternates: {
     canonical: "/",
   },
@@ -26,10 +26,10 @@ export const metadata = {
     follow: true,
   },
   openGraph: {
-    title: "Travel CRM Software for Travel Agencies | JourneyFlow",
+    title: "Travel CRM Software for Travel Agencies | EzzySync",
     description: "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
-    url: "https://www.journeyflowcrm.com",
-    siteName: "JourneyFlow",
+    url: "https://www.ezzysync.com",
+    siteName: "EzzySync",
     locale: "en_US",
     type: "website",
     images: [
@@ -37,13 +37,13 @@ export const metadata = {
         url: "/images/og-image.png", // TODO: Create and place 1200x630 OG image in public/images/og-image.png
         width: 1200,
         height: 630,
-        alt: "JourneyFlow CRM — Travel CRM & Itinerary Builder",
+        alt: "EzzySync CRM — Travel CRM & Itinerary Builder",
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "Travel CRM Software for Travel Agencies | JourneyFlow",
+    title: "Travel CRM Software for Travel Agencies | EzzySync",
     description: "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
     images: ["/images/og-image.png"], // TODO: Create and place 1200x630 OG image in public/images/og-image.png
   },
@@ -54,16 +54,16 @@ export default function RootLayout({ children }) {
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "JourneyFlow",
-      "url": "https://www.journeyflowcrm.com",
-      "logo": "https://www.journeyflowcrm.com/logo.png", // TODO: Create and place logo.png in public/logo.png
+      "name": "EzzySync",
+      "url": "https://www.ezzysync.com",
+      "logo": "https://www.ezzysync.com/logo.png", // TODO: Create and place logo.png in public/logo.png
       "sameAs": [] // TODO: Add social links here in the future
     },
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "JourneyFlow",
-      "url": "https://www.journeyflowcrm.com"
+      "name": "EzzySync",
+      "url": "https://www.ezzysync.com"
     }
   ];
 

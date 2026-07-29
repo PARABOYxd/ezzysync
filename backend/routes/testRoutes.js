@@ -11,7 +11,7 @@ router.post("/send-email", requireAuth, async (req, res) => {
         await gmailService.sendEmail({
             tenantId: req.user.tenantId,
             to,
-            subject: "JourneyFlow Gmail API Test",
+            subject: "EzzySync Gmail API Test",
             html: `
                 <h2>Congratulations 🎉</h2>
                 <p>Your Gmail API integration is working successfully.</p>

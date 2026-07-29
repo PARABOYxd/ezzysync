@@ -32,7 +32,7 @@ export default function Sidebar({ open, onClose }) {
             <div className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center">
               <Compass size={18} />
             </div>
-            <span className="font-semibold text-slate-800">JourneyFlow</span>
+            <span className="font-semibold text-slate-800">EzzySync</span>
           </div>
           <button className="md:hidden text-slate-400" onClick={onClose}>
             <X size={20} />

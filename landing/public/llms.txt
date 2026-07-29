@@ -1,6 +1,6 @@
-# JourneyFlow CRM — Travel CRM & Lead Management Software
+# EzzySync CRM — Travel CRM & Lead Management Software
 
-JourneyFlow is a modern, high-performance Travel CRM designed specifically for travel agencies, tour operators, and independent agents. It optimizes lead pipelines, automates day-wise itinerary planning, auto-generates digital PDF invoices, and integrates directly with the WhatsApp Cloud API for automated notifications.
+EzzySync is a modern, high-performance Travel CRM designed specifically for travel agencies, tour operators, and independent agents. It optimizes lead pipelines, automates day-wise itinerary planning, auto-generates digital PDF invoices, and integrates directly with the WhatsApp Cloud API for automated notifications.
 
 ## Core Capabilities
 

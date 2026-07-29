@@ -19,10 +19,10 @@ export default function Home() {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "JourneyFlow",
+      "name": "EzzySync",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
-      "url": "https://www.journeyflowcrm.com",
+      "url": "https://www.ezzysync.com",
       "description": "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
       "offers": {
         "@type": "AggregateOffer",
@@ -70,7 +70,7 @@ export default function Home() {
           "name": "Is my agency's client data secure and isolated?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Absolutely. JourneyFlow CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is isolated using a strict tenant filtering policy at the database query level. No agency can ever read or write another agency's data."
+            "text": "Absolutely. EzzySync CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is isolated using a strict tenant filtering policy at the database query level. No agency can ever read or write another agency's data."
           }
         },
         {
@@ -83,7 +83,7 @@ export default function Home() {
         },
         {
           "@type": "Question",
-          "name": "Does JourneyFlow support multiple agents with different permissions?",
+          "name": "Does EzzySync support multiple agents with different permissions?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Currently, our system supports agency-wide credentials. We are rolling out multi-agent role-based permissions (Admin, Agent, Finance) in our upcoming release next month."

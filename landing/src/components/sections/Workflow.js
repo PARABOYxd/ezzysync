@@ -23,7 +23,7 @@ export default function Workflow() {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-brand-600 block">Step-By-Step</span>
           <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
-            How JourneyFlow Works
+            How EzzySync Works
           </h2>
           <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto">
             From the initial customer inquiry to final booking confirmation, manage your entire operations workflow smoothly.

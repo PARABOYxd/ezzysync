@@ -45,11 +45,11 @@ export default function Problem() {
             </ul>
           </div>
 
-          {/* The JourneyFlow Way */}
+          {/* The EzzySync Way */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 border-l-2 border-l-brand-500 shadow-md relative overflow-hidden">
             <h3 className="font-display text-lg sm:text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-brand-600" aria-hidden="true" focusable="false" />
-              <span>The JourneyFlow Way</span>
+              <span>The EzzySync Way</span>
             </h3>
             <ul className="space-y-3 text-xs sm:text-sm text-slate-700">
               <li className="flex gap-2.5 items-start">

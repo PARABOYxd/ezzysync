@@ -18,7 +18,7 @@ export default function Footer({ crmUrl }) {
           </div>
           
           <p className="text-xs text-slate-500 text-center sm:text-right">
-            &copy; {new Date().getFullYear()} JourneyFlow CRM. All rights reserved. Built for modern travel agencies.
+            &copy; {new Date().getFullYear()} EzzySync CRM. All rights reserved. Built for modern travel agencies.
           </p>
         </div>
 

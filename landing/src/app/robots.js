@@ -10,6 +10,6 @@ export default function robots() {
         allow: '/',
       }
     ],
-    sitemap: 'https://www.journeyflowcrm.com/sitemap.xml',
+    sitemap: 'https://www.ezzysync.com/sitemap.xml',
   };
 }

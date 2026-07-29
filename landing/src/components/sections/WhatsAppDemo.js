@@ -87,7 +87,7 @@ export default function WhatsAppDemo() {
                 <div className="bg-brand-600 text-white p-2.5 sm:p-3 pt-4 flex items-center gap-2 sm:gap-2.5 shadow-sm">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-300 flex items-center justify-center font-bold text-slate-700 text-xs">J</div>
                   <div>
-                    <p className="font-bold text-[10px] sm:text-xs">JourneyFlow Support</p>
+                    <p className="font-bold text-[10px] sm:text-xs">EzzySync Support</p>
                     <p className="text-[7px] sm:text-[8px] text-slate-300">Online</p>
                   </div>
                 </div>
