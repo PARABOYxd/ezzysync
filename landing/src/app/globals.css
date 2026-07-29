@@ -12,9 +12,9 @@
   --color-foreground: var(--foreground);
   --color-card-bg: var(--card-bg);
   --color-border-color: var(--border);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-outfit);
-  
+  --font-sans: var(--font-geist);
+  --font-display: var(--font-geist);
+
   /* Brand color overrides */
   --color-brand-50: #fff7ed;
   --color-brand-100: #ffedd5;
@@ -55,5 +55,47 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Scroll-reveal: IntersectionObserver toggles .is-visible, CSS does the animating */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Load-in animation for above-the-fold hero content */
+@keyframes fade-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.load-in {
+  animation: fade-up-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .load-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 

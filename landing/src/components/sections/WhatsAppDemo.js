@@ -1,55 +1,52 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, Check, Send } from "lucide-react";
+import { Check, Send } from "lucide-react";
 import { whatsappTemplates } from "../../data/landingData";
+import ScrollReveal from "../ScrollReveal";
 
 export default function WhatsAppDemo() {
   const [selectedWhatsAppTab, setSelectedWhatsAppTab] = useState("lead");
 
   return (
-    <section className="py-16 sm:py-24 bg-slate-900 text-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.08),transparent_50%)]"></div>
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center relative z-10">
-          
+    <section className="py-16 sm:py-32 bg-slate-900 text-white relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.06),transparent_50%)]"></div>
+
+      <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center relative z-10">
+
           {/* Left Column: Information */}
-          <div className="lg:col-span-5 space-y-5 sm:space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-400 text-xs font-semibold">
-              <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" focusable="false" />
-              <span>WhatsApp Cloud API Integration</span>
-            </div>
-            <h2 className="font-display text-2xl sm:text-4xl font-extrabold tracking-tight">
-              Automated Client Communication
+          <ScrollReveal as="div" className="lg:col-span-5 space-y-5 sm:space-y-6 text-center lg:text-left">
+            <h2 className="font-semibold text-3xl sm:text-4xl tracking-[-0.02em]">
+              Automated client communication
             </h2>
-            <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl mx-auto lg:mx-0">
+            <p className="text-slate-400 text-base leading-relaxed max-w-[45ch] mx-auto lg:mx-0">
               Connect your Meta developer keys inside the CRM. Send day-by-day itineraries, flight ticket details, payment reminders, and confirmation notes dynamically.
             </p>
             <div className="space-y-3 pt-2 text-left max-w-md mx-auto lg:mx-0">
-              <div className="flex gap-2.5 items-center text-slate-300 text-xs sm:text-sm">
+              <div className="flex gap-2.5 items-center text-slate-300 text-sm">
                 <Check className="w-4 h-4 text-brand-400" aria-hidden="true" focusable="false" />
-                <span>No third-party marking fee (Direct Meta API)</span>
+                <span>No third-party markup fee (direct Meta API)</span>
               </div>
-              <div className="flex gap-2.5 items-center text-slate-300 text-xs sm:text-sm">
+              <div className="flex gap-2.5 items-center text-slate-300 text-sm">
                 <Check className="w-4 h-4 text-brand-400" aria-hidden="true" focusable="false" />
                 <span>Rich text & links for digital itineraries</span>
               </div>
-              <div className="flex gap-2.5 items-center text-slate-300 text-xs sm:text-sm">
+              <div className="flex gap-2.5 items-center text-slate-300 text-sm">
                 <Check className="w-4 h-4 text-brand-400" aria-hidden="true" focusable="false" />
                 <span>PDF invoices sent directly as attachments</span>
               </div>
             </div>
-          </div>
+          </ScrollReveal>
 
           {/* Right Column: Dynamic WhatsApp phone simulator */}
-          <div className="lg:col-span-7 flex flex-col items-center relative z-20">
-            
+          <ScrollReveal as="div" delay={120} className="lg:col-span-7 flex flex-col items-center relative z-20">
+
             {/* Tab Selectors list */}
             <div
               role="tablist"
               aria-label="WhatsApp message simulation modes"
-              className="flex bg-slate-800 p-1 rounded-xl mb-6 border border-slate-700/80 max-w-md w-full relative z-30"
+              className="flex bg-slate-800/80 p-1 rounded-xl mb-6 border border-slate-800 max-w-md w-full relative z-30"
             >
               {Object.keys(whatsappTemplates).map((key) => (
                 <button
@@ -119,14 +116,13 @@ export default function WhatsAppDemo() {
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-600 flex items-center justify-center text-white cursor-pointer hover:bg-brand-700 transition-colors">
                     <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" aria-hidden="true" focusable="false" />
                   </div>
-                  {/* TODO: Add physical 1200x630 OG image in public/images/og-image.png */}
                 </div>
 
               </div>
 
             </div>
 
-          </div>
+          </ScrollReveal>
 
         </div>
       </div>

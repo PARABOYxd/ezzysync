@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Shield, CheckCircle2 } from "lucide-react";
+import ScrollReveal from "../ScrollReveal";
 
 export default function DemoForm() {
   const [demoRequested, setDemoRequested] = useState(false);
@@ -61,50 +62,55 @@ export default function DemoForm() {
     }
   };
 
+  const inputClass = (hasError) =>
+    `w-full bg-white border rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
+      hasError ? "border-red-400 focus:border-red-400 focus-visible:ring-red-400" : "border-slate-200 focus:border-brand-500 focus-visible:ring-brand-500"
+    }`;
+
   return (
-    <section id="demo" className="py-16 sm:py-28 bg-white border-t border-slate-200 relative z-10">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          
+    <section id="demo" className="py-16 sm:py-32 bg-white relative z-10">
+      <div className="max-w-[1100px] mx-auto px-5 sm:px-6">
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+
           {/* Left Column: CTA description */}
-          <div className="lg:col-span-5 space-y-5 sm:space-y-6 text-center lg:text-left">
-            <h2 className="font-display text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              Ready to Automate Your Travel Business?
+          <ScrollReveal as="div" className="lg:col-span-5 space-y-5 text-center lg:text-left">
+            <h2 className="font-semibold text-2xl sm:text-4xl tracking-[-0.02em] text-slate-950 leading-tight">
+              Ready to automate your travel business?
             </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Sign up for an online product walkthrough. Discover how EzzySync CRM simplifies lead management, automates itinerary building, and keeps agency files organized.
+            <p className="text-slate-500 text-base leading-relaxed max-w-[45ch] mx-auto lg:mx-0">
+              Sign up for an online product walkthrough. Discover how EzzySync simplifies lead management, automates itinerary building, and keeps agency files organized.
             </p>
-            <div className="flex gap-4 items-center justify-center lg:justify-start pt-2">
-              <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 flex-shrink-0">
-                <Shield className="w-5 h-5" aria-hidden="true" />
+            <div className="flex gap-3 items-center justify-center lg:justify-start pt-2">
+              <div className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 flex-shrink-0">
+                <Shield className="w-4.5 h-4.5" aria-hidden="true" />
               </div>
               <div className="text-left">
-                <p className="font-bold text-slate-800 text-xs sm:text-sm">No Credit Card Needed</p>
-                <p className="text-slate-500 text-[10px] sm:text-xs">Start a free demo walkthrough instantly.</p>
+                <p className="font-medium text-slate-800 text-sm">No credit card needed</p>
+                <p className="text-slate-500 text-xs">Start a free demo walkthrough instantly.</p>
               </div>
             </div>
-          </div>
+          </ScrollReveal>
 
           {/* Right Column: Demo booking form */}
-          <div className="lg:col-span-7 bg-slate-50 p-5 sm:p-8 rounded-2xl border border-slate-200/80 shadow-md relative w-full max-w-lg mx-auto">
+          <ScrollReveal as="div" delay={120} className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 relative w-full max-w-lg mx-auto">
             {demoRequested ? (
               <div className="text-center py-10 sm:py-12 space-y-4">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto shadow-sm">
-                  <CheckCircle2 className="w-8 h-8" aria-hidden="true" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-7 h-7" aria-hidden="true" />
                 </div>
-                <h3 className="font-display text-lg sm:text-xl font-bold text-slate-800">Demo Request Submitted!</h3>
-                <p className="text-slate-600 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
+                <h3 className="font-semibold text-lg sm:text-xl text-slate-900 tracking-tight">Demo request submitted!</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto leading-relaxed">
                   Thank you, our team will reach out to you within 24 hours at the email or phone number provided.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleDemoSubmit} className="space-y-4" noValidate>
-                <h3 className="font-display text-base sm:text-lg font-bold text-slate-800 mb-1">Book Your Walkthrough</h3>
-                
+                <h3 className="font-semibold text-base sm:text-lg text-slate-900 tracking-tight mb-1">Book your walkthrough</h3>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label htmlFor="demo-name" className="text-[10px] sm:text-xs font-bold text-slate-500 block">Your Name *</label>
+                  <div className="space-y-1.5">
+                    <label htmlFor="demo-name" className="text-xs font-medium text-slate-500 block">Your name *</label>
                     <input
                       id="demo-name"
                       type="text"
@@ -114,14 +120,12 @@ export default function DemoForm() {
                         setDemoData({ ...demoData, name: e.target.value });
                         if (errors.name) setErrors({ ...errors, name: "" });
                       }}
-                      className={`w-full bg-white border rounded-xl px-3 py-2 sm:py-2.5 text-xs text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
-                        errors.name ? "border-red-500 focus:border-red-500 focus-visible:ring-red-500" : "border-slate-200 focus:border-brand-500 focus-visible:ring-brand-500"
-                      }`}
+                      className={inputClass(errors.name)}
                     />
-                    {errors.name && <p className="text-[10px] text-red-500 font-semibold">{errors.name}</p>}
+                    {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name}</p>}
                   </div>
-                  <div className="space-y-1">
-                    <label htmlFor="demo-agency" className="text-[10px] sm:text-xs font-bold text-slate-500 block">Agency Name *</label>
+                  <div className="space-y-1.5">
+                    <label htmlFor="demo-agency" className="text-xs font-medium text-slate-500 block">Agency name *</label>
                     <input
                       id="demo-agency"
                       type="text"
@@ -131,16 +135,14 @@ export default function DemoForm() {
                         setDemoData({ ...demoData, agency: e.target.value });
                         if (errors.agency) setErrors({ ...errors, agency: "" });
                       }}
-                      className={`w-full bg-white border rounded-xl px-3 py-2 sm:py-2.5 text-xs text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
-                        errors.agency ? "border-red-500 focus:border-red-500 focus-visible:ring-red-500" : "border-slate-200 focus:border-brand-500 focus-visible:ring-brand-500"
-                      }`}
+                      className={inputClass(errors.agency)}
                     />
-                    {errors.agency && <p className="text-[10px] text-red-500 font-semibold">{errors.agency}</p>}
+                    {errors.agency && <p className="text-[11px] text-red-500 font-medium">{errors.agency}</p>}
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label htmlFor="demo-email" className="text-[10px] sm:text-xs font-bold text-slate-500 block">Work Email *</label>
+                <div className="space-y-1.5">
+                  <label htmlFor="demo-email" className="text-xs font-medium text-slate-500 block">Work email *</label>
                   <input
                     id="demo-email"
                     type="email"
@@ -150,15 +152,13 @@ export default function DemoForm() {
                       setDemoData({ ...demoData, email: e.target.value });
                       if (errors.email) setErrors({ ...errors, email: "" });
                     }}
-                    className={`w-full bg-white border rounded-xl px-3 py-2 sm:py-2.5 text-xs text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
-                      errors.email ? "border-red-500 focus:border-red-500 focus-visible:ring-red-500" : "border-slate-200 focus:border-brand-500 focus-visible:ring-brand-500"
-                    }`}
+                    className={inputClass(errors.email)}
                   />
-                  {errors.email && <p className="text-[10px] text-red-500 font-semibold">{errors.email}</p>}
+                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email}</p>}
                 </div>
 
-                <div className="space-y-1">
-                  <label htmlFor="demo-phone" className="text-[10px] sm:text-xs font-bold text-slate-500 block">Phone Number (Optional)</label>
+                <div className="space-y-1.5">
+                  <label htmlFor="demo-phone" className="text-xs font-medium text-slate-500 block">Phone number (optional)</label>
                   <input
                     id="demo-phone"
                     type="tel"
@@ -169,27 +169,25 @@ export default function DemoForm() {
                       setDemoData({ ...demoData, phone: cleanPhone });
                       if (errors.phone) setErrors({ ...errors, phone: "" });
                     }}
-                    className={`w-full bg-white border rounded-xl px-3 py-2 sm:py-2.5 text-xs text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
-                      errors.phone ? "border-red-500 focus:border-red-500 focus-visible:ring-red-500" : "border-slate-200 focus:border-brand-500 focus-visible:ring-brand-500"
-                    }`}
+                    className={inputClass(errors.phone)}
                   />
-                  {errors.phone && <p className="text-[10px] text-red-500 font-semibold">{errors.phone}</p>}
+                  {errors.phone && <p className="text-[11px] text-red-500 font-medium">{errors.phone}</p>}
                 </div>
 
                 {submitError && (
-                  <p className="text-xs text-red-500 font-semibold mt-1">{submitError}</p>
+                  <p className="text-xs text-red-500 font-medium mt-1">{submitError}</p>
                 )}
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 sm:py-3 rounded-xl shadow-md shadow-brand-500/10 hover:shadow-lg transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm py-3 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "Submitting Request..." : "Request Free Access"}
+                  {submitting ? "Submitting request..." : "Request free access"}
                 </button>
               </form>
             )}
-          </div>
+          </ScrollReveal>
 
         </div>
 

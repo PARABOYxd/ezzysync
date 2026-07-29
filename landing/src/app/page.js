@@ -52,7 +52,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
@@ -65,19 +65,17 @@ export default function Home() {
         <WhatsAppDemo />
         <SocialProof />
         <PageTeaser
-          eyebrow="Feature Rich"
-          title="Everything Your Travel Agency Needs"
+          title="Everything your travel agency needs"
           description="Lead pipeline, day-wise itinerary builder, automated WhatsApp alerts, PDF invoicing, and multi-tenant data isolation — see the full feature breakdown."
           href="/features"
-          linkText="Explore All Features"
+          linkText="Explore all features"
           bg="bg-white"
         />
         <PageTeaser
-          eyebrow="Pricing Plans"
-          title="Fair Pricing for Travel Agencies"
+          title="Fair pricing for travel agencies"
           description="Start free with up to 100 leads. Upgrade to Agency Growth for unlimited leads and WhatsApp API integration when your booking volume grows."
           href="/pricing"
-          linkText="View Pricing Plans"
+          linkText="View pricing plans"
           bg="bg-slate-50"
         />
       </main>

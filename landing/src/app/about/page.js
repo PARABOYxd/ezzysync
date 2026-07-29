@@ -58,26 +58,26 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="pt-14 pb-8 sm:pt-20 sm:pb-12 bg-gradient-to-b from-slate-50 via-white to-slate-100">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
-            <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
+        <section className="pt-20 pb-8 sm:pt-28 sm:pb-12 bg-white">
+          <div className="max-w-[42rem] mx-auto px-5 sm:px-6 text-center space-y-6">
+            <h1 className="load-in font-semibold text-slate-950 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] tracking-[-0.02em]">
               About EzzySync
             </h1>
-            <p className="text-slate-600 text-sm sm:text-lg leading-relaxed">
+            <p className="load-in text-slate-500 text-lg leading-[1.65]" style={{ "--reveal-delay": "100ms" }}>
               EzzySync is a travel CRM and booking management platform that helps travel agencies manage leads,
               bookings, and itineraries in one system. It's built for independent travel agents, small and
               mid-size travel agencies, and tour operators — the agencies currently running their business out
               of spreadsheets, scattered WhatsApp chat history, or a generic sales CRM that was never designed
               for travel.
             </p>
-            <p className="text-slate-600 text-sm sm:text-lg leading-relaxed">
+            <p className="load-in text-slate-500 text-lg leading-[1.65]" style={{ "--reveal-delay": "160ms" }}>
               Every part of EzzySync maps to a real step in a travel booking: log the inquiry, build a day-wise
               itinerary, send it to the client on WhatsApp, generate the invoice, and track the booking through
               to departure. Each agency's data is isolated with strict multi-tenant access controls at the
@@ -86,7 +86,7 @@ export default function AboutPage() {
           </div>
         </section>
         <Problem />
-        <FAQ items={generalFaqs} heading="Common Questions About EzzySync" />
+        <FAQ items={generalFaqs} heading="Common questions about EzzySync" />
       </main>
       <Footer crmUrl={crmUrl} />
     </div>

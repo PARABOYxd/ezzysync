@@ -59,19 +59,19 @@ export default function FeaturesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="pt-14 pb-4 sm:pt-20 bg-gradient-to-b from-slate-50 via-white to-slate-100">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-            <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
-              Travel CRM Features Built for Booking Management
+        <section className="pt-20 pb-4 sm:pt-28 bg-white">
+          <div className="max-w-[46rem] mx-auto px-5 sm:px-6 text-center space-y-5">
+            <h1 className="load-in font-semibold text-slate-950 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] tracking-[-0.02em]">
+              Travel CRM features built for booking management
             </h1>
-            <p className="text-slate-600 text-sm sm:text-lg max-w-2xl mx-auto">
+            <p className="load-in text-slate-500 text-lg leading-relaxed max-w-[55ch] mx-auto" style={{ "--reveal-delay": "100ms" }}>
               Every feature below is built around the actual travel agency workflow — lead intake, itinerary
               building, invoicing, and client updates — instead of generic CRM tooling.
             </p>
@@ -79,7 +79,7 @@ export default function FeaturesPage() {
         </section>
         <Features />
         <WhyEzzySync />
-        <FAQ items={featureFaqs} heading="Feature Questions, Answered" />
+        <FAQ items={featureFaqs} heading="Feature questions, answered" />
       </main>
       <Footer crmUrl={crmUrl} />
     </div>
