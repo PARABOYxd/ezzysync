@@ -1,0 +1,13 @@
+{
+  "services": {
+    "landing": {
+      "root": "landing",
+      "framework": "nextjs"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite",
+      "path": "/app"
+    }
+  }
+}
