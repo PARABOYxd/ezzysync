@@ -32,7 +32,8 @@ export default function DemoForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const response = await fetch("http://localhost:5001/api/public/walkthrough", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+      const response = await fetch(`${apiUrl}/api/public/walkthrough`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
