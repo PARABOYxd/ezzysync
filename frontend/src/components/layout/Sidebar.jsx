@@ -1,0 +1,76 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth.jsx';
+
+export default function Sidebar({ open, onClose }) {
+  const { logout, user } = useAuth();
+
+  const activeLinks = [
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, role: 'ADMIN' },
+    { to: '/leads', label: 'Leads', icon: Contact2 },
+    { to: '/pipeline', label: 'Sales Pipeline', icon: Kanban },
+    { to: '/follow-ups', label: 'Follow-ups', icon: ListTodo },
+    { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
+    { to: '/invoices', label: 'Invoices', icon: FileText },
+    { to: '/quotations', label: 'Itineraries & Quotes', icon: Map },
+    { to: '/team', label: 'Team', icon: Users, role: 'ADMIN' },
+    { to: '/profile', label: 'Profile', icon: User },
+    { to: '/settings', label: 'Settings', icon: Settings, role: 'ADMIN' },
+    { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles },
+  ].filter(link => !link.role || link.role === (user?.role || 'ADMIN'));
+
+  return (
+    <>
+      {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
+      <aside
+        className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-white border-r border-slate-100 flex flex-col
+        transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+      >
+        <div className="flex items-center justify-between px-5 h-16 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center">
+              <Compass size={18} />
+            </div>
+            <span className="font-semibold text-slate-800">JourneyFlow</span>
+          </div>
+          <button className="md:hidden text-slate-400" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {activeLinks.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
+                  isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                }`
+              }
+            >
+              <Icon size={18} />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="p-3 border-t border-slate-100">
+          <div className="px-3 py-2 mb-1">
+            <p className="text-sm font-medium text-slate-700 truncate">{user?.companyName}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+          </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}

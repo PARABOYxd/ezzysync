@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(perl -pi -e \"s/w-full flex items-center justify-center gap-2.5 py-2.5 rounded-xl/w-full flex items-center justify-center gap-2.5 h-11 rounded-lg/g\" pages/Login.jsx pages/Register.jsx)",
+      "Bash(perl -pi -e 's/text-brand-650/text-brand-600/g' pages/QuotationPreview.jsx)",
+      "Bash(sort -t- -k2 -u)",
+      "Bash(grep -vE '\\\\-\\(0\\\\.5|1\\\\.5|2\\\\.5|3\\\\.5\\)$')",
+      "Bash(grep -vE '\\\\-\\(50|100|200|300|400|500|600|700|800|900|950\\)$')",
+      "Bash(perl -pi -e 's/bg-slate-550\\\\/5/bg-slate-500\\\\/5/' pages/AITools.jsx)",
+      "Bash(perl -pi -e 's/hover:bg-emerald-250/hover:bg-emerald-200/' pages/AITools.jsx)",
+      "Bash(perl -pi -e 's/hover:bg-slate-55\\\\b/hover:bg-slate-100/g' pages/Team.jsx)"
+    ]
+  }
+}

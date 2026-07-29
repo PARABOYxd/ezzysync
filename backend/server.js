@@ -1,0 +1,94 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const env = require('./config/env');
+const logger = require('./utils/logger');
+const requestLogger = require('./middleware/requestLogger');
+const { ensureSchema } = require('./config/db');
+const { initScheduler } = require('./jobs/cronJobs');
+
+const authRoutes = require('./routes/authRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const leadRoutes = require('./routes/leadRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+const whatsappRoutes = require('./routes/whatsappRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
+const googleRoutes = require("./routes/googleRoutes");
+const userRoutes = require('./routes/userRoutes');
+const quotationRoutes = require('./routes/quotationRoutes');
+const publicRoutes = require('./routes/publicRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const customerRoutes = require('./routes/customerRoutes');
+const followUpRoutes = require('./routes/followUpRoutes');
+
+const testRoutes = require("./routes/testRoutes");
+const { apiLimiter } = require('./middleware/rateLimiter');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+
+const app = express();
+
+// Render/Railway sit one reverse-proxy hop in front of this app. Trusting
+// exactly one hop makes req.ip resolve to the real client IP (from
+// X-Forwarded-For) instead of the proxy's own IP, which the rate limiters
+// below key on — without this every user would share one IP-based bucket.
+app.set('trust proxy', 1);
+
+app.use(helmet());
+app.use(
+  cors({
+    origin: env.frontendUrl,
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: '2mb' }));
+app.use(requestLogger);
+app.use('/api', apiLimiter);
+app.use("/api/google", googleRoutes);
+app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+app.use('/api/public', publicRoutes);
+
+app.use('/api/auth', authRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/leads', leadRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/quotations', quotationRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/follow-ups', followUpRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use("/api/test", testRoutes);
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+async function start() {
+  try {
+    await ensureSchema();
+  } catch (err) {
+    logger.error({ err }, 'Failed to initialize DB schema. Check DATABASE_URL and that Postgres is reachable.');
+    process.exit(1);
+  }
+
+  app.listen(env.port, () => {
+    logger.info({ port: env.port, env: env.nodeEnv }, 'JourneyFlow API started');
+    initScheduler();
+  });
+}
+
+process.on('unhandledRejection', (err) => {
+  logger.error({ err }, 'Unhandled promise rejection');
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error({ err }, 'Uncaught exception');
+  process.exit(1);
+});
+
+start();

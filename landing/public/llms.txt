@@ -1,0 +1,29 @@
+# JourneyFlow CRM — Travel CRM & Lead Management Software
+
+JourneyFlow is a modern, high-performance Travel CRM designed specifically for travel agencies, tour operators, and independent agents. It optimizes lead pipelines, automates day-wise itinerary planning, auto-generates digital PDF invoices, and integrates directly with the WhatsApp Cloud API for automated notifications.
+
+## Core Capabilities
+
+1. **Lead Pipeline Tracking**: Organize client inquiries from initial touchpoint to booking completion. Monitor sales pipelines, track pending amounts, and assign tasks to team members in real-time.
+2. **Dynamic Day-Wise Itinerary Planner**: Design detailed trip itineraries, including hotel cards, daily activities, transportation nodes, and flight connections. Export plans directly as client-ready travel PDFs.
+3. **Automated WhatsApp Alerts**: Integrate official Meta developer keys to automatically send rich text messages, itinerary links, and PDF documents directly to travelers' WhatsApp numbers.
+4. **Instant Invoices & Financial Summary**: Generate itemized receipts, bill breakdowns, and PDF invoice sheets instantly. Track vendor costs (flight, hotel, transport, other) for automatic P&L logging.
+
+## Pricing Plans
+
+- **Free Starter Plan**:
+  - Cost: ₹0/forever free
+  - Features: Up to 100 client leads, basic itinerary builder, and PDF invoice generation.
+- **Agency Growth Plan**:
+  - Cost: ₹2,499/month (or equivalent currency)
+  - Features: Unlimited leads, advanced Day-Wise itinerary builder, full Meta WhatsApp API integration, up to 5 agent accounts, and 7-day free trial.
+- **Custom Enterprise Plan**:
+  - Cost: Custom / Contact for pricing
+  - Features: Dedicated server resources, unlimited agents, custom email/API integrations, and 24/7 dedicated support representative.
+
+## Technical Specifications
+
+- **Backend Stack**: Node.js, Express, PostgreSQL
+- **Frontend Stack**: React, Tailwind CSS
+- **Data Isolation**: Strict multi-tenant row-level partitioning by tenant UUID in PostgreSQL.
+- **Target Market**: India-first, English content.
