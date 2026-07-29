@@ -6,8 +6,8 @@
     },
     "frontend": {
       "root": "frontend",
-      "framework": "vite",
-      "outputDirectory": "frontend/dist",
+      "buildCommand": "vite build && mkdir -p .vercel/output/static && cp -r dist/. .vercel/output/static/",
+      "outputDirectory": ".vercel/output",
       "routes": [
         {
           "src": "/app/(.*)",
