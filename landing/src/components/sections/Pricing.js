@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 import { Check } from "lucide-react";
 
 export default function Pricing({ crmUrl }) {
@@ -142,12 +143,12 @@ export default function Pricing({ crmUrl }) {
                 </li>
               </ul>
             </div>
-            <a
-              href="#demo"
+            <Link
+              href="/contact"
               className="mt-8 block w-full text-center py-2.5 sm:py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition-all focus-visible:outline-none"
             >
               Contact Sales Team
-            </a>
+            </Link>
           </div>
 
         </div>

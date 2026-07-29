@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { PlaneTakeoff } from "lucide-react";
 
 export default function Navbar({ crmUrl }) {
@@ -11,22 +12,21 @@ export default function Navbar({ crmUrl }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center text-white font-bold shadow-md shadow-brand-500/20">
               <PlaneTakeoff className="w-5 h-5" aria-hidden="true" focusable="false" />
             </div>
             <span className="font-display text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-brand-500 bg-clip-text text-transparent">
               Ezzy<span className="font-medium text-slate-800">Sync</span>
             </span>
-          </div>
+          </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 font-medium text-slate-600">
-            <a href="#features" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Features</a>
-            <a href="#workflow" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Workflow</a>
-            <a href="#preview" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Preview</a>
-            <a href="#pricing" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Pricing</a>
-            <a href="#faq" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">FAQ</a>
+          <nav aria-label="Main" className="hidden md:flex items-center gap-6 font-medium text-slate-600">
+            <Link href="/features" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Features</Link>
+            <Link href="/pricing" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Pricing</Link>
+            <Link href="/about" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">About</Link>
+            <Link href="/contact" className="hover:text-brand-600 transition-colors focus-visible:outline-none focus-visible:text-brand-600">Contact</Link>
           </nav>
 
           {/* Navigation CTAs */}
@@ -68,41 +68,34 @@ export default function Navbar({ crmUrl }) {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-slate-200 bg-white px-4 pt-2 pb-6 space-y-3">
-          <a
-            href="#features"
+          <Link
+            href="/features"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 focus-visible:outline-none"
           >
             Features
-          </a>
-          <a
-            href="#workflow"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 focus-visible:outline-none"
-          >
-            Workflow
-          </a>
-          <a
-            href="#preview"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 focus-visible:outline-none"
-          >
-            Preview
-          </a>
-          <a
-            href="#pricing"
+          </Link>
+          <Link
+            href="/pricing"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 focus-visible:outline-none"
           >
             Pricing
-          </a>
-          <a
-            href="#faq"
+          </Link>
+          <Link
+            href="/about"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 focus-visible:outline-none"
           >
-            FAQ
-          </a>
+            About
+          </Link>
+          <Link
+            href="/contact"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 focus-visible:outline-none"
+          >
+            Contact
+          </Link>
           <hr className="border-slate-100 my-2" />
           <div className="grid grid-cols-2 gap-3 pt-2">
             <a

@@ -2,19 +2,20 @@
 
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { faqData } from "../../data/landingData";
+import { faqData as defaultFaqData } from "../../data/landingData";
 
-export default function FAQ() {
+export default function FAQ({ items, heading = "Got Questions? We Have Answers." }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const faqData = items || defaultFaqData;
 
   return (
     <section id="faq" className="py-20 sm:py-28 bg-slate-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        
+
         <div className="text-center space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-brand-600 block">Frequently Asked</span>
           <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Got Questions? We Have Answers.
+            {heading}
           </h2>
         </div>
 

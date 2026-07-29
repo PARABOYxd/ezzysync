@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 import {
   PlaneTakeoff,
   ArrowRight,
@@ -123,13 +124,13 @@ export default function Hero({ crmUrl }) {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start items-center gap-3.5 pt-2">
-              <a
-                href="#demo"
+              <Link
+                href="/contact"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/35 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               >
                 <span>Book Free Walkthrough</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden="true" focusable="false" />
-              </a>
+              </Link>
               <a
                 href={`${crmUrl}/login`}
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold shadow-md shadow-slate-900/10 hover:shadow-lg transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"

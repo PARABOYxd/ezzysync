@@ -3,16 +3,10 @@ import Navbar from "../components/layout/Navbar";
 import Hero from "../components/sections/Hero";
 import Highlights from "../components/sections/Highlights";
 import Workflow from "../components/sections/Workflow";
-import Problem from "../components/sections/Problem";
-import Features from "../components/sections/Features";
-import WhyEzzySync from "../components/sections/WhyEzzySync";
 import WhatsAppDemo from "../components/sections/WhatsAppDemo";
 import SocialProof from "../components/sections/SocialProof";
-import Pricing from "../components/sections/Pricing";
-import FAQ from "../components/sections/FAQ";
-import DemoForm from "../components/sections/DemoForm";
+import PageTeaser from "../components/sections/PageTeaser";
 import Footer from "../components/layout/Footer";
-import { faqData } from "../data/landingData";
 
 export default function Home() {
   const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
@@ -54,18 +48,6 @@ export default function Home() {
           }
         ]
       }
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": faqData.map((item) => ({
-        "@type": "Question",
-        "name": item.q,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": item.a
-        }
-      }))
     }
   ];
 
@@ -80,14 +62,24 @@ export default function Home() {
         <Hero crmUrl={crmUrl} />
         <Highlights />
         <Workflow />
-        <Problem />
-        <Features />
-        <WhyEzzySync />
         <WhatsAppDemo />
         <SocialProof />
-        <Pricing crmUrl={crmUrl} />
-        <FAQ />
-        <DemoForm />
+        <PageTeaser
+          eyebrow="Feature Rich"
+          title="Everything Your Travel Agency Needs"
+          description="Lead pipeline, day-wise itinerary builder, automated WhatsApp alerts, PDF invoicing, and multi-tenant data isolation — see the full feature breakdown."
+          href="/features"
+          linkText="Explore All Features"
+          bg="bg-white"
+        />
+        <PageTeaser
+          eyebrow="Pricing Plans"
+          title="Fair Pricing for Travel Agencies"
+          description="Start free with up to 100 leads. Upgrade to Agency Growth for unlimited leads and WhatsApp API integration when your booking volume grows."
+          href="/pricing"
+          linkText="View Pricing Plans"
+          bg="bg-slate-50"
+        />
       </main>
       <Footer crmUrl={crmUrl} />
     </div>

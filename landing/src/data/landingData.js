@@ -11,42 +11,57 @@ export const faqData = [
   {
     q: "What is a travel CRM?",
     a: "A travel CRM is software built specifically for travel agencies and tour operators to manage leads, itineraries, bookings, and client communication in one place. Unlike generic sales CRMs, it includes travel-specific tools like day-wise itinerary builders, PDF invoice generation, and WhatsApp booking confirmations.",
+    category: "general",
   },
   {
     q: "Which is the best CRM for travel agents?",
     a: "The best travel CRM for agents is one built specifically for the industry rather than adapted from generic sales software. EzzySync focuses on the core travel workflow — lead pipeline, itinerary building, invoicing, and WhatsApp updates — instead of generic deal-tracking features agencies don't need.",
-  },
-  {
-    q: "How does booking management software work?",
-    a: "Booking management software centralizes every stage of a trip, from initial inquiry to final invoice, in a shared dashboard. Agents log leads, build itineraries, track booking status (confirmed, completed, cancelled), and generate invoices, replacing scattered spreadsheets, WhatsApp chats, and Word documents with one system.",
-  },
-  {
-    q: "Is EzzySync free?",
-    a: "Yes. EzzySync has a free Starter plan covering up to 100 client leads, a basic itinerary builder, and PDF invoice generation, no credit card required. Paid plans add unlimited leads, the advanced day-wise planner, WhatsApp Cloud API integration, and multiple agent logins for growing agencies.",
+    category: "general",
   },
   {
     q: "What's the difference between a travel CRM and a generic CRM?",
     a: "Generic CRMs are built for B2B sales and track deals and contacts, with no concept of itineraries, travel dates, or destination-based invoicing. A travel CRM like EzzySync is built around the actual booking workflow — inquiry, itinerary, payment, departure — instead of bending a sales tool to fit a different job.",
+    category: "general",
+  },
+  {
+    q: "How does booking management software work?",
+    a: "Booking management software centralizes every stage of a trip, from initial inquiry to final invoice, in a shared dashboard. Agents log leads, build itineraries, track booking status (confirmed, completed, cancelled), and generate invoices, replacing scattered spreadsheets, WhatsApp chats, and Word documents with one system.",
+    category: "feature",
   },
   {
     q: "Is EzzySync better than using spreadsheets for bookings?",
     a: "Spreadsheets don't send WhatsApp alerts, generate PDF invoices, or stop two agents from double-booking the same client. EzzySync replaces manual spreadsheet tracking with a shared, auto-updating pipeline: every lead, itinerary, and invoice lives in one system your whole team can see in real time.",
+    category: "feature",
   },
   {
     q: "Do I need a separate WhatsApp Business API account?",
     a: "Yes, you can integrate your own Meta WhatsApp Cloud API credentials directly in the CRM Settings. We guide you step-by-step to get a free phone number ID and access token from Meta so you don't pay third-party markup fees.",
+    category: "feature",
   },
   {
     q: "Is my agency's client data secure and isolated?",
     a: "Absolutely. EzzySync CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is isolated using a strict tenant filtering policy at the database query level. No agency can ever read or write another agency's data.",
+    category: "feature",
   },
   {
     q: "Can I export invoices and reports to Excel or PDF?",
     a: "Yes, you can download any invoice as a beautifully formatted PDF directly from the interface, and you can export all your bookings and financial reports to standard CSV/Excel format with a single click.",
+    category: "feature",
   },
   {
     q: "Does EzzySync support multiple agents with different permissions?",
     a: "Currently, our system supports agency-wide credentials. We are rolling out multi-agent role-based permissions (Admin, Agent, Finance) in our upcoming release next month.",
+    category: "feature",
+  },
+  {
+    q: "Is EzzySync free?",
+    a: "Yes. EzzySync has a free Starter plan covering up to 100 client leads, a basic itinerary builder, and PDF invoice generation, no credit card required. Paid plans add unlimited leads, the advanced day-wise planner, WhatsApp Cloud API integration, and multiple agent logins for growing agencies.",
+    category: "pricing",
+  },
+  {
+    q: "Is there a free trial for paid plans?",
+    a: "Yes. The Agency Growth plan includes a 7-day free trial with full access to the advanced day-wise itinerary planner, Meta WhatsApp API integration, and up to 5 agent logins, so you can evaluate it before paying.",
+    category: "pricing",
   },
 ];
 
