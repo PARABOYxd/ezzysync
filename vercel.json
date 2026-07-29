@@ -6,20 +6,17 @@
     },
     "frontend": {
       "root": "frontend",
-      "buildCommand": "vite build && mkdir -p .vercel/output/static && cp -r dist/. .vercel/output/static/",
+      "buildCommand": "vite build && mkdir -p .vercel/output/static/app && cp -r dist/. .vercel/output/static/app/",
       "outputDirectory": ".vercel/output",
       "routes": [
+        { "handle": "filesystem" },
         {
           "src": "/app/(.*)",
-          "transforms": [
-            { "type": "request.path", "op": "set", "args": "/$1" }
-          ]
+          "dest": "/app/index.html"
         },
         {
           "src": "/app",
-          "transforms": [
-            { "type": "request.path", "op": "set", "args": "/" }
-          ]
+          "dest": "/app/index.html"
         }
       ]
     }
