@@ -6,8 +6,7 @@
     },
     "frontend": {
       "root": "frontend",
-      "framework": "vite",
-      "path": "/app"
+      "framework": "vite"
     }
   }
 }
