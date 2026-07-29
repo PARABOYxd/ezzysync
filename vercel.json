@@ -6,8 +6,8 @@
     }
   },
   "rewrites": [
-    { "source": "/app/(.*)", "destination": "https://REPLACE_WITH_FRONTEND_PROJECT_URL/$1" },
-    { "source": "/app", "destination": "https://REPLACE_WITH_FRONTEND_PROJECT_URL/" },
+    { "source": "/app/(.*)", "destination": "https://ezzysync-frontend.vercel.app/$1" },
+    { "source": "/app", "destination": "https://ezzysync-frontend.vercel.app/" },
     { "source": "/(.*)", "destination": { "service": "landing" } }
   ]
 }
