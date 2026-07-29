@@ -13,7 +13,7 @@ export default function Footer({ crmUrl }) {
               <PlaneTakeoff className="w-4 h-4 text-white" aria-hidden="true" focusable="false" />
             </div>
             <span className="font-display text-lg font-extrabold tracking-tight text-white">
-              Journey<span className="text-brand-400 font-medium">Flow</span>
+              Ezzy<span className="text-brand-400 font-medium">Sync</span>
             </span>
           </div>
           

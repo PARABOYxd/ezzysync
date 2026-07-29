@@ -16,7 +16,7 @@ export default function Navbar({ crmUrl }) {
               <PlaneTakeoff className="w-5 h-5" aria-hidden="true" focusable="false" />
             </div>
             <span className="font-display text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-brand-500 bg-clip-text text-transparent">
-              Journey<span className="font-medium text-slate-800">Flow</span>
+              Ezzy<span className="font-medium text-slate-800">Sync</span>
             </span>
           </div>
 
