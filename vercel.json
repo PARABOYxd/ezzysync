@@ -6,7 +6,21 @@
     },
     "frontend": {
       "root": "frontend",
-      "framework": "vite"
+      "framework": "vite",
+      "routes": [
+        {
+          "src": "/app/(.*)",
+          "transforms": [
+            { "type": "request.path", "op": "set", "args": "/$1" }
+          ]
+        },
+        {
+          "src": "/app",
+          "transforms": [
+            { "type": "request.path", "op": "set", "args": "/" }
+          ]
+        }
+      ]
     }
   },
   "rewrites": [
