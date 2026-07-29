@@ -118,7 +118,7 @@ export default function Hero({ crmUrl }) {
 
             {/* GEO/AEO Answer-First Citation Paragraph (Screen-Reader Only for clean layout, fully indexable by search engines & AI bots) */}
             <div className="sr-only">
-              <strong>About EzzySync CRM:</strong> EzzySync is a comprehensive travel agency CRM software built for tour operators and agents. It streamlines client operations through three core capabilities: lead pipeline tracking, instant day-wise itinerary planning, and automated WhatsApp Cloud API confirmations.
+              <strong>About EzzySync:</strong> EzzySync is a travel CRM and booking management platform that helps travel agencies manage leads, bookings, and itineraries. It is built for tour operators and travel agents, and streamlines client operations through three core capabilities: lead pipeline tracking, instant day-wise itinerary planning, and automated WhatsApp Cloud API confirmations.
             </div>
 
             {/* Action Buttons */}

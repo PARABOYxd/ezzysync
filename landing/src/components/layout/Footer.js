@@ -25,6 +25,7 @@ export default function Footer({ crmUrl }) {
         <div className="flex flex-wrap gap-x-8 gap-y-4 text-xs font-medium justify-center sm:justify-start">
           <a href="#features" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">Features</a>
           <a href="#problem" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">Why Us</a>
+          <a href="#why-ezzysync" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">EzzySync vs Spreadsheets</a>
           <a href="#preview" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">Preview</a>
           <a href="#faq" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">FAQ</a>
           <a href="#demo" className="hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">Contact</a>

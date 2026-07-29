@@ -9,6 +9,30 @@ import {
 
 export const faqData = [
   {
+    q: "What is a travel CRM?",
+    a: "A travel CRM is software built specifically for travel agencies and tour operators to manage leads, itineraries, bookings, and client communication in one place. Unlike generic sales CRMs, it includes travel-specific tools like day-wise itinerary builders, PDF invoice generation, and WhatsApp booking confirmations.",
+  },
+  {
+    q: "Which is the best CRM for travel agents?",
+    a: "The best travel CRM for agents is one built specifically for the industry rather than adapted from generic sales software. EzzySync focuses on the core travel workflow — lead pipeline, itinerary building, invoicing, and WhatsApp updates — instead of generic deal-tracking features agencies don't need.",
+  },
+  {
+    q: "How does booking management software work?",
+    a: "Booking management software centralizes every stage of a trip, from initial inquiry to final invoice, in a shared dashboard. Agents log leads, build itineraries, track booking status (confirmed, completed, cancelled), and generate invoices, replacing scattered spreadsheets, WhatsApp chats, and Word documents with one system.",
+  },
+  {
+    q: "Is EzzySync free?",
+    a: "Yes. EzzySync has a free Starter plan covering up to 100 client leads, a basic itinerary builder, and PDF invoice generation, no credit card required. Paid plans add unlimited leads, the advanced day-wise planner, WhatsApp Cloud API integration, and multiple agent logins for growing agencies.",
+  },
+  {
+    q: "What's the difference between a travel CRM and a generic CRM?",
+    a: "Generic CRMs are built for B2B sales and track deals and contacts, with no concept of itineraries, travel dates, or destination-based invoicing. A travel CRM like EzzySync is built around the actual booking workflow — inquiry, itinerary, payment, departure — instead of bending a sales tool to fit a different job.",
+  },
+  {
+    q: "Is EzzySync better than using spreadsheets for bookings?",
+    a: "Spreadsheets don't send WhatsApp alerts, generate PDF invoices, or stop two agents from double-booking the same client. EzzySync replaces manual spreadsheet tracking with a shared, auto-updating pipeline: every lead, itinerary, and invoice lives in one system your whole team can see in real time.",
+  },
+  {
     q: "Do I need a separate WhatsApp Business API account?",
     a: "Yes, you can integrate your own Meta WhatsApp Cloud API credentials directly in the CRM Settings. We guide you step-by-step to get a free phone number ID and access token from Meta so you don't pay third-party markup fees.",
   },
@@ -86,5 +110,38 @@ export const featuresList = [
     iconBg: "bg-slate-100",
     title: "Export & Analytics",
     description: "Track booking trends and billing metrics on your dashboard. Export your bookings to CSV format for offline reporting and spreadsheets.",
+  },
+];
+
+export const comparisonRows = [
+  {
+    feature: "Lead tracking",
+    spreadsheet: "Manual rows, easy to lose or overwrite",
+    genericCrm: "Generic deal stages, no travel context",
+    ezzysync: "Purpose-built pipeline: Confirmed, Completed, Cancelled, Refunded",
+  },
+  {
+    feature: "Itinerary building",
+    spreadsheet: "Retyped from scratch for every client",
+    genericCrm: "Not supported, needs a separate document",
+    ezzysync: "Day-wise builder with hotels, flights, sightseeing",
+  },
+  {
+    feature: "Invoicing",
+    spreadsheet: "Manual Word/Excel templates",
+    genericCrm: "Usually requires a third-party billing add-on",
+    ezzysync: "One-click auto-generated PDF invoices",
+  },
+  {
+    feature: "Client updates",
+    spreadsheet: "Copy-pasted manually into chat apps",
+    genericCrm: "Generic email sequences, not WhatsApp-native",
+    ezzysync: "Automated WhatsApp Cloud API alerts",
+  },
+  {
+    feature: "Multi-agency data isolation",
+    spreadsheet: "Shared files, no access control",
+    genericCrm: "Depends on plan/configuration",
+    ezzysync: "Strict multi-tenant isolation by default",
   },
 ];

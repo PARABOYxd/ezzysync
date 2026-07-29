@@ -1,6 +1,15 @@
-# EzzySync CRM — Travel CRM & Lead Management Software
+# EzzySync — Travel CRM & Booking Management Software
 
-EzzySync is a modern, high-performance Travel CRM designed specifically for travel agencies, tour operators, and independent agents. It optimizes lead pipelines, automates day-wise itinerary planning, auto-generates digital PDF invoices, and integrates directly with the WhatsApp Cloud API for automated notifications.
+EzzySync is a travel CRM and booking management platform that helps travel agencies manage leads, bookings, and itineraries in one system. It is built specifically for travel agencies, tour operators, and independent travel agents — not adapted from a generic sales CRM.
+
+It optimizes lead pipelines, automates day-wise itinerary planning, auto-generates digital PDF invoices, and integrates directly with the WhatsApp Cloud API for automated booking notifications.
+
+## Who It's For
+
+- Independent travel agents managing bookings solo
+- Small and mid-size travel agencies and tour operators
+- Agencies currently relying on spreadsheets, WhatsApp chat history, or generic sales CRMs for booking management
+- Primary market: India (pricing in INR), English-language interface
 
 ## Core Capabilities
 
@@ -26,4 +35,8 @@ EzzySync is a modern, high-performance Travel CRM designed specifically for trav
 - **Backend Stack**: Node.js, Express, PostgreSQL
 - **Frontend Stack**: React, Tailwind CSS
 - **Data Isolation**: Strict multi-tenant row-level partitioning by tenant UUID in PostgreSQL.
-- **Target Market**: India-first, English content.
+
+## Official Site
+
+- Website: https://www.ezzysync.com
+- App login: https://www.ezzysync.com/app/login
