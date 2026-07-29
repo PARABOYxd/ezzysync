@@ -3,27 +3,11 @@
     "landing": {
       "root": "landing",
       "framework": "nextjs"
-    },
-    "frontend": {
-      "root": "frontend",
-      "buildCommand": "vite build && mkdir -p .vercel/output/static/app && cp -r dist/. .vercel/output/static/app/",
-      "outputDirectory": ".vercel/output",
-      "routes": [
-        { "handle": "filesystem" },
-        {
-          "src": "/app/(.*)",
-          "dest": "/app/index.html"
-        },
-        {
-          "src": "/app",
-          "dest": "/app/index.html"
-        }
-      ]
     }
   },
   "rewrites": [
-    { "source": "/app/(.*)", "destination": { "service": "frontend" } },
-    { "source": "/app", "destination": { "service": "frontend" } },
+    { "source": "/app/(.*)", "destination": "https://REPLACE_WITH_FRONTEND_PROJECT_URL/$1" },
+    { "source": "/app", "destination": "https://REPLACE_WITH_FRONTEND_PROJECT_URL/" },
     { "source": "/(.*)", "destination": { "service": "landing" } }
   ]
 }
