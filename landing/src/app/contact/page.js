@@ -100,13 +100,13 @@ export default function ContactPage() {
                   <div className="w-px h-6 bg-gradient-to-b from-brand-300 to-brand-500 mx-auto"></div>
 
                   {/* Step 3 */}
-                  <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-500 flex items-center justify-center text-sm text-slate-950 font-bold">🚀</div>
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
+                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-500 flex items-center justify-center text-sm text-white font-bold">🚀</div>
                     <div className="space-y-0.5">
-                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-500">Step 3</div>
-                      <p className="font-semibold text-white text-xs">Get your custom sandbox database credentials</p>
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 3</div>
+                      <p className="font-semibold text-slate-900 text-xs">Get your custom sandbox database credentials</p>
                     </div>
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Instant</span>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">Instant</span>
                   </div>
                 </div>
 

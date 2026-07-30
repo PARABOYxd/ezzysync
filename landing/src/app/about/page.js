@@ -90,54 +90,54 @@ export default function AboutPage() {
               <div className="lg:col-span-7 load-in mt-8 lg:mt-0 relative" style={{ "--reveal-delay": "220ms" }}>
                 <div className="absolute -inset-4 bg-brand-500/5 rounded-3xl filter blur-xl -z-10" aria-hidden="true"></div>
                 
-                <div className="max-w-md mx-auto p-6 rounded-2xl border border-slate-200 bg-slate-900 text-slate-100 text-left space-y-5 shadow-soft relative overflow-hidden">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-t-2xl" aria-hidden="true"></div>
+                <div className="max-w-md mx-auto p-6 rounded-2xl border border-slate-200 bg-white text-slate-800 text-left space-y-5 shadow-soft relative overflow-hidden">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent rounded-t-2xl" aria-hidden="true"></div>
                   
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Enterprise Security</span>
-                    <span className="text-[10px] font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">Shield Active</span>
+                    <span className="text-[10px] font-bold text-emerald-600 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100">Shield Active</span>
                   </div>
                   
                   {/* Database Isolation Nodes */}
                   <div className="space-y-3">
                     {/* Database Node 1 */}
-                    <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <span className="text-xs">🔒</span>
                         <div>
-                          <p className="text-xs font-semibold text-white">Apex Travels Database</p>
-                          <p className="text-[9px] text-slate-500">tenant_id: apex-travels</p>
+                          <p className="text-xs font-semibold text-slate-900">Apex Travels Database</p>
+                          <p className="text-[9px] text-slate-400">tenant_id: apex-travels</p>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold text-emerald-400">Isolated</span>
+                      <span className="text-[9px] font-bold text-emerald-600">Isolated</span>
                     </div>
 
                     {/* Database Node 2 */}
-                    <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <span className="text-xs">🔒</span>
                         <div>
-                          <p className="text-xs font-semibold text-white">Bharat Holidays Database</p>
-                          <p className="text-[9px] text-slate-500">tenant_id: bharat-holidays</p>
+                          <p className="text-xs font-semibold text-slate-900">Bharat Holidays Database</p>
+                          <p className="text-[9px] text-slate-400">tenant_id: bharat-holidays</p>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold text-emerald-400">Isolated</span>
+                      <span className="text-[9px] font-bold text-emerald-600">Isolated</span>
                     </div>
 
                     {/* Database Node 3 */}
-                    <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <span className="text-xs">🔒</span>
                         <div>
-                          <p className="text-xs font-semibold text-white">Royal Escapes Database</p>
-                          <p className="text-[9px] text-slate-500">tenant_id: royal-escapes</p>
+                          <p className="text-xs font-semibold text-slate-900">Royal Escapes Database</p>
+                          <p className="text-[9px] text-slate-400">tenant_id: royal-escapes</p>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold text-emerald-400">Isolated</span>
+                      <span className="text-[9px] font-bold text-emerald-600">Isolated</span>
                     </div>
                   </div>
 
-                  <p className="text-[10px] text-slate-500 text-center italic">
+                  <p className="text-[10px] text-slate-400 text-center italic">
                     Strict multi-tenant access controls at the database layer. No agency can ever access another's bookings.
                   </p>
                 </div>

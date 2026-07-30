@@ -90,37 +90,37 @@ export default function PricingPage() {
               <div className="lg:col-span-7 load-in mt-8 lg:mt-0 relative" style={{ "--reveal-delay": "220ms" }}>
                 <div className="absolute -inset-4 bg-brand-500/5 rounded-3xl filter blur-xl -z-10" aria-hidden="true"></div>
                 
-                <div className="max-w-md mx-auto p-6 rounded-2xl border border-slate-200 bg-slate-900 text-slate-100 text-left space-y-4 shadow-soft relative overflow-hidden">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-t-2xl" aria-hidden="true"></div>
+                <div className="max-w-md mx-auto p-6 rounded-2xl border border-slate-200 bg-white text-slate-800 text-left space-y-4 shadow-soft relative overflow-hidden">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent rounded-t-2xl" aria-hidden="true"></div>
                   
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Efficiency Index</span>
-                    <span className="text-[10px] font-bold text-brand-400">Value Unleashed</span>
+                    <span className="text-[10px] font-bold text-brand-600">Value Unleashed</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3.5">
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
                       <span className="text-[18px]">🕒</span>
                       <div className="mt-3">
-                        <p className="text-lg font-bold text-white leading-tight">12 hrs</p>
-                        <p className="text-[10px] text-slate-500 font-medium">Saved per week</p>
+                        <p className="text-lg font-bold text-slate-900 leading-tight">12 hrs</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Saved per week</p>
                       </div>
                     </div>
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
                       <span className="text-[18px]">📈</span>
                       <div className="mt-3">
-                        <p className="text-lg font-bold text-white leading-tight">+35%</p>
-                        <p className="text-[10px] text-slate-500 font-medium">Lead Conversion</p>
+                        <p className="text-lg font-bold text-slate-900 leading-tight">+35%</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Lead Conversion</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-white">WhatsApp Cloud API</p>
-                      <p className="text-[9px] text-slate-500">Zero additional markup fee</p>
+                      <p className="text-xs font-semibold text-slate-900">WhatsApp Cloud API</p>
+                      <p className="text-[9px] text-slate-400">Zero additional markup fee</p>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">Unlimited Reminders</span>
+                    <span className="text-[10px] font-bold text-emerald-600 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100">Unlimited Reminders</span>
                   </div>
                 </div>
               </div>
