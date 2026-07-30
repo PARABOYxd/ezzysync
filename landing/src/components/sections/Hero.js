@@ -21,12 +21,12 @@ export default function Hero({ crmUrl }) {
       <div className="absolute top-24 right-0 w-[520px] h-[520px] rounded-full bg-brand-200/25 filter blur-[110px] -z-10" aria-hidden="true"></div>
 
       <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-20 items-center">
 
           {/* Left Column: Heading & CTAs */}
           <div className="lg:col-span-5 text-center lg:text-left space-y-6">
             <h1
-              className="load-in font-semibold text-slate-950 text-[clamp(2.5rem,5vw,4.5rem)] lg:text-[3.75rem] leading-[1.05] tracking-[-0.03em]"
+              className="load-in font-semibold text-slate-950 text-[clamp(2.5rem,5vw,4.5rem)] lg:text-[4.25rem] leading-[1.05] tracking-[-0.03em]"
               style={{ "--reveal-delay": "0ms" }}
             >
               The travel CRM built for{" "}
@@ -34,7 +34,7 @@ export default function Hero({ crmUrl }) {
             </h1>
 
             <p
-              className="load-in text-base sm:text-lg text-slate-500 leading-[1.6]"
+              className="load-in text-base sm:text-lg lg:text-[20px] lg:leading-relaxed text-slate-500"
               style={{ "--reveal-delay": "100ms" }}
             >
               Stop losing clients in scattered chats. Centralize leads, build professional day-wise itineraries, send PDF invoices, and automate alerts via WhatsApp.
