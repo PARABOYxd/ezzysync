@@ -70,6 +70,7 @@ export default function Home() {
           href="/features"
           linkText="Explore all features"
           bg="bg-white"
+          highlights={["Lead pipeline", "Itinerary builder", "WhatsApp alerts", "PDF invoicing"]}
         />
         <PageTeaser
           title="Fair pricing for travel agencies"
@@ -77,6 +78,7 @@ export default function Home() {
           href="/pricing"
           linkText="View pricing plans"
           bg="bg-slate-50"
+          highlights={["₹0 to start", "7-day free trial", "Cancel anytime"]}
         />
       </main>
       <Footer crmUrl={crmUrl} />

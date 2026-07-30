@@ -3,17 +3,31 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 
-export default function PageTeaser({ title, description, href, linkText, bg = "bg-white" }) {
+export default function PageTeaser({ title, description, href, linkText, bg = "bg-white", highlights = [] }) {
   return (
     <section className={`py-16 sm:py-28 ${bg} relative z-10`}>
       <ScrollReveal className="max-w-[1100px] mx-auto px-5 sm:px-6">
-        <div className="max-w-2xl mx-auto text-center space-y-4">
+        <div className="max-w-2xl mx-auto text-center space-y-5">
           <h2 className="font-semibold text-2xl sm:text-3xl tracking-[-0.02em] text-slate-950">
             {title}
           </h2>
           <p className="text-slate-500 text-base leading-relaxed max-w-[50ch] mx-auto">
             {description}
           </p>
+
+          {highlights.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              {highlights.map((h, idx) => (
+                <span
+                  key={idx}
+                  className="font-mono text-[12px] px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-slate-600"
+                >
+                  {h}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="pt-2">
             <Link
               href={href}
