@@ -128,166 +128,26 @@ export default function Hero({ crmUrl }) {
             <div className="min-w-[760px] lg:min-w-0">
 
               {/* Simulated window header buttons */}
-              <div className="flex items-center justify-between pb-2 px-1 border-b border-slate-850">
+              <div className="flex items-center justify-between pb-2.5 px-3 border-b border-slate-800 bg-slate-900 rounded-t-xl">
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
                 </div>
-                <div className="px-5 py-0.5 rounded bg-slate-800/50 text-slate-400 text-[9px] font-mono select-none">
+                <div className="px-5 py-0.5 rounded bg-slate-800/50 text-slate-400 text-[10px] font-mono select-none">
                   www.ezzysync.com/app/dashboard
                 </div>
                 <div className="w-10"></div>
               </div>
 
-              {/* Dashboard Frame Content */}
-              <div className="grid grid-cols-5 bg-slate-950/40 text-slate-300 min-h-[400px] rounded-b-xl overflow-hidden font-sans text-xs">
-
-                {/* Sidebar navigation */}
-                <aside className="col-span-1 bg-slate-900/80 border-r border-slate-800/80 p-3 flex flex-col gap-4">
-                  <div className="flex items-center gap-2 px-1 mb-2">
-                    <div className="w-6 h-6 rounded bg-brand-500 flex items-center justify-center text-white font-bold">E</div>
-                    <span className="font-bold tracking-tight text-white">EzzySync</span>
-                  </div>
-                  <nav className="space-y-1">
-                    <div className="flex items-center gap-2 px-2 py-1.5 bg-brand-600/10 text-brand-400 rounded-lg font-medium cursor-pointer">
-                      <ClipboardList className="w-3.5 h-3.5" aria-hidden="true" />
-                      <span>Dashboard</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer transition-colors">
-                      <Users className="w-3.5 h-3.5" aria-hidden="true" />
-                      <span>Leads</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer transition-colors">
-                      <PlaneTakeoff className="w-3.5 h-3.5" aria-hidden="true" />
-                      <span>Bookings</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer transition-colors">
-                      <FileText className="w-3.5 h-3.5" aria-hidden="true" />
-                      <span>Invoices</span>
-                    </div>
-                  </nav>
-                </aside>
-
-                {/* Main Panel Content Area */}
-                <main className="col-span-4 p-4 space-y-4 bg-slate-900/30">
-                  {/* Header elements inside mockup */}
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg w-48 border border-slate-800">
-                      <div className="w-3 h-3 rounded-full border border-slate-500"></div>
-                      <span className="text-[10px] text-slate-500">Search bookings...</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Bell className="w-4.5 h-4.5 text-slate-400 cursor-pointer hover:text-slate-200" aria-hidden="true" />
-                      <div className="flex items-center gap-1.5 bg-slate-800/60 py-1 px-2 rounded-lg border border-slate-800 cursor-pointer">
-                        <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-white">A</div>
-                        <span className="font-medium text-[10px] text-slate-200">Admin</span>
-                        <ChevronDown className="w-3 h-3 text-slate-400" aria-hidden="true" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dashboard Stats Row */}
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                      <div className="flex justify-between items-center text-slate-500 mb-1">
-                        <span>Total Bookings</span>
-                        <ClipboardList className="w-3.5 h-3.5 text-brand-500" aria-hidden="true" />
-                      </div>
-                      <div className="text-base sm:text-lg font-bold text-white">48</div>
-                    </div>
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                      <div className="flex justify-between items-center text-slate-500 mb-1">
-                        <span>Upcoming Trips</span>
-                        <PlaneTakeoff className="w-3.5 h-3.5 text-brand-500" aria-hidden="true" />
-                      </div>
-                      <div className="text-base sm:text-lg font-bold text-white">12</div>
-                    </div>
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                      <div className="flex justify-between items-center text-slate-500 mb-1">
-                        <span>Completed Trips</span>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-                      </div>
-                      <div className="text-base sm:text-lg font-bold text-white">32</div>
-                    </div>
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                      <div className="flex justify-between items-center text-slate-500 mb-1">
-                        <span>Revenue Today</span>
-                        <TrendingUp className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-                      </div>
-                      <div className="text-base sm:text-lg font-bold text-white">₹1,45,000</div>
-                    </div>
-                  </div>
-
-                  {/* Split Table Layout */}
-                  <div className="grid grid-cols-3 gap-4">
-
-                    {/* Recent Bookings Table */}
-                    <div className="col-span-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-white">Recent Bookings</span>
-                        <span className="text-[10px] text-brand-500 cursor-pointer hover:underline">View All</span>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="border-b border-slate-800 text-slate-500 text-[10px]">
-                              <th className="pb-1.5">Client</th>
-                              <th className="pb-1.5">Destination</th>
-                              <th className="pb-1.5">Status</th>
-                              <th className="pb-1.5">Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/50">
-                            <tr>
-                              <td className="py-2 text-white font-medium">Rahul Sharma</td>
-                              <td className="py-2">Bali Package</td>
-                              <td className="py-2"><span className="px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 font-medium">Confirmed</span></td>
-                              <td className="py-2 text-white">₹85,000</td>
-                            </tr>
-                            <tr>
-                              <td className="py-2 text-white font-medium">Priya Patel</td>
-                              <td className="py-2">Switzerland Highlights</td>
-                              <td className="py-2"><span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">Completed</span></td>
-                              <td className="py-2 text-white">₹2,40,000</td>
-                            </tr>
-                            <tr>
-                              <td className="py-2 text-white font-medium">Amit Goel</td>
-                              <td className="py-2">Dubai Special</td>
-                              <td className="py-2"><span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-450 font-medium">Pending</span></td>
-                              <td className="py-2 text-white">₹65,000</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Upcoming departures summary */}
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
-                      <span className="font-semibold text-white block">Departures (7 Days)</span>
-                      <div className="space-y-2">
-                        <div className="p-2 rounded bg-slate-800/30 border border-slate-800 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-white">Rahul Sharma</p>
-                            <p className="text-[10px] text-slate-500">Bali • 26 Jul</p>
-                          </div>
-                          <span className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse" aria-hidden="true"></span>
-                        </div>
-                        <div className="p-2 rounded bg-slate-800/35 border border-slate-800 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-white">Nisha Sen</p>
-                            <p className="text-[10px] text-slate-500">Maldives • 29 Jul</p>
-                          </div>
-                          <span className="w-2.5 h-2.5 rounded-full bg-brand-400" aria-hidden="true"></span>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </main>
-
+              {/* Actual Dashboard Screenshot Image */}
+              <div className="bg-slate-950/40 rounded-b-xl overflow-hidden">
+                <img 
+                  src="/dashboard_mockup.jpg" 
+                  alt="EzzySync Travel CRM Dashboard Mockup" 
+                  className="w-full h-auto object-cover opacity-95 hover:opacity-100 transition-opacity duration-300"
+                />
               </div>
-            </div>
           </div>
         </div>
 

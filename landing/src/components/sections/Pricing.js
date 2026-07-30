@@ -65,9 +65,6 @@ export default function Pricing({ crmUrl }) {
           {/* Plan 2: Growth (Popular) */}
           <ScrollReveal delay={80}>
             <div className="h-full bg-white p-6 sm:p-7 rounded-2xl border border-brand-500 flex flex-col justify-between relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[10px] uppercase tracking-wider font-semibold py-1 px-3 rounded-full">
-                Most popular
-              </span>
               <div className="space-y-6">
                 <div>
                   <h3 className="font-semibold text-base text-slate-900 tracking-tight">Agency Growth</h3>
