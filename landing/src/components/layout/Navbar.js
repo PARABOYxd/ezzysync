@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { PlaneTakeoff } from "lucide-react";
 
 export default function Navbar({ crmUrl }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -14,6 +16,13 @@ export default function Navbar({ crmUrl }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const getLinkClass = (path) => {
+    const isActive = pathname === path;
+    return isActive
+      ? "text-brand-600 font-semibold focus-visible:outline-none"
+      : "hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950";
+  };
 
   return (
     <header
@@ -35,17 +44,18 @@ export default function Navbar({ crmUrl }) {
 
           {/* Desktop Navigation Links */}
           <nav aria-label="Main" className="hidden md:flex items-center gap-8 text-[14px] font-medium text-slate-600">
-            <Link href="/features" className="hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950">Features</Link>
-            <Link href="/pricing" className="hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950">Pricing</Link>
-            <Link href="/about" className="hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950">About</Link>
-            <Link href="/contact" className="hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950">Contact</Link>
+            <Link href="/features" className={getLinkClass("/features")}>Features</Link>
+            <Link href="/pricing" className={getLinkClass("/pricing")}>Pricing</Link>
+            <Link href="/about" className={getLinkClass("/about")}>About</Link>
+            <Link href="/contact" className={getLinkClass("/contact")}>Contact</Link>
+            <a href={`${crmUrl}/login`} className="hover:text-slate-950 transition-colors focus-visible:outline-none">Dashboard</a>
           </nav>
 
           {/* Navigation CTAs */}
           <div className="hidden md:flex items-center gap-5">
             <a
               href={`${crmUrl}/login`}
-              className="text-[14px] font-medium text-slate-600 hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950"
+              className="text-[14px] font-medium text-slate-600 hover:text-slate-950 transition-colors focus-visible:outline-none"
             >
               Sign in
             </a>
@@ -83,31 +93,38 @@ export default function Navbar({ crmUrl }) {
           <Link
             href="/features"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-3 rounded-lg text-[15px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none"
+            className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/features" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}
           >
             Features
           </Link>
           <Link
             href="/pricing"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-3 rounded-lg text-[15px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none"
+            className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/pricing" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}
           >
             Pricing
           </Link>
           <Link
             href="/about"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-3 rounded-lg text-[15px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none"
+            className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/about" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}
           >
             About
           </Link>
           <Link
             href="/contact"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-3 rounded-lg text-[15px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none"
+            className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/contact" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}
           >
             Contact
           </Link>
+          <a
+            href={`${crmUrl}/login`}
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-3 rounded-lg text-[15px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none"
+          >
+            Dashboard
+          </a>
           <div className="grid grid-cols-2 gap-3 pt-3 mt-2 border-t border-slate-100">
             <a
               href={`${crmUrl}/login`}
