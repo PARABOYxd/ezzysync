@@ -32,5 +32,23 @@ export default function sitemap() {
       changeFrequency: 'yearly',
       priority: 0.7,
     },
+    {
+      url: 'https://www.ezzysync.com/terms',
+      lastModified,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: 'https://www.ezzysync.com/privacy',
+      lastModified,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: 'https://www.ezzysync.com/refund-policy',
+      lastModified,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
   ];
 }

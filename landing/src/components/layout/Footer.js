@@ -24,6 +24,12 @@ export default function Footer({ crmUrl }) {
           <a href={`${crmUrl}/login`} className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Sign in</a>
         </nav>
 
+        <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400">
+          <Link href="/terms" className="hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:text-slate-600">Terms</Link>
+          <Link href="/privacy" className="hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:text-slate-600">Privacy</Link>
+          <Link href="/refund-policy" className="hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:text-slate-600">Refund Policy</Link>
+        </nav>
+
         <p className="text-xs text-slate-400">
           &copy; {new Date().getFullYear()} EzzySync CRM. All rights reserved.
         </p>
