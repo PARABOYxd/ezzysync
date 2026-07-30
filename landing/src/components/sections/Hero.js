@@ -15,12 +15,52 @@ import {
 
 export default function Hero({ crmUrl }) {
   return (
-    <section className="relative pt-20 pb-24 sm:pt-28 sm:pb-36 lg:pb-40 overflow-hidden bg-white">
+    <section className="relative pt-20 pb-24 sm:pt-28 sm:pb-36 lg:pb-40 overflow-hidden bg-white bg-grid-pattern">
 
       {/* Single soft ambient glow behind the product shot — no grid, no floating orbs */}
       <div className="absolute top-24 right-0 w-[520px] h-[520px] rounded-full bg-brand-200/25 filter blur-[110px] -z-10" aria-hidden="true"></div>
 
       <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
+
+        {/* Floating Card Left */}
+        <div className="hidden lg:block absolute -left-4 top-16 w-52 bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft text-left load-in" style={{ "--reveal-delay": "350ms" }}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">New Lead</span>
+          </div>
+          <p className="font-semibold text-[13px] text-slate-800">Rahul (Bali Package)</p>
+          <span className="text-[10px] text-slate-400">Captured from Website</span>
+        </div>
+
+        {/* Floating Card Right */}
+        <div className="hidden lg:block absolute -right-4 top-6 w-56 bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft text-left load-in" style={{ "--reveal-delay": "450ms" }}>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-[10px]">💬</span>
+            <span className="text-[9px] font-bold text-brand-600 uppercase tracking-wider">WhatsApp Sent</span>
+          </div>
+          <p className="font-semibold text-[13px] text-slate-800">Bali Itinerary Link</p>
+          <span className="text-[10px] text-slate-400">Delivered & Opened</span>
+        </div>
+
+        {/* Floating Card Middle Left */}
+        <div className="hidden lg:block absolute -left-12 top-64 w-48 bg-slate-900 text-white p-3.5 rounded-xl border border-slate-800 shadow-soft text-left load-in" style={{ "--reveal-delay": "550ms" }}>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] font-medium text-slate-400">Invoice Paid</span>
+            <span className="text-emerald-400 font-bold text-xs">✓</span>
+          </div>
+          <p className="font-bold text-[15px] text-white">₹85,000</p>
+          <span className="text-[10px] text-slate-500">Booking Ref: #BK-Bali</span>
+        </div>
+
+        {/* Floating Card Middle Right */}
+        <div className="hidden lg:block absolute -right-12 top-56 w-52 bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft text-left load-in" style={{ "--reveal-delay": "600ms" }}>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-brand-500 text-xs">✨</span>
+            <span className="text-[9px] font-bold text-brand-600 uppercase tracking-wider">AI Itinerary</span>
+          </div>
+          <p className="font-semibold text-[13px] text-slate-850">Built Maldives 5-Day</p>
+          <span className="text-[10px] text-slate-400">Generated in 3.4 seconds</span>
+        </div>
 
         {/* Centered, typography-led heading block */}
         <div className="max-w-[46rem] mx-auto text-center space-y-6">
