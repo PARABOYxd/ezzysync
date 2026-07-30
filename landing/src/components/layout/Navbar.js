@@ -48,7 +48,6 @@ export default function Navbar({ crmUrl }) {
             <Link href="/pricing" className={getLinkClass("/pricing")}>Pricing</Link>
             <Link href="/about" className={getLinkClass("/about")}>About</Link>
             <Link href="/contact" className={getLinkClass("/contact")}>Contact</Link>
-            <a href={`${crmUrl}/login`} className="hover:text-slate-950 transition-colors focus-visible:outline-none">Dashboard</a>
           </nav>
 
           {/* Navigation CTAs */}
@@ -118,13 +117,7 @@ export default function Navbar({ crmUrl }) {
           >
             Contact
           </Link>
-          <a
-            href={`${crmUrl}/login`}
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-3 rounded-lg text-[15px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none"
-          >
-            Dashboard
-          </a>
+
           <div className="grid grid-cols-2 gap-3 pt-3 mt-2 border-t border-slate-100">
             <a
               href={`${crmUrl}/login`}
