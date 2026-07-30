@@ -88,16 +88,61 @@ export default function FeaturesPage() {
                 </div>
               </div>
               
-              {/* Right Column: Creative Visual Illustration */}
+              {/* Right Column: Creative Visual Flowchart Widget */}
               <div className="lg:col-span-7 load-in mt-8 lg:mt-0 relative" style={{ "--reveal-delay": "220ms" }}>
                 <div className="absolute -inset-4 bg-brand-500/5 rounded-3xl filter blur-xl -z-10" aria-hidden="true"></div>
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-soft p-1.5">
-                  <img 
-                    src="/features_illustration.jpg" 
-                    alt="EzzySync Travel CRM Workflow Features Illustration" 
-                    className="w-full h-auto object-cover rounded-xl shadow-inner opacity-95"
-                  />
+                
+                <div className="max-w-md mx-auto space-y-3.5 relative z-10">
+                  {/* Step 1 */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
+                    <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center text-sm">📥</div>
+                    <div className="space-y-0.5">
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">1. Client Intake</div>
+                      <p className="font-semibold text-slate-900 text-xs">Lead Captured: Rahul (Bali Tour)</p>
+                    </div>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-100">Captured</span>
+                  </div>
+
+                  {/* Connector */}
+                  <div className="w-px h-6 bg-gradient-to-b from-brand-300 to-brand-500 mx-auto"></div>
+
+                  {/* Step 2 */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
+                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-50 flex items-center justify-center text-sm">✈️</div>
+                    <div className="space-y-0.5">
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">2. Itinerary Engine</div>
+                      <p className="font-semibold text-slate-900 text-xs">Bali 5-Day Day-wise Itinerary</p>
+                    </div>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">AI Generated</span>
+                  </div>
+
+                  {/* Connector */}
+                  <div className="w-px h-6 bg-gradient-to-b from-brand-300 to-brand-500 mx-auto"></div>
+
+                  {/* Step 3 */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
+                    <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center text-sm">💬</div>
+                    <div className="space-y-0.5">
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">3. Automation</div>
+                      <p className="font-semibold text-slate-900 text-xs">WhatsApp Alert & Trip Link Sent</p>
+                    </div>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-100">Delivered</span>
+                  </div>
+
+                  {/* Connector */}
+                  <div className="w-px h-6 bg-gradient-to-b from-brand-300 to-brand-500 mx-auto"></div>
+
+                  {/* Step 4 */}
+                  <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
+                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-500 flex items-center justify-center text-sm text-slate-950 font-bold">₹</div>
+                    <div className="space-y-0.5">
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-500">4. Billing</div>
+                      <p className="font-semibold text-white text-xs">Booking Confirmation Receipt</p>
+                    </div>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">₹85,000 Paid</span>
+                  </div>
                 </div>
+
               </div>
               
             </div>
