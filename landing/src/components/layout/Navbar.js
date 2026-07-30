@@ -47,6 +47,7 @@ export default function Navbar({ crmUrl }) {
             <Link href="/features" className={getLinkClass("/features")}>Features</Link>
             <Link href="/pricing" className={getLinkClass("/pricing")}>Pricing</Link>
             <Link href="/about" className={getLinkClass("/about")}>About</Link>
+            <Link href="/blog" className={getLinkClass("/blog")}>Blog</Link>
             <Link href="/contact" className={getLinkClass("/contact")}>Contact</Link>
           </nav>
 
@@ -109,6 +110,13 @@ export default function Navbar({ crmUrl }) {
             className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/about" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}
           >
             About
+          </Link>
+          <Link
+            href="/blog"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/blog" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}
+          >
+            Blog
           </Link>
           <Link
             href="/contact"
