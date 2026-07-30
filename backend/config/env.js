@@ -41,6 +41,7 @@ function loadEnv() {
       phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
       accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
       apiVersion: process.env.WHATSAPP_API_VERSION || 'v20.0',
+      verifyToken: process.env.WHATSAPP_VERIFY_TOKEN,
     },
 
     rateLimit: {
