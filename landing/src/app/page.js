@@ -5,7 +5,10 @@ import Highlights from "../components/sections/Highlights";
 import Workflow from "../components/sections/Workflow";
 import WhatsAppDemo from "../components/sections/WhatsAppDemo";
 import SocialProof from "../components/sections/SocialProof";
-import PageTeaser from "../components/sections/PageTeaser";
+import Features from "../components/sections/Features";
+import WhyEzzySync from "../components/sections/WhyEzzySync";
+import Pricing from "../components/sections/Pricing";
+import FAQ from "../components/sections/FAQ";
 import Footer from "../components/layout/Footer";
 
 export default function Home() {
@@ -64,22 +67,10 @@ export default function Home() {
         <Workflow />
         <WhatsAppDemo />
         <SocialProof />
-        <PageTeaser
-          title="Everything your travel agency needs"
-          description="Lead pipeline, day-wise itinerary builder, automated WhatsApp alerts, PDF invoicing, and multi-tenant data isolation — see the full feature breakdown."
-          href="/features"
-          linkText="Explore all features"
-          bg="bg-white"
-          highlights={["Lead pipeline", "Itinerary builder", "WhatsApp alerts", "PDF invoicing"]}
-        />
-        <PageTeaser
-          title="Fair pricing for travel agencies"
-          description="Start free with up to 100 leads. Upgrade to Agency Growth for unlimited leads and WhatsApp API integration when your booking volume grows."
-          href="/pricing"
-          linkText="View pricing plans"
-          bg="bg-slate-50"
-          highlights={["₹0 to start", "7-day free trial", "Cancel anytime"]}
-        />
+        <Features />
+        <WhyEzzySync />
+        <Pricing crmUrl={crmUrl} />
+        <FAQ />
       </main>
       <Footer crmUrl={crmUrl} />
     </div>
