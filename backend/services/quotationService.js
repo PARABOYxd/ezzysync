@@ -43,7 +43,7 @@ async function createQuotation(tenantId, data) {
 async function syncBookingForQuotation(tenantId, quote, actor) {
   const existingBooking = await bookingService.getBookingBySourceQuotation(tenantId, quote.quotationId);
   if (existingBooking) {
-    return bookingService.updateBooking(tenantId, existingBooking.bookingId, {
+    const booking = await bookingService.updateBooking(tenantId, existingBooking.bookingId, {
       ...existingBooking,
       customerName: quote.customerName,
       email: quote.email,
@@ -54,7 +54,18 @@ async function syncBookingForQuotation(tenantId, quote, actor) {
       travelStatus: 'Booked',
       deleted: false,
     });
+    return { booking, possibleDuplicates: [] };
   } else {
+    // This quotation has no booking of its own yet. Check whether the
+    // customer already has a different open booking (e.g. from a Lead
+    // conversion) - the two paths don't cross-reference each other, so
+    // without this check we'd silently create a second booking for the
+    // same person instead of flagging it.
+    const customerId = quote.phone
+      ? await customerService.upsertFromContact(tenantId, { name: quote.customerName, email: quote.email, phone: quote.phone })
+      : null;
+    const possibleDuplicates = customerId ? await bookingService.getActiveBookingsByCustomer(tenantId, customerId) : [];
+
     const bookingPayload = {
       customerName: quote.customerName,
       email: quote.email,
@@ -69,7 +80,8 @@ async function syncBookingForQuotation(tenantId, quote, actor) {
       notes: `Automatically generated from Accepted Quotation #: ${quote.quotationId}`,
       sourceQuotationId: quote.quotationId,
     };
-    return bookingService.createBooking(tenantId, bookingPayload, actor || 'System');
+    const booking = await bookingService.createBooking(tenantId, bookingPayload, actor || 'System');
+    return { booking, possibleDuplicates };
   }
 }
 
@@ -125,13 +137,13 @@ async function acceptQuotation(tenantId, quotationId, acceptedBy) {
   }
 
   // Sync booking (will create or restore)
-  const booking = await syncBookingForQuotation(tenantId, quote, acceptedBy);
+  const { booking, possibleDuplicates } = await syncBookingForQuotation(tenantId, quote, acceptedBy);
 
   // Update status directly using repository to prevent double hook calls
   const merged = { ...quote, status: 'Accepted' };
   await quotationRepository.updateQuotation(tenantId, quotationId, merged);
 
-  return { booking, quotation: merged };
+  return { booking, quotation: merged, possibleDuplicates };
 }
 
 module.exports = {

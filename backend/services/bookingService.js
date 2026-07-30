@@ -191,6 +191,11 @@ async function getBookingBySourceQuotation(tenantId, quotationId) {
   return rowToBooking(row);
 }
 
+async function getActiveBookingsByCustomer(tenantId, customerId) {
+  const rows = await bookingRepository.getActiveBookingsByCustomer(tenantId, customerId);
+  return rows.map(rowToBooking);
+}
+
 module.exports = {
   listBookings,
   getBookingById,
@@ -203,4 +208,5 @@ module.exports = {
   getFollowUps,
   addFollowUp,
   getBookingBySourceQuotation,
+  getActiveBookingsByCustomer,
 };

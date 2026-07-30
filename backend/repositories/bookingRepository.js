@@ -24,6 +24,19 @@ async function getBookingBySourceQuotation(tenantId, quotationId) {
   return rows[0];
 }
 
+// Open (not deleted, still 'Booked') bookings for a customer - used to warn
+// when a Lead-convert or Quotation-accept is about to create a booking for
+// someone who already has an unresolved one, since those two paths don't
+// otherwise know about each other.
+async function getActiveBookingsByCustomer(tenantId, customerId) {
+  if (!customerId) return [];
+  const { rows } = await query(
+    `SELECT * FROM bookings WHERE tenant_id = $1 AND customer_id = $2 AND deleted = FALSE AND travel_status = 'Booked'`,
+    [tenantId, customerId]
+  );
+  return rows;
+}
+
 async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, remaining, travelStatus, paymentStatus, createdBy, customerId) {
   const hotelCost = Number(data.vendorHotelCost || 0);
   const flightCost = Number(data.vendorFlightCost || 0);
@@ -236,5 +249,6 @@ module.exports = {
   listFollowUps,
   insertFollowUp,
   getBookingBySourceQuotation,
+  getActiveBookingsByCustomer,
   getUpcomingDepartures,
 };

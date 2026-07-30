@@ -22,12 +22,16 @@ export default function ConvertLeadModal({ open, onClose, lead, onConverted }) {
     }
     setSaving(true);
     try {
-      await leadService.convertLeadToBooking(lead.leadId, {
+      const result = await leadService.convertLeadToBooking(lead.leadId, {
         departure: form.departure,
         members: Number(form.members || 1),
         pricePerPerson: Number(form.pricePerPerson || 0),
       });
       toast.success('Lead converted to booking!');
+      if (result.possibleDuplicates?.length) {
+        const ids = result.possibleDuplicates.map((b) => b.bookingId).join(', ');
+        toast.info(`Heads up: ${lead.customerName} already has an open booking (${ids}). Check you're not double-booking.`);
+      }
       onConverted?.();
       onClose();
     } catch (err) {

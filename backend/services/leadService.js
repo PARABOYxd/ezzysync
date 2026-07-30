@@ -101,6 +101,17 @@ async function convertToBooking(tenantId, leadId, bookingExtras, actor) {
     throw err;
   }
 
+  // Leads and Quotations don't reference each other, so if this customer
+  // already has an open booking (e.g. from a Quotation accepted separately
+  // for them), converting the lead would otherwise create a silent
+  // duplicate. Surface it instead of guessing whether to merge.
+  const customerIdForCheck = lead.phone
+    ? await customerService.upsertFromContact(tenantId, { name: lead.customerName, email: lead.email, phone: lead.phone })
+    : null;
+  const possibleDuplicates = customerIdForCheck
+    ? await bookingService.getActiveBookingsByCustomer(tenantId, customerIdForCheck)
+    : [];
+
   const booking = await bookingService.createBooking(tenantId, {
     customerName: lead.customerName,
     email: lead.email,
@@ -127,7 +138,7 @@ async function convertToBooking(tenantId, leadId, bookingExtras, actor) {
     'meeting', null, actor || 'System'
   );
 
-  return { lead: await getLeadById(tenantId, leadId), booking };
+  return { lead: await getLeadById(tenantId, leadId), booking, possibleDuplicates };
 }
 
 module.exports = {

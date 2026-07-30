@@ -77,10 +77,14 @@ export default function Quotations() {
     }
   };
 
-  const handleAccept = async (qId) => {
+  const handleAccept = async (q) => {
     try {
-      await quotationService.acceptQuotation(qId);
+      const result = await quotationService.acceptQuotation(q.quotationId);
       toast.success('Quotation accepted! Booking automatically generated inside CRM.');
+      if (result.possibleDuplicates?.length) {
+        const ids = result.possibleDuplicates.map((b) => b.bookingId).join(', ');
+        toast.info(`Heads up: ${q.customerName} already has an open booking (${ids}). Check you're not double-booking.`);
+      }
       load();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to accept quotation.');
@@ -164,7 +168,7 @@ export default function Quotations() {
                       <div className="flex items-center justify-end gap-1.5">
                         {q.status !== 'Accepted' && (
                           <button
-                            onClick={() => handleAccept(q.quotationId)}
+                            onClick={() => handleAccept(q)}
                             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition"
                             title="Convert quotation to a confirmed lead booking"
                           >

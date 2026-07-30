@@ -92,8 +92,8 @@ async function accept(req, res, next) {
       return res.status(400).json({ message: 'Tenant identifier is required to confirm booking.' });
     }
 
-    const { booking, quotation } = await quotationService.acceptQuotation(tenantId, req.params.id, acceptedBy);
-    res.json({ message: 'Booking confirmed successfully!', booking, quotation });
+    const { booking, quotation, possibleDuplicates } = await quotationService.acceptQuotation(tenantId, req.params.id, acceptedBy);
+    res.json({ message: 'Booking confirmed successfully!', booking, quotation, possibleDuplicates });
   } catch (err) {
     next(err);
   }
