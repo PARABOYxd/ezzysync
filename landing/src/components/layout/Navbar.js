@@ -34,8 +34,8 @@ export default function Navbar({ crmUrl }) {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
-            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white">
-              <PlaneTakeoff className="w-3.5 h-3.5" aria-hidden="true" focusable="false" />
+            <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center border border-slate-100">
+              <img src="/logo_icon.jpg" alt="EzzySync logo icon" className="w-full h-full object-cover" />
             </div>
             <span className="font-semibold tracking-tight text-[15px] text-slate-900">
               EzzySync
