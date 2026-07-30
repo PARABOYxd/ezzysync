@@ -2,40 +2,34 @@ const { google } = require('googleapis');
 const gmailApiService = require('./gmailApiService');
 const logger = require('../utils/logger').child({ module: 'email' });
 
-// Nodemailer is used as a fallback for system-level emails (registration OTP, password reset)
-// when no Gmail OAuth is configured for a tenant.
-let nodemailer;
-try { nodemailer = require('nodemailer'); } catch (_) { nodemailer = null; }
-
-async function sendMailViaNodemailer({ to, subject, html }) {
-  if (!nodemailer) {
-    // debug-level: this mock path only fires when nodemailer isn't installed,
-    // and the body carries OTPs, so it shouldn't surface at the default
-    // production log level (info).
-    logger.debug({ to, subject, html }, '[MOCK - nodemailer unavailable] email not actually sent');
-    return;
-  }
+// Resend (HTTPS API, port 443) is used as a fallback for system-level emails
+// (registration OTP, password reset) when no Gmail OAuth is configured for a
+// tenant. Deliberately not SMTP: Render's free tier blocks outbound SMTP
+// ports (25/465/587), so an SMTP transport hangs until it times out.
+async function sendMailViaResend({ to, subject, html }) {
   const env = require('../config/env');
-  if (!env.smtpHost || !env.smtpUser || env.smtpUser.includes('your-email') || env.smtpPass === 'your_app_password') {
-    // No SMTP configured - log so devs can grab OTPs during local testing.
-    logger.debug({ to, subject, html }, '[MOCK - no SMTP configured] email not actually sent');
+  if (!env.resendApiKey || !env.emailFrom || env.emailFrom.includes('your-')) {
+    // Not configured - log so devs can grab OTPs during local testing.
+    logger.debug({ to, subject, html }, '[MOCK - Resend not configured] email not actually sent');
     return;
   }
-  const transporter = nodemailer.createTransport({
-    host: env.smtpHost,
-    port: Number(env.smtpPort || 587),
-    secure: env.smtpSecure === 'true',
-    auth: {
-      user: env.smtpUser,
-      pass: env.smtpPass,
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.resendApiKey}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      from: env.emailFrom,
+      to,
+      subject,
+      html,
+    }),
   });
-  await transporter.sendMail({
-    from: env.smtpFrom || env.smtpUser,
-    to,
-    subject,
-    html,
-  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Resend API error ${response.status}: ${body}`);
+  }
 }
 
 async function sendMail({
@@ -86,9 +80,9 @@ async function sendMail({
       requestBody: { raw: encodedMessage },
     });
   } catch (gmailErr) {
-    logger.warn({ err: gmailErr, tenantId, to }, 'Gmail send failed, falling back to SMTP');
+    logger.warn({ err: gmailErr, tenantId, to }, 'Gmail send failed, falling back to Resend');
     if (attachments.length === 0) {
-      await sendMailViaNodemailer({ to, subject, html });
+      await sendMailViaResend({ to, subject, html });
     } else {
       throw gmailErr; // Can't send attachments without Gmail for now
     }
@@ -107,11 +101,11 @@ async function sendOTPEmail({ tenantId, to, otp, subject: customSubject }) {
       <p style="color:#94a3b8;font-size:12px">If you didn't request this, please ignore this email.</p>
     </div>
   `;
-  // For OTPs we try nodemailer first (system-level, no tenant OAuth needed)
+  // For OTPs we try Resend first (system-level, no tenant OAuth needed)
   try {
-    await sendMailViaNodemailer({ to, subject, html });
+    await sendMailViaResend({ to, subject, html });
   } catch (err) {
-    logger.warn({ err, to }, 'SMTP sendOTP failed, trying Gmail');
+    logger.warn({ err, to }, 'Resend sendOTP failed, trying Gmail');
     await sendMail({ tenantId, to, subject, html });
   }
 }

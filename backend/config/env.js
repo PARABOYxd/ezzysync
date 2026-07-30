@@ -37,15 +37,6 @@ function loadEnv() {
       loginRedirectUri: process.env.GOOGLE_LOGIN_REDIRECT_URI || `${process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/:[0-9]+$/, '') : 'http://localhost'}:5001/api/auth/google/callback`
     },
 
-    smtp: {
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: process.env.SMTP_SECURE === 'true',
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-      fromName: process.env.EMAIL_FROM_NAME || 'EzzySync',
-    },
-
     whatsapp: {
       phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
       accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
@@ -61,13 +52,9 @@ function loadEnv() {
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId123',
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'mockSecretKey123',
 
-    // Flat SMTP fields for emailService nodemailer fallback
-    smtpHost: process.env.SMTP_HOST || '',
-    smtpPort: process.env.SMTP_PORT || '587',
-    smtpSecure: process.env.SMTP_SECURE || 'false',
-    smtpUser: process.env.SMTP_USER || '',
-    smtpPass: process.env.SMTP_PASS || '',
-    smtpFrom: process.env.SMTP_FROM || '',
+    // Resend (HTTPS email API) fields for emailService's system-level fallback
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    emailFrom: process.env.EMAIL_FROM || '',
   };
 }
 
