@@ -2,10 +2,47 @@ const { google } = require('googleapis');
 const gmailApiService = require('./gmailApiService');
 const logger = require('../utils/logger').child({ module: 'email' });
 
-// Resend (HTTPS API, port 443) is used as a fallback for system-level emails
-// (registration OTP, password reset) when no Gmail OAuth is configured for a
-// tenant. Deliberately not SMTP: Render's free tier blocks outbound SMTP
-// ports (25/465/587), so an SMTP transport hangs until it times out.
+let nodemailer;
+try { nodemailer = require('nodemailer'); } catch (_) { nodemailer = null; }
+
+// SMTP is opt-in: only attempted when SMTP_HOST is actually set (e.g. once
+// the app moves off a Render free instance, which blocks outbound SMTP
+// ports 25/465/587 and makes a normal SMTP transport hang for minutes).
+// Short connect/socket timeouts mean a bad SMTP config fails fast instead
+// of hanging, and Resend (HTTPS, never port-blocked) is always the
+// fallback for system-level emails.
+const SMTP_TIMEOUT_MS = 8000;
+
+function isSmtpConfigured(env) {
+  return Boolean(env.smtpHost) && Boolean(env.smtpUser) && !env.smtpUser.includes('your-') && env.smtpPass !== 'your_app_password';
+}
+
+async function sendMailViaSMTP({ to, subject, html }) {
+  const env = require('../config/env');
+  if (!nodemailer || !isSmtpConfigured(env)) {
+    return false; // not configured - caller falls back to Resend
+  }
+  const transporter = nodemailer.createTransport({
+    host: env.smtpHost,
+    port: Number(env.smtpPort || 587),
+    secure: env.smtpSecure === 'true',
+    auth: { user: env.smtpUser, pass: env.smtpPass },
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS,
+  });
+  await transporter.sendMail({
+    from: env.emailFrom || env.smtpUser,
+    to,
+    subject,
+    html,
+  });
+  return true;
+}
+
+// Resend (HTTPS API, port 443) is the default/fallback for system-level
+// emails (registration OTP, password reset) - it isn't blocked on any
+// Render tier, unlike SMTP.
 async function sendMailViaResend({ to, subject, html }) {
   const env = require('../config/env');
   if (!env.resendApiKey || !env.emailFrom || env.emailFrom.includes('your-')) {
@@ -101,11 +138,15 @@ async function sendOTPEmail({ tenantId, to, otp, subject: customSubject }) {
       <p style="color:#94a3b8;font-size:12px">If you didn't request this, please ignore this email.</p>
     </div>
   `;
-  // For OTPs we try Resend first (system-level, no tenant OAuth needed)
+  // System-level OTP send order: SMTP (only if configured, fast-timeout) ->
+  // Resend (always available) -> tenant Gmail OAuth as a last resort.
   try {
-    await sendMailViaResend({ to, subject, html });
+    const sentViaSmtp = await sendMailViaSMTP({ to, subject, html });
+    if (!sentViaSmtp) {
+      await sendMailViaResend({ to, subject, html });
+    }
   } catch (err) {
-    logger.warn({ err, to }, 'Resend sendOTP failed, trying Gmail');
+    logger.warn({ err, to }, 'SMTP/Resend sendOTP failed, trying Gmail');
     await sendMail({ tenantId, to, subject, html });
   }
 }

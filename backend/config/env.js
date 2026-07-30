@@ -52,9 +52,16 @@ function loadEnv() {
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId123',
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'mockSecretKey123',
 
-    // Resend (HTTPS email API) fields for emailService's system-level fallback
+    // Email: Resend (HTTPS API) is the default. SMTP is optional and only
+    // attempted if SMTP_HOST is set - useful once off a Render free
+    // instance, which blocks outbound SMTP ports.
     resendApiKey: process.env.RESEND_API_KEY || '',
     emailFrom: process.env.EMAIL_FROM || '',
+    smtpHost: process.env.SMTP_HOST || '',
+    smtpPort: process.env.SMTP_PORT || '587',
+    smtpSecure: process.env.SMTP_SECURE || 'false',
+    smtpUser: process.env.SMTP_USER || '',
+    smtpPass: process.env.SMTP_PASS || '',
   };
 }
 
