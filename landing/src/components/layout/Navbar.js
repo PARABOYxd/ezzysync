@@ -35,7 +35,7 @@ export default function Navbar({ crmUrl }) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
             <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center border border-slate-100">
-              <img src="/logo_icon.jpg" alt="EzzySync logo icon" className="w-full h-full object-cover" />
+              <img src="/logo_icon.png" alt="EzzySync logo icon" className="w-full h-full object-cover" />
             </div>
             <span className="font-semibold tracking-tight text-[15px] text-slate-900">
               EzzySync
