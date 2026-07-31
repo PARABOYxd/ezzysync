@@ -4,6 +4,7 @@ import Sidebar from '../components/layout/Sidebar.jsx';
 import Topbar from '../components/layout/Topbar.jsx';
 import NotificationBell from '../components/layout/NotificationBell.jsx';
 import InstallAppButton from '../components/layout/InstallAppButton.jsx';
+import ThemeToggle from '../components/layout/ThemeToggle.jsx';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
@@ -24,10 +25,10 @@ export default function DashboardLayout() {
     || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'EzzySync');
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 transition-colors">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col">
-        <Topbar title={title} onMenuClick={() => setSidebarOpen(true)} actions={<><InstallAppButton /><NotificationBell /></>} />
+        <Topbar title={title} onMenuClick={() => setSidebarOpen(true)} actions={<><ThemeToggle /><InstallAppButton /><NotificationBell /></>} />
         <main className="flex-1 p-4 md:p-8">
           <Outlet />
         </main>

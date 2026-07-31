@@ -26,22 +26,22 @@ export default function Sidebar({ open, onClose }) {
     <>
       {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
       <aside
-        className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-white border-r border-slate-100 flex flex-col
+        className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 flex flex-col
         transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
-        <div className="flex items-center justify-between px-5 h-16 border-b border-slate-100">
+        <div className="flex items-center justify-between px-5 h-16 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center">
               <Compass size={18} />
             </div>
-            <span className="font-semibold text-slate-800">EzzySync</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-100">EzzySync</span>
           </div>
           <button className="md:hidden text-slate-400" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {activeLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -49,7 +49,7 @@ export default function Sidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                  isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                  isActive ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-700 dark:text-brand-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-700 dark:hover:text-slate-200'
                 }`
               }
             >
@@ -59,14 +59,14 @@ export default function Sidebar({ open, onClose }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800">
           <div className="px-3 py-2 mb-1">
-            <p className="text-sm font-medium text-slate-700 truncate">{user?.companyName}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{user?.companyName}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{user?.email}</p>
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
           >
             <LogOut size={18} />
             Logout
