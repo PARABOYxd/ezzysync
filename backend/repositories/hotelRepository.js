@@ -1,10 +1,10 @@
 const { query } = require('../config/db');
 
-async function createHotel(tenantId, { name, city, rating, address, contactPerson, contactPhone, roomsAndRates }) {
+async function createHotel(tenantId, { name, city, rating, address, contactPerson, contactPhone, roomsAndRates, contacts }) {
   const { rows } = await query(
     `INSERT INTO hotels (
-      tenant_id, name, city, rating, address, contact_person, contact_phone, rooms_and_rates
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      tenant_id, name, city, rating, address, contact_person, contact_phone, rooms_and_rates, contacts
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
     [
       tenantId,
       name,
@@ -13,7 +13,8 @@ async function createHotel(tenantId, { name, city, rating, address, contactPerso
       address || '',
       contactPerson || '',
       contactPhone || '',
-      JSON.stringify(roomsAndRates || [])
+      JSON.stringify(roomsAndRates || []),
+      JSON.stringify(contacts || [])
     ]
   );
   return rows[0];
@@ -41,10 +42,10 @@ async function getHotelById(tenantId, id) {
   return rows[0];
 }
 
-async function updateHotel(tenantId, id, { name, city, rating, address, contactPerson, contactPhone, roomsAndRates }) {
+async function updateHotel(tenantId, id, { name, city, rating, address, contactPerson, contactPhone, roomsAndRates, contacts }) {
   const { rows } = await query(
     `UPDATE hotels
-     SET name = $3, city = $4, rating = $5, address = $6, contact_person = $7, contact_phone = $8, rooms_and_rates = $9, updated_at = now()
+     SET name = $3, city = $4, rating = $5, address = $6, contact_person = $7, contact_phone = $8, rooms_and_rates = $9, contacts = $10, updated_at = now()
      WHERE tenant_id = $1 AND id = $2 RETURNING *`,
     [
       tenantId,
@@ -55,7 +56,8 @@ async function updateHotel(tenantId, id, { name, city, rating, address, contactP
       address || '',
       contactPerson || '',
       contactPhone || '',
-      JSON.stringify(roomsAndRates || [])
+      JSON.stringify(roomsAndRates || []),
+      JSON.stringify(contacts || [])
     ]
   );
   return rows[0];

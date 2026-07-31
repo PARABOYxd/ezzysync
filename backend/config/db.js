@@ -426,6 +426,12 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_hotels_tenant ON hotels(tenant_id);`);
 
+  try {
+    await query(`ALTER TABLE hotels ADD COLUMN IF NOT EXISTS contacts JSONB DEFAULT '[]'::jsonb;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding contacts column to hotels');
+  }
+
   logger.info('Schema check complete.');
 }
 

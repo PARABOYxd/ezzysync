@@ -21,6 +21,7 @@ export default function Hotels() {
   const [contactPerson, setContactPerson] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [rooms, setRooms] = useState([{ roomType: '', costPrice: '', sellingPrice: '' }]);
+  const [contacts, setContacts] = useState([{ name: '', phone: '', email: '', role: 'Sales' }]);
   
   const toast = useToast();
 
@@ -46,6 +47,7 @@ export default function Hotels() {
     setContactPerson('');
     setContactPhone('');
     setRooms([{ roomType: '', costPrice: '', sellingPrice: '' }]);
+    setContacts([{ name: '', phone: '', email: '', role: 'Sales' }]);
     setModalOpen(true);
   };
 
@@ -55,9 +57,10 @@ export default function Hotels() {
     setCity(h.city);
     setRating(h.rating);
     setAddress(h.address);
-    setContactPerson(h.contact_person);
-    setContactPhone(h.contact_phone);
+    setContactPerson(h.contact_person || '');
+    setContactPhone(h.contact_phone || '');
     setRooms(h.rooms_and_rates?.length ? h.rooms_and_rates : [{ roomType: '', costPrice: '', sellingPrice: '' }]);
+    setContacts(h.contacts?.length ? h.contacts : (h.contact_person ? [{ name: h.contact_person, phone: h.contact_phone || '', email: '', role: 'Main' }] : [{ name: '', phone: '', email: '', role: 'Sales' }]));
     setModalOpen(true);
   };
 
@@ -73,6 +76,20 @@ export default function Hotels() {
     const next = [...rooms];
     next[idx][field] = value;
     setRooms(next);
+  };
+
+  const addContactRow = () => {
+    setContacts([...contacts, { name: '', phone: '', email: '', role: 'Sales' }]);
+  };
+
+  const removeContactRow = (idx) => {
+    setContacts(contacts.filter((_, i) => i !== idx));
+  };
+
+  const handleContactChange = (idx, field, value) => {
+    const next = [...contacts];
+    next[idx][field] = value;
+    setContacts(next);
   };
 
   const handleDelete = async (id, hotelName) => {
@@ -98,9 +115,10 @@ export default function Hotels() {
       city,
       rating,
       address,
-      contactPerson,
-      contactPhone,
-      roomsAndRates: rooms.filter((r) => r.roomType.trim() !== '')
+      contactPerson: contacts[0]?.name || contactPerson,
+      contactPhone: contacts[0]?.phone || contactPhone,
+      roomsAndRates: rooms.filter((r) => r.roomType.trim() !== ''),
+      contacts: contacts.filter((c) => c.name.trim() !== '')
     };
 
     try {
@@ -114,7 +132,7 @@ export default function Hotels() {
       setModalOpen(false);
       load();
     } catch {
-      toast.error('Could not save property credentials.');
+      toast.error('Could not save property details.');
     }
   };
 
@@ -180,9 +198,21 @@ export default function Hotels() {
                   </div>
                 </div>
 
-                <div className="text-xs text-slate-500 space-y-1 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                  {h.address && <p className="leading-relaxed"><strong>Addr:</strong> {h.address}</p>}
-                  {h.contact_person && <p><strong>Contact:</strong> {h.contact_person} {h.contact_phone && `(${h.contact_phone})`}</p>}
+                <div className="text-xs text-slate-500 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                  {h.address && <p className="leading-relaxed"><strong>Address:</strong> {h.address}</p>}
+                  {h.contacts?.length > 0 ? (
+                    <div className="space-y-1 pt-1.5 border-t border-slate-100/50 mt-1.5">
+                      <p className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Contact Persons</p>
+                      {h.contacts.map((c, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600">
+                          <span>👤 {c.name} <span className="text-[9px] text-slate-400">({c.role || 'Staff'})</span></span>
+                          <span className="font-mono text-[10px] text-slate-500">{c.phone}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : h.contact_person ? (
+                    <p className="pt-1 border-t border-slate-100/50 mt-1">👤 <strong>Contact:</strong> {h.contact_person} {h.contact_phone && `(${h.contact_phone})`}</p>
+                  ) : null}
                 </div>
 
                 {h.rooms_and_rates?.length > 0 && (
@@ -277,18 +307,56 @@ export default function Hotels() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                 />
-                <Input
-                  label="Contact Person Name"
-                  placeholder="e.g. Sunil Sharma"
-                  value={contactPerson}
-                  onChange={(e) => setContactPerson(e.target.value)}
-                />
-                <Input
-                  label="Contact Phone"
-                  placeholder="e.g. +91 98123 45678"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                />
+              </div>
+
+              {/* Multiple Contacts management */}
+              <div className="space-y-3.5 border-t border-slate-100 pt-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Property Contact Persons</h4>
+                  <button type="button" onClick={addContactRow} className="btn-secondary py-1 px-3 text-xs gap-1">
+                    <Plus size={12} /> Add Contact
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {contacts.map((contact, idx) => (
+                    <div key={idx} className="flex gap-3 items-end">
+                      <div className="flex-1">
+                        {idx === 0 && <label className="label">Contact Name</label>}
+                        <Input
+                          placeholder="e.g. Sunil Sharma"
+                          value={contact.name}
+                          onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
+                        />
+                      </div>
+                      <div className="w-28 sm:w-36">
+                        {idx === 0 && <label className="label">Role/Title</label>}
+                        <Input
+                          placeholder="e.g. Sales Manager"
+                          value={contact.role}
+                          onChange={(e) => handleContactChange(idx, 'role', e.target.value)}
+                        />
+                      </div>
+                      <div className="w-32 sm:w-44">
+                        {idx === 0 && <label className="label">Phone / Email</label>}
+                        <Input
+                          placeholder="Phone/Email"
+                          value={contact.phone}
+                          onChange={(e) => handleContactChange(idx, 'phone', e.target.value)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeContactRow(idx)}
+                        disabled={contacts.length === 1}
+                        className="p-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition mb-0.5 disabled:opacity-50"
+                        title="Remove contact"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Room and Rates management */}
