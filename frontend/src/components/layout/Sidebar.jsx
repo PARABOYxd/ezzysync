@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 export default function Sidebar({ open, onClose }) {
@@ -16,6 +16,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map },
     { to: '/team', label: 'Team', icon: Users, role: 'ADMIN' },
     { to: '/profile', label: 'Profile', icon: User },
+    { to: '/hotels', label: 'Hotels', icon: Building2 },
     { to: '/settings', label: 'Settings', icon: Settings, role: 'ADMIN' },
     { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles },
   ].filter(link => !link.role || link.role === (user?.role || 'ADMIN'));

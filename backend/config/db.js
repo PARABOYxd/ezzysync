@@ -408,6 +408,24 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding public_lead_key column to tenants');
   }
 
+  // Hotels table for property inventory
+  await query(`
+    CREATE TABLE IF NOT EXISTS hotels (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      rating TEXT DEFAULT '3 Star',
+      address TEXT DEFAULT '',
+      contact_person TEXT DEFAULT '',
+      contact_phone TEXT DEFAULT '',
+      rooms_and_rates JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_hotels_tenant ON hotels(tenant_id);`);
+
   logger.info('Schema check complete.');
 }
 

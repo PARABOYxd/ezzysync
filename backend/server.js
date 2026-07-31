@@ -23,6 +23,7 @@ const aiRoutes = require('./routes/aiRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const followUpRoutes = require('./routes/followUpRoutes');
+const hotelRoutes = require('./routes/hotelRoutes');
 
 const testRoutes = require("./routes/testRoutes");
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -78,6 +79,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/follow-ups', followUpRoutes);
+app.use('/api/hotels', hotelRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use("/api/test", testRoutes);
