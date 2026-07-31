@@ -303,19 +303,32 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div className="lg:col-span-5 bg-gradient-to-br from-brand-50/50 to-emerald-50/30 border border-brand-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <MessageSquare size={16} className="text-brand-600" />
-                Quick Setup Guide
-              </h4>
-              <ol className="space-y-3 text-xs text-slate-600 list-decimal pl-4">
-                <li>Register as a developer on <strong>developers.facebook.com</strong> and create a Business App.</li>
-                <li>Add <strong>WhatsApp</strong> integration, verify your custom business number, and copy the <strong>Phone Number ID</strong>.</li>
-                <li>Generate a <strong>Permanent Access Token</strong> under your Meta Business Settings for a System User.</li>
-                <li>Paste the values in the form and click <strong>Save Customizations</strong>.</li>
-              </ol>
-              <div className="bg-white/80 p-3 rounded-xl border border-slate-100 text-[10px] text-slate-400 leading-normal">
-                💡 <strong>Important Note:</strong> Once linked to the API, you cannot use this same number inside the regular mobile WhatsApp App. We recommend using a cheap secondary SIM for automation.
+            <div className="lg:col-span-5 space-y-4">
+              {/* Critical Warning Box */}
+              <div className="bg-red-50/70 border border-red-200/80 text-red-700 rounded-2xl p-4 text-xs space-y-2 shadow-sm">
+                <div className="flex items-center gap-2 font-extrabold text-red-800">
+                  <span className="text-lg">⚠️</span> CRITICAL WARNING
+                </div>
+                <p className="leading-relaxed">
+                  Once linked to this developer API, you <strong>CANNOT</strong> use this same phone number inside the regular mobile WhatsApp App or WhatsApp Business App.
+                </p>
+                <p className="font-bold text-red-900 leading-relaxed bg-white/80 p-2.5 rounded-xl border border-red-100">
+                  💡 Best Practice: We highly recommend buying a cheap secondary SIM card (new number) purely for CRM alerts.
+                </p>
+              </div>
+
+              {/* Quick Setup Card */}
+              <div className="bg-gradient-to-br from-brand-50/50 to-emerald-50/30 border border-brand-100 rounded-2xl p-5 shadow-sm space-y-4">
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-brand-100/50 pb-2">
+                  <MessageSquare size={16} className="text-brand-600" />
+                  Quick Setup Guide
+                </h4>
+                <ol className="space-y-3.5 text-xs text-slate-600 list-decimal pl-4 leading-relaxed">
+                  <li>Register as a developer on <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-brand-600 font-bold underline">developers.facebook.com</a> and create a <strong>Business App</strong>.</li>
+                  <li>Add <strong>WhatsApp</strong> integration, verify your custom business number, and copy the <strong>Phone Number ID</strong>.</li>
+                  <li>Generate a <strong>Permanent Access Token</strong> under your Meta Business Settings for a System User with admin permissions.</li>
+                  <li>Paste the values in the form fields on the left and click <strong>Save Customizations</strong>.</li>
+                </ol>
               </div>
             </div>
           </div>
