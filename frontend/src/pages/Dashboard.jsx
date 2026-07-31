@@ -58,13 +58,13 @@ export default function Dashboard() {
 
   const cards = data
     ? [
-        { label: 'Total Bookings', value: data.stats.totalBookings, icon: ClipboardList, tint: 'slate' },
-        { label: 'Upcoming Trips', value: data.stats.upcomingTrips, icon: PlaneTakeoff, tint: 'blue' },
-        { label: 'Completed Trips', value: data.stats.completedTrips, icon: CheckCircle2, tint: 'emerald' },
-        { label: 'Cancelled Trips', value: data.stats.cancelledTrips, icon: XCircle, tint: 'red' },
-        { label: 'Refunded Trips', value: data.stats.refundedTrips, icon: RotateCcw, tint: 'amber' },
-        { label: "Today's Bookings", value: data.stats.todaysBookings, icon: Sun, tint: 'slate' },
-        { label: 'Postponed Trips', value: data.stats.postponedTrips, icon: CalendarClock, tint: 'slate' },
+        { label: 'Total', value: data.stats.totalBookings, icon: ClipboardList, tint: 'slate' },
+        { label: 'Upcoming', value: data.stats.upcomingTrips, icon: PlaneTakeoff, tint: 'blue' },
+        { label: 'Completed', value: data.stats.completedTrips, icon: CheckCircle2, tint: 'emerald' },
+        { label: 'Cancelled', value: data.stats.cancelledTrips, icon: XCircle, tint: 'red' },
+        { label: 'Refunded', value: data.stats.refundedTrips, icon: RotateCcw, tint: 'amber' },
+        { label: "Today's", value: data.stats.todaysBookings, icon: Sun, tint: 'slate' },
+        { label: 'Postponed', value: data.stats.postponedTrips, icon: CalendarClock, tint: 'slate' },
       ]
     : [];
 
