@@ -120,52 +120,39 @@ export default function BlogDashboard() {
       
       <main className="relative pt-20 pb-20 overflow-hidden">
         {/* Banner Hero Section */}
-        <section className="bg-slate-950 text-white py-20 relative overflow-hidden">
+        <section className="bg-slate-50 border-b border-slate-200/80 py-16 sm:py-24 relative overflow-hidden">
           {/* Subtle Grid Backdrop */}
-          <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-grid-pattern opacity-4 pointer-events-none"></div>
           {/* Blur Glows */}
-          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-brand-500/20 filter blur-[90px] pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-brand-500/10 filter blur-[90px] pointer-events-none"></div>
           
-          <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Column (Banner text) */}
             <div className="lg:col-span-7 space-y-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-500 border border-brand-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
                 Travel Agency Insights
               </span>
-              <h1 className="font-bold text-[clamp(2rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.03em] text-white">
+              <h1 className="font-bold text-[clamp(2.25rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.03em] text-slate-950">
                 Mastering CRM Security & Booking Automation
               </h1>
-              <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-[55ch]">
+              <p className="text-slate-500 text-sm sm:text-base leading-relaxed max-w-[55ch]">
                 Explore high-impact guides, operations blueprints, and tutorials built to scale travel networks, auto-schedule itineraries, and secure financial data logs.
               </p>
             </div>
             
-            {/* Right Column (Banner Real Mockup Card) */}
+            {/* Right Column (Banner Real Photo Mockup) */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end">
-              <div className="w-full max-w-[360px] bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
-                {/* Floating EzzySync Logo badge */}
-                <div className="absolute -top-4 -left-4 w-12 h-12 bg-white rounded-xl shadow-md p-2 flex items-center justify-center border border-slate-100">
-                  <img src="/logo.png" alt="EzzySync logo icon" className="w-full h-full object-contain" />
+              <div className="w-full max-w-[420px] bg-white border border-slate-200 rounded-2xl p-2 shadow-xl relative">
+                {/* Browser Mockup Header */}
+                <div className="flex items-center gap-1.5 px-2 pb-2 border-b border-slate-100">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
                 </div>
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-brand-500 font-bold">Featured Guide</span>
-                    <span className="text-[10px] text-slate-500">Updated today</span>
-                  </div>
-                  <h3 className="font-bold text-sm text-slate-100 leading-snug">
-                    Securing Customer Booking Ledgers in a Multi-Tenant Infrastructure
-                  </h3>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    How modern databases shield travel agency invoice transaction histories at the hardware layer.
-                  </p>
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">12 min read</span>
-                    <span className="text-xs font-bold text-brand-500 flex items-center gap-1">
-                      <span>Read Guide</span>
-                      <span>&rarr;</span>
-                    </span>
-                  </div>
+                {/* Displaying our premium workspace photo */}
+                <div className="aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-100 relative mt-2">
+                  <img src="/blog_banner.jpg" alt="Travel booking dashboard on laptop screen" className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
