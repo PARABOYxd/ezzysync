@@ -662,16 +662,16 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
               </FormRow>
 
               {/* B2B Supplier Cost Section */}
-              <div className="bg-slate-50 border border-slate-100 p-5 rounded-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">B2B Supplier Costs (P&L Ledger)</h4>
-                  <span className="text-[10px] text-slate-400">Values are subtracted from revenue to yield Net Profit</span>
+              <div className="bg-slate-50/50 dark:bg-zinc-950/30 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800 pb-2">
+                  <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">B2B Supplier Costs (P&L Ledger)</h4>
+                  <span className="text-[10px] text-slate-400 dark:text-zinc-500">Values are subtracted from revenue to yield Net Profit</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <Input label="Hotel Cost (₹)" icon={Home} type="number" min={0} hint="Supplier accommodation" placeholder="e.g. 12000" inputClassName="bg-white" value={form.vendorHotelCost || ''} onChange={set('vendorHotelCost')} />
-                  <Input label="Flight Cost (₹)" icon={Plane} type="number" min={0} hint="Supplier airfare charges" placeholder="e.g. 15000" inputClassName="bg-white" value={form.vendorFlightCost || ''} onChange={set('vendorFlightCost')} />
-                  <Input label="Transport Cost (₹)" icon={Car} type="number" min={0} hint="Supplier taxi/bus fees" placeholder="e.g. 5000" inputClassName="bg-white" value={form.vendorTransportCost || ''} onChange={set('vendorTransportCost')} />
-                  <Input label="Other Cost (₹)" icon={Tag} type="number" min={0} hint="Visa/misc supplier fees" placeholder="e.g. 2000" inputClassName="bg-white" value={form.vendorOtherCost || ''} onChange={set('vendorOtherCost')} />
+                  <Input label="Hotel Cost (₹)" icon={Home} type="number" min={0} hint="Supplier accommodation" placeholder="e.g. 12000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorHotelCost || ''} onChange={set('vendorHotelCost')} />
+                  <Input label="Flight Cost (₹)" icon={Plane} type="number" min={0} hint="Supplier airfare charges" placeholder="e.g. 15000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorFlightCost || ''} onChange={set('vendorFlightCost')} />
+                  <Input label="Transport Cost (₹)" icon={Car} type="number" min={0} hint="Supplier taxi/bus fees" placeholder="e.g. 5000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorTransportCost || ''} onChange={set('vendorTransportCost')} />
+                  <Input label="Other Cost (₹)" icon={Tag} type="number" min={0} hint="Visa/misc supplier fees" placeholder="e.g. 2000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorOtherCost || ''} onChange={set('vendorOtherCost')} />
                 </div>
               </div>
 
@@ -687,29 +687,29 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
                 return (
                   <div className={`p-4 rounded-2xl border transition-all duration-300 ${
                     isPositive 
-                      ? 'bg-emerald-50/70 border-emerald-200/60 shadow-emerald-50/30' 
-                      : 'bg-rose-50/70 border-rose-200/60 shadow-rose-50/30'
+                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30' 
+                      : 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40 shadow-rose-50/30'
                   } shadow-md`}>
-                    <div className="grid grid-cols-3 text-center divide-x divide-slate-200/50">
+                    <div className="grid grid-cols-3 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
                       <div>
-                        <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gross Revenue</span>
-                        <b className="text-sm font-extrabold text-slate-800">{formatCurrency(totalAmount)}</b>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Gross Revenue</span>
+                        <b className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{formatCurrency(totalAmount)}</b>
                       </div>
                       <div>
-                        <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Supplier Cost</span>
-                        <b className="text-sm font-extrabold text-slate-700">{formatCurrency(totalCost)}</b>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Total Supplier Cost</span>
+                        <b className="text-sm font-extrabold text-slate-700 dark:text-slate-300">{formatCurrency(totalCost)}</b>
                       </div>
                       <div>
-                        <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">Net Profit (P&L)</span>
-                        <b className={`text-sm font-extrabold transition-colors duration-200 ${isPositive ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Net Profit (P&L)</span>
+                        <b className={`text-sm font-extrabold transition-colors duration-200 ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                           {formatCurrency(projectedProfit)}
                         </b>
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-200/30 mt-3 pt-2">
-                      <span>Pending balance for traveler collection: <b className="text-orange-600 font-bold">{formatCurrency(remaining)}</b></span>
-                      <span className={`font-semibold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-zinc-500 border-t border-slate-200/30 dark:border-zinc-800 mt-3 pt-2">
+                      <span>Pending balance for traveler collection: <b className="text-orange-600 dark:text-orange-400 font-bold">{formatCurrency(remaining)}</b></span>
+                      <span className={`font-semibold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {isPositive ? '✓ Positive Margin Deal' : '⚠️ Negative Margin Warning'}
                       </span>
                     </div>
