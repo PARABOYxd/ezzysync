@@ -39,7 +39,23 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowedBase = env.frontendUrl.replace(/\/+app\/?$/, '').replace(/\/$/, '');
+      const allowedBaseWithWww = allowedBase.replace('://', '://www.');
+      const allowedBaseWithoutWww = allowedBase.replace('://www.', '://');
+      
+      if (
+        origin === allowedBase || 
+        origin === allowedBaseWithWww || 
+        origin === allowedBaseWithoutWww || 
+        origin === env.frontendUrl
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
