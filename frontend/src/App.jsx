@@ -22,6 +22,7 @@ import Team from './pages/Team.jsx';
 import AITools from './pages/AITools.jsx';
 import CustomerProfile from './pages/CustomerProfile.jsx';
 import Hotels from './pages/Hotels.jsx';
+import HelpGuide from './pages/HelpGuide.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/hotels" element={<Hotels />} />
+        <Route path="/guide" element={<HelpGuide />} />
         <Route path="/team" element={<Team />} />
         <Route path="/ai-tools" element={<AITools />} />
         <Route path="/customers/:id" element={<CustomerProfile />} />
