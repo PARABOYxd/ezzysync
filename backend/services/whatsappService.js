@@ -24,13 +24,16 @@ function buildMessageText(booking, settings) {
  * (e.g. one you've stored via a cloud bucket or a signed URL endpoint).
  */
 async function sendWhatsAppMessage(booking, settings, mediaLink, customText) {
-  if (!env.whatsapp.phoneNumberId || !env.whatsapp.accessToken) {
-    const err = new Error('WhatsApp API is not configured. Set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN.');
+  const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
+  const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
+
+  if (!phoneNumberId || !accessToken) {
+    const err = new Error('WhatsApp API is not configured. Please set your credentials in WhatsApp Settings.');
     err.status = 500;
     throw err;
   }
 
-  const url = `https://graph.facebook.com/${env.whatsapp.apiVersion}/${env.whatsapp.phoneNumberId}/messages`;
+  const url = `https://graph.facebook.com/${env.whatsapp.apiVersion}/${phoneNumberId}/messages`;
   const text = customText || buildMessageText(booking, settings);
 
   const payload = mediaLink
@@ -49,7 +52,7 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText) {
 
   const res = await axios.post(url, payload, {
     headers: {
-      Authorization: `Bearer ${env.whatsapp.accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
   });

@@ -1,6 +1,8 @@
 const DEFAULT_KEYS = [
   'companyName', 'companyLogoUrl', 'invoiceFooter', 'emailSenderName', 'whatsappNumber', 'gstNumber', 'address',
-  'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms'
+  'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms',
+  'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
+  'instagramUsername', 'instagramAccountId', 'instagramAccessToken'
 ];
 
 /** camelCase key -> Postgres column name in the `settings` table */
@@ -17,7 +19,15 @@ const COLUMN_MAP = {
   invoiceTitle: 'invoice_title',
   invoiceShowGst: 'invoice_show_gst',
   invoiceShowPaymentStatus: 'invoice_show_payment_status',
-  invoiceTerms: 'invoice_terms'
+  invoiceTerms: 'invoice_terms',
+  whatsappPhoneNumberId: 'whatsapp_phone_number_id',
+  whatsappAccessToken: 'whatsapp_access_token',
+  whatsappWabaId: 'whatsapp_waba_id',
+  whatsappBusinessId: 'whatsapp_business_id',
+  whatsappAppSecret: 'whatsapp_app_secret',
+  instagramUsername: 'instagram_username',
+  instagramAccountId: 'instagram_account_id',
+  instagramAccessToken: 'instagram_access_token'
 };
 
 function rowToSettings(row) {
@@ -34,6 +44,11 @@ function rowToSettings(row) {
       obj[k] = val || 'INVOICE';
     } else if (k === 'invoiceTerms') {
       obj[k] = val || 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.';
+    } else if ([
+      'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
+      'instagramUsername', 'instagramAccountId', 'instagramAccessToken'
+    ].includes(k)) {
+      obj[k] = val || '';
     } else {
       obj[k] = val || '';
     }

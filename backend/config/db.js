@@ -150,7 +150,15 @@ async function ensureSchema() {
       invoice_title TEXT DEFAULT 'INVOICE',
       invoice_show_gst BOOLEAN DEFAULT TRUE,
       invoice_show_payment_status BOOLEAN DEFAULT TRUE,
-      invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.'
+      invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.',
+      whatsapp_phone_number_id TEXT DEFAULT NULL,
+      whatsapp_access_token TEXT DEFAULT NULL,
+      whatsapp_waba_id TEXT DEFAULT NULL,
+      whatsapp_business_id TEXT DEFAULT NULL,
+      whatsapp_app_secret TEXT DEFAULT NULL,
+      instagram_username TEXT DEFAULT NULL,
+      instagram_account_id TEXT DEFAULT NULL,
+      instagram_access_token TEXT DEFAULT NULL
     );
   `);
 
@@ -235,6 +243,20 @@ async function ensureSchema() {
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.';`);
   } catch (err) {
     logger.warn({ err }, 'Note updating settings invoice customization columns');
+  }
+
+  // Settings table enhancements for WhatsApp & Instagram credentials
+  try {
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_waba_id TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_business_id TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_app_secret TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_username TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_account_id TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_access_token TEXT DEFAULT NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note updating settings WhatsApp and Instagram columns');
   }
 
   // Quotations schema creation

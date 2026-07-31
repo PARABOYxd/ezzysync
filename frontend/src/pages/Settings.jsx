@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
-import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw } from 'lucide-react';
+import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
@@ -144,6 +144,34 @@ export default function SettingsPage() {
         {user?.role === 'ADMIN' && (
           <button
             type="button"
+            onClick={() => setActiveTab('whatsapp')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
+              activeTab === 'whatsapp'
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+            }`}
+          >
+            <MessageSquare size={16} />
+            WhatsApp Connection
+          </button>
+        )}
+        {user?.role === 'ADMIN' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('instagram')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
+              activeTab === 'instagram'
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+            }`}
+          >
+            <Instagram size={16} />
+            Instagram Connection
+          </button>
+        )}
+        {user?.role === 'ADMIN' && (
+          <button
+            type="button"
             onClick={() => setActiveTab('leadCapture')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
               activeTab === 'leadCapture'
@@ -216,6 +244,129 @@ export default function SettingsPage() {
               value={settings.invoiceFooter || ''}
               onChange={(e) => setSettings({ ...settings, invoiceFooter: e.target.value })}
             />
+          </div>
+        )}
+
+        {activeTab === 'whatsapp' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-7 card space-y-6">
+              <div>
+                <h3 className="font-bold text-slate-800">WhatsApp API Credentials</h3>
+                <p className="text-xs text-slate-400">Connect your custom Meta WhatsApp Cloud API credentials to automate messages from your own business number.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                <Input
+                  label="Phone Number ID"
+                  placeholder="e.g. 517969018813..."
+                  hint="Unique ID for your verified WhatsApp business phone number"
+                  value={settings.whatsappPhoneNumberId || ''}
+                  onChange={(e) => setSettings({ ...settings, whatsappPhoneNumberId: e.target.value })}
+                />
+                <Input
+                  label="Display Phone Number"
+                  placeholder="e.g. +91 98765 43210"
+                  hint="The phone number linked to your Meta API account"
+                  value={settings.whatsappNumber || ''}
+                  onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                />
+                <Input
+                  label="WABA ID (WhatsApp Business Account ID)"
+                  placeholder="e.g. 104825968132..."
+                  hint="Your WhatsApp Business Account Identifier"
+                  value={settings.whatsappWabaId || ''}
+                  onChange={(e) => setSettings({ ...settings, whatsappWabaId: e.target.value })}
+                />
+                <Input
+                  label="Business ID"
+                  placeholder="Meta Business Portfolio ID"
+                  hint="Your Facebook Business Manager ID"
+                  value={settings.whatsappBusinessId || ''}
+                  onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
+                />
+              </div>
+
+              <Input
+                label="Meta Access Token"
+                placeholder="EAAGOCSPX-..."
+                hint="Your system user access token with whatsapp_business_messaging permission"
+                value={settings.whatsappAccessToken || ''}
+                onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
+              />
+
+              <Input
+                label="App Secret"
+                placeholder="Meta App Secret key"
+                hint="App Settings -> Basic -> App Secret (Used for webhooks)"
+                value={settings.whatsappAppSecret || ''}
+                onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
+              />
+            </div>
+
+            <div className="lg:col-span-5 bg-gradient-to-br from-brand-50/50 to-emerald-50/30 border border-brand-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <MessageSquare size={16} className="text-brand-600" />
+                Quick Setup Guide
+              </h4>
+              <ol className="space-y-3 text-xs text-slate-600 list-decimal pl-4">
+                <li>Register as a developer on <strong>developers.facebook.com</strong> and create a Business App.</li>
+                <li>Add <strong>WhatsApp</strong> integration, verify your custom business number, and copy the <strong>Phone Number ID</strong>.</li>
+                <li>Generate a <strong>Permanent Access Token</strong> under your Meta Business Settings for a System User.</li>
+                <li>Paste the values in the form and click <strong>Save Customizations</strong>.</li>
+              </ol>
+              <div className="bg-white/80 p-3 rounded-xl border border-slate-100 text-[10px] text-slate-400 leading-normal">
+                💡 <strong>Important Note:</strong> Once linked to the API, you cannot use this same number inside the regular mobile WhatsApp App. We recommend using a cheap secondary SIM for automation.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'instagram' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-7 card space-y-6">
+              <div>
+                <h3 className="font-bold text-slate-800">Instagram API Credentials</h3>
+                <p className="text-xs text-slate-400">Connect your custom Instagram Professional Account to manage customer chats directly from your CRM dashboard.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                <Input
+                  label="Instagram Username"
+                  placeholder="e.g. travelgo_holidays"
+                  hint="Your Instagram Professional Account handle"
+                  value={settings.instagramUsername || ''}
+                  onChange={(e) => setSettings({ ...settings, instagramUsername: e.target.value })}
+                />
+                <Input
+                  label="Instagram Account ID"
+                  placeholder="e.g. 178414053..."
+                  hint="Unique ID of your Instagram Professional Account"
+                  value={settings.instagramAccountId || ''}
+                  onChange={(e) => setSettings({ ...settings, instagramAccountId: e.target.value })}
+                />
+              </div>
+
+              <Input
+                label="Meta Access Token"
+                placeholder="EAAGOCSPX-..."
+                hint="Meta system user token with instagram_manage_messages permission"
+                value={settings.instagramAccessToken || ''}
+                onChange={(e) => setSettings({ ...settings, instagramAccessToken: e.target.value })}
+              />
+            </div>
+
+            <div className="lg:col-span-5 bg-gradient-to-br from-pink-50/50 to-orange-50/30 border border-pink-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Instagram size={16} className="text-pink-600" />
+                Quick Setup Guide
+              </h4>
+              <ol className="space-y-3 text-xs text-slate-600 list-decimal pl-4">
+                <li>Link your Instagram Professional Account to your Facebook page.</li>
+                <li>In your Meta Developer App, add <strong>Instagram Graph API</strong> support.</li>
+                <li>Copy your Instagram Account ID from your Facebook page settings.</li>
+                <li>Paste details here and click <strong>Save Customizations</strong>.</li>
+              </ol>
+            </div>
           </div>
         )}
 
