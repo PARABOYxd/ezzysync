@@ -9,6 +9,8 @@ import { isValidEmail, isValidPhone } from '../../utils/validators';
 import { formatCurrency } from '../../utils/formatters';
 import * as bookingService from '../../services/bookingService';
 import * as userService from '../../services/userService';
+import * as quotationService from '../../services/quotationService';
+import * as hotelService from '../../services/hotelService';
 import { useToast } from '../../hooks/useToast.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import {
@@ -35,6 +37,7 @@ const emptyForm = {
   pickup: '', members: 1, pricePerPerson: '', paid: 0, teamMember: '', travelStatus: 'New',
   paymentStatus: 'Pending', notes: '',
   vendorHotelCost: 0, vendorFlightCost: 0, vendorTransportCost: 0, vendorOtherCost: 0,
+  hotelId: '', roomCategory: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '', sourceQuotationId: '',
 };
 
 export default function BookingFormModal({ open, onClose, onSaved, booking }) {
@@ -55,6 +58,42 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
   const [aiFile, setAiFile] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showAi, setShowAi] = useState(false);
+
+  // Lists for dropdown selectors
+  const [quotations, setQuotations] = useState([]);
+  const [hotels, setHotels] = useState([]);
+
+  useEffect(() => {
+    if (open) {
+      quotationService.getQuotations().then((data) => {
+        setQuotations(data.quotations || data || []);
+      }).catch(() => {});
+
+      hotelService.getHotels().then((data) => {
+        setHotels(data || []);
+      }).catch(() => {});
+    }
+  }, [open]);
+
+  const handleQuotationChange = (id) => {
+    if (!id) {
+      setForm((prev) => ({ ...prev, sourceQuotationId: '' }));
+      return;
+    }
+    const q = quotations.find((x) => x.quotation_id === id || x.id === id);
+    if (q) {
+      setForm((prev) => ({
+        ...prev,
+        sourceQuotationId: q.quotation_id,
+        customerName: q.customer_name || prev.customerName,
+        email: q.email || prev.email,
+        phone: q.phone || prev.phone,
+        trip: q.trip_name || prev.trip,
+        pricePerPerson: q.price_quote || prev.pricePerPerson,
+      }));
+      toast.success('Itinerary details successfully pre-filled!');
+    }
+  };
 
   const handleAiParse = async () => {
     if (!aiText && !aiFile) {
@@ -362,7 +401,26 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* TAB 1: CUSTOMER INFO */}
           {activeTab === 'customer' && (
-            <div className="animate-[fadeIn_0.2s_ease-out]">
+            <div className="animate-[fadeIn_0.2s_ease-out] space-y-5">
+              {!isEdit && quotations.length > 0 && (
+                <div className="bg-brand-50/50 p-4 rounded-xl border border-brand-100 flex flex-col gap-2">
+                  <label className="text-xs font-bold text-brand-800 flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-brand-600" /> Link Approved Itinerary (Optional)
+                  </label>
+                  <select
+                    className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none focus:border-brand-500 font-medium text-slate-700"
+                    value={form.sourceQuotationId || ''}
+                    onChange={(e) => handleQuotationChange(e.target.value)}
+                  >
+                    <option value="">-- No Itinerary Link (Create Fresh Booking) --</option>
+                    {quotations.map((q) => (
+                      <option key={q.id || q.quotation_id} value={q.quotation_id}>
+                        {q.quotation_id} - {q.customer_name} ({q.trip_name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <FormRow>
                 <Input
                   label="Customer Name"
@@ -444,6 +502,67 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
                   value={form.pickup}
                   onChange={set('pickup')}
                 />
+              </FormRow>
+
+              {/* Hotels Selection and Voucher Status */}
+              <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-100 space-y-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <Home size={13} /> Hotel Voucher & Reservations
+                </h4>
+                <FormRow>
+                  <Select
+                    label="Select Hotel"
+                    icon={Home}
+                    value={form.hotelId || ''}
+                    onChange={(e) => {
+                      const hId = e.target.value;
+                      setForm({ ...form, hotelId: hId, roomCategory: '' });
+                    }}
+                    options={[
+                      { value: '', label: '-- No Hotel Linked --' },
+                      ...hotels.map((h) => ({ value: h.id, label: `${h.name} (${h.city})` }))
+                    ]}
+                  />
+                  <Select
+                    label="Room Category"
+                    icon={Home}
+                    value={form.roomCategory || ''}
+                    disabled={!form.hotelId}
+                    onChange={set('roomCategory')}
+                    options={[
+                      { value: '', label: '-- Select Room Category --' },
+                      ...(hotels.find((h) => h.id === form.hotelId)?.rooms_and_rates || []).map((r) => ({
+                        value: r.roomType,
+                        label: `${r.roomType} (₹${r.sellingPrice}/night)`
+                      }))
+                    ]}
+                  />
+                </FormRow>
+                {form.hotelId && (
+                  <FormRow>
+                    <Select
+                      label="Hotel Booking Status"
+                      icon={Check}
+                      value={form.hotelBookingStatus || 'Pending'}
+                      onChange={set('hotelBookingStatus')}
+                      options={[
+                        { value: 'Pending', label: '⏳ Pending Confirmation' },
+                        { value: 'Confirmed', label: '✅ Confirmed' },
+                        { value: 'Cancelled', label: '❌ Cancelled' },
+                      ]}
+                    />
+                    <Input
+                      label="Confirmation Voucher No"
+                      icon={Tag}
+                      placeholder="e.g. HTL-CONF-90812"
+                      value={form.hotelConfirmationNo || ''}
+                      onChange={set('hotelConfirmationNo')}
+                    />
+                  </FormRow>
+                )}
+              </div>
+
+              <FormRow>
                 <div className="w-full">
                   <Select
                     label="Assigned Team Member"

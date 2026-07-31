@@ -52,8 +52,8 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
        pickup, members, price_per_person, total_amount, paid, remaining, team_member,
        travel_status, payment_status, booking_timestamp, notes, created_by, updated_at, deleted,
        vendor_hotel_cost, vendor_flight_cost, vendor_transport_cost, vendor_other_cost, net_profit,
-       source_quotation_id, customer_id
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,FALSE,$22,$23,$24,$25,$26,$27,$28)
+       source_quotation_id, customer_id, hotel_id, room_category, hotel_booking_status, hotel_confirmation_no
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,FALSE,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
      RETURNING *`,
     [
       tenantId, bookingId, data.customerName, data.email, data.phone, data.emergencyContact || '',
@@ -61,7 +61,8 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
       totalAmount, paid, remaining, data.teamMember || '', travelStatus, paymentStatus, now,
       data.notes || '', createdBy || '', now,
       hotelCost, flightCost, transportCost, otherCost, netProfit,
-      sourceQuotationId, customerId || null
+      sourceQuotationId, customerId || null,
+      data.hotelId || null, data.roomCategory || '', data.hotelBookingStatus || 'Pending', data.hotelConfirmationNo || ''
     ]
   );
   return rows[0];
@@ -81,7 +82,8 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
        pickup = $7, members = $8, price_per_person = $9, total_amount = $10, paid = $11, remaining = $12,
        team_member = $13, travel_status = $14, payment_status = $15, notes = $16, updated_at = $17, deleted = $18,
        vendor_hotel_cost = $19, vendor_flight_cost = $20, vendor_transport_cost = $21, vendor_other_cost = $22, net_profit = $23,
-       customer_id = COALESCE($26, customer_id)
+       customer_id = COALESCE($26, customer_id),
+       hotel_id = $27, room_category = $28, hotel_booking_status = $29, hotel_confirmation_no = $30
      WHERE tenant_id = $24 AND booking_id = $25
      RETURNING *`,
     [
@@ -91,6 +93,7 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
       merged.notes || '', updatedAt, !!merged.deleted,
       hotelCost, flightCost, transportCost, otherCost, netProfit,
       tenantId, bookingId, customerId || null,
+      merged.hotelId || null, merged.roomCategory || '', merged.hotelBookingStatus || 'Pending', merged.hotelConfirmationNo || ''
     ]
   );
   return rows[0];

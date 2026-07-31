@@ -6,8 +6,9 @@ import Input from '../ui/Input.jsx';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { TravelStatusBadge, PaymentStatusBadge } from '../common/StatusBadge.jsx';
 import * as bookingService from '../../services/bookingService';
-import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info, IndianRupee, MapPin } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info, IndianRupee, MapPin, Home, Tag } from 'lucide-react';
 import { useToast } from '../../hooks/useToast.jsx';
+import * as hotelService from '../../services/hotelService';
 
 export default function BookingViewModal({ open, onClose, booking, onRefresh }) {
   const toast = useToast();
@@ -16,6 +17,13 @@ export default function BookingViewModal({ open, onClose, booking, onRefresh }) 
   const [activityType, setActivityType] = useState('note');
   const [nextDate, setNextDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [hotels, setHotels] = useState([]);
+
+  useEffect(() => {
+    if (open) {
+      hotelService.getHotels().then(setHotels).catch(() => {});
+    }
+  }, [open]);
 
   const loadLogs = useCallback(async () => {
     if (!booking?.bookingId) return;
@@ -157,7 +165,7 @@ export default function BookingViewModal({ open, onClose, booking, onRefresh }) 
               </div>
               {booking.sourceQuotationId && (
                 <div className="col-span-2">
-                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Source Quotation</span>
+                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Source Itinerary</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-[10px] font-bold">
                     🔗 {booking.sourceQuotationId}
                   </span>
@@ -165,6 +173,46 @@ export default function BookingViewModal({ open, onClose, booking, onRefresh }) 
               )}
             </div>
           </div>
+
+          {/* Section 2.5: Hotel Booking Status & Voucher */}
+          {booking.hotelId && (
+            <div className="space-y-4">
+              <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                <Home size={12} />
+                <span>Hotel Voucher Details</span>
+              </h5>
+              <div className="grid grid-cols-2 gap-y-3.5 text-xs">
+                <div className="col-span-2">
+                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Hotel / Property</span>
+                  <span className="font-semibold text-slate-700">{hotels.find((h) => h.id === booking.hotelId)?.name || 'Linked Hotel'}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Room Category</span>
+                  <span className="font-semibold text-slate-600">{booking.roomCategory || <span className="text-slate-400 italic">Not specified</span>}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Voucher Status</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    booking.hotelBookingStatus === 'Confirmed'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      : booking.hotelBookingStatus === 'Cancelled'
+                      ? 'bg-red-50 text-red-700 border border-red-100'
+                      : 'bg-amber-50 text-amber-700 border border-amber-100'
+                  }`}>
+                    {booking.hotelBookingStatus === 'Confirmed' ? '✅ Confirmed' : booking.hotelBookingStatus === 'Cancelled' ? '❌ Cancelled' : '⏳ Pending'}
+                  </span>
+                </div>
+                {booking.hotelConfirmationNo && (
+                  <div className="col-span-2">
+                    <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Confirmation Voucher No</span>
+                    <span className="font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg">
+                      {booking.hotelConfirmationNo}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Section 3: Billing Info */}
           <div className="space-y-4">

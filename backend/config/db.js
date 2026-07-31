@@ -432,6 +432,16 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding contacts column to hotels');
   }
 
+  // Update bookings table with hotel and voucher integration columns
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_id UUID REFERENCES hotels(id) ON DELETE SET NULL;`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS room_category TEXT DEFAULT '';`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_booking_status TEXT DEFAULT 'Pending';`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_confirmation_no TEXT DEFAULT '';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding hotel tracking columns to bookings');
+  }
+
   logger.info('Schema check complete.');
 }
 
