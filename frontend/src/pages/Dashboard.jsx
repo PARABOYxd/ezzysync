@@ -70,11 +70,41 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Onboarding Guide Card for Beginners */}
+      <div className="bg-gradient-to-r from-brand-50/50 to-orange-50/30 border border-brand-100/70 rounded-2xl p-5 shadow-sm">
+        <h3 className="text-[14px] font-bold text-slate-800 flex items-center gap-2 mb-3">
+          <span className="text-[15px]">💡</span> Welcome to EzzySync! Let's get started in 3 simple steps:
+        </h3>
+        <ol className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600">
+          <li className="flex items-start gap-2 bg-white/70 p-3 rounded-xl border border-slate-100">
+            <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
+            <div>
+              <p className="font-bold text-slate-800 mb-0.5">Add Your First Booking</p>
+              <p className="text-slate-500 leading-normal">Click "+ Quick Add Booking" on the right to register your client's travel details.</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-2 bg-white/70 p-3 rounded-xl border border-slate-100">
+            <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
+            <div>
+              <p className="font-bold text-slate-800 mb-0.5">Automate WhatsApp Alerts</p>
+              <p className="text-slate-500 leading-normal">Go to "Follow-ups" or "Leads" to set automatic notifications directly to client phone numbers.</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-2 bg-white/70 p-3 rounded-xl border border-slate-100">
+            <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
+            <div>
+              <p className="font-bold text-slate-800 mb-0.5">Share Invoices & Profit</p>
+              <p className="text-slate-500 leading-normal">Generate invoice PDFs from the "Invoices" tab. Track your net profits automatically below.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <form onSubmit={handleSearch} className="w-full sm:max-w-xs">
           <Input
             icon={Search}
-            placeholder="Search bookings…"
+            placeholder="Search bookings by client name…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -85,8 +115,11 @@ export default function Dashboard() {
       </div>
 
       {/* Finance Ledger Section */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Finance Ledger (P&L Tracking)</h4>
+      <div className="space-y-2">
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Finance Ledger (P&L Tracking)</h4>
+          <p className="text-[10px] text-slate-400">Track your total booking value, money collected, hotel/flight supplier expenses, and net profit margins</p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -95,8 +128,11 @@ export default function Dashboard() {
       </div>
 
       {/* Operations & Trips Status */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operations & Trips Status</h4>
+      <div className="space-y-2">
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operations & Trips Status</h4>
+          <p className="text-[10px] text-slate-400">Live tracker showing total confirm bookings, upcoming trips, completed itineraries, and cancellations</p>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           {loading
             ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
