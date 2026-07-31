@@ -33,6 +33,30 @@ export default function sitemap() {
       priority: 0.7,
     },
     {
+      url: 'https://www.ezzysync.com/blog',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://www.ezzysync.com/blog/whatsapp-marketing-for-travel-agents',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://www.ezzysync.com/blog/streamline-travel-agency-billing',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://www.ezzysync.com/blog/ai-itinerary-builder-efficiency',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: 'https://www.ezzysync.com/terms',
       lastModified,
       changeFrequency: 'yearly',
