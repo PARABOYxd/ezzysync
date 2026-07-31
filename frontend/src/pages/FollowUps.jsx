@@ -91,15 +91,46 @@ export default function FollowUps() {
                         {new Date(item.next_follow_up_date).toLocaleDateString('en-IN')}{overdue ? ' (Overdue)' : ' (Today)'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        title="Mark done"
-                        disabled={completingId === item.id}
-                        onClick={() => handleMarkDone(item.id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                      >
-                        <Check size={13} /> Done
-                      </button>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-end items-center gap-2">
+                        {item.customer_phone && (
+                          <a
+                            href={`tel:${item.customer_phone}`}
+                            title={`Call ${item.customer_name} (${item.customer_phone})`}
+                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition shrink-0"
+                          >
+                            <Phone size={13} />
+                          </a>
+                        )}
+                        {item.customer_phone && (
+                          <a
+                            href={`https://wa.me/${item.customer_phone.replace(/[^\d]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={`WhatsApp Chat with ${item.customer_name}`}
+                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition shrink-0"
+                          >
+                            <MessageSquare size={13} />
+                          </a>
+                        )}
+                        {item.customer_email && (
+                          <a
+                            href={`mailto:${item.customer_email}`}
+                            title={`Send Email to ${item.customer_email}`}
+                            className="p-1.5 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 transition shrink-0"
+                          >
+                            <Mail size={13} />
+                          </a>
+                        )}
+                        <button
+                          title="Mark follow-up as done"
+                          disabled={completingId === item.id}
+                          onClick={() => handleMarkDone(item.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 ml-1 shrink-0"
+                        >
+                          <Check size={13} /> Done
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

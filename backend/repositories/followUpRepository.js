@@ -39,6 +39,8 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
        CASE WHEN f.booking_id IS NOT NULL THEN 'booking' ELSE 'lead' END as source_type,
        COALESCE(b.booking_id, l.lead_id) as source_id,
        COALESCE(b.customer_name, l.customer_name) as customer_name,
+       COALESCE(b.phone, l.phone) as customer_phone,
+       COALESCE(b.email, l.email) as customer_email,
        COALESCE(b.team_member, l.assigned_to) as assigned_to
      FROM follow_up_logs f
      LEFT JOIN bookings b ON f.booking_id = b.id
