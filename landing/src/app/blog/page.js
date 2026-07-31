@@ -13,7 +13,33 @@ const blogPosts = [
     excerpt: "Discover how relying on personal WhatsApp chats for lead follow-ups limits your growth and how centralizing your customer database recovers lost inquiries.",
     date: "July 28, 2026",
     readTime: "5 min read",
-    category: "Operations"
+    category: "Operations",
+    // Render custom high-fidelity CSS thumbnail (150% real look, no AI drawings)
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Chat UI Mockup */}
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+          <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-[10px] font-bold text-brand-600">JD</div>
+          <div>
+            <div className="text-[10px] font-bold text-slate-800">John Doe (Client)</div>
+            <div className="text-[8px] text-slate-400">Online</div>
+          </div>
+        </div>
+        <div className="space-y-2 py-1">
+          <div className="bg-slate-200/60 text-[9px] text-slate-700 p-2 rounded-lg rounded-tl-none max-w-[80%]">
+            Hey! Can you send me the quote for the Bali trip?
+          </div>
+          <div className="bg-brand-500 text-white text-[9px] p-2 rounded-lg rounded-tr-none max-w-[80%] self-end ml-auto">
+            Sure! Generating itinerary link...
+          </div>
+        </div>
+        {/* Lost alert box indicating why scattered chats leak value */}
+        <div className="absolute top-1 right-2 bg-rose-50 border border-rose-100 px-2 py-1 rounded text-[8px] font-bold text-rose-600 flex items-center gap-1 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+          Unanswered for 14h
+        </div>
+      </div>
+    )
   },
   {
     slug: "streamline-travel-agency-billing",
@@ -21,7 +47,33 @@ const blogPosts = [
     excerpt: "Manual PDF invoices and Word templates expose customer transaction logs. Learn how tenant-isolated database invoicing protects your financial records.",
     date: "July 25, 2026",
     readTime: "4 min read",
-    category: "Security"
+    category: "Security",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Security / Billing Mockup */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="text-[9px] font-bold text-slate-400">INVOICE #EZ-8821</div>
+          <span className="text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded font-bold">PAID</span>
+        </div>
+        <div className="space-y-1.5 py-2">
+          <div className="flex justify-between text-[10px] text-slate-600">
+            <span>Agency Margin (12%)</span>
+            <span className="font-bold text-slate-800">₹14,500</span>
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-600">
+            <span>GDS Flight Charge</span>
+            <span className="font-bold text-slate-800">₹88,200</span>
+          </div>
+        </div>
+        <div className="bg-slate-900 text-white rounded-lg p-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span className="text-[9px] font-medium tracking-tight">Tenant Isolated Node</span>
+          </div>
+          <span className="text-[9px] font-bold text-brand-500">100% Encrypted</span>
+        </div>
+      </div>
+    )
   },
   {
     slug: "ai-itinerary-builder-efficiency",
@@ -29,7 +81,33 @@ const blogPosts = [
     excerpt: "Stop wasting hours copy-pasting sightseeing details. See how modern AI itinerary builders automate travel routes while keeping plans customizable.",
     date: "July 20, 2026",
     readTime: "6 min read",
-    category: "Technology"
+    category: "Technology",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Itinerary UI Mockup */}
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+          <div className="bg-brand-50 text-brand-600 border border-brand-100 text-[9px] px-2 py-0.5 rounded font-bold">DAY 1</div>
+          <div className="text-[10px] font-bold text-slate-800">Arrival in Denpasar, Bali</div>
+        </div>
+        <div className="space-y-2 py-2">
+          <div className="flex gap-2 items-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
+            <div className="text-[9px] text-slate-600">14:00 - Private pickup from DPS airport</div>
+          </div>
+          <div className="flex gap-2 items-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+            <div className="text-[9px] text-slate-600">16:30 - Check-in at Seminyak Ocean Resort</div>
+          </div>
+        </div>
+        <div className="bg-brand-50 border border-brand-100 rounded-lg p-2 flex items-center justify-between text-[9px] text-brand-700">
+          <div className="flex items-center gap-1.5 font-bold">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 21L11 13L3 9L22 2Z"/></svg>
+            <span>Auto Itinerary Generated</span>
+          </div>
+          <span className="font-bold text-brand-600">Saved 4 Hours</span>
+        </div>
+      </div>
+    )
   }
 ];
 
@@ -40,48 +118,100 @@ export default function BlogDashboard() {
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
       <Navbar crmUrl={crmUrl} />
       
-      <main className="relative pt-24 pb-20 sm:pt-32 bg-white bg-grid-pattern overflow-hidden">
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-brand-100/20 filter blur-[110px] -z-10" aria-hidden="true"></div>
-        
-        <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 space-y-16">
-          {/* Header */}
-          <div className="max-w-[46rem] mx-auto text-center space-y-6">
-            <h1 className="load-in font-semibold text-slate-950 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] tracking-[-0.02em]" style={{ "--reveal-delay": "0ms" }}>
-              EzzySync Blog & Industry Insights
-            </h1>
-            <p className="load-in text-slate-500 text-base sm:text-lg leading-relaxed max-w-[50ch] mx-auto" style={{ "--reveal-delay": "100ms" }}>
-              Proven guides, strategies, and tutorials to help travel agencies automate billing, design itineraries, and scale WhatsApp operations.
-            </p>
+      <main className="relative pt-20 pb-20 overflow-hidden">
+        {/* Banner Hero Section */}
+        <section className="bg-slate-950 text-white py-20 relative overflow-hidden">
+          {/* Subtle Grid Backdrop */}
+          <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
+          {/* Blur Glows */}
+          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-brand-500/20 filter blur-[90px] pointer-events-none"></div>
+          
+          <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left Column (Banner text) */}
+            <div className="lg:col-span-7 space-y-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-500 border border-brand-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                Travel Agency Insights
+              </span>
+              <h1 className="font-bold text-[clamp(2rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.03em] text-white">
+                Mastering CRM Security & Booking Automation
+              </h1>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-[55ch]">
+                Explore high-impact guides, operations blueprints, and tutorials built to scale travel networks, auto-schedule itineraries, and secure financial data logs.
+              </p>
+            </div>
+            
+            {/* Right Column (Banner Real Mockup Card) */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-end">
+              <div className="w-full max-w-[360px] bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+                {/* Floating EzzySync Logo badge */}
+                <div className="absolute -top-4 -left-4 w-12 h-12 bg-white rounded-xl shadow-md p-2 flex items-center justify-center border border-slate-100">
+                  <img src="/logo.png" alt="EzzySync logo icon" className="w-full h-full object-contain" />
+                </div>
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-brand-500 font-bold">Featured Guide</span>
+                    <span className="text-[10px] text-slate-500">Updated today</span>
+                  </div>
+                  <h3 className="font-bold text-sm text-slate-100 leading-snug">
+                    Securing Customer Booking Ledgers in a Multi-Tenant Infrastructure
+                  </h3>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    How modern databases shield travel agency invoice transaction histories at the hardware layer.
+                  </p>
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500">12 min read</span>
+                    <span className="text-xs font-bold text-brand-500 flex items-center gap-1">
+                      <span>Read Guide</span>
+                      <span>&rarr;</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Blog Posts Grid Section */}
+        <section className="max-w-[1100px] mx-auto px-5 sm:px-6 py-16 relative z-10 space-y-12">
+          <div className="border-b border-slate-100 pb-4">
+            <h2 className="font-bold text-2xl text-slate-950 tracking-tight">Recent Industry Guides</h2>
           </div>
 
-          {/* Grid List */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogPosts.map((post, idx) => (
               <article 
                 key={post.slug} 
-                className="bg-white rounded-2xl border border-slate-200 shadow-soft p-6 flex flex-col justify-between hover:border-brand-500 transition-colors duration-300 load-in"
-                style={{ "--reveal-delay": `${150 + idx * 80}ms` }}
+                className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between hover:border-brand-500 hover:shadow-soft transition-all duration-300 group"
               >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                    <span className="uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded border border-brand-100">{post.category}</span>
-                    <span>{post.readTime}</span>
+                <div>
+                  {/* Thumbnail area containing our real CSS mockup widgets instead of AI art */}
+                  <div className="h-48 border-b border-slate-200 bg-slate-50 overflow-hidden relative">
+                    {post.thumbnail}
                   </div>
                   
-                  <h2 className="font-semibold text-lg text-slate-950 tracking-tight leading-snug">
-                    <Link href={`/blog/${post.slug}`} className="hover:text-brand-600 transition-colors">
-                      {post.title}
-                    </Link>
-                  </h2>
-                  
-                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    {post.excerpt}
-                  </p>
+                  {/* Article details */}
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                      <span className="uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded border border-brand-100">{post.category}</span>
+                      <span>{post.readTime}</span>
+                    </div>
+                    
+                    <h3 className="font-bold text-base text-slate-950 tracking-tight leading-snug group-hover:text-brand-600 transition-colors">
+                      <Link href={`/blog/${post.slug}`}>
+                        {post.title}
+                      </Link>
+                    </h3>
+                    
+                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                      {post.excerpt}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 flex items-center justify-between mt-6">
+                <div className="p-6 pt-0 mt-4 flex items-center justify-between">
                   <span className="text-[11px] text-slate-400 font-medium">{post.date}</span>
-                  <Link href={`/blog/${post.slug}`} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                  <Link href={`/blog/${post.slug}`} className="text-xs font-bold text-brand-600 group-hover:text-brand-700 flex items-center gap-1">
                     <span>Read Article</span>
                     <span>&rarr;</span>
                   </Link>
@@ -89,7 +219,7 @@ export default function BlogDashboard() {
               </article>
             ))}
           </div>
-        </div>
+        </section>
       </main>
       
       <Footer crmUrl={crmUrl} />
