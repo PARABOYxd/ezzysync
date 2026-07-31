@@ -26,17 +26,17 @@ export default function Sidebar({ open, onClose }) {
     <>
       {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
       <aside
-        className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 flex flex-col
+        className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-[var(--bg-card)] border-r border-[var(--border)] flex flex-col
         transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
-        <div className="flex items-center justify-between px-5 h-16 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between px-5 h-16 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center">
               <Compass size={18} />
             </div>
-            <span className="font-semibold text-slate-800 dark:text-slate-100">EzzySync</span>
+            <span className="font-semibold text-[var(--text-main)]">EzzySync</span>
           </div>
-          <button className="md:hidden text-slate-400" onClick={onClose}>
+          <button className="md:hidden text-[var(--text-light)]" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
@@ -49,7 +49,7 @@ export default function Sidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                  isActive ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-700 dark:text-brand-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-700 dark:hover:text-slate-200'
+                  isActive ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-700 dark:text-brand-400' : 'text-[var(--text-muted)] hover:bg-slate-50 dark:hover:bg-zinc-800/40 hover:text-[var(--text-main)]'
                 }`
               }
             >
@@ -59,10 +59,10 @@ export default function Sidebar({ open, onClose }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-3 border-t border-[var(--border)]">
           <div className="px-3 py-2 mb-1">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{user?.companyName}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{user?.email}</p>
+            <p className="text-sm font-medium text-[var(--text-main)] truncate">{user?.companyName}</p>
+            <p className="text-xs text-[var(--text-muted)] truncate">{user?.email}</p>
           </div>
           <button
             onClick={logout}

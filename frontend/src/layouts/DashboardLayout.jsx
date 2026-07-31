@@ -25,11 +25,11 @@ export default function DashboardLayout() {
     || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'EzzySync');
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 transition-colors">
+    <div className="min-h-screen flex bg-[var(--bg-page)] text-[var(--text-main)] transition-colors duration-200">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-page)]">
         <Topbar title={title} onMenuClick={() => setSidebarOpen(true)} actions={<><ThemeToggle /><InstallAppButton /><NotificationBell /></>} />
-        <main className="flex-1 p-4 md:p-8">
+        <main className="flex-1 p-4 md:p-8 bg-[var(--bg-page)]">
           <Outlet />
         </main>
       </div>
