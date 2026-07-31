@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Compass, LayoutDashboard, Contact2, Kanban, ListTodo, CalendarCheck, 
   FileText, Map, Building2, Sparkles, CheckCircle2, ChevronRight, HelpCircle,
-  Phone, MessageSquare, Mail, Settings, UserCheck
+  Phone, MessageSquare, Mail, Settings, UserCheck, Search
 } from 'lucide-react';
 
 const GUIDE_SECTIONS = [
