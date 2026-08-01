@@ -50,6 +50,9 @@ async function create(req, res, next) {
     await auditService.logAction(req, 'CREATE_LEAD_ENTRY', { leadId: lead.leadId, customerName: lead.customerName });
     res.status(201).json({ lead });
   } catch (err) {
+    if (err.status === 409) {
+      return res.status(409).json({ message: err.message, existingLead: err.existingLead });
+    }
     next(err);
   }
 }

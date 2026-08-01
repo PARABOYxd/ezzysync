@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
-import { User, Mail, Phone, MapPin, Tag, UserCheck } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Tag, UserCheck, AlertTriangle } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '../../utils/validators';
 import * as leadService from '../../services/leadService';
 import * as userService from '../../services/userService';
@@ -25,12 +26,15 @@ export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
   const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
       setForm(lead ? { ...emptyForm, ...lead } : emptyForm);
       setErrors({});
+      setDuplicateWarning(null);
       userService.getUsers().then((users) => setTeamMembers(users || [])).catch(() => {});
     }
   }, [open, lead]);
@@ -69,11 +73,69 @@ export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead 
       onSaved?.();
       onClose();
     } catch (err) {
+      if (err.response?.status === 409 && err.response?.data?.existingLead) {
+        setDuplicateWarning(err.response.data.existingLead);
+        toast.warning('An active enquiry already exists for this contact.');
+      } else {
+        toast.error(err.response?.data?.message || 'Could not save lead.');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBypassDuplicate = async () => {
+    setSaving(true);
+    try {
+      await leadService.createLead({ ...form, bypassDuplicateCheck: true });
+      toast.success('Lead created successfully.');
+      onSaved?.();
+      onClose();
+    } catch (err) {
       toast.error(err.response?.data?.message || 'Could not save lead.');
     } finally {
       setSaving(false);
     }
   };
+
+  if (duplicateWarning) {
+    return (
+      <Modal open={open} onClose={onClose} title="Active Enquiry Found" size="md">
+        <div className="space-y-5 py-2 text-[var(--text-main)]">
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 text-xs leading-relaxed">
+            <p className="font-bold text-sm mb-1 flex items-center gap-1.5"><AlertTriangle size={15} /> Active Lead Already Exists</p>
+            An active enquiry for <b>{duplicateWarning.customerName}</b> is already registered in the pipeline:
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>Lead ID: <span className="font-mono">{duplicateWarning.leadId}</span></li>
+              <li>Trip Interest: {duplicateWarning.interest || 'Not Specified'}</li>
+              <li>Current Stage: <span className="font-semibold">{duplicateWarning.stage}</span></li>
+            </ul>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-zinc-400">
+            What would you like to do? You can view and update the existing active lead card, or bypass this check to create a new parallel enquiry.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100 dark:border-zinc-800">
+            <button
+              onClick={() => {
+                onClose();
+                navigate(`/leads?search=${duplicateWarning.leadId}`);
+              }}
+              className="btn-secondary text-xs"
+            >
+              🔍 View & Update Existing
+            </button>
+            <button
+              onClick={handleBypassDuplicate}
+              disabled={saving}
+              className="btn-primary text-xs"
+            >
+              {saving ? 'Creating...' : '➕ Create Parallel Enquiry'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Lead' : 'Create New Lead'} size="lg">

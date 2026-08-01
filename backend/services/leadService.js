@@ -18,12 +18,22 @@ async function createLead(tenantId, data, createdBy) {
     throw new Error('Phone number must be 10-15 digits (E.164 format).');
   }
 
-  const duplicateCheck = await db.query(
-    `SELECT lead_id FROM leads WHERE tenant_id = $1 AND stage NOT IN ('Won', 'Lost') AND (phone = $2 OR (email != '' AND email = $3))`,
-    [tenantId, data.phone, data.email]
-  );
-  if (duplicateCheck.rowCount > 0) {
-    throw new Error('Duplicate phone/email open lead validation warning.');
+  if (!data.bypassDuplicateCheck) {
+    const duplicateCheck = await db.query(
+      `SELECT lead_id, customer_name, interest, stage FROM leads WHERE tenant_id = $1 AND stage NOT IN ('Won', 'Lost') AND (phone = $2 OR (email != '' AND email = $3)) LIMIT 1`,
+      [tenantId, data.phone, data.email]
+    );
+    if (duplicateCheck.rowCount > 0) {
+      const err = new Error('Duplicate phone/email open lead validation warning.');
+      err.status = 409;
+      err.existingLead = {
+        leadId: duplicateCheck.rows[0].lead_id,
+        customerName: duplicateCheck.rows[0].customer_name,
+        interest: duplicateCheck.rows[0].interest,
+        stage: duplicateCheck.rows[0].stage
+      };
+      throw err;
+    }
   }
 
   if (data.stage && !STAGES.includes(data.stage)) {
