@@ -126,7 +126,7 @@ export default function Leads() {
         </div>
       )}
 
-      <LeadFormModal open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} />
+      <LeadFormModal open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
       <LeadViewModal open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
       <ConvertLeadModal open={!!convertingLead} lead={convertingLead} onClose={() => setConvertingLead(null)} onConverted={load} />
       <ConfirmDialog

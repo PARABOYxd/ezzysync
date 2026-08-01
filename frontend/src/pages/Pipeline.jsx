@@ -61,7 +61,8 @@ export default function Pipeline() {
       await leadService.updateLeadStage(draggableId, newStage);
     } catch (err) {
       toast.error('Could not update lead stage.');
-      load();
+      // Rollback optimistic update
+      setLeads((prev) => prev.map((l) => (l.leadId === draggableId ? { ...l, stage: source.droppableId } : l)));
     }
   };
 

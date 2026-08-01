@@ -150,15 +150,7 @@ async function ensureSchema() {
       invoice_title TEXT DEFAULT 'INVOICE',
       invoice_show_gst BOOLEAN DEFAULT TRUE,
       invoice_show_payment_status BOOLEAN DEFAULT TRUE,
-      invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.',
-      whatsapp_phone_number_id TEXT DEFAULT NULL,
-      whatsapp_access_token TEXT DEFAULT NULL,
-      whatsapp_waba_id TEXT DEFAULT NULL,
-      whatsapp_business_id TEXT DEFAULT NULL,
-      whatsapp_app_secret TEXT DEFAULT NULL,
-      instagram_username TEXT DEFAULT NULL,
-      instagram_account_id TEXT DEFAULT NULL,
-      instagram_access_token TEXT DEFAULT NULL
+      invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.'
     );
   `);
 
@@ -243,20 +235,6 @@ async function ensureSchema() {
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.';`);
   } catch (err) {
     logger.warn({ err }, 'Note updating settings invoice customization columns');
-  }
-
-  // Settings table enhancements for WhatsApp & Instagram credentials
-  try {
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_waba_id TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_business_id TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_app_secret TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_username TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_account_id TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_access_token TEXT DEFAULT NULL;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note updating settings WhatsApp and Instagram columns');
   }
 
   // Quotations schema creation
@@ -380,6 +358,14 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_leads_tenant ON leads(tenant_id);`);
 
+  await query(`CREATE SEQUENCE IF NOT EXISTS leads_seq START 1000;`);
+
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS lead_id UUID UNIQUE REFERENCES leads(id) ON DELETE SET NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding lead_id to bookings');
+  }
+
   // Link bookings/quotations to the customer rollup (additive, nullable -
   // existing rows and existing create/update flows keep working unchanged).
   try {
@@ -406,40 +392,6 @@ async function ensureSchema() {
     await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS public_lead_key TEXT UNIQUE DEFAULT encode(gen_random_bytes(12), 'hex');`);
   } catch (err) {
     logger.warn({ err }, 'Note adding public_lead_key column to tenants');
-  }
-
-  // Hotels table for property inventory
-  await query(`
-    CREATE TABLE IF NOT EXISTS hotels (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      city TEXT NOT NULL,
-      rating TEXT DEFAULT '3 Star',
-      address TEXT DEFAULT '',
-      contact_person TEXT DEFAULT '',
-      contact_phone TEXT DEFAULT '',
-      rooms_and_rates JSONB DEFAULT '[]'::jsonb,
-      created_at TIMESTAMPTZ DEFAULT now(),
-      updated_at TIMESTAMPTZ DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_hotels_tenant ON hotels(tenant_id);`);
-
-  try {
-    await query(`ALTER TABLE hotels ADD COLUMN IF NOT EXISTS contacts JSONB DEFAULT '[]'::jsonb;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding contacts column to hotels');
-  }
-
-  // Update bookings table with hotel and voucher integration columns
-  try {
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_id UUID REFERENCES hotels(id) ON DELETE SET NULL;`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS room_category TEXT DEFAULT '';`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_booking_status TEXT DEFAULT 'Pending';`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_confirmation_no TEXT DEFAULT '';`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding hotel tracking columns to bookings');
   }
 
   logger.info('Schema check complete.');

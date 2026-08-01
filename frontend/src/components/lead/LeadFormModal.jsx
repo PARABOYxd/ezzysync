@@ -9,7 +9,6 @@ import { User, Mail, Phone, MapPin, Tag, UserCheck } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '../../utils/validators';
 import * as leadService from '../../services/leadService';
 import * as userService from '../../services/userService';
-import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp'];
@@ -20,31 +19,19 @@ const emptyForm = {
   stage: 'New', assignedTo: '', notes: '',
 };
 
-export default function LeadFormModal({ open, onClose, onSaved, lead }) {
+export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead }) {
   const isEdit = !!lead;
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
-  const [itineraries, setItineraries] = useState([]);
-  const [interestOther, setInterestOther] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     if (open) {
       setForm(lead ? { ...emptyForm, ...lead } : emptyForm);
       setErrors({});
-      setInterestOther(false);
       userService.getUsers().then((users) => setTeamMembers(users || [])).catch(() => {});
-      quotationService.getQuotations({ limit: 100 }).then((data) => {
-        const list = data.quotations || [];
-        setItineraries(list);
-        // If editing and the interest doesn't match any itinerary, pre-select "Other"
-        if (lead?.interest) {
-          const found = list.find((q) => q.trip_name === lead.interest || q.tripName === lead.interest);
-          if (!found) setInterestOther(true);
-        }
-      }).catch(() => {});
     }
   }, [open, lead]);
 
@@ -97,39 +84,7 @@ export default function LeadFormModal({ open, onClose, onSaved, lead }) {
         </FormRow>
         <FormRow>
           <Input label="Contact Number" icon={Phone} required error={errors.phone} hint="Include country code for WhatsApp updates" placeholder="e.g. +919876543210" value={form.phone} onChange={set('phone')} />
-          <div className="w-full space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">Trip / Destination Interest</label>
-            <select
-              className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition"
-              value={interestOther ? '__other__' : (form.interest || '')}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === '__other__') {
-                  setInterestOther(true);
-                  setForm({ ...form, interest: '' });
-                } else {
-                  setInterestOther(false);
-                  setForm({ ...form, interest: val });
-                  if (errors.interest) setErrors({ ...errors, interest: '' });
-                }
-              }}
-            >
-              <option value="">-- Select an itinerary or type manually --</option>
-              {itineraries.map((q) => {
-                const name = q.trip_name || q.tripName || '';
-                return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
-              })}
-              <option value="__other__">✏️ Other (type manually)</option>
-            </select>
-            {interestOther && (
-              <Input
-                icon={MapPin}
-                placeholder="e.g. Bali Honeymoon Package"
-                value={form.interest}
-                onChange={set('interest')}
-              />
-            )}
-          </div>
+          <Input label="Trip / Destination Interest" icon={MapPin} placeholder="e.g. Bali Honeymoon Package" value={form.interest} onChange={set('interest')} />
         </FormRow>
         <FormRow>
           <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />
@@ -142,7 +97,16 @@ export default function LeadFormModal({ open, onClose, onSaved, lead }) {
           />
         </FormRow>
         {isEdit && (
-          <Select label="Pipeline Stage" value={form.stage} onChange={set('stage')} options={LEAD_STAGES} />
+          <Select label="Pipeline Stage" value={form.stage} onChange={(e) => {
+            if (e.target.value === 'Won') {
+              if (onConvert) {
+                onConvert(lead);
+                onClose();
+                return;
+              }
+            }
+            set('stage')(e);
+          }} options={LEAD_STAGES} />
         )}
         <Textarea label="Notes" rows={2} placeholder="Traveler preferences, budget range, conversation notes..." value={form.notes} onChange={set('notes')} />
 

@@ -3,6 +3,10 @@ const leadRepository = require('../repositories/leadRepository');
 const customerService = require('./customerService');
 const bookingService = require('./bookingService');
 const { rowToLead } = require('../models/leadSchema');
+const db = require('../config/db');
+
+const STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
+const STAGE_ORDER = { 'New': 1, 'Contacted': 2, 'Qualified': 3, 'Negotiating': 4, 'Won': 5, 'Lost': 5 };
 
 async function getLeadById(tenantId, leadId) {
   const row = await leadRepository.getLeadById(tenantId, leadId);
@@ -10,7 +14,24 @@ async function getLeadById(tenantId, leadId) {
 }
 
 async function createLead(tenantId, data, createdBy) {
-  const leadId = `LD-${Date.now()}-${uuidv4().slice(0, 4).toUpperCase()}`;
+  if (data.phone && (data.phone.length < 10 || data.phone.length > 15)) {
+    throw new Error('Phone number must be 10-15 digits (E.164 format).');
+  }
+
+  const duplicateCheck = await db.query(
+    `SELECT lead_id FROM leads WHERE tenant_id = $1 AND stage NOT IN ('Won', 'Lost') AND (phone = $2 OR (email != '' AND email = $3))`,
+    [tenantId, data.phone, data.email]
+  );
+  if (duplicateCheck.rowCount > 0) {
+    throw new Error('Duplicate phone/email open lead validation warning.');
+  }
+
+  if (data.stage && !STAGES.includes(data.stage)) {
+    throw new Error('Invalid stage.');
+  }
+
+  const { rows } = await db.query(`SELECT nextval('leads_seq') AS seq`);
+  const leadId = `LD-${rows[0].seq}`;
   const now = new Date().toISOString();
 
   const customerId = await customerService.upsertFromContact(tenantId, {
@@ -23,6 +44,11 @@ async function createLead(tenantId, data, createdBy) {
     tenantId, leadId,
     `Lead created via ${data.source || 'Manual'}.` + (data.notes ? `\nNote: ${data.notes}` : ''),
     'note', null, createdBy || 'System'
+  );
+
+  await db.query(
+    "INSERT INTO audit_logs (tenant_id, action, details) VALUES ($1, $2, $3)",
+    [tenantId, 'LEAD_CREATED', { leadId }]
   );
 
   return rowToLead(row);
@@ -48,12 +74,26 @@ async function updateLead(tenantId, leadId, updates, updatedByUser) {
 
   const stageChanged = updates.stage && updates.stage !== existing.stage;
   if (stageChanged) {
+    if (!STAGES.includes(updates.stage)) {
+      throw new Error('Invalid stage.');
+    }
+    const oldOrder = STAGE_ORDER[existing.stage] || 0;
+    const newOrder = STAGE_ORDER[updates.stage] || 0;
+    if (newOrder < oldOrder) {
+      throw new Error('Backward stage transitions are not allowed.');
+    }
+
     await leadRepository.insertFollowUp(
       tenantId, leadId,
       `Stage changed from *${existing.stage}* to *${updates.stage}*.`,
       'meeting', null, updatedByUser || 'System'
     );
   }
+
+  await db.query(
+    "INSERT INTO audit_logs (tenant_id, action, details) VALUES ($1, $2, $3)",
+    [tenantId, 'LEAD_UPDATED', { leadId, updates }]
+  );
 
   return rowToLead(row);
 }
@@ -89,56 +129,65 @@ async function addFollowUp(tenantId, leadId, { note, activityType, nextFollowUpD
  * fields, marks the lead Won + linked, and logs it on the lead's timeline.
  */
 async function convertToBooking(tenantId, leadId, bookingExtras, actor) {
-  const lead = await getLeadById(tenantId, leadId);
-  if (!lead) {
-    const err = new Error('Lead not found.');
-    err.status = 404;
-    throw err;
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    const leadRes = await client.query('SELECT * FROM leads WHERE tenant_id = $1 AND lead_id = $2 FOR UPDATE', [tenantId, leadId]);
+    if (leadRes.rowCount === 0) {
+      const err = new Error('Lead not found.');
+      err.status = 404;
+      throw err;
+    }
+    const leadRow = leadRes.rows[0];
+    if (leadRow.converted_booking_id) {
+      const err = new Error('This lead has already been converted to a booking.');
+      err.status = 400;
+      throw err;
+    }
+
+    const booking = await bookingService.createBooking(tenantId, {
+      customerName: leadRow.customer_name,
+      email: leadRow.email,
+      phone: leadRow.phone,
+      trip: leadRow.interest,
+      departure: bookingExtras?.departure || new Date().toISOString().slice(0, 10),
+      members: bookingExtras?.members || 1,
+      pricePerPerson: bookingExtras?.pricePerPerson || 0,
+      teamMember: leadRow.assigned_to,
+      travelStatus: 'New',
+      notes: `Converted from Lead #${leadId}.` + (leadRow.notes ? `\n${leadRow.notes}` : ''),
+      ...bookingExtras,
+    }, actor || 'System');
+
+    await client.query(
+      `UPDATE bookings SET lead_id = $1 WHERE tenant_id = $2 AND booking_id = $3`,
+      [leadRow.id, tenantId, booking.bookingId]
+    );
+
+    await client.query(
+      `UPDATE leads SET stage = 'Won', converted_booking_id = $1, updated_at = $2 WHERE id = $3`,
+      [booking.bookingId, new Date().toISOString(), leadRow.id]
+    );
+
+    await client.query(
+      `INSERT INTO follow_up_logs (tenant_id, lead_id, note, activity_type, created_by) VALUES ($1, $2, $3, $4, $5)`,
+      [tenantId, leadRow.id, `Converted to Booking #${booking.bookingId}.`, 'meeting', actor || 'System']
+    );
+
+    await client.query(
+      "INSERT INTO audit_logs (tenant_id, action, details) VALUES ($1, $2, $3)",
+      [tenantId, 'LEAD_CONVERTED', { leadId, bookingId: booking.bookingId }]
+    );
+
+    await client.query('COMMIT');
+    return { lead: await getLeadById(tenantId, leadId), booking };
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
   }
-  if (lead.convertedBookingId) {
-    const err = new Error('This lead has already been converted to a booking.');
-    err.status = 400;
-    throw err;
-  }
-
-  // Leads and Quotations don't reference each other, so if this customer
-  // already has an open booking (e.g. from a Quotation accepted separately
-  // for them), converting the lead would otherwise create a silent
-  // duplicate. Surface it instead of guessing whether to merge.
-  const customerIdForCheck = lead.phone
-    ? await customerService.upsertFromContact(tenantId, { name: lead.customerName, email: lead.email, phone: lead.phone })
-    : null;
-  const possibleDuplicates = customerIdForCheck
-    ? await bookingService.getActiveBookingsByCustomer(tenantId, customerIdForCheck)
-    : [];
-
-  const booking = await bookingService.createBooking(tenantId, {
-    customerName: lead.customerName,
-    email: lead.email,
-    phone: lead.phone,
-    trip: lead.interest,
-    departure: bookingExtras?.departure || new Date().toISOString().slice(0, 10),
-    members: bookingExtras?.members || 1,
-    pricePerPerson: bookingExtras?.pricePerPerson || 0,
-    teamMember: lead.assignedTo,
-    travelStatus: 'New',
-    notes: `Converted from Lead #${leadId}.` + (lead.notes ? `\n${lead.notes}` : ''),
-    ...bookingExtras,
-  }, actor || 'System');
-
-  await leadRepository.updateLead(
-    tenantId, leadId,
-    { ...lead, stage: 'Won', convertedBookingId: booking.bookingId },
-    new Date().toISOString(),
-    null
-  );
-  await leadRepository.insertFollowUp(
-    tenantId, leadId,
-    `Converted to Booking #${booking.bookingId}.`,
-    'meeting', null, actor || 'System'
-  );
-
-  return { lead: await getLeadById(tenantId, leadId), booking, possibleDuplicates };
 }
 
 module.exports = {
