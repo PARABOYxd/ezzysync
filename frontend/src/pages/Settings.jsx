@@ -121,22 +121,20 @@ export default function SettingsPage() {
       <div className="flex gap-2 border-b border-slate-100 pb-px">
         <button
           onClick={() => setActiveTab('general')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            activeTab === 'general'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'general'
+            ? 'border-brand-600 text-brand-700'
+            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+            }`}
         >
           <Settings size={16} />
           General Profile
         </button>
         <button
           onClick={() => setActiveTab('invoice')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            activeTab === 'invoice'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'invoice'
+            ? 'border-brand-600 text-brand-700'
+            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+            }`}
         >
           <Palette size={16} />
           Invoice Builder & Designer
@@ -145,11 +143,10 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('whatsapp')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-              activeTab === 'whatsapp'
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'whatsapp'
+              ? 'border-brand-600 text-brand-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+              }`}
           >
             <MessageSquare size={16} />
             WhatsApp Connection
@@ -159,11 +156,10 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('instagram')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-              activeTab === 'instagram'
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'instagram'
+              ? 'border-brand-600 text-brand-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+              }`}
           >
             <Instagram size={16} />
             Instagram Connection
@@ -173,28 +169,13 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('leadCapture')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-              activeTab === 'leadCapture'
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'leadCapture'
+              ? 'border-brand-600 text-brand-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+              }`}
           >
             <Link2 size={16} />
             Lead Capture
-          </button>
-        )}
-        {user?.role === 'ADMIN' && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('walkthroughs')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-              activeTab === 'walkthroughs'
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
-            }`}
-          >
-            <Sparkles size={16} />
-            Landing Page Requests
           </button>
         )}
       </div>
@@ -439,7 +420,7 @@ export default function SettingsPage() {
                 {/* Visibility Toggles */}
                 <div className="space-y-3 pt-2">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Field Visibility</label>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-slate-50/20 text-xs font-medium text-slate-700">
                       <input
@@ -560,10 +541,9 @@ export default function SettingsPage() {
                 <div className="mb-4">
                   {/* Table Header style */}
                   <div
-                    className={`grid grid-cols-12 px-3 py-1.5 font-bold ${
-                      settings.invoiceLayout === 'modern' ? 'bg-slate-100 text-slate-800 rounded' :
+                    className={`grid grid-cols-12 px-3 py-1.5 font-bold ${settings.invoiceLayout === 'modern' ? 'bg-slate-100 text-slate-800 rounded' :
                       settings.invoiceLayout === 'classic' ? 'text-white rounded' : 'border-b border-slate-200 text-slate-800'
-                    }`}
+                      }`}
                     style={{
                       backgroundColor: settings.invoiceLayout === 'classic'
                         ? settings.invoiceAccentColor || '#0f766e'
@@ -662,59 +642,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'walkthroughs' && (
-          <div className="card space-y-4 max-w-4xl p-6">
-            <div>
-              <h3 className="font-bold text-slate-800">Landing Page Walkthrough Requests</h3>
-              <p className="text-xs text-slate-400">Leads captured from "Book Your Walkthrough" form on EzzySync marketing site</p>
-            </div>
-
-            <div className="overflow-x-auto border border-slate-100 rounded-xl">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
-                    <th className="py-3 px-4 font-medium">Date & Time</th>
-                    <th className="py-3 px-4 font-medium">Name</th>
-                    <th className="py-3 px-4 font-medium">Agency Name</th>
-                    <th className="py-3 px-4 font-medium">Work Email</th>
-                    <th className="py-3 px-4 font-medium">Phone Number</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loadingWalkthroughs && (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">
-                        <span className="loading loading-spinner text-slate-400" /> Loading leads...
-                      </td>
-                    </tr>
-                  )}
-                  {!loadingWalkthroughs && walkthroughRequests.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
-                        No walkthrough requests captured yet.
-                      </td>
-                    </tr>
-                  )}
-                  {!loadingWalkthroughs &&
-                    walkthroughRequests.map((r) => (
-                      <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                        <td className="py-3 px-4 text-slate-500 font-mono text-xs">
-                          {new Date(r.created_at).toLocaleString('en-IN', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          })}
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-slate-700">{r.name}</td>
-                        <td className="py-3 px-4 text-slate-600">{r.agency_name}</td>
-                        <td className="py-3 px-4 text-slate-500 font-medium">{r.email}</td>
-                        <td className="py-3 px-4 text-slate-500">{r.phone || '-'}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
         {/* Global Save Button */}
         {activeTab !== 'walkthroughs' && activeTab !== 'leadCapture' && (

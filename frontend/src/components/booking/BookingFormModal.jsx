@@ -54,6 +54,9 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
   const [teamMemberOther, setTeamMemberOther] = useState(false);
   const [teamMemberCustom, setTeamMemberCustom] = useState('');
 
+  // Trip name dropdown — other = manual entry
+  const [tripOther, setTripOther] = useState(false);
+
   const [aiText, setAiText] = useState('');
   const [aiFile, setAiFile] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -65,8 +68,14 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
 
   useEffect(() => {
     if (open) {
-      quotationService.getQuotations().then((data) => {
-        setQuotations(data.quotations || data || []);
+      quotationService.getQuotations({ limit: 100 }).then((data) => {
+        const list = data.quotations || data || [];
+        setQuotations(list);
+        // If editing and trip doesn't match any itinerary name, pre-set Other
+        if (booking?.trip) {
+          const found = list.find((q) => (q.trip_name || q.tripName) === booking.trip);
+          if (!found) setTripOther(true);
+        }
       }).catch(() => {});
 
       hotelService.getHotels().then((data) => {
@@ -146,6 +155,7 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
       setErrors({});
       setActiveTab('customer');
       setShowAi(false);
+      setTripOther(false);
       // Check if existing booking has a custom team member (not in list)
       if (booking?.teamMember && booking.teamMember !== '') {
         // Will be resolved after team members load
@@ -472,16 +482,46 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
           {activeTab === 'trip' && (
             <div className="space-y-5 animate-[fadeIn_0.2s_ease-out]">
               <FormRow>
-                <Input
-                  label="Trip / Destination Name"
-                  icon={MapPin}
-                  error={errors.trip}
-                  required={isBookedOrBeyond}
-                  hint="Target tour package name"
-                  placeholder="e.g. Himachal Valley Luxury Tour"
-                  value={form.trip}
-                  onChange={set('trip')}
-                />
+                <div className="w-full space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Trip / Destination Name {isBookedOrBeyond && <span className="text-red-500">*</span>}
+                  </label>
+                  <select
+                    className={`w-full text-sm bg-white border rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition ${errors.trip ? 'border-red-400' : 'border-slate-200'}`}
+                    value={tripOther ? '__other__' : (form.trip || '')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__other__') {
+                        setTripOther(true);
+                        setForm({ ...form, trip: '' });
+                      } else {
+                        setTripOther(false);
+                        setForm({ ...form, trip: val });
+                        if (errors.trip) setErrors({ ...errors, trip: '' });
+                      }
+                    }}
+                  >
+                    <option value="">-- Select an itinerary --</option>
+                    {quotations.map((q) => {
+                      const name = q.trip_name || q.tripName || '';
+                      return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
+                    })}
+                    <option value="__other__">✏️ Other (type manually)</option>
+                  </select>
+                  {tripOther && (
+                    <Input
+                      icon={MapPin}
+                      error={errors.trip}
+                      placeholder="e.g. Himachal Valley Luxury Tour"
+                      hint="Target tour package name"
+                      value={form.trip}
+                      onChange={set('trip')}
+                    />
+                  )}
+                  {errors.trip && !tripOther && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.trip}</p>
+                  )}
+                </div>
                 <Input
                   label="Departure Date"
                   icon={Calendar}

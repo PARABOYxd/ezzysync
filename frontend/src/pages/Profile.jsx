@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import * as profileService from '../services/profileService';
 import { useToast } from '../hooks/useToast.jsx';
+import { useAuth } from '../hooks/useAuth.jsx';
 import Input from '../components/ui/Input.jsx';
 import FormRow from '../components/ui/FormRow.jsx';
 import Button from '../components/ui/Button.jsx';
 
 export default function Profile() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [profile, setProfile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '' });
@@ -75,6 +78,7 @@ export default function Profile() {
           placeholder="e.g. TravelGo Holidays Pvt Ltd"
           hint="Your organisation or agency name"
           value={profile.companyName}
+          disabled={!isAdmin}
           onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
         />
 

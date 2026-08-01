@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Modal from '../common/Modal.jsx';
 import Input from '../ui/Input.jsx';
-import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Button from '../ui/Button.jsx';
 import * as quotationService from '../../services/quotationService';
@@ -9,21 +8,13 @@ import { useToast } from '../../hooks/useToast.jsx';
 import api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import {
-  MapPin, Check, Plus, Trash, ArrowUp, ArrowDown,
-  ClipboardList, Sparkles, Clock, Wand2
+  MapPin, Plus, Trash, ArrowUp, ArrowDown,
+  ClipboardList, Sparkles, Wand2, IndianRupee
 } from 'lucide-react';
 
-const STATUSES = ['Draft', 'Sent', 'Accepted'];
-
-const STATUS_HINTS = {
-  Draft: 'Hidden from clients — still in creation stage.',
-  Sent: 'Shared with client via link or WhatsApp. Awaiting approval.',
-  Accepted: 'Confirmed by client. Ready to convert to booking!',
-};
-
 const emptyForm = {
-  customerName: '', email: '', phone: '', tripName: '', priceQuote: '',
-  validUntil: '', status: 'Draft', itineraryDays: [{ day: 1, title: '', description: '' }],
+  tripName: '', priceQuote: '',
+  itineraryDays: [{ day: 1, title: '', description: '' }],
 };
 
 export default function QuotationFormModal({ open, onClose, onSaved, quotation }) {
@@ -161,7 +152,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation }
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Itinerary' : 'Create Itinerary'} size="xl">
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Trip Name + Status Row */}
+        {/* Trip Name + Price Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
             className="sm:col-span-2"
@@ -169,19 +160,20 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation }
             icon={MapPin}
             required
             error={errors.tripName}
-            hint="This name appears on the client preview link and booking records"
+            hint="This name appears on the client preview link"
             placeholder="e.g. 5N/6D Kerala Backwaters Luxury Tour"
             value={form.tripName}
             onChange={set('tripName')}
           />
-
-          <Select
-            label="Status"
-            icon={Clock}
-            hint={STATUS_HINTS[form.status]}
-            value={form.status}
-            onChange={set('status')}
-            options={STATUSES}
+          <Input
+            label="Package Price (₹)"
+            icon={IndianRupee}
+            type="number"
+            min={0}
+            placeholder="e.g. 45000"
+            hint="Total price shown on itinerary preview"
+            value={form.priceQuote}
+            onChange={set('priceQuote')}
           />
         </div>
 

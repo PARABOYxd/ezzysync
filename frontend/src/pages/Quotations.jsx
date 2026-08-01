@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Search, Calendar, Copy, Check, Eye, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, Copy, Check, Trash2, Edit } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -12,11 +12,11 @@ export default function Quotations() {
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
-  
+
   const [filters, setFilters] = useState({
     search: '', status: '', page: 1, limit: 10,
   });
-  
+
   const [pagination, setPagination] = useState({
     totalCount: 0, totalPages: 1, currentPage: 1, limit: 10,
   });
@@ -55,7 +55,7 @@ export default function Quotations() {
   }, [searchInput]);
 
   const copyPreviewLink = (uuid, qId) => {
-    const link = `${window.location.origin}/quote-preview/${uuid}`;
+    const link = `${window.location.origin}/app/quote-preview/${uuid}`;
     navigator.clipboard.writeText(link);
     setCopiedId(qId);
     toast.success('Preview link copied to clipboard!');
@@ -119,25 +119,22 @@ export default function Quotations() {
             <thead>
               <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
                 <th className="py-3 px-4 font-medium">Quote ID</th>
-                <th className="py-3 px-4 font-medium">Client Details</th>
                 <th className="py-3 px-4 font-medium">Trip & Package</th>
                 <th className="py-3 px-4 font-medium">Quote Price</th>
-                <th className="py-3 px-4 font-medium">Valid Until</th>
-                <th className="py-3 px-4 font-medium">Status</th>
                 <th className="py-3 px-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={4} className="py-8 text-center text-slate-400">
                     <span className="loading loading-spinner text-slate-400" /> Loading itineraries...
                   </td>
                 </tr>
               )}
               {!loading && quotations.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     No quotations found. Click "Create Quotation" to draft your first day-by-day plan.
                   </td>
                 </tr>
@@ -147,23 +144,10 @@ export default function Quotations() {
                   <tr key={q.quotationId} className="border-b border-slate-50 hover:bg-slate-50/60">
                     <td className="py-3.5 px-4 font-mono text-xs text-slate-400">{q.quotationId}</td>
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-700">{q.customerName}</div>
-                      <div className="text-[10px] text-slate-400">{q.phone} | {q.email}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
                       <div className="font-medium text-slate-700">{q.tripName}</div>
                       <div className="text-[10px] text-brand-600 font-semibold">{q.itineraryDays?.length || 0} Days Plan</div>
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-slate-700">{formatCurrency(q.priceQuote)}</td>
-                    <td className="py-3.5 px-4 text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={13} className="text-slate-400" />
-                        {q.validUntil ? q.validUntil.slice(0, 10) : '-'}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <QuotationStatusBadge status={q.status} />
-                    </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {q.status !== 'Accepted' && (
@@ -229,11 +213,10 @@ export default function Quotations() {
                   <button
                     key={p}
                     onClick={() => setFilters((prev) => ({ ...prev, page: p }))}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-                      filters.page === p
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${filters.page === p
                         ? 'bg-brand-600 text-white'
                         : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>

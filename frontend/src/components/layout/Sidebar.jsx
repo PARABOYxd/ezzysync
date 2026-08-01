@@ -16,7 +16,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map },
     { to: '/team', label: 'Team', icon: Users, role: 'ADMIN' },
     { to: '/profile', label: 'Profile', icon: User },
-    { to: '/hotels', label: 'Hotels', icon: Building2 },
+    { to: '/hotels', label: 'Hotels', icon: Building2, role: 'ADMIN' },
     { to: '/guide', label: 'User Guide 📖', icon: HelpCircle },
     { to: '/settings', label: 'Settings', icon: Settings, role: 'ADMIN' },
     { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles },
