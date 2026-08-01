@@ -6,6 +6,7 @@ import * as followUpService from '../services/followUpService';
 import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';
+import CompleteFollowUpModal from '../components/followup/CompleteFollowUpModal.jsx';
 
 function getActivityIcon(type) {
   switch (type) {
@@ -21,7 +22,7 @@ export default function FollowUps() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignedTo, setAssignedTo] = useState('');
-  const [completingId, setCompletingId] = useState(null);
+  const [activeFollowUp, setActiveFollowUp] = useState(null);
   const toast = useToast();
 
   const load = useCallback(() => {
@@ -34,19 +35,6 @@ export default function FollowUps() {
   }, [assignedTo]);
 
   useEffect(load, [load]);
-
-  const handleMarkDone = async (id) => {
-    setCompletingId(id);
-    try {
-      await followUpService.markFollowUpDone(id);
-      toast.success('Marked as done.');
-      setItems((prev) => prev.filter((i) => i.id !== id));
-    } catch {
-      toast.error('Could not update follow-up.');
-    } finally {
-      setCompletingId(null);
-    }
-  };
 
   const isOverdue = (dateStr) => new Date(dateStr) < new Date(new Date().toDateString());
 
@@ -124,9 +112,8 @@ export default function FollowUps() {
                         )}
                         <button
                           title="Mark follow-up as done"
-                          disabled={completingId === item.id}
-                          onClick={() => handleMarkDone(item.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 ml-1 shrink-0"
+                          onClick={() => setActiveFollowUp(item)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 ml-1 shrink-0 bg-[var(--bg-page)] dark:bg-zinc-800"
                         >
                           <Check size={13} /> Done
                         </button>
@@ -142,6 +129,15 @@ export default function FollowUps() {
           <EmptyState title="All caught up!" message="No follow-ups are due today or overdue." />
         )}
       </div>
+
+      <CompleteFollowUpModal
+        open={!!activeFollowUp}
+        onClose={() => setActiveFollowUp(null)}
+        followUp={activeFollowUp}
+        onCompleted={(completedId) => {
+          setItems((prev) => prev.filter((i) => i.id !== completedId));
+        }}
+      />
     </div>
   );
 }

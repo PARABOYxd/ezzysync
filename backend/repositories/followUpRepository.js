@@ -36,6 +36,7 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
   const { rows } = await query(
     `SELECT
        f.id, f.note, f.activity_type, f.next_follow_up_date, f.created_by, f.created_at, f.status,
+       f.lead_id as lead_uuid, f.booking_id as booking_uuid,
        CASE WHEN f.booking_id IS NOT NULL THEN 'booking' ELSE 'lead' END as source_type,
        COALESCE(b.booking_id, l.lead_id) as source_id,
        COALESCE(b.customer_name, l.customer_name) as customer_name,
@@ -53,11 +54,14 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
   return rows;
 }
 
-async function markDone(tenantId, id) {
-  const { rows } = await query(
-    `UPDATE follow_up_logs SET status = 'done' WHERE tenant_id = $1 AND id = $2 RETURNING *`,
-    [tenantId, id]
-  );
+async function markDone(tenantId, id, outcomeNote) {
+  let queryText = `UPDATE follow_up_logs SET status = 'done' WHERE tenant_id = $1 AND id = $2 RETURNING *`;
+  const params = [tenantId, id];
+  if (outcomeNote) {
+    queryText = `UPDATE follow_up_logs SET status = 'done', note = CONCAT(note, E'\n\nOutcome Summary:\n', $3) WHERE tenant_id = $1 AND id = $2 RETURNING *`;
+    params.push(outcomeNote);
+  }
+  const { rows } = await query(queryText, params);
   return rows[0];
 }
 

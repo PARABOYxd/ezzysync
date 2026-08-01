@@ -17,7 +17,8 @@ async function list(req, res, next) {
 
 async function markDone(req, res, next) {
   try {
-    const followUp = await followUpRepository.markDone(req.user.tenantId, req.params.id);
+    const { outcomeNote } = req.body;
+    const followUp = await followUpRepository.markDone(req.user.tenantId, req.params.id, outcomeNote);
     if (!followUp) return res.status(404).json({ message: 'Follow-up not found.' });
     await auditService.logAction(req, 'MARK_FOLLOW_UP_DONE', { followUpId: req.params.id });
     res.json({ followUp });
