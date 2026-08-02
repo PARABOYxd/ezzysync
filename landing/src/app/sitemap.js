@@ -57,6 +57,12 @@ export default function sitemap() {
       priority: 0.8,
     },
     {
+      url: 'https://www.ezzysync.com/blog/convert-instagram-leads-travel-agents',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: 'https://www.ezzysync.com/terms',
       lastModified,
       changeFrequency: 'yearly',

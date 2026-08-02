@@ -8,6 +8,31 @@ import Footer from "@/components/layout/Footer";
 // Real-world, trending travel agency tech articles with high SEO query match
 const blogPosts = [
   {
+    slug: "convert-instagram-leads-travel-agents",
+    title: "How to Convert Instagram Leads into Confirmed Bookings: A 2026 Guide for Indian Travel Agents",
+    excerpt: "Stop letting hot travel DMs go cold. Learn the 5-step conversion funnel to turn likes into booked trips using WhatsApp integrations and travel CRMs.",
+    date: "August 2, 2026",
+    readTime: "7 min read",
+    category: "Marketing",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-900 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Instagram DM mockup */}
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span className="text-[10px] font-bold text-rose-500">Instagram DM Inbound</span>
+          <span className="text-[8px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-bold">HOT LEAD</span>
+        </div>
+        <div className="space-y-1.5 py-2">
+          <div className="text-[11px] font-bold text-slate-100">Rahul Sharma</div>
+          <div className="text-[9px] text-slate-400">"Price for Bali Honeymoon package please..."</div>
+        </div>
+        <div className="bg-[#F97316] text-white rounded-lg p-2 flex items-center justify-between">
+          <span className="text-[9px] font-bold">Logged to EzzySync CRM</span>
+          <span className="text-[9px] font-bold">✓ 15m Response</span>
+        </div>
+      </div>
+    )
+  },
+  {
     slug: "whatsapp-marketing-for-travel-agents",
     title: "Why Travel Agents Lose 40% of Bookings in Scattered WhatsApp Chats",
     excerpt: "Discover how relying on personal WhatsApp chats for lead follow-ups limits your growth and how centralizing your customer database recovers lost inquiries.",
