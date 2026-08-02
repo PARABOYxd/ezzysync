@@ -82,7 +82,7 @@ const articlesData = {
     date: "August 2, 2026",
     readTime: "7 min read",
     category: "Marketing",
-    image: "/blog_instagram.svg",
+    image: "/blog_instagram.jpg",
     content: (
       <>
         {/* Schema markup */}
