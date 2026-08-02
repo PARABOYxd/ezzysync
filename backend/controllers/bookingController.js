@@ -5,7 +5,7 @@ async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { status, trip, teamMember, departureFrom, departureTo, search, sort } = req.query;
+    const { status, trip, teamMember, departureFrom, departureTo, createdFrom, createdTo, search, sort } = req.query;
 
     const result = await bookingService.listBookingsPaged(req.user.tenantId, {
       page,
@@ -15,6 +15,8 @@ async function list(req, res, next) {
       teamMember,
       departureFrom,
       departureTo,
+      createdFrom,
+      createdTo,
       search,
       sort,
     });

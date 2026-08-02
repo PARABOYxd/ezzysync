@@ -46,6 +46,7 @@ async function updateLead(tenantId, leadId, merged, updatedAt, customerId) {
 async function listLeadsPaged(params) {
   const {
     tenantId, page = 1, limit = 10, search = '', stage = '', assignedTo = '', sort = 'newest', includeDeleted = false,
+    createdFrom = '', createdTo = '',
   } = params;
 
   const values = [tenantId];
@@ -67,6 +68,14 @@ async function listLeadsPaged(params) {
     values.push(`%${search}%`);
     paramIndex++;
   }
+  if (createdFrom) {
+    whereClauses.push(`created_at::date >= $${paramIndex++}::date`);
+    values.push(createdFrom);
+  }
+  if (createdTo) {
+    whereClauses.push(`created_at::date <= $${paramIndex++}::date`);
+    values.push(createdTo);
+  }
 
   const whereSql = whereClauses.join(' AND ');
   const orderSql = sort === 'oldest' ? 'ORDER BY created_at ASC' : 'ORDER BY created_at DESC';
@@ -80,8 +89,14 @@ async function listLeadsPaged(params) {
   values.push(Number(offset));
   const offsetIndex = paramIndex++;
 
+  // follow_up_count powers the Follow-ups page's New/Followup status split -
+  // a lead created via createLead() always gets one auto-logged "Lead
+  // created via..." entry, so >1 means a real follow-up action has since
+  // been logged against it.
   const { rows } = await query(
-    `SELECT * FROM leads WHERE ${whereSql} ${orderSql} LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    `SELECT leads.*,
+       (SELECT COUNT(*)::int FROM follow_up_logs f WHERE f.lead_id = leads.id) AS follow_up_count
+     FROM leads WHERE ${whereSql} ${orderSql} LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     values
   );
 

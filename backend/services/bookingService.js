@@ -1,7 +1,9 @@
 const { v4: uuidv4 } = require('uuid');
 const bookingRepository = require('../repositories/bookingRepository');
+const batchRepository = require('../repositories/batchRepository');
 const customerService = require('./customerService');
 const { rowToBooking } = require('../models/bookingSchema');
+const { rowToBatch } = require('../models/batchSchema');
 
 function computeAmounts({ members, pricePerPerson, paid }) {
   const totalAmount = Number(members || 0) * Number(pricePerPerson || 0);
@@ -162,10 +164,49 @@ async function dashboardStats(tenantId) {
     .sort((a, b) => new Date(b.bookingTimestamp) - new Date(a.bookingTimestamp))
     .slice(0, 10);
 
-  const upcomingDepartures = bookings
+  const upcomingBookings = bookings
     .filter((b) => b.departure >= today && b.travelStatus !== 'Cancelled')
-    .sort((a, b) => a.departure.localeCompare(b.departure))
-    .slice(0, 10);
+    .sort((a, b) => a.departure.localeCompare(b.departure));
+
+  // Bookings linked to a Group Tour batch collapse into a single "batch"
+  // entry showing its total seat count, instead of one dashboard row per
+  // traveler - individual (non-batch) bookings stay as their own rows.
+  let upcomingDepartures;
+  if (upcomingBookings.some((b) => b.batchId)) {
+    const batches = (await batchRepository.listBatches(tenantId)).map(rowToBatch);
+    const batchById = new Map(batches.map((b) => [b.id, b]));
+    const seenBatchIds = new Set();
+    const entries = [];
+
+    for (const b of upcomingBookings) {
+      const batch = b.batchId ? batchById.get(b.batchId) : null;
+      if (!batch) {
+        entries.push({ type: 'single', departure: b.departure, booking: b });
+        continue;
+      }
+      if (seenBatchIds.has(batch.id)) continue;
+      seenBatchIds.add(batch.id);
+      entries.push({
+        type: 'batch',
+        departure: batch.departureDate,
+        batch: {
+          batchId: batch.batchId,
+          name: batch.name,
+          tripName: batch.tripName,
+          confirmedSeats: batch.confirmedSeats,
+          totalCapacity: batch.totalCapacity,
+        },
+      });
+    }
+
+    upcomingDepartures = entries
+      .sort((a, b) => a.departure.localeCompare(b.departure))
+      .slice(0, 10);
+  } else {
+    upcomingDepartures = upcomingBookings
+      .slice(0, 10)
+      .map((b) => ({ type: 'single', departure: b.departure, booking: b }));
+  }
 
   return { stats, recentBookings, upcomingDepartures };
 }

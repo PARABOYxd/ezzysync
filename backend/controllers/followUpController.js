@@ -15,6 +15,16 @@ async function list(req, res, next) {
   }
 }
 
+async function listCompleted(req, res, next) {
+  try {
+    const { assignedTo } = req.query;
+    const followUps = await followUpRepository.listCompletedFollowUps(req.user.tenantId, { assignedTo });
+    res.json({ followUps });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function markDone(req, res, next) {
   try {
     const { outcomeNote } = req.body;
@@ -27,4 +37,4 @@ async function markDone(req, res, next) {
   }
 }
 
-module.exports = { list, markDone };
+module.exports = { list, listCompleted, markDone };

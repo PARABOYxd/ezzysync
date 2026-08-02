@@ -24,6 +24,15 @@ async function getBookingBySourceQuotation(tenantId, quotationId) {
   return rows[0];
 }
 
+/** How many active bookings still reference this itinerary - guards Quotation delete. */
+async function countBySourceQuotation(tenantId, quotationId) {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS count FROM bookings WHERE tenant_id = $1 AND source_quotation_id = $2 AND deleted = FALSE`,
+    [tenantId, quotationId]
+  );
+  return rows[0]?.count || 0;
+}
+
 // Still-open bookings for a customer - used to warn when a Lead-convert or
 // Quotation-accept is about to create a booking for someone who already has
 // an unresolved one, since those two paths don't otherwise know about each
@@ -116,6 +125,8 @@ async function listBookingsPaged(params) {
     teamMember = '',
     departureFrom = '',
     departureTo = '',
+    createdFrom = '',
+    createdTo = '',
     sort = 'newest',
     includeDeleted = false
   } = params;
@@ -152,6 +163,16 @@ async function listBookingsPaged(params) {
   if (departureTo) {
     whereClauses.push(`departure <= $${paramIndex++}`);
     values.push(departureTo);
+  }
+
+  if (createdFrom) {
+    whereClauses.push(`booking_timestamp::date >= $${paramIndex++}::date`);
+    values.push(createdFrom);
+  }
+
+  if (createdTo) {
+    whereClauses.push(`booking_timestamp::date <= $${paramIndex++}::date`);
+    values.push(createdTo);
   }
 
   if (search) {
@@ -258,6 +279,7 @@ module.exports = {
   listFollowUps,
   insertFollowUp,
   getBookingBySourceQuotation,
+  countBySourceQuotation,
   getActiveBookingsByCustomer,
   getUpcomingDepartures,
 };

@@ -62,3 +62,14 @@ const BATCH_STATUS_STYLES = {
 export function BatchStatusBadge({ status }) {
   return <span className={`badge-tint ${BATCH_STATUS_STYLES[status] || 'badge-lost'}`}>{status}</span>;
 }
+
+const FOLLOW_UP_STATUS_STYLES = {
+  New: 'badge-new',
+  Followup: 'badge-followup',
+  Scheduled: 'badge-contacted',
+  Done: 'badge-confirmed',
+};
+
+export function FollowUpStatusBadge({ status }) {
+  return <span className={`badge-tint ${FOLLOW_UP_STATUS_STYLES[status] || 'badge-lost'}`}>{status}</span>;
+}

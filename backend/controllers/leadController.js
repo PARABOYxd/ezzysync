@@ -5,10 +5,10 @@ async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { stage, assignedTo, search, sort } = req.query;
+    const { stage, assignedTo, search, sort, createdFrom, createdTo } = req.query;
 
     const result = await leadService.listLeadsPaged(req.user.tenantId, {
-      page, limit, stage, assignedTo, search, sort,
+      page, limit, stage, assignedTo, search, sort, createdFrom, createdTo,
     });
 
     res.json({

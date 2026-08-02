@@ -18,7 +18,9 @@ export default function Bookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    search: searchParams.get('search') || '', status: '', trip: '', teamMember: '', sort: 'newest', page: 1, limit: 10,
+    search: searchParams.get('search') || '', status: '', trip: '', teamMember: '',
+    departureFrom: '', departureTo: '', createdFrom: '', createdTo: '',
+    sort: 'newest', page: 1, limit: 10,
   });
 
   const [pagination, setPagination] = useState({

@@ -1,5 +1,7 @@
 const quotationRepository = require('../repositories/quotationRepository');
 const bookingService = require('./bookingService');
+const bookingRepository = require('../repositories/bookingRepository');
+const batchRepository = require('../repositories/batchRepository');
 const customerService = require('./customerService');
 
 function rowToQuotation(row) {
@@ -16,9 +18,12 @@ function rowToQuotation(row) {
     validUntil: row.valid_until || '',
     status: row.status || 'Draft',
     itineraryDays: row.itinerary_days || [],
+    inclusions: row.inclusions || [],
+    exclusions: row.exclusions || [],
+    highlights: row.highlights || [],
+    pickupOptions: row.pickup_options || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    usedInBatches: row.used_in_batches || [],
   };
 }
 
@@ -112,12 +117,31 @@ async function updateQuotation(tenantId, quotationId, updates) {
 }
 
 async function deleteQuotation(tenantId, quotationId) {
-  const row = await quotationRepository.deleteQuotation(tenantId, quotationId);
-  // Also soft-delete any linked bookings when a quotation is deleted
-  const booking = await bookingService.getBookingBySourceQuotation(tenantId, quotationId);
-  if (booking) {
-    await bookingService.softDeleteBooking(tenantId, booking.bookingId, 'Admin Panel');
+  const existing = await getQuotationById(tenantId, quotationId);
+  if (!existing) {
+    const err = new Error('Quotation not found.');
+    err.status = 404;
+    throw err;
   }
+
+  // An itinerary that's still powering a live Group Tour batch or a
+  // booking can't be silently deleted out from under them - surface what
+  // it's used in instead of guessing (e.g. cascading the delete).
+  const [batchCount, bookingCount] = await Promise.all([
+    batchRepository.countBySourceQuotation(tenantId, quotationId),
+    bookingRepository.countBySourceQuotation(tenantId, quotationId),
+  ]);
+
+  if (batchCount > 0 || bookingCount > 0) {
+    const parts = [];
+    if (batchCount > 0) parts.push(`${batchCount} tour batch${batchCount > 1 ? 'es' : ''}`);
+    if (bookingCount > 0) parts.push(`${bookingCount} booking${bookingCount > 1 ? 's' : ''}`);
+    const err = new Error(`This itinerary is used in ${parts.join(' and ')}. Unlink or remove those first before deleting it.`);
+    err.status = 409;
+    throw err;
+  }
+
+  const row = await quotationRepository.deleteQuotation(tenantId, quotationId);
   return rowToQuotation(row);
 }
 

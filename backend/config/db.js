@@ -435,6 +435,24 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding source_quotation_id to tour_batches');
   }
 
+  // What's included/excluded in the package price - shown on the public
+  // itinerary preview page alongside the day-by-day schedule.
+  try {
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS inclusions JSONB DEFAULT '[]'::jsonb;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS exclusions JSONB DEFAULT '[]'::jsonb;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding inclusions/exclusions to quotations');
+  }
+
+  // Optional trip highlights (short bullet list) and per-pickup-point
+  // pricing (each entry is its own absolute total price, not an add-on).
+  try {
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS highlights JSONB DEFAULT '[]'::jsonb;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS pickup_options JSONB DEFAULT '[]'::jsonb;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding highlights/pickup_options to quotations');
+  }
+
   logger.info('Schema check complete.');
 }
 

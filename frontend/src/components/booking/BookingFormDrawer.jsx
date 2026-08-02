@@ -204,6 +204,22 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
     if (errors[key]) setErrors({ ...errors, [key]: '' });
   };
 
+  // A batch groups bookings that share one fixed departure - linking one
+  // pins trip/departure to the batch's values so the roster can't drift out
+  // of sync. Picking "No Batch Linked" just unlocks them again.
+  const handleBatchChange = (e) => {
+    const bId = e.target.value;
+    if (!bId) {
+      setForm((prev) => ({ ...prev, batchId: '' }));
+      return;
+    }
+    const b = batches.find((x) => x.id === bId);
+    if (!b) return;
+    setTripOther(false);
+    setForm((prev) => ({ ...prev, batchId: bId, trip: b.tripName, departure: b.departureDate }));
+    setErrors((prev) => ({ ...prev, trip: '', departure: '' }));
+  };
+
   const validate = () => {
     const e = {};
     const status = form.travelStatus;
@@ -509,12 +525,34 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           {activeTab === 'trip' && (
             <div className="space-y-5 animate-[fadeIn_0.2s_ease-out]">
               <FormRow>
+                <Select
+                  label="Tour Batch / Group (Optional)"
+                  icon={Users}
+                  hint="Linking a batch locks trip & departure date to match it"
+                  value={form.batchId || ''}
+                  onChange={handleBatchChange}
+                  options={[
+                    { value: '', label: '-- No Batch Linked --' },
+                    ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
+                  ]}
+                />
+                <Input
+                  label="Pickup Location (Optional)"
+                  icon={Navigation}
+                  hint="Specific pickup spot details"
+                  placeholder="e.g. IGI Airport Terminal 3"
+                  value={form.pickup}
+                  onChange={set('pickup')}
+                />
+              </FormRow>
+              <FormRow>
                 <div className="w-full space-y-1.5">
                   <label className="block text-xs font-semibold text-slate-700">
                     Trip / Destination Name {isBookedOrBeyond && <span className="text-red-500">*</span>}
                   </label>
                   <select
-                    className={`w-full text-sm bg-white border rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition ${errors.trip ? 'border-red-400' : 'border-slate-200'}`}
+                    disabled={!!form.batchId}
+                    className={`w-full text-sm bg-white border rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${errors.trip ? 'border-red-400' : 'border-slate-200'}`}
                     value={tripOther ? '__other__' : (form.trip || '')}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -538,6 +576,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   {tripOther && (
                     <Input
                       icon={MapPin}
+                      disabled={!!form.batchId}
                       error={errors.trip}
                       placeholder="e.g. Himachal Valley Luxury Tour"
                       hint="Target tour package name"
@@ -548,37 +587,20 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   {errors.trip && !tripOther && (
                     <p className="text-xs text-red-500 mt-0.5">{errors.trip}</p>
                   )}
+                  {!!form.batchId && (
+                    <p className="text-[10px] text-slate-400">Locked to the linked batch's itinerary. Unlink the batch above to edit.</p>
+                  )}
                 </div>
                 <Input
                   label="Departure Date"
                   icon={Calendar}
                   type="date"
+                  disabled={!!form.batchId}
                   error={errors.departure}
                   required={isBookedOrBeyond}
-                  hint="Travel starting date"
+                  hint={form.batchId ? "Locked to the linked batch's departure date" : 'Travel starting date'}
                   value={form.departure?.slice(0, 10) || ''}
                   onChange={set('departure')}
-                />
-              </FormRow>
-              <FormRow>
-                <Input
-                  label="Pickup Location (Optional)"
-                  icon={Navigation}
-                  hint="Specific pickup spot details"
-                  placeholder="e.g. IGI Airport Terminal 3"
-                  value={form.pickup}
-                  onChange={set('pickup')}
-                />
-                <Select
-                  label="Tour Batch / Group (Optional)"
-                  icon={Users}
-                  hint="Link this booking to a fixed-departure group tour"
-                  value={form.batchId || ''}
-                  onChange={set('batchId')}
-                  options={[
-                    { value: '', label: '-- No Batch Linked --' },
-                    ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
-                  ]}
                 />
               </FormRow>
 

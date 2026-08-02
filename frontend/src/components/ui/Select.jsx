@@ -9,6 +9,7 @@ export default function Select({
   options = [], // strings or { value, label } objects
   error,
   required = false,
+  accentAsterisk = false,
   hint = '',
   className = 'w-full',
   inputClassName = '',
@@ -16,7 +17,7 @@ export default function Select({
 }) {
   return (
     <div className={className}>
-      <Label required={required}>{label}</Label>
+      <Label required={required} accent={accentAsterisk}>{label}</Label>
       <div className="relative">
         {Icon && (
           <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">

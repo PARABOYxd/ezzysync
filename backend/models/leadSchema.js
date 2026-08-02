@@ -21,6 +21,7 @@ function rowToLead(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deleted: !!row.deleted,
+    followUpCount: row.follow_up_count !== undefined ? Number(row.follow_up_count) : null,
   };
 }
 

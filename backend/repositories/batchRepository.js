@@ -88,6 +88,15 @@ async function unassignBookingFromBatch(tenantId, bookingIdText) {
   return rows[0];
 }
 
+/** How many active batches still import this itinerary - guards Quotation delete. */
+async function countBySourceQuotation(tenantId, quotationId) {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS count FROM tour_batches WHERE tenant_id = $1 AND source_quotation_id = $2 AND deleted = FALSE`,
+    [tenantId, quotationId]
+  );
+  return rows[0]?.count || 0;
+}
+
 module.exports = {
   insertBatch,
   listBatches,
@@ -96,4 +105,5 @@ module.exports = {
   listBookingsForBatch,
   assignBookingToBatch,
   unassignBookingFromBatch,
+  countBySourceQuotation,
 };

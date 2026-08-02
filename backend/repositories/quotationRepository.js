@@ -1,21 +1,5 @@
 const { query } = require('../config/db');
 
-// For each quotation row, the Tour Batches that imported its itinerary as
-// their master plan - and how many seats are currently filled on each -
-// so the Quotations page can show "used in" without a separate round trip.
-const USED_IN_BATCHES_SUBQUERY = `
-  (SELECT COALESCE(json_agg(json_build_object(
-      'batchId', tb.batch_id,
-      'name', tb.name,
-      'confirmedSeats', (SELECT COALESCE(SUM(b.members), 0) FROM bookings b
-        WHERE b.batch_id = tb.id AND b.deleted = FALSE AND b.travel_status NOT IN ('Cancelled', 'Refunded')),
-      'totalCapacity', tb.total_capacity
-    ) ORDER BY tb.created_at DESC), '[]')
-   FROM tour_batches tb
-   WHERE tb.source_quotation_id = q.quotation_id AND tb.tenant_id = q.tenant_id AND tb.deleted = FALSE
-  ) AS used_in_batches
-`;
-
 async function getQuotationById(tenantId, quotationId) {
   const { rows } = await query(
     `SELECT * FROM quotations WHERE tenant_id = $1 AND quotation_id = $2`,
@@ -35,8 +19,8 @@ async function getQuotationByUuid(uuid) {
 async function insertQuotation(tenantId, quotationId, data, customerId) {
   const { rows } = await query(
     `INSERT INTO quotations (
-       tenant_id, quotation_id, customer_name, email, phone, trip_name, price_quote, valid_until, status, itinerary_days, customer_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       tenant_id, quotation_id, customer_name, email, phone, trip_name, price_quote, valid_until, status, itinerary_days, customer_id, inclusions, exclusions, highlights, pickup_options
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      RETURNING *`,
     [
       tenantId,
@@ -50,6 +34,10 @@ async function insertQuotation(tenantId, quotationId, data, customerId) {
       data.status || 'Draft',
       JSON.stringify(data.itineraryDays || []),
       customerId || null,
+      JSON.stringify(data.inclusions || []),
+      JSON.stringify(data.exclusions || []),
+      JSON.stringify(data.highlights || []),
+      JSON.stringify(data.pickupOptions || []),
     ]
   );
   return rows[0];
@@ -59,7 +47,8 @@ async function updateQuotation(tenantId, quotationId, merged) {
   const { rows } = await query(
     `UPDATE quotations SET
        customer_name = $1, email = $2, phone = $3, trip_name = $4, price_quote = $5,
-       valid_until = $6, status = $7, itinerary_days = $8, updated_at = now()
+       valid_until = $6, status = $7, itinerary_days = $8, inclusions = $11, exclusions = $12,
+       highlights = $13, pickup_options = $14, updated_at = now()
      WHERE tenant_id = $9 AND quotation_id = $10
      RETURNING *`,
     [
@@ -73,6 +62,10 @@ async function updateQuotation(tenantId, quotationId, merged) {
       JSON.stringify(merged.itineraryDays || []),
       tenantId,
       quotationId,
+      JSON.stringify(merged.inclusions || []),
+      JSON.stringify(merged.exclusions || []),
+      JSON.stringify(merged.highlights || []),
+      JSON.stringify(merged.pickupOptions || []),
     ]
   );
   return rows[0];
@@ -126,10 +119,10 @@ async function listQuotationsPaged(params) {
   const offsetIndex = paramIndex++;
 
   const selectSql = `
-    SELECT q.*, ${USED_IN_BATCHES_SUBQUERY}
-    FROM quotations q
+    SELECT *
+    FROM quotations
     WHERE ${whereSql}
-    ORDER BY q.created_at DESC
+    ORDER BY created_at DESC
     LIMIT $${limitIndex} OFFSET $${offsetIndex}
   `;
 

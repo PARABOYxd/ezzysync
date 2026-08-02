@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Copy, Check, Trash2, Edit, Layers } from 'lucide-react';
+import { Plus, Search, Copy, Check, Trash2, Edit } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -10,7 +9,6 @@ import { QuotationStatusBadge } from '../components/common/StatusBadge.jsx';
 import Input from '../components/ui/Input.jsx';
 
 export default function Quotations() {
-  const navigate = useNavigate();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
@@ -72,8 +70,8 @@ export default function Quotations() {
       toast.success('Quotation deleted.');
       load();
       setDeleteTarget(null);
-    } catch {
-      toast.error('Could not delete quotation.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not delete quotation.');
     } finally {
       setDeleting(false);
     }
@@ -109,21 +107,20 @@ export default function Quotations() {
                 <th className="py-3 px-4 font-medium">Quote ID</th>
                 <th className="py-3 px-4 font-medium">Trip & Package</th>
                 <th className="py-3 px-4 font-medium">Quote Price</th>
-                <th className="py-3 px-4 font-medium">Used In</th>
                 <th className="py-3 px-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400">
+                  <td colSpan={4} className="py-8 text-center text-slate-400">
                     <span className="loading loading-spinner text-slate-400" /> Loading itineraries...
                   </td>
                 </tr>
               )}
               {!loading && quotations.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     No quotations found. Click "Create Quotation" to draft your first day-by-day plan.
                   </td>
                 </tr>
@@ -137,24 +134,6 @@ export default function Quotations() {
                       <div className="text-[10px] text-brand-600 font-semibold">{q.itineraryDays?.length || 0} Days Plan</div>
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-slate-700">{formatCurrency(q.priceQuote)}</td>
-                    <td className="py-3.5 px-4">
-                      {q.usedInBatches?.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {q.usedInBatches.map((b) => (
-                            <button
-                              key={b.batchId}
-                              onClick={() => navigate(`/tour-batches?open=${b.batchId}`)}
-                              className="flex items-center gap-1 bg-brand-50 hover:bg-brand-100 text-brand-700 px-2 py-1 rounded-lg text-[10px] font-semibold transition"
-                              title={`Open ${b.name} in Group Tours`}
-                            >
-                              <Layers size={10} /> {b.name} &middot; {b.confirmedSeats}/{b.totalCapacity} pax
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-300">Not used in any batch</span>
-                      )}
-                    </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button

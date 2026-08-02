@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, Pencil, Trash2, ArrowRightCircle } from 'lucide-react';
-import { formatDate } from '../../utils/formatters';
+import { formatRelativeDate } from '../../utils/formatters';
 import { LeadStageBadge } from '../common/StatusBadge.jsx';
 import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import EmptyState from '../common/EmptyState.jsx';
@@ -31,12 +31,12 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
         <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
-              <th className="py-3 px-4 font-medium">Lead ID</th>
               <th className="py-3 px-4 font-medium">Customer</th>
               <th className="py-3 px-4 font-medium">Interest</th>
               <th className="py-3 px-4 font-medium">Source</th>
               <th className="py-3 px-4 font-medium">Assigned To</th>
               <th className="py-3 px-4 font-medium">Follow-up</th>
+              <th className="py-3 px-4 font-medium">Created</th>
               <th className="py-3 px-4 font-medium">Stage</th>
               <th className="py-3 px-4 font-medium text-right">Actions</th>
             </tr>
@@ -45,12 +45,21 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
             {loading && <SkeletonTableRows rows={6} cols={8} />}
             {!loading && leads.map((l) => (
               <tr key={l.leadId} className="border-b border-slate-50 hover:bg-slate-50/60">
-                <td className="py-3 px-4 text-slate-400 font-mono text-xs">{l.leadId}</td>
-                <td className="py-3 px-4 font-medium text-slate-700">{l.customerName}</td>
+                <td className="py-3 px-4">
+                  <p className="font-medium text-slate-700">{l.customerName}</p>
+                  <button
+                    onClick={() => (canEdit ? onEdit(l) : onView(l))}
+                    className="text-xs text-brand-600 hover:underline cursor-pointer"
+                    title={canEdit ? `Edit ${l.customerName}'s lead` : `View ${l.customerName}'s lead`}
+                  >
+                    {l.phone || '-'}
+                  </button>
+                </td>
                 <td className="py-3 px-4 text-slate-500">{l.interest || '-'}</td>
                 <td className="py-3 px-4 text-slate-500">{l.source}</td>
                 <td className="py-3 px-4 text-slate-500">{l.assignedTo || '-'}</td>
                 <td className="py-3 px-4">{getFollowUpDisplay(l.nextFollowUpDate)}</td>
+                <td className="py-3 px-4 text-slate-500 text-xs">{formatRelativeDate(l.createdAt)}</td>
                 <td className="py-3 px-4"><LeadStageBadge stage={l.stage} /></td>
                 <td className="py-3 px-4">
                   <div className="flex justify-end gap-1">

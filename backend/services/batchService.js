@@ -1,4 +1,5 @@
 const batchRepository = require('../repositories/batchRepository');
+const bookingRepository = require('../repositories/bookingRepository');
 const { BATCH_STATUSES, rowToBatch } = require('../models/batchSchema');
 const { rowToBooking } = require('../models/bookingSchema');
 const db = require('../config/db');
@@ -77,12 +78,24 @@ async function linkBooking(tenantId, batchId, bookingIdText) {
     throw err;
   }
 
-  const row = await batchRepository.assignBookingToBatch(tenantId, bookingIdText, batch.id);
-  if (!row) {
+  const bookingRow = await bookingRepository.getBookingById(tenantId, bookingIdText);
+  if (!bookingRow) {
     const err = new Error('Booking not found.');
     err.status = 404;
     throw err;
   }
+
+  // A batch is one fixed departure with one shared itinerary - a booking for
+  // a different trip or date can't be counted toward its seat capacity.
+  const sameTrip = bookingRow.trip === batch.tripName;
+  const sameDate = (bookingRow.departure || '').slice(0, 10) === (batch.departureDate || '').slice(0, 10);
+  if (!sameTrip || !sameDate) {
+    const err = new Error(`This booking's trip/departure date doesn't match the batch's itinerary (${batch.tripName}, ${batch.departureDate}).`);
+    err.status = 400;
+    throw err;
+  }
+
+  const row = await batchRepository.assignBookingToBatch(tenantId, bookingIdText, batch.id);
   return rowToBooking(row);
 }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
-import { Plane, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Plane, ChevronDown, CheckCircle2, XCircle, MapPin, ShieldCheck, CalendarDays, Sparkles, Navigation } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
 
 export default function QuotationPreview() {
@@ -51,6 +51,7 @@ export default function QuotationPreview() {
 
   const { quotation, settings } = data;
   const brandColor = settings.invoiceAccentColor || '#0f766e';
+  const days = quotation.itineraryDays?.length || 0;
 
   const handleAccept = async () => {
     setAccepting(true);
@@ -65,56 +66,61 @@ export default function QuotationPreview() {
     }
   };
 
-
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16 font-sans">
-      {/* Centered Logo / Branding Header */}
-      <header className="bg-white border-b border-slate-100 py-6 text-center shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 flex flex-col items-center">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pb-20 font-sans">
+      {/* Branded Hero Header */}
+      <header
+        className="relative overflow-hidden py-14 text-center px-4"
+        style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}cc 60%, ${brandColor}99 100%)` }}
+      >
+        <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="relative max-w-3xl mx-auto flex flex-col items-center">
           {settings.companyLogoUrl ? (
-            <img src={settings.companyLogoUrl} alt="Logo" className="h-10 object-contain mb-2" />
+            <img src={settings.companyLogoUrl} alt="Logo" className="h-10 object-contain mb-4 bg-white/90 rounded-lg px-3 py-1.5" />
           ) : (
-            <div className="h-10 flex items-center justify-center font-bold text-slate-800 text-lg">
+            <div className="h-10 flex items-center gap-2 justify-center font-bold text-white text-lg mb-4">
+              <Plane size={20} />
               {settings.companyName || 'EzzySync Travels'}
             </div>
           )}
-          <p className="text-[10px] text-slate-400 uppercase tracking-widest">Personalized Travel Proposal</p>
+          <p className="text-[11px] text-white/80 uppercase tracking-[0.2em] font-semibold mb-3">Personalized Travel Proposal</p>
+          <h1
+            className="text-3xl sm:text-4xl font-extrabold text-white leading-tight max-w-xl px-2"
+            style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}
+          >
+            {quotation.tripName}
+          </h1>
+          {days > 0 && (
+            <div className="inline-flex items-center gap-1.5 bg-white text-[13px] font-bold px-4 py-1.5 rounded-full mt-4 shadow-md" style={{ color: brandColor }}>
+              <CalendarDays size={14} />
+              {days} Day{days !== 1 ? 's' : ''} Itinerary
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 mt-8 space-y-6">
-        {/* Trip Name Header Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">ITINERARY</span>
-              <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2 mt-1">
-                <Plane size={18} style={{ color: brandColor }} />
-                {quotation.tripName}
-              </h1>
-            </div>
-            {quotation.priceQuote > 0 && (
-              <div className="text-left sm:text-right">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">PACKAGE PRICE</span>
-                <div className="text-2xl font-extrabold mt-0.5" style={{ color: brandColor }}>
+      <main className="max-w-3xl mx-auto px-4 -mt-8 space-y-6 relative">
+        {/* Price + Accept Card */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-900/5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {quotation.priceQuote > 0 ? (
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Package Price</span>
+                <div className="text-3xl font-extrabold mt-0.5" style={{ color: brandColor }}>
                   {formatCurrency(quotation.priceQuote)}
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 pt-5 border-t border-slate-100">
-            {accepted ? (
-              <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
-                <CheckCircle2 size={18} />
-                Trip confirmed — our team will be in touch shortly.
+                <span className="text-[11px] text-slate-400">per person, all inclusions applied</span>
               </div>
             ) : (
+              <div className="text-sm text-slate-500 font-medium">Custom quote — contact us for pricing details.</div>
+            )}
+
+            {!accepted && (
               <button
                 type="button"
                 onClick={handleAccept}
                 disabled={accepting}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60 shadow-md hover:opacity-90 shrink-0"
                 style={{ backgroundColor: brandColor }}
               >
                 {accepting ? 'Confirming...' : 'Accept & Confirm This Trip'}
@@ -123,61 +129,139 @@ export default function QuotationPreview() {
           </div>
         </div>
 
-        {/* Dynamic Day-by-Day Timeline */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">Detailed Itinerary Schedule</h3>
-
-          <div className="space-y-3">
-            {quotation.itineraryDays.map((d) => {
-              const isExpanded = expandedDay === d.day;
-              return (
-                <div
-                  key={d.day}
-                  className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm transition"
+        {/* Trip Highlights */}
+        {quotation.highlights?.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+              <Sparkles size={14} className="text-violet-500" /> Trip Highlights
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {quotation.highlights.map((item, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 bg-violet-50 text-violet-700 text-xs font-medium px-3 py-1.5 rounded-full border border-violet-100"
                 >
-                  <button
-                    type="button"
-                    onClick={() => setExpandedDay(isExpanded ? null : d.day)}
-                    className="w-full flex justify-between items-center px-5 py-4 text-left font-medium text-slate-800 hover:bg-slate-50/50 transition focus:outline-none"
-                  >
-                    <div className="flex items-start gap-4">
-                      <span
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        {d.day}
-                      </span>
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-slate-400">DAY {d.day}</span>
-                        <h4 className="text-sm font-bold text-slate-800 leading-tight mt-0.5">
-                          {d.title || `Day ${d.day} Outline`}
-                        </h4>
-                      </div>
-                    </div>
-                    <ChevronDown
-                      size={18}
-                      className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-
-                  {isExpanded && (
-                    <div className="px-5 pb-5 pl-16 border-t border-slate-100 pt-3 bg-slate-50/20">
-                      <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">
-                        {d.description || 'Outline details not specified.'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                  <Sparkles size={11} />
+                  {item}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
+        {/* Dynamic Day-by-Day Timeline */}
+        {days > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1 flex items-center gap-1.5">
+              <MapPin size={13} style={{ color: brandColor }} /> Detailed Itinerary Schedule
+            </h3>
 
+            <div className="relative pl-5 space-y-3">
+              <div className="absolute left-[1.6rem] top-2 bottom-2 w-0.5 border-l-2 border-dashed border-slate-200" />
+              {quotation.itineraryDays.map((d) => {
+                const isExpanded = expandedDay === d.day;
+                return (
+                  <div
+                    key={d.day}
+                    className="relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedDay(isExpanded ? null : d.day)}
+                      className="w-full flex justify-between items-center px-5 py-4 text-left font-medium text-slate-800 hover:bg-slate-50/50 transition focus:outline-none"
+                    >
+                      <div className="flex items-start gap-4">
+                        <span
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 shadow-sm"
+                          style={{ backgroundColor: brandColor }}
+                        >
+                          {d.day}
+                        </span>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold tracking-wider" style={{ color: brandColor }}>Day {d.day}</span>
+                          <h4 className="text-sm font-bold text-slate-800 leading-tight mt-0.5">
+                            {d.title || `Day ${d.day} Outline`}
+                          </h4>
+                        </div>
+                      </div>
+                      <ChevronDown
+                        size={18}
+                        className={`text-slate-400 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pl-[4.25rem] border-t border-slate-100 pt-3 bg-slate-50/30">
+                        <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">
+                          {d.description || 'Outline details not specified.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Inclusions / Exclusions */}
+        {(quotation.inclusions?.length > 0 || quotation.exclusions?.length > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {quotation.inclusions?.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                  <ShieldCheck size={14} className="text-emerald-500" /> What's Included
+                </h4>
+                <ul className="space-y-2">
+                  {quotation.inclusions.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                      <CheckCircle2 size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {quotation.exclusions?.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                  <XCircle size={14} className="text-rose-500" /> What's Not Included
+                </h4>
+                <ul className="space-y-2">
+                  {quotation.exclusions.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                      <XCircle size={14} className="text-rose-400 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pickup Options */}
+        {quotation.pickupOptions?.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+              <Navigation size={14} className="text-blue-500" /> Pickup Options
+            </h4>
+            <ul className="divide-y divide-slate-100">
+              {quotation.pickupOptions.map((opt, i) => (
+                <li key={i} className="flex items-center justify-between py-2.5 text-xs">
+                  <span className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <Navigation size={12} className="text-blue-400" /> {opt.location}
+                  </span>
+                  <span className="font-bold" style={{ color: brandColor }}>{formatCurrency(opt.price)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
       </main>
 
-      <footer className="max-w-4xl mx-auto text-center text-[10px] text-slate-400 mt-12 px-4 leading-normal">
+      <footer className="max-w-3xl mx-auto text-center text-[10px] text-slate-400 mt-12 px-4 leading-normal">
         <p>{settings.companyName || 'EzzySync Travels'} | Address: {settings.address || '-'}</p>
         {settings.invoiceFooter && <p className="mt-1">{settings.invoiceFooter}</p>}
       </footer>

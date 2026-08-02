@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, Pencil, Trash2, FileText, MessageCircle } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatRelativeDate } from '../../utils/formatters';
 import { TravelStatusBadge } from '../common/StatusBadge.jsx';
 import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import EmptyState from '../common/EmptyState.jsx';
@@ -33,13 +33,13 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
         <table className="w-full text-sm min-w-[950px]">
           <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
-              <th className="py-3 px-4 font-medium">Booking ID</th>
               <th className="py-3 px-4 font-medium">Customer</th>
               <th className="py-3 px-4 font-medium">Trip</th>
               <th className="py-3 px-4 font-medium">Departure</th>
               <th className="py-3 px-4 font-medium">Members</th>
               <th className="py-3 px-4 font-medium">Remaining</th>
               <th className="py-3 px-4 font-medium">Follow-up</th>
+              <th className="py-3 px-4 font-medium">Created</th>
               <th className="py-3 px-4 font-medium">Status</th>
               <th className="py-3 px-4 font-medium text-right">Actions</th>
             </tr>
@@ -48,13 +48,22 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
             {loading && <SkeletonTableRows rows={6} cols={9} />}
             {!loading && bookings.map((b) => (
               <tr key={b.bookingId} className="border-b border-slate-50 hover:bg-slate-50/60">
-                <td className="py-3 px-4 text-slate-400 font-mono text-xs">{b.bookingId}</td>
-                <td className="py-3 px-4 font-medium text-slate-700">{b.customerName}</td>
+                <td className="py-3 px-4">
+                  <p className="font-medium text-slate-700">{b.customerName}</p>
+                  <button
+                    onClick={() => (canEdit ? onEdit(b) : onView(b))}
+                    className="text-xs text-brand-600 hover:underline cursor-pointer"
+                    title={canEdit ? `Edit ${b.customerName}'s booking` : `View ${b.customerName}'s booking`}
+                  >
+                    {b.phone || '-'}
+                  </button>
+                </td>
                 <td className="py-3 px-4 text-slate-500">{b.trip}</td>
                 <td className="py-3 px-4 text-slate-500">{formatDate(b.departure)}</td>
                 <td className="py-3 px-4 text-slate-500">{b.members}</td>
                 <td className="py-3 px-4 text-slate-500">{formatCurrency(b.remaining)}</td>
                 <td className="py-3 px-4">{getFollowUpDisplay(b.nextFollowUpDate)}</td>
+                <td className="py-3 px-4 text-slate-500 text-xs">{formatRelativeDate(b.bookingTimestamp)}</td>
                 <td className="py-3 px-4"><TravelStatusBadge status={b.travelStatus} /></td>
                 <td className="py-3 px-4">
                   <div className="flex justify-end gap-1">

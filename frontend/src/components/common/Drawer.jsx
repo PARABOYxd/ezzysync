@@ -45,10 +45,11 @@ export default function Drawer({ open, onClose, title, children }) {
         {/* Header: 64px tall */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-slate-100 dark:border-zinc-800/80 shrink-0">
           <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">{title}</h3>
-          <button 
+          <button
             type="button"
-            onClick={onClose} 
-            className="p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-400 dark:text-zinc-500 transition drawer-close-btn"
+            onClick={onClose}
+            aria-label="Close panel"
+            className="w-11 h-11 shrink-0 flex items-center justify-center rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 active:bg-slate-100 dark:active:bg-zinc-700 text-slate-400 dark:text-zinc-500 transition-colors duration-150 drawer-close-btn"
           >
             <X size={18} />
           </button>
