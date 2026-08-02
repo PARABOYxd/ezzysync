@@ -99,6 +99,25 @@ async function accept(req, res, next) {
   }
 }
 
+async function getDashboardStats(req, res, next) {
+  try {
+    const stats = await quotationService.getDashboardStats(req.user.tenantId);
+    res.json({ stats });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function duplicate(req, res, next) {
+  try {
+    const quotation = await quotationService.duplicateQuotation(req.user.tenantId, req.params.id);
+    await auditService.logAction(req, 'DUPLICATE_QUOTATION', { originalId: req.params.id, newId: quotation.quotationId });
+    res.status(201).json({ quotation });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   list,
   getOne,
@@ -107,4 +126,6 @@ module.exports = {
   update,
   deleteQuote,
   accept,
+  getDashboardStats,
+  duplicate,
 };

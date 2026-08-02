@@ -100,15 +100,7 @@ export default function Dashboard() {
         </ol>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <form onSubmit={handleSearch} className="w-full sm:max-w-xs">
-          <Input
-            icon={Search}
-            placeholder="Search bookings by client name…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </form>
+      <div className="flex justify-end">
         <button className="btn-primary" onClick={() => setAddOpen(true)}>
           <Plus size={16} /> Quick Add Booking
         </button>

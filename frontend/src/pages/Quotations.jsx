@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Search, Copy, Check, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, Copy, Check, Trash2, Edit, Files } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -62,6 +62,25 @@ export default function Quotations() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleDuplicate = (quotationId) => {
+    const q = quotations.find(qt => qt.quotationId === quotationId);
+    if (!q) return;
+
+    const duplicated = {
+      ...q,
+      tripName: `${q.tripName} - Copy`,
+    };
+    
+    // Remove identifiers so it's treated as a new record
+    delete duplicated.id;
+    delete duplicated.quotationId;
+    delete duplicated.createdAt;
+    delete duplicated.updatedAt;
+
+    setEditingQuotation(duplicated);
+    setFormOpen(true);
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -104,7 +123,6 @@ export default function Quotations() {
           <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
-                <th className="py-3 px-4 font-medium">Quote ID</th>
                 <th className="py-3 px-4 font-medium">Trip & Package</th>
                 <th className="py-3 px-4 font-medium">Quote Price</th>
                 <th className="py-3 px-4 font-medium text-right">Actions</th>
@@ -113,14 +131,14 @@ export default function Quotations() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-slate-400">
+                  <td colSpan={3} className="py-8 text-center text-slate-400">
                     <span className="loading loading-spinner text-slate-400" /> Loading itineraries...
                   </td>
                 </tr>
               )}
               {!loading && quotations.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-400">
+                  <td colSpan={3} className="py-12 text-center text-slate-400">
                     No quotations found. Click "Create Quotation" to draft your first day-by-day plan.
                   </td>
                 </tr>
@@ -128,10 +146,10 @@ export default function Quotations() {
               {!loading &&
                 quotations.map((q) => (
                   <tr key={q.quotationId} className="border-b border-slate-50 hover:bg-slate-50/60">
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-400">{q.quotationId}</td>
                     <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-700">{q.tripName}</div>
-                      <div className="text-[10px] text-brand-600 font-semibold">{q.itineraryDays?.length || 0} Days Plan</div>
+                      <div className="font-medium text-slate-700">
+                        {q.tripName} - {q.itineraryDays?.length || 0}D{q.itineraryDays?.length > 1 ? `${q.itineraryDays.length - 1}N` : ''}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-slate-700">{formatCurrency(q.priceQuote)}</td>
                     <td className="py-3.5 px-4 text-right">
@@ -142,6 +160,13 @@ export default function Quotations() {
                           title="Copy public itinerary link for client review"
                         >
                           {copiedId === q.quotationId ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        </button>
+                        <button
+                          onClick={() => handleDuplicate(q.quotationId)}
+                          className="btn-icon text-slate-400 hover:text-slate-700"
+                          title="Duplicate itinerary"
+                        >
+                          <Files size={14} />
                         </button>
                         <button
                           onClick={() => {
@@ -214,6 +239,7 @@ export default function Quotations() {
       <QuotationFormModal
         open={formOpen}
         quotation={editingQuotation}
+        allQuotations={quotations}
         onClose={() => setFormOpen(false)}
         onSaved={load}
       />

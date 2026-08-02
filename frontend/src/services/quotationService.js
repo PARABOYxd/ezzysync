@@ -8,3 +8,4 @@ export const updateQuotation = (id, payload) => api.put(`/quotations/${id}`, pay
 export const deleteQuotation = (id) => api.delete(`/quotations/${id}`).then((r) => r.data);
 export const acceptQuotation = (id) => api.post(`/quotations/${id}/accept`).then((r) => r.data);
 export const acceptQuotationPublic = (id, tenantId) => api.post(`/quotations/${id}/accept-public`, { tenantId }).then((r) => r.data);
+export const duplicateQuotation = (id) => api.post(`/quotations/${id}/duplicate`).then((r) => r.data.quotation);

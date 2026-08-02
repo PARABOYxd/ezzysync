@@ -22,6 +22,8 @@ function rowToQuotation(row) {
     exclusions: row.exclusions || [],
     highlights: row.highlights || [],
     pickupOptions: row.pickup_options || [],
+    bannerUrl: row.banner_url || '',
+    relatedQuotations: row.related_quotations || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -171,12 +173,40 @@ async function acceptQuotation(tenantId, quotationId, acceptedBy) {
   return { booking, quotation: merged, possibleDuplicates };
 }
 
+async function getDashboardStats(tenantId) {
+  return await quotationRepository.getQuotationStats(tenantId);
+}
+
+async function duplicateQuotation(tenantId, quotationId) {
+  const existing = await getQuotationById(tenantId, quotationId);
+  if (!existing) {
+    const err = new Error('Quotation not found.');
+    err.status = 404;
+    throw err;
+  }
+  
+  const duplicatedData = {
+    ...existing,
+    tripName: `${existing.tripName} - Copy`,
+    status: 'Draft',
+  };
+  
+  delete duplicatedData.id;
+  delete duplicatedData.quotationId;
+  delete duplicatedData.createdAt;
+  delete duplicatedData.updatedAt;
+
+  return await createQuotation(tenantId, duplicatedData);
+}
+
 module.exports = {
+  createQuotation,
   getQuotationById,
   getQuotationByUuid,
-  createQuotation,
   updateQuotation,
   deleteQuotation,
   listQuotationsPaged,
   acceptQuotation,
+  getDashboardStats,
+  duplicateQuotation,
 };

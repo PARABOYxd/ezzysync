@@ -19,8 +19,8 @@ async function getQuotationByUuid(uuid) {
 async function insertQuotation(tenantId, quotationId, data, customerId) {
   const { rows } = await query(
     `INSERT INTO quotations (
-       tenant_id, quotation_id, customer_name, email, phone, trip_name, price_quote, valid_until, status, itinerary_days, customer_id, inclusions, exclusions, highlights, pickup_options
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       tenant_id, quotation_id, customer_name, email, phone, trip_name, price_quote, valid_until, status, itinerary_days, customer_id, inclusions, exclusions, highlights, pickup_options, banner_url, related_quotations
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING *`,
     [
       tenantId,
@@ -38,6 +38,8 @@ async function insertQuotation(tenantId, quotationId, data, customerId) {
       JSON.stringify(data.exclusions || []),
       JSON.stringify(data.highlights || []),
       JSON.stringify(data.pickupOptions || []),
+      data.bannerUrl || '',
+      JSON.stringify(data.relatedQuotations || [])
     ]
   );
   return rows[0];
@@ -48,7 +50,7 @@ async function updateQuotation(tenantId, quotationId, merged) {
     `UPDATE quotations SET
        customer_name = $1, email = $2, phone = $3, trip_name = $4, price_quote = $5,
        valid_until = $6, status = $7, itinerary_days = $8, inclusions = $11, exclusions = $12,
-       highlights = $13, pickup_options = $14, updated_at = now()
+       highlights = $13, pickup_options = $14, banner_url = $15, related_quotations = $16, updated_at = now()
      WHERE tenant_id = $9 AND quotation_id = $10
      RETURNING *`,
     [
@@ -66,6 +68,8 @@ async function updateQuotation(tenantId, quotationId, merged) {
       JSON.stringify(merged.exclusions || []),
       JSON.stringify(merged.highlights || []),
       JSON.stringify(merged.pickupOptions || []),
+      merged.bannerUrl || '',
+      JSON.stringify(merged.relatedQuotations || [])
     ]
   );
   return rows[0];

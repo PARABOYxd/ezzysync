@@ -86,10 +86,12 @@ async function updateTenantCompany(tenantId, companyName) {
 
 async function listUsersByTenant(tenantId) {
   const { rows } = await query(
-    `SELECT id, tenant_id, email, name, role, permissions, created_at
-     FROM users
-     WHERE tenant_id = $1
-     ORDER BY created_at DESC`,
+    `SELECT u.id, u.tenant_id, u.email, u.name, u.role, u.permissions, u.created_at,
+       (SELECT COUNT(*) FROM leads WHERE assigned_to = u.name AND tenant_id = u.tenant_id AND deleted = FALSE) AS total_leads,
+       (SELECT COUNT(*) FROM leads WHERE assigned_to = u.name AND tenant_id = u.tenant_id AND stage = 'Won' AND deleted = FALSE) AS won_leads
+     FROM users u
+     WHERE u.tenant_id = $1
+     ORDER BY u.created_at DESC`,
     [tenantId]
   );
   return rows;

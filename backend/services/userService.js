@@ -172,6 +172,8 @@ async function listUsersByTenant(tenantId) {
     role: r.role,
     permissions: r.permissions || {},
     createdAt: r.created_at,
+    totalLeads: parseInt(r.total_leads || 0, 10),
+    wonLeads: parseInt(r.won_leads || 0, 10),
   }));
 }
 

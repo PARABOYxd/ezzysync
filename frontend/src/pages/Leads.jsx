@@ -100,7 +100,7 @@ export default function Leads() {
     setLeads((prev) => prev.map((l) => (l.leadId === draggableId ? { ...l, stage: newStage } : l)));
 
     if (newStage === 'Won' && !lead.convertedBookingId) {
-      setConvertingLead({ ...lead, stage: newStage });
+      setConvertingLead({ ...lead, stage: newStage, originalStage: source.droppableId });
       return;
     }
 
@@ -279,7 +279,20 @@ export default function Leads() {
 
       <LeadFormDrawer open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
       <LeadViewModal open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
-      <ConvertLeadDrawer open={!!convertingLead} lead={convertingLead} onClose={() => setConvertingLead(null)} onConverted={load} />
+      <ConvertLeadDrawer 
+        open={!!convertingLead} 
+        lead={convertingLead} 
+        onClose={() => {
+          if (convertingLead && convertingLead.originalStage) {
+            setLeads((prev) => prev.map((l) => (l.leadId === convertingLead.leadId ? { ...l, stage: convertingLead.originalStage } : l)));
+          }
+          setConvertingLead(null);
+        }} 
+        onConverted={() => {
+          setConvertingLead(null);
+          load();
+        }} 
+      />
       <ConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

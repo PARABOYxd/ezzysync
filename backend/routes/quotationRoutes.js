@@ -30,5 +30,6 @@ router.post('/', quotationValidators, validate, ctrl.create);
 router.put('/:id', quotationValidators, validate, ctrl.update);
 router.delete('/:id', ctrl.deleteQuote);
 router.post('/:id/accept', ctrl.accept);
+router.post('/:id/duplicate', ctrl.duplicate);
 
 module.exports = router;

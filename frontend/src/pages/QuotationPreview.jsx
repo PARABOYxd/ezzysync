@@ -68,21 +68,29 @@ export default function QuotationPreview() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pb-20 font-sans">
+      {/* Top Navbar */}
+      <div className="absolute top-0 left-0 right-0 z-10 px-6 py-4 flex items-center justify-between">
+        {settings.companyLogoUrl ? (
+          <img src={settings.companyLogoUrl} alt="Logo" className="h-10 object-contain bg-white/90 rounded-lg px-3 py-1.5 shadow-sm backdrop-blur-sm" />
+        ) : (
+          <div className="h-10 flex items-center gap-2 font-bold text-white text-lg bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-md">
+            <Plane size={20} />
+            {settings.companyName || 'EzzySync Travels'}
+          </div>
+        )}
+      </div>
+
       {/* Branded Hero Header */}
       <header
-        className="relative overflow-hidden py-14 text-center px-4"
-        style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}cc 60%, ${brandColor}99 100%)` }}
+        className="relative overflow-hidden py-24 text-center px-4"
+        style={{ 
+          background: quotation.bannerUrl 
+            ? `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('${quotation.bannerUrl}') center/cover no-repeat` 
+            : `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}cc 60%, ${brandColor}99 100%)`
+        }}
       >
         <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px)] [background-size:24px_24px]" />
-        <div className="relative max-w-3xl mx-auto flex flex-col items-center">
-          {settings.companyLogoUrl ? (
-            <img src={settings.companyLogoUrl} alt="Logo" className="h-10 object-contain mb-4 bg-white/90 rounded-lg px-3 py-1.5" />
-          ) : (
-            <div className="h-10 flex items-center gap-2 justify-center font-bold text-white text-lg mb-4">
-              <Plane size={20} />
-              {settings.companyName || 'EzzySync Travels'}
-            </div>
-          )}
+        <div className="relative max-w-3xl mx-auto flex flex-col items-center mt-4">
           <p className="text-[11px] text-white/80 uppercase tracking-[0.2em] font-semibold mb-3">Personalized Travel Proposal</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold text-white leading-tight max-w-xl px-2"
@@ -91,8 +99,8 @@ export default function QuotationPreview() {
             {quotation.tripName}
           </h1>
           {days > 0 && (
-            <div className="inline-flex items-center gap-1.5 bg-white text-[13px] font-bold px-4 py-1.5 rounded-full mt-4 shadow-md" style={{ color: brandColor }}>
-              <CalendarDays size={14} />
+            <div className="inline-flex items-center gap-1.5 bg-white text-[13px] font-bold px-4 py-1.5 rounded-full mt-5 shadow-md text-slate-800">
+              <CalendarDays size={14} style={{ color: brandColor }} />
               {days} Day{days !== 1 ? 's' : ''} Itinerary
             </div>
           )}
@@ -256,6 +264,40 @@ export default function QuotationPreview() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Related Quotations */}
+        {quotation.relatedQuotations?.length > 0 && (
+          <div className="mt-10">
+            <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+              <span className="w-8 h-px bg-slate-200" />
+              Other Recommended Trips
+              <span className="w-8 h-px bg-slate-200" />
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {quotation.relatedQuotations.map((rq, idx) => (
+                <a
+                  key={idx}
+                  href={`/app/quote-preview/${rq.id}`}
+                  className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:border-slate-300 transition group block text-left"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="text-sm font-bold text-slate-700 group-hover:text-brand-600 transition truncate pr-2" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = brandColor} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
+                      {rq.tripName}
+                    </h4>
+                    {rq.days > 0 && (
+                      <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full shrink-0">
+                        {rq.days}D
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs font-semibold text-slate-500">
+                    {rq.priceQuote > 0 ? formatCurrency(rq.priceQuote) : 'Custom Pricing'}
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
         )}
 

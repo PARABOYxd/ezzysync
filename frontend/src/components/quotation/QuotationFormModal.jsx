@@ -147,9 +147,9 @@ function PickupOptionsEditor({ items, onChange }) {
   );
 }
 
-export default function QuotationFormModal({ open, onClose, onSaved, quotation }) {
+export default function QuotationFormModal({ open, onClose, onSaved, quotation, allQuotations = [] }) {
   const { user } = useAuth();
-  const isEdit = !!quotation;
+  const isEdit = !!(quotation && quotation.id);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -492,6 +492,55 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation }
             items={form.pickupOptions}
             onChange={(items) => setForm({ ...form, pickupOptions: items })}
           />
+        </div>
+
+        {/* Advanced Settings: Banner & Related Trips */}
+        <div className="pt-4 border-t border-slate-200 space-y-4">
+          <Input
+            label="Banner Image URL (Optional)"
+            placeholder="e.g. https://example.com/banner.jpg"
+            hint="This image will be used as the background banner for the public itinerary link."
+            value={form.bannerUrl || ''}
+            onChange={set('bannerUrl')}
+          />
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-800">Related Trips / Other Itineraries to Show (Optional)</label>
+            <p className="text-[10px] text-slate-400">Select other itineraries you want to display at the bottom of this itinerary preview.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto p-2 bg-slate-50 border border-slate-100 rounded-xl">
+              {(allQuotations || []).filter(q => q.quotationId !== form.quotationId).map(q => (
+                <label key={q.quotationId} className="flex items-center gap-2 text-xs text-slate-700 bg-white p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-xs rounded-sm checkbox-primary"
+                    checked={(form.relatedQuotations || []).some(rq => rq.quotationId === q.quotationId)}
+                    onChange={(e) => {
+                      let related = [...(form.relatedQuotations || [])];
+                      if (e.target.checked) {
+                        related.push({
+                          quotationId: q.quotationId,
+                          id: q.id,
+                          tripName: q.tripName,
+                          priceQuote: q.priceQuote,
+                          days: q.itineraryDays?.length || 0
+                        });
+                      } else {
+                        related = related.filter(rq => rq.quotationId !== q.quotationId);
+                      }
+                      setForm({ ...form, relatedQuotations: related });
+                    }}
+                  />
+                  <div className="truncate">
+                    <span className="font-semibold">{q.tripName}</span>
+                    <span className="text-[10px] text-slate-400 ml-1">({q.itineraryDays?.length || 0}D)</span>
+                  </div>
+                </label>
+              ))}
+              {(allQuotations || []).length <= 1 && (
+                <div className="col-span-full text-center text-xs text-slate-400 py-4">No other itineraries available to link.</div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer Controls */}
