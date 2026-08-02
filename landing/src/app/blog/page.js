@@ -142,10 +142,9 @@ export default function BlogDashboard() {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
       <Navbar crmUrl={crmUrl} />
-      
-      <main className="relative pt-20 pb-20 overflow-hidden">
+      <main className="relative overflow-hidden">
         {/* Banner Hero Section */}
-        <section className="bg-slate-50 border-b border-slate-200/80 py-16 sm:py-24 relative overflow-hidden">
+        <section className="bg-slate-50 border-b border-slate-200/80 pt-24 pb-16 sm:pt-32 sm:pb-24 relative overflow-hidden">
           {/* Subtle Grid Backdrop */}
           <div className="absolute inset-0 bg-grid-pattern opacity-4 pointer-events-none"></div>
           {/* Blur Glows */}
