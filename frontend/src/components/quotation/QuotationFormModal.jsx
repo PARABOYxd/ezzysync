@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Modal from '../common/Modal.jsx';
+import Drawer from '../common/Drawer.jsx';
 import Input from '../ui/Input.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Button from '../ui/Button.jsx';
@@ -150,7 +150,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Itinerary' : 'Create Itinerary'} size="xl">
+    <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Itinerary' : 'Create Itinerary'}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Trip Name + Price Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -335,6 +335,6 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation }
           </div>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   );
 }

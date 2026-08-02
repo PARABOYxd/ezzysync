@@ -825,8 +825,13 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
               {activeTab !== 'financials' ? (
                 <Button
+                  key="btn-continue"
                   type="button"
-                  onClick={() => setActiveTab(activeTab === 'customer' ? 'trip' : 'financials')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab(activeTab === 'customer' ? 'trip' : 'financials');
+                  }}
                   className="text-xs gap-1.5"
                 >
                   <span>Continue</span>
@@ -834,6 +839,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 </Button>
               ) : (
                 <Button
+                  key="btn-submit"
                   type="submit"
                   disabled={saving}
                   className="text-xs gap-1.5"

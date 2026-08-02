@@ -12,12 +12,17 @@ export default function Drawer({ open, onClose, title, children }) {
     
     if (open) {
       document.body.style.overflow = 'hidden';
-      // Simple focus trap
-      const focusable = drawerRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable && focusable.length > 0) {
-        focusable[0].focus();
+      // Focus close button to prevent scrolling form body down on mount
+      const closeBtn = drawerRef.current?.querySelector('.drawer-close-btn');
+      if (closeBtn) {
+        closeBtn.focus();
+      } else {
+        const focusable = drawerRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable && focusable.length > 0) {
+          focusable[0].focus();
+        }
       }
     }
     
@@ -48,7 +53,7 @@ export default function Drawer({ open, onClose, title, children }) {
           <button 
             type="button"
             onClick={onClose} 
-            className="p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-400 dark:text-zinc-500 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-400 dark:text-zinc-500 transition drawer-close-btn"
           >
             <X size={18} />
           </button>
