@@ -28,7 +28,7 @@ export default function DashboardLayout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-page)]">
         <Topbar title={title} onMenuClick={() => setSidebarOpen(true)} actions={<><ThemeToggle /><InstallAppButton /><NotificationBell /></>} />
-        <main className="flex-1 p-4 md:p-8 bg-[var(--bg-page)]">
+        <main className="flex-1 p-4 md:p-8 bg-[var(--bg-page)] w-full max-w-full overflow-x-hidden">
           <Outlet />
         </main>
       </div>

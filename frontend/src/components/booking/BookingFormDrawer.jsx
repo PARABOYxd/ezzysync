@@ -227,6 +227,18 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
     return Object.keys(e).length === 0;
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (e.target.tagName === 'TEXTAREA') return;
+      e.preventDefault();
+      if (activeTab === 'customer') {
+        setActiveTab('trip');
+      } else if (activeTab === 'trip') {
+        setActiveTab('financials');
+      }
+    }
+  };
+
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     if (!validate()) {
@@ -408,7 +420,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
         </div>
 
         {/* Form Container */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-6">
           {/* TAB 1: CUSTOMER INFO */}
           {activeTab === 'customer' && (
             <div className="animate-[fadeIn_0.2s_ease-out] space-y-5">
