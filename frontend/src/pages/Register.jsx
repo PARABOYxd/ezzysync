@@ -89,14 +89,29 @@ export default function Register() {
     }
   };
 
-  const handleVerifyOTP = (ev) => {
+  const handleVerifyOTP = async (ev) => {
     ev.preventDefault();
     if (!otp || otp.length !== 6) {
       setOtpError('Please enter the 6-digit code sent to your email.');
       return;
     }
     setOtpError('');
-    setStep(3);
+    setLoading(true);
+    try {
+      const VITE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+      const resp = await fetch(`${VITE_API_URL}/auth/register/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, otp, regToken }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.message || 'Invalid verification code.');
+      setStep(3);
+    } catch (err) {
+      setOtpError(err.message || 'Invalid verification code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFinalSubmit = async (ev) => {
@@ -284,9 +299,9 @@ export default function Register() {
                 }}
               />
 
-              <Button type="submit" className="w-full gap-2">
+              <Button type="submit" disabled={loading} className="w-full gap-2">
                 <CheckCircle2 size={16} />
-                <span>Verify &amp; Continue</span>
+                <span>{loading ? 'Verifying...' : 'Verify & Continue'}</span>
               </Button>
 
               <div className="flex items-center justify-between pt-1">
@@ -300,7 +315,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={handleResendOTP}
-                  disabled={resending}
+                  disabled={resending || loading}
                   className="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1 transition disabled:opacity-50"
                 >
                   <RotateCcw size={12} />

@@ -66,6 +66,18 @@ router.post(
   ctrl.sendRegistrationOTP
 );
 
+router.post(
+  '/register/verify-otp',
+  otpVerifyLimiter,
+  [
+    body('email').isEmail().withMessage('A valid email is required.'),
+    body('regToken').notEmpty().withMessage('Verification token is required.'),
+    body('otp').isLength({ min: 6, max: 6 }).withMessage('A valid 6-digit OTP is required.'),
+  ],
+  validate,
+  ctrl.verifyRegistrationOTP
+);
+
 // Google Sign-in routes
 const googleAuthCtrl = require('../controllers/googleAuthController');
 router.get('/google', googleAuthCtrl.googleLoginRedirect);

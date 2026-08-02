@@ -34,26 +34,36 @@ function publicUser(user) {
   };
 }
 
+// Verifies a registration regToken/OTP pair. Returns the decoded token
+// payload on success, or a { status, message } error object on failure -
+// shared by the standalone verify-otp step and the final register step so
+// both apply the exact same rules.
+function checkRegistrationOTP(regToken, email, otp) {
+  try {
+    const decoded = jwt.verify(regToken, env.jwtSecret);
+    if (decoded.email.toLowerCase() !== email.toLowerCase()) {
+      return { error: { status: 400, message: 'Email mismatch with verification token.' } };
+    }
+    if (decoded.otp !== otp) {
+      return { error: { status: 400, message: 'Invalid OTP. Please check the code sent to your email.' } };
+    }
+    if (new Date(decoded.expiry) < new Date()) {
+      return { error: { status: 400, message: 'OTP has expired. Please request a new code.' } };
+    }
+    return { decoded };
+  } catch (jwtErr) {
+    return { error: { status: 400, message: 'Verification token expired or invalid. Please restart registration.' } };
+  }
+}
+
 async function register(req, res, next) {
   try {
     const { email, password, name, companyName, otp, regToken } = req.body;
 
     // If regToken provided, verify OTP from token before creating account
     if (regToken) {
-      try {
-        const decoded = jwt.verify(regToken, env.jwtSecret);
-        if (decoded.email.toLowerCase() !== email.toLowerCase()) {
-          return res.status(400).json({ message: 'Email mismatch with verification token.' });
-        }
-        if (decoded.otp !== otp) {
-          return res.status(400).json({ message: 'Invalid OTP. Please check the code sent to your email.' });
-        }
-        if (new Date(decoded.expiry) < new Date()) {
-          return res.status(400).json({ message: 'OTP has expired. Please request a new code.' });
-        }
-      } catch (jwtErr) {
-        return res.status(400).json({ message: 'Verification token expired or invalid. Please restart registration.' });
-      }
+      const { error } = checkRegistrationOTP(regToken, email, otp);
+      if (error) return res.status(error.status).json({ message: error.message });
     }
 
     const user = await userService.createUser({ email, password, name, companyName });
@@ -62,6 +72,16 @@ async function register(req, res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+// Standalone check so the frontend can validate the OTP right on the
+// "verify code" step, instead of the user only finding out it was wrong
+// after filling in the rest of the form on the final step.
+async function verifyRegistrationOTP(req, res) {
+  const { email, otp, regToken } = req.body;
+  const { error } = checkRegistrationOTP(regToken, email, otp);
+  if (error) return res.status(error.status).json({ message: error.message });
+  res.json({ message: 'Email verified.' });
 }
 
 async function sendRegistrationOTP(req, res, next) {
@@ -154,4 +174,4 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, me, forgotPassword, resetPassword, sendRegistrationOTP };
+module.exports = { register, login, me, forgotPassword, resetPassword, sendRegistrationOTP, verifyRegistrationOTP };
