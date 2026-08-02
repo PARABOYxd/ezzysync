@@ -279,7 +279,7 @@ export default function BlogPostPage({ params }) {
   const article = articlesData[slug];
   const crmUrl = "https://www.ezzysync.com/app";
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (article) {
       document.title = article.metaTitle || article.title;
       let metaDesc = document.querySelector('meta[name="description"]');
