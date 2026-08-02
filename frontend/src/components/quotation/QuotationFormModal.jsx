@@ -254,14 +254,14 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation }
         </div>
 
         {/* Days Timeline Loop */}
-        <div className="relative pl-6 space-y-6 max-h-[380px] overflow-y-auto pr-2 py-2">
+        <div className="relative pl-10 space-y-6 max-h-[380px] overflow-y-auto pr-2 py-2">
           {/* Vertical Timeline Path Line */}
-          <div className="absolute left-[1.35rem] top-4 bottom-8 w-0.5 bg-dashed bg-slate-200 border-l-2 border-dashed border-slate-200" />
+          <div className="absolute left-[1.5rem] top-4 bottom-8 w-0.5 border-l-2 border-dashed border-slate-200" />
 
           {form.itineraryDays.map((d, index) => (
             <div key={index} className="relative bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition duration-200 space-y-4">
               {/* Circle Node on timeline */}
-              <div className="absolute -left-[2.375rem] top-[1.375rem] w-6 h-6 rounded-full bg-brand-50 border-2 border-brand-500 flex items-center justify-center shadow-sm">
+              <div className="absolute -left-[1.625rem] top-[1.375rem] w-6 h-6 rounded-full bg-brand-50 border-2 border-brand-500 flex items-center justify-center shadow-sm">
                 <span className="text-[10px] font-extrabold text-brand-600">{d.day}</span>
               </div>
 

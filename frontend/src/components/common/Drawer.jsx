@@ -12,18 +12,13 @@ export default function Drawer({ open, onClose, title, children }) {
     
     if (open) {
       document.body.style.overflow = 'hidden';
-      // Focus close button to prevent scrolling form body down on mount
-      const closeBtn = drawerRef.current?.querySelector('.drawer-close-btn');
-      if (closeBtn) {
-        closeBtn.focus();
-      } else {
-        const focusable = drawerRef.current?.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable && focusable.length > 0) {
-          focusable[0].focus();
+      // Reset scroll position to top after browser focus events complete
+      setTimeout(() => {
+        const scrollBody = drawerRef.current?.querySelector('.overflow-y-auto');
+        if (scrollBody) {
+          scrollBody.scrollTop = 0;
         }
-      }
+      }, 50);
     }
     
     return () => {
