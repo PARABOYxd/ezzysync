@@ -74,10 +74,13 @@ async function verifySubscription(req, res, next) {
 
     let verified = false;
 
-    // Check if we are running with mock keys
-    if (env.razorpayKeyId.startsWith('rzp_test_mockKeyId') || !razorpay_signature) {
+    // Mock keys only exist in local/dev setups with no real Razorpay
+    // account - never treat a missing signature as verified outside of
+    // that, or anyone could upgrade to Pro for free by just omitting
+    // razorpay_signature from this request.
+    if (env.razorpayKeyId.startsWith('rzp_test_mockKeyId')) {
       verified = true;
-    } else {
+    } else if (razorpay_signature) {
       const generatedSignature = crypto
         .createHmac('sha256', env.razorpayKeySecret)
         .update(`${razorpay_order_id}|${razorpay_payment_id}`)

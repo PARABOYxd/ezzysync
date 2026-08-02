@@ -58,7 +58,7 @@ async function markDone(tenantId, id, outcomeNote) {
   let queryText = `UPDATE follow_up_logs SET status = 'done' WHERE tenant_id = $1 AND id = $2 RETURNING *`;
   const params = [tenantId, id];
   if (outcomeNote) {
-    queryText = `UPDATE follow_up_logs SET status = 'done', note = CONCAT(note, E'\n\nOutcome Summary:\n', $3) WHERE tenant_id = $1 AND id = $2 RETURNING *`;
+    queryText = `UPDATE follow_up_logs SET status = 'done', note = CONCAT(note, E'\n\nOutcome Summary:\n', $3::text) WHERE tenant_id = $1 AND id = $2 RETURNING *`;
     params.push(outcomeNote);
   }
   const { rows } = await query(queryText, params);

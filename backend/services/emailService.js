@@ -43,7 +43,7 @@ async function sendMailViaSMTP({ to, subject, html }) {
 // Resend (HTTPS API, port 443) is the default/fallback for system-level
 // emails (registration OTP, password reset) - it isn't blocked on any
 // Render tier, unlike SMTP.
-async function sendMailViaResend({ to, subject, html }) {
+async function sendMailViaResend({ to, subject, html, attachments = [] }) {
   const env = require('../config/env');
   if (!env.resendApiKey || !env.emailFrom || env.emailFrom.includes('your-')) {
     // Not configured - log so devs can grab OTPs during local testing.
@@ -61,6 +61,12 @@ async function sendMailViaResend({ to, subject, html }) {
       to,
       subject,
       html,
+      ...(attachments.length > 0 && {
+        attachments: attachments.map((a) => ({
+          filename: a.filename,
+          content: a.content.toString('base64'),
+        })),
+      }),
     }),
   });
   if (!response.ok) {
@@ -117,12 +123,11 @@ async function sendMail({
       requestBody: { raw: encodedMessage },
     });
   } catch (gmailErr) {
+    // Most tenants never connect Gmail OAuth, so this fallback is the
+    // common path for invoice emails, not an edge case - Resend supports
+    // attachments too, so there's no need to require Gmail for those.
     logger.warn({ err: gmailErr, tenantId, to }, 'Gmail send failed, falling back to Resend');
-    if (attachments.length === 0) {
-      await sendMailViaResend({ to, subject, html });
-    } else {
-      throw gmailErr; // Can't send attachments without Gmail for now
-    }
+    await sendMailViaResend({ to, subject, html, attachments });
   }
 }
 

@@ -72,16 +72,9 @@ async function updateLead(tenantId, leadId, updates, updatedByUser) {
     throw err;
   }
 
-  const merged = { ...existing, ...updates };
-  const updatedAt = new Date().toISOString();
-
-  const contactChanged = updates.phone !== undefined || updates.email !== undefined || updates.customerName !== undefined;
-  const customerId = contactChanged
-    ? await customerService.upsertFromContact(tenantId, { name: merged.customerName, email: merged.email, phone: merged.phone })
-    : null;
-
-  const row = await leadRepository.updateLead(tenantId, leadId, merged, updatedAt, customerId);
-
+  // Validate the stage transition BEFORE writing anything - previously this
+  // ran after the update was already persisted, so a rejected "backward
+  // transition" error still left the stage changed in the database.
   const stageChanged = updates.stage && updates.stage !== existing.stage;
   if (stageChanged) {
     if (!STAGES.includes(updates.stage)) {
@@ -92,7 +85,19 @@ async function updateLead(tenantId, leadId, updates, updatedByUser) {
     if (newOrder < oldOrder) {
       throw new Error('Backward stage transitions are not allowed.');
     }
+  }
 
+  const merged = { ...existing, ...updates };
+  const updatedAt = new Date().toISOString();
+
+  const contactChanged = updates.phone !== undefined || updates.email !== undefined || updates.customerName !== undefined;
+  const customerId = contactChanged
+    ? await customerService.upsertFromContact(tenantId, { name: merged.customerName, email: merged.email, phone: merged.phone })
+    : null;
+
+  const row = await leadRepository.updateLead(tenantId, leadId, merged, updatedAt, customerId);
+
+  if (stageChanged) {
     await leadRepository.insertFollowUp(
       tenantId, leadId,
       `Stage changed from *${existing.stage}* to *${updates.stage}*.`,
@@ -156,6 +161,18 @@ async function convertToBooking(tenantId, leadId, bookingExtras, actor) {
       throw err;
     }
 
+    // Leads and Quotations don't reference each other, so if this customer
+    // already has an open booking (e.g. from a Quotation accepted
+    // separately for them), converting the lead would otherwise create a
+    // silent duplicate. Surface it instead of guessing whether to merge.
+    // A plain read, not part of the row-locked transaction above.
+    const customerIdForCheck = leadRow.phone
+      ? await customerService.upsertFromContact(tenantId, { name: leadRow.customer_name, email: leadRow.email, phone: leadRow.phone })
+      : null;
+    const possibleDuplicates = customerIdForCheck
+      ? await bookingService.getActiveBookingsByCustomer(tenantId, customerIdForCheck)
+      : [];
+
     const booking = await bookingService.createBooking(tenantId, {
       customerName: leadRow.customer_name,
       email: leadRow.email,
@@ -191,7 +208,7 @@ async function convertToBooking(tenantId, leadId, bookingExtras, actor) {
     );
 
     await client.query('COMMIT');
-    return { lead: await getLeadById(tenantId, leadId), booking };
+    return { lead: await getLeadById(tenantId, leadId), booking, possibleDuplicates };
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;

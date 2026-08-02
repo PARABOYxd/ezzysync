@@ -15,6 +15,10 @@ router.post(
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters.'),
     body('name').notEmpty().withMessage('Name is required.'),
     body('companyName').notEmpty().withMessage('Company name is required.'),
+    // Both required so email verification can't be skipped by calling this
+    // route directly without ever completing the send-otp step.
+    body('regToken').notEmpty().withMessage('Email verification is required before registering.'),
+    body('otp').isLength({ min: 6, max: 6 }).withMessage('A valid 6-digit OTP is required.'),
   ],
   validate,
   ctrl.register

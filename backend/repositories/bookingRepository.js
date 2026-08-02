@@ -24,14 +24,16 @@ async function getBookingBySourceQuotation(tenantId, quotationId) {
   return rows[0];
 }
 
-// Open (not deleted, still 'Booked') bookings for a customer - used to warn
-// when a Lead-convert or Quotation-accept is about to create a booking for
-// someone who already has an unresolved one, since those two paths don't
-// otherwise know about each other.
+// Still-open bookings for a customer - used to warn when a Lead-convert or
+// Quotation-accept is about to create a booking for someone who already has
+// an unresolved one, since those two paths don't otherwise know about each
+// other. "Open" means anything not yet at a terminal state - Lead-convert
+// creates bookings as 'New' (not 'Booked'), so this can't be a single exact
+// status match; it has to exclude the terminal ones instead.
 async function getActiveBookingsByCustomer(tenantId, customerId) {
   if (!customerId) return [];
   const { rows } = await query(
-    `SELECT * FROM bookings WHERE tenant_id = $1 AND customer_id = $2 AND deleted = FALSE AND travel_status = 'Booked'`,
+    `SELECT * FROM bookings WHERE tenant_id = $1 AND customer_id = $2 AND deleted = FALSE AND travel_status NOT IN ('Completed', 'Cancelled', 'Refunded')`,
     [tenantId, customerId]
   );
   return rows;

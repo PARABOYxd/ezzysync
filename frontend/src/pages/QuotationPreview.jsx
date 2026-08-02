@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
-import { Plane, ChevronDown } from 'lucide-react';
+import { Plane, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { useToast } from '../hooks/useToast.jsx';
 
 export default function QuotationPreview() {
   const { uuid } = useParams();
@@ -10,6 +11,9 @@ export default function QuotationPreview() {
   const [loading, setLoading] = useState(true);
   const [expandedDay, setExpandedDay] = useState(1);
   const [errorMsg, setErrorMsg] = useState('');
+  const [accepting, setAccepting] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     quotationService
@@ -17,6 +21,7 @@ export default function QuotationPreview() {
       .then((res) => {
         // res contains { quotation, settings }
         setData(res);
+        if (res.quotation?.status === 'Accepted') setAccepted(true);
       })
       .catch((err) => {
         setErrorMsg(err.response?.data?.message || 'Could not load itinerary details.');
@@ -46,6 +51,19 @@ export default function QuotationPreview() {
 
   const { quotation, settings } = data;
   const brandColor = settings.invoiceAccentColor || '#0f766e';
+
+  const handleAccept = async () => {
+    setAccepting(true);
+    try {
+      await quotationService.acceptQuotationPublic(quotation.quotationId, quotation.tenantId);
+      setAccepted(true);
+      toast.success('Thank you! Your trip is confirmed.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not confirm this itinerary. Please contact us directly.');
+    } finally {
+      setAccepting(false);
+    }
+  };
 
 
   return (
@@ -82,6 +100,25 @@ export default function QuotationPreview() {
                   {formatCurrency(quotation.priceQuote)}
                 </div>
               </div>
+            )}
+          </div>
+
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            {accepted ? (
+              <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+                <CheckCircle2 size={18} />
+                Trip confirmed — our team will be in touch shortly.
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAccept}
+                disabled={accepting}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
+                style={{ backgroundColor: brandColor }}
+              >
+                {accepting ? 'Confirming...' : 'Accept & Confirm This Trip'}
+              </button>
             )}
           </div>
         </div>

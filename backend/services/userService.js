@@ -3,6 +3,17 @@ const userRepository = require('../repositories/userRepository');
 const settingsRepository = require('../repositories/settingsRepository');
 const { rowToUser } = require('../models/userSchema');
 
+// rowToUser includes passwordHash/resetOTP/resetOTPExpiry because internal
+// auth flows (verifyPassword, resetPasswordWithOTP) need them - but
+// createTeamMember/updateTeamMember hand their return value straight back
+// to the client as the API response, so those fields have to be stripped
+// before this leaves the service layer.
+function stripSecrets(user) {
+  if (!user) return user;
+  const { passwordHash, resetOTP, resetOTPExpiry, ...safe } = user;
+  return safe;
+}
+
 async function findUserByEmail(email) {
   const row = await userRepository.findUserByEmail(email);
   return rowToUser(row);
@@ -173,7 +184,7 @@ async function createTeamMember(tenantId, { email, password, name, role, permiss
   }
   const passwordHash = await bcrypt.hash(password, 10);
   const row = await userRepository.insertTeamMember(tenantId, email, passwordHash, name, role, permissions);
-  return rowToUser(row);
+  return stripSecrets(rowToUser(row));
 }
 
 async function updateTeamMember(tenantId, userId, updates) {
@@ -199,7 +210,7 @@ async function updateTeamMember(tenantId, userId, updates) {
     values.push(passwordHash);
   }
 
-  if (fields.length === 0) return findUserById(userId);
+  if (fields.length === 0) return stripSecrets(await findUserById(userId));
 
   const row = await userRepository.updateTeamMember(userId, tenantId, fields.join(', '), values, idx, idx + 1);
   if (!row) {
@@ -207,7 +218,7 @@ async function updateTeamMember(tenantId, userId, updates) {
     err.status = 404;
     throw err;
   }
-  return rowToUser(row);
+  return stripSecrets(rowToUser(row));
 }
 
 async function deleteTeamMember(tenantId, userId) {

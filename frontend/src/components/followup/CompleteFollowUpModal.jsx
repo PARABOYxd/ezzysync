@@ -83,12 +83,14 @@ export default function CompleteFollowUpModal({ open, onClose, followUp, onCompl
           assignedTo: nextTask.assignedTo
         };
 
+        // addFollowUp/addLeadFollowUp expect the human-readable booking_id/
+        // lead_id (e.g. "BK-...", "LD-..."), not the internal UUID that
+        // booking_uuid/lead_uuid hold - source_id is the text id already
+        // resolved by the due-follow-ups query for exactly this reason.
         if (followUp.source_type === 'booking') {
-          // Booking UUID is mapped from follow_up_logs row query update
-          await bookingService.addFollowUp(followUp.booking_uuid, payload);
+          await bookingService.addFollowUp(followUp.source_id, payload);
         } else {
-          // Lead UUID is mapped from follow_up_logs row query update
-          await leadService.addLeadFollowUp(followUp.lead_uuid, payload);
+          await leadService.addLeadFollowUp(followUp.source_id, payload);
         }
       }
 

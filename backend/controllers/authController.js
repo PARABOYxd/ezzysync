@@ -79,8 +79,15 @@ async function sendRegistrationOTP(req, res, next) {
       env.jwtSecret,
       { expiresIn: '15m' }
     );
-    // Send OTP via email (falls back to console log in dev)
-    await emailService.sendRegistrationOTPEmail({ to: email, otp });
+    // Send OTP via email (falls back to console log in dev). Catch here so a
+    // third-party provider error (e.g. Resend rejecting an address) doesn't
+    // leak its raw message to the client via the generic error handler.
+    try {
+      await emailService.sendRegistrationOTPEmail({ to: email, otp });
+    } catch (emailErr) {
+      req.log?.error({ err: emailErr, email }, 'Failed to send registration OTP email');
+      return res.status(502).json({ message: 'Could not send the verification email right now. Please try again in a moment.' });
+    }
     res.json({ regToken, message: 'OTP sent to your email. Valid for 15 minutes.' });
   } catch (err) {
     next(err);
@@ -119,11 +126,18 @@ async function forgotPassword(req, res, next) {
     }
     const { otp, expiry } = otpService.generateOTP();
     await userService.setResetOTP(email, otp, expiry);
-    await emailService.sendOTPEmail({
-      tenantId: user.tenantId,
-      to: email,
-      otp,
-    });
+    try {
+      await emailService.sendOTPEmail({
+        tenantId: user.tenantId,
+        to: email,
+        otp,
+      });
+    } catch (emailErr) {
+      // Log but still return the same generic message below - letting this
+      // fail differently would tell an attacker the email exists AND that
+      // sending broke, on top of leaking the raw provider error.
+      req.log?.error({ err: emailErr, email }, 'Failed to send password reset OTP email');
+    }
     res.json({ message: 'If that email exists, an OTP has been sent.' });
   } catch (err) {
     next(err);
