@@ -15,15 +15,15 @@ const blogPosts = [
     readTime: "7 min read",
     category: "Marketing",
     thumbnail: (
-      <div className="w-full h-full bg-slate-900 relative p-4 flex flex-col justify-between overflow-hidden">
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
         {/* Instagram DM mockup */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <span className="text-[10px] font-bold text-rose-500">Instagram DM Inbound</span>
-          <span className="text-[8px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-bold">HOT LEAD</span>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span className="text-[10px] font-bold text-rose-600">Instagram DM Inbound</span>
+          <span className="text-[8px] bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded font-bold">HOT LEAD</span>
         </div>
         <div className="space-y-1.5 py-2">
-          <div className="text-[11px] font-bold text-slate-100">Rahul Sharma</div>
-          <div className="text-[9px] text-slate-400">"Price for Bali Honeymoon package please..."</div>
+          <div className="text-[11px] font-bold text-slate-800">Rahul Sharma</div>
+          <div className="text-[9px] text-slate-500">"Price for Bali Honeymoon package please..."</div>
         </div>
         <div className="bg-[#F97316] text-white rounded-lg p-2 flex items-center justify-between">
           <span className="text-[9px] font-bold">Logged to EzzySync CRM</span>

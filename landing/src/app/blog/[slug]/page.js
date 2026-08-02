@@ -154,30 +154,30 @@ const articlesData = {
         <div className="my-8 p-6 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-4 text-center">Visualizing The Leak: Scattered vs Consolidated Pipelines</h4>
           <svg width="100%" height="240" viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto max-w-[500px]">
-            <rect x="10" y="10" width="220" height="200" rx="16" fill="#FFF1F2" stroke="#FECDD3" stroke-width="1.5"/>
-            <text x="120" y="36" fill="#E11D48" font-family="Inter, sans-serif" font-size="12" font-weight="700" text-anchor="middle">SCATTERED DATA (Leaking)</text>
+            <rect x="10" y="10" width="220" height="200" rx="16" fill="#FFF1F2" stroke="#FECDD3" strokeWidth="1.5"/>
+            <text x="120" y="36" fill="#E11D48" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" textAnchor="middle">SCATTERED DATA (Leaking)</text>
             
             <rect x="30" y="60" width="180" height="32" rx="8" fill="white" stroke="#FDA4AF"/>
-            <text x="40" y="80" fill="#9F1239" font-family="Inter, sans-serif" font-size="11" font-weight="600">📥 Staff Personal DMs</text>
+            <text x="40" y="80" fill="#9F1239" fontFamily="Inter, sans-serif" fontSize="11" fontWeight="600">📥 Staff Personal DMs</text>
             
             <rect x="30" y="105" width="180" height="32" rx="8" fill="white" stroke="#FDA4AF"/>
-            <text x="40" y="125" fill="#9F1239" font-family="Inter, sans-serif" font-size="11" font-weight="600">💬 Scattered WhatsApp</text>
+            <text x="40" y="125" fill="#9F1239" fontFamily="Inter, sans-serif" fontSize="11" fontWeight="600">💬 Scattered WhatsApp</text>
             
             <rect x="30" y="150" width="180" height="32" rx="8" fill="white" stroke="#FDA4AF"/>
-            <text x="40" y="170" fill="#9F1239" font-family="Inter, sans-serif" font-size="11" font-weight="600">📊 Lost Excel Sheets</text>
+            <text x="40" y="170" fill="#9F1239" fontFamily="Inter, sans-serif" fontSize="11" fontWeight="600">📊 Lost Excel Sheets</text>
 
-            <path d="M120 182v15m-5 5l5 5 5-5" stroke="#E11D48" stroke-width="1.5" stroke-linecap="round"/>
-            <text x="120" y="222" fill="#E11D48" font-family="Inter, sans-serif" font-size="10" font-weight="600" text-anchor="middle">❌ 40% Inquiries Forgotten</text>
+            <path d="M120 182v15m-5 5l5 5 5-5" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round"/>
+            <text x="120" y="222" fill="#E11D48" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="600" textAnchor="middle">❌ 40% Inquiries Forgotten</text>
 
-            <rect x="370" y="10" width="220" height="200" rx="16" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1.5"/>
-            <text x="480" y="36" fill="#059669" font-family="Inter, sans-serif" font-size="12" font-weight="700" text-anchor="middle">EZZYSYNC CRM (Unified)</text>
+            <rect x="370" y="10" width="220" height="200" rx="16" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5"/>
+            <text x="480" y="36" fill="#059669" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" textAnchor="middle">EZZYSYNC CRM (Unified)</text>
             
             <rect x="390" y="70" width="180" height="70" rx="12" fill="white" stroke="#6EE7B7"/>
-            <text x="480" y="96" fill="#065F46" font-family="Inter, sans-serif" font-size="14" font-weight="700" text-anchor="middle">One Single Hub</text>
-            <text x="480" y="118" fill="#047857" font-family="Inter, sans-serif" font-size="10" font-weight="500" text-anchor="middle">DMs + Quotes + Reminders</text>
+            <text x="480" y="96" fill="#065F46" fontFamily="Inter, sans-serif" fontSize="14" fontWeight="700" textAnchor="middle">One Single Hub</text>
+            <text x="480" y="118" fill="#047857" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="500" textAnchor="middle">DMs + Quotes + Reminders</text>
 
-            <path d="M480 140v20m-5 5l5 5 5-5" stroke="#059669" stroke-width="1.5" stroke-linecap="round"/>
-            <text x="480" y="185" fill="#059669" font-family="Inter, sans-serif" font-size="11" font-weight="700" text-anchor="middle">✅ 100% Leads Tracked</text>
+            <path d="M480 140v20m-5 5l5 5 5-5" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"/>
+            <text x="480" y="185" fill="#059669" fontFamily="Inter, sans-serif" fontSize="11" fontWeight="700" textAnchor="middle">✅ 100% Leads Tracked</text>
           </svg>
         </div>
 
@@ -198,20 +198,20 @@ const articlesData = {
         <div className="my-8 p-6 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-4 text-center">The 5-Step Conversion Funnel</h4>
           <svg width="100%" height="280" viewBox="0 0 600 280" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto max-w-[450px]">
-            <polygon points="50,10 550,10 500,50 100,50" fill="#FFF7ED" stroke="#FFEDD5" stroke-width="1.5"/>
-            <text x="300" y="34" fill="#C2410C" font-family="Inter, sans-serif" font-size="12" font-weight="700" text-anchor="middle">1. CAPTURE (DM Logged in CRM)</text>
+            <polygon points="50,10 550,10 500,50 100,50" fill="#FFF7ED" stroke="#FFEDD5" strokeWidth="1.5"/>
+            <text x="300" y="34" fill="#C2410C" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" textAnchor="middle">1. CAPTURE (DM Logged in CRM)</text>
             
-            <polygon points="100,60 500,60 450,100 150,100" fill="#FFEDD5" stroke="#FDBA74" stroke-width="1.5"/>
-            <text x="300" y="84" fill="#C2410C" font-family="Inter, sans-serif" font-size="12" font-weight="700" text-anchor="middle">2. RESPOND (Within 15 minutes)</text>
+            <polygon points="100,60 500,60 450,100 150,100" fill="#FFEDD5" stroke="#FDBA74" strokeWidth="1.5"/>
+            <text x="300" y="84" fill="#C2410C" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" textAnchor="middle">2. RESPOND (Within 15 minutes)</text>
             
-            <polygon points="150,110 450,110 400,150 200,150" fill="#FED7AA" stroke="#FDBA74" stroke-width="1.5"/>
-            <text x="300" y="134" fill="#9A3412" font-family="Inter, sans-serif" font-size="12" font-weight="700" text-anchor="middle">3. QUOTE (Itinerary sent on same day)</text>
+            <polygon points="150,110 450,110 400,150 200,150" fill="#FED7AA" stroke="#FDBA74" strokeWidth="1.5"/>
+            <text x="300" y="134" fill="#9A3412" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" text-anchor="middle">3. QUOTE (Itinerary sent on same day)</text>
             
-            <polygon points="200,160 400,160 350,200 250,200" fill="#FDBA74" stroke="#F97316" stroke-width="1.5"/>
-            <text x="300" y="184" fill="#7C2D12" font-family="Inter, sans-serif" font-size="12" font-weight="700" text-anchor="middle">4. FOLLOW-UP (WhatsApp reminders)</text>
+            <polygon points="200,160 400,160 350,200 250,200" fill="#FDBA74" stroke="#F97316" strokeWidth="1.5"/>
+            <text x="300" y="184" fill="#7C2D12" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" text-anchor="middle">4. FOLLOW-UP (WhatsApp reminders)</text>
             
             <polygon points="250,210 350,210 320,250 280,250" fill="#F97316" />
-            <text x="300" y="234" fill="white" font-family="Inter, sans-serif" font-size="11" font-weight="800" text-anchor="middle">5. BOOKING DEPOSIT</text>
+            <text x="300" y="234" fill="white" fontFamily="Inter, sans-serif" fontSize="11" fontWeight="800" text-anchor="middle">5. BOOKING DEPOSIT</text>
           </svg>
         </div>
 
