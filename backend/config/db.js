@@ -394,6 +394,47 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding public_lead_key column to tenants');
   }
 
+  // Group Tour Batching - lets many individual bookings (Rahul, Priya, Amit...)
+  // be linked under one fixed-departure tour with a shared itinerary, price
+  // and seat capacity, instead of every booking being tracked standalone.
+  await query(`
+    CREATE TABLE IF NOT EXISTS tour_batches (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      batch_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      trip_name TEXT NOT NULL,
+      departure_date TEXT NOT NULL,
+      total_capacity INTEGER NOT NULL DEFAULT 0,
+      price_per_person NUMERIC(12,2) NOT NULL DEFAULT 0,
+      itinerary_days JSONB DEFAULT '[]'::jsonb,
+      status TEXT NOT NULL DEFAULT 'Planning',
+      notes TEXT DEFAULT '',
+      created_by TEXT DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      deleted BOOLEAN NOT NULL DEFAULT FALSE,
+      UNIQUE (tenant_id, batch_id)
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_tour_batches_tenant ON tour_batches(tenant_id);`);
+  await query(`CREATE SEQUENCE IF NOT EXISTS tour_batches_seq START 1000;`);
+
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding batch_id to bookings');
+  }
+
+  // Tracks which saved Itinerary/Quotation a batch's master itinerary was
+  // imported from, so the Quotations page can show "used in this batch" -
+  // same loose text-reference convention as bookings.source_quotation_id.
+  try {
+    await query(`ALTER TABLE tour_batches ADD COLUMN IF NOT EXISTS source_quotation_id TEXT DEFAULT NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding source_quotation_id to tour_batches');
+  }
+
   logger.info('Schema check complete.');
 }
 

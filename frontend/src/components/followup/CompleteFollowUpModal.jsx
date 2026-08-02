@@ -71,22 +71,38 @@ export default function CompleteFollowUpModal({ open, onClose, followUp, onCompl
 
     setSaving(true);
     try {
-      // 1. Mark current follow-up done with outcome notes
-      await followUpService.markFollowUpDone(followUp.id, { outcomeNote: outcomeNote.trim() });
-      
-      // 2. Optional: Schedule next follow-up log in single flow
-      if (scheduleNext) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      if (followUp.id) {
+        // 1. Mark current follow-up done with outcome notes
+        await followUpService.markFollowUpDone(followUp.id, { outcomeNote: outcomeNote.trim() });
+        
+        // 2. Schedule next follow-up
+        // If not explicitly scheduled, auto-set to tomorrow so it returns to their calling queue.
         const payload = {
-          note: nextTask.note.trim(),
-          activityType: nextTask.activityType,
-          nextFollowUpDate: nextTask.nextFollowUpDate,
-          assignedTo: nextTask.assignedTo
+          note: scheduleNext ? nextTask.note.trim() : `Auto-reminder: ${outcomeNote.trim() || 'Follow-up check-in'}`,
+          activityType: scheduleNext ? nextTask.activityType : 'call',
+          nextFollowUpDate: scheduleNext ? nextTask.nextFollowUpDate : tomorrowStr,
+          assignedTo: scheduleNext ? nextTask.assignedTo : (followUp.assigned_to || '')
         };
 
-        // addFollowUp/addLeadFollowUp expect the human-readable booking_id/
-        // lead_id (e.g. "BK-...", "LD-..."), not the internal UUID that
-        // booking_uuid/lead_uuid hold - source_id is the text id already
-        // resolved by the due-follow-ups query for exactly this reason.
+        if (followUp.source_type === 'booking') {
+          await bookingService.addFollowUp(followUp.source_id, payload);
+        } else {
+          await leadService.addLeadFollowUp(followUp.source_id, payload);
+        }
+      } else {
+        // Nurturing lead: Log outcome directly.
+        // If not explicitly scheduled, auto-set next follow-up to tomorrow to remind the user.
+        const payload = {
+          note: scheduleNext ? nextTask.note.trim() : `Auto-reminder: ${outcomeNote.trim() || 'Nurturing check-in'}`,
+          activityType: scheduleNext ? nextTask.activityType : 'call',
+          nextFollowUpDate: scheduleNext ? nextTask.nextFollowUpDate : tomorrowStr,
+          assignedTo: scheduleNext ? nextTask.assignedTo : (followUp.assigned_to || '')
+        };
+
         if (followUp.source_type === 'booking') {
           await bookingService.addFollowUp(followUp.source_id, payload);
         } else {

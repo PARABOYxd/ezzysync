@@ -34,6 +34,7 @@ function rowToBooking(row) {
     nextFollowUpDate: row.next_follow_up_date ? new Date(row.next_follow_up_date).toISOString() : null,
     sourceQuotationId: row.source_quotation_id || null,
     customerId: row.customer_id || null,
+    batchId: row.batch_id || null,
   };
 }
 

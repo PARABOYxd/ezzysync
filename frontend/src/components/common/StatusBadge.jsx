@@ -50,3 +50,15 @@ const LEAD_STAGE_STYLES = {
 export function LeadStageBadge({ stage }) {
   return <span className={`badge-tint ${LEAD_STAGE_STYLES[stage] || 'badge-lost'}`}>{stage}</span>;
 }
+
+const BATCH_STATUS_STYLES = {
+  Planning: 'badge-new',
+  Confirmed: 'badge-confirmed',
+  Ongoing: 'badge-followup',
+  Completed: 'badge-quoted',
+  Cancelled: 'badge-lost',
+};
+
+export function BatchStatusBadge({ status }) {
+  return <span className={`badge-tint ${BATCH_STATUS_STYLES[status] || 'badge-lost'}`}>{status}</span>;
+}

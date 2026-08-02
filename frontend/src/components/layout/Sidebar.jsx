@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 export default function Sidebar({ open, onClose }) {
@@ -14,6 +14,7 @@ export default function Sidebar({ open, onClose }) {
 
   const salesLinks = [
     { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
+    { to: '/tour-batches', label: 'Group Tours', icon: Layers },
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map },
     { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles },
   ];

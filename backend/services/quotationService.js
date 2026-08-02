@@ -18,6 +18,7 @@ function rowToQuotation(row) {
     itineraryDays: row.itinerary_days || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    usedInBatches: row.used_in_batches || [],
   };
 }
 

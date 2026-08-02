@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Phone, MessageSquare, Mail, Calendar, FileText } from 'lucide-react';
+import { Check, Phone, MessageSquare, Mail, Calendar, FileText, AlertCircle, Clock, ExternalLink } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import * as followUpService from '../services/followUpService';
+import * as leadService from '../services/leadService';
 import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import CompleteFollowUpModal from '../components/followup/CompleteFollowUpModal.jsx';
+import LeadViewModal from '../components/lead/LeadViewModal.jsx';
+import { LeadStageBadge } from '../components/common/StatusBadge.jsx';
 
 function getActivityIcon(type) {
   switch (type) {
@@ -20,103 +23,269 @@ function getActivityIcon(type) {
 
 export default function FollowUps() {
   const [items, setItems] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignedTo, setAssignedTo] = useState('');
   const [activeFollowUp, setActiveFollowUp] = useState(null);
+  const [viewingLead, setViewingLead] = useState(null);
+  const [currentSegment, setCurrentSegment] = useState('all'); // 'all', 'priority', 'new', 'no-action'
   const toast = useToast();
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    followUpService.getDueFollowUps({ overdue: true, dueToday: true, assignedTo })
-      .then(setItems)
-      .catch(() => toast.error('Could not load follow-ups.'))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignedTo]);
+    try {
+      const dueItems = await followUpService.getDueFollowUps({ overdue: true, dueToday: true, assignedTo });
+      setItems(dueItems);
 
-  useEffect(load, [load]);
+      const leadData = await leadService.getLeads({ limit: 100 });
+      const activeLeads = (leadData.leads || []).filter(l => 
+        l.stage !== 'Won' && 
+        l.stage !== 'Lost'
+      );
+      
+      const committedLeadIds = new Set(dueItems.filter(i => i.source_type === 'lead').map(i => String(i.source_id)));
+      
+      const hasFutureFollowUp = (lead) => {
+        if (!lead.nextFollowUpDate) return false;
+        const date = new Date(lead.nextFollowUpDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date >= today;
+      };
+
+      const nurturing = activeLeads.filter(l => 
+        !committedLeadIds.has(String(l.leadId)) && 
+        !hasFutureFollowUp(l)
+      );
+      nurturing.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+        return timeA - timeB; // Oldest first
+      });
+      setLeads(nurturing);
+    } catch (err) {
+      toast.error('Could not load follow-up queues.');
+    } finally {
+      setLoading(false);
+    }
+  }, [assignedTo, toast]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const isOverdue = (dateStr) => new Date(dateStr) < new Date(new Date().toDateString());
 
+  const getIdleDays = (lead) => {
+    const lastActive = new Date(lead.updatedAt || lead.createdAt);
+    const diffTime = Math.abs(new Date() - lastActive);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const isNoActionLead = (lead) => {
+    return lead.stage === 'New' || !lead.nextFollowUpDate;
+  };
+
+  const getConsolidatedRows = () => {
+    const committedRows = items.map(item => ({
+      id: `committed-${item.id}`,
+      originalId: item.id,
+      type: 'committed',
+      customerName: item.customer_name,
+      sourceType: item.source_type,
+      sourceId: item.source_id,
+      note: item.note,
+      activityType: item.activity_type,
+      assignedTo: item.assigned_to,
+      dueDate: item.next_follow_up_date,
+      overdue: isOverdue(item.next_follow_up_date),
+      idleDays: null,
+      noAction: item.note === 'Nurturing check-in',
+      phone: item.customer_phone,
+      email: item.customer_email,
+      stage: null
+    }));
+
+    const nurturingRows = leads.map(lead => ({
+      id: `nurture-${lead.leadId}`,
+      originalId: lead.leadId,
+      type: 'nurture',
+      customerName: lead.customerName,
+      sourceType: 'lead',
+      sourceId: lead.leadId,
+      note: 'Nurturing check-in',
+      activityType: 'call',
+      assignedTo: lead.assignedTo,
+      dueDate: null,
+      overdue: false,
+      idleDays: getIdleDays(lead),
+      noAction: isNoActionLead(lead),
+      phone: lead.phone,
+      email: lead.email,
+      stage: lead.stage
+    }));
+
+    if (currentSegment === 'priority') {
+      return committedRows;
+    }
+    if (currentSegment === 'new') {
+      return nurturingRows.filter(r => r.stage === 'New');
+    }
+    if (currentSegment === 'no-action') {
+      const noActionCommitted = committedRows.filter(r => r.noAction);
+      const noActionNurture = nurturingRows.filter(r => r.noAction);
+      return [...noActionCommitted, ...noActionNurture];
+    }
+    
+    return [...committedRows, ...nurturingRows];
+  };
+
+  const rows = getConsolidatedRows();
+
+  const handleDoneClick = (row) => {
+    if (row.type === 'committed') {
+      const originalItem = items.find(i => i.id === row.originalId);
+      setActiveFollowUp(originalItem);
+    } else {
+      setActiveFollowUp({
+        id: null,
+        customer_name: row.customerName,
+        note: 'Nurturing check-in',
+        assigned_to: row.assignedTo,
+        source_type: 'lead',
+        source_id: row.sourceId,
+        customer_phone: row.phone,
+        customer_email: row.email
+      });
+    }
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="w-full max-w-xs">
-        <Input placeholder="Filter by assigned team member…" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+    <div className="space-y-6 select-none">
+      {/* Top Controls: Filter & Segments */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="w-full max-w-xs">
+          <Input placeholder="Filter by assigned team member…" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+        </div>
+        <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40">
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'priority', label: 'Priority Today' },
+            { id: 'new', label: 'New Leads' },
+            { id: 'no-action', label: 'No Action Taken' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentSegment(tab.id)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                currentSegment === tab.id
+                  ? 'bg-white dark:bg-zinc-900 text-[#F97316] shadow-xs'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Unified Table */}
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[800px]">
+          <table className="w-full text-sm min-w-[900px]">
             <thead>
               <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
                 <th className="py-3 px-4 font-medium">Customer</th>
                 <th className="py-3 px-4 font-medium">Reference</th>
-                <th className="py-3 px-4 font-medium">Note</th>
+                <th className="py-3 px-4 font-medium">Note / Action</th>
                 <th className="py-3 px-4 font-medium">Assigned To</th>
-                <th className="py-3 px-4 font-medium">Due Date</th>
+                <th className="py-3 px-4 font-medium">Status / Due</th>
                 <th className="py-3 px-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && <SkeletonTableRows rows={6} cols={6} />}
-              {!loading && items.map((item) => {
-                const overdue = isOverdue(item.next_follow_up_date);
-                const linkTo = item.source_type === 'booking' ? `/bookings?search=${item.source_id}` : `/leads?search=${item.source_id}`;
+              {!loading && rows.map((row) => {
+                const linkTo = row.sourceType === 'booking' ? `/bookings?search=${row.sourceId}` : `/leads?search=${row.sourceId}`;
                 return (
-                  <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/60">
-                    <td className="py-3 px-4 font-medium text-slate-700">{item.customer_name}</td>
+                  <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/60">
+                    <td className="py-3 px-4 font-medium text-slate-700">
+                      <div>
+                        <span>{row.customerName}</span>
+                        {row.noAction && (
+                          <p className="text-[10px] text-rose-500 font-semibold mt-0.5 animate-pulse">Nothing happened yet</p>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 px-4">
                       <Link to={linkTo} className="text-brand-600 hover:underline text-xs font-mono">
-                        {item.source_type === 'booking' ? 'BK' : 'Lead'} · {item.source_id}
+                        {row.sourceType === 'booking' ? 'BK' : 'Lead'} · {row.sourceId}
                       </Link>
                     </td>
                     <td className="py-3 px-4 text-slate-500">
-                      <span className="flex items-center gap-1.5">{getActivityIcon(item.activity_type)} {item.note}</span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">{item.assigned_to || '-'}</td>
-                    <td className="py-3 px-4">
-                      <span className={`font-semibold text-xs ${overdue ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
-                        {new Date(item.next_follow_up_date).toLocaleDateString('en-IN')}{overdue ? ' (Overdue)' : ' (Today)'}
+                      <span className="flex items-center gap-1.5">
+                        {getActivityIcon(row.activityType)} {row.note}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500">{row.assignedTo || '-'}</td>
+                    <td className="py-3 px-4">
+                      {row.dueDate ? (
+                        <span className={`badge-tint px-2 py-0.5 text-[10px] font-bold rounded ${
+                          row.overdue 
+                            ? 'bg-rose-50 text-rose-600 border border-rose-100' 
+                            : 'bg-amber-50 text-amber-600 border border-amber-100'
+                        }`}>
+                          {row.overdue ? 'Overdue' : 'Today'} ({new Date(row.dueDate).toLocaleDateString('en-IN')})
+                        </span>
+                      ) : (
+                        <span className={`badge-tint px-2 py-0.5 text-[10px] font-bold rounded ${
+                          row.idleDays >= 5 
+                            ? 'bg-red-50 text-red-600 border border-red-100' 
+                            : row.idleDays >= 2 
+                            ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                            : 'bg-slate-50 text-slate-600 border border-slate-200'
+                        }`}>
+                          {row.idleDays === 0 ? 'Updated today' : `Idle for ${row.idleDays} days`}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex justify-end items-center gap-2">
-                        {item.customer_phone && (
+                        {row.phone && (
                           <a
-                            href={`tel:${item.customer_phone}`}
-                            title={`Call ${item.customer_name} (${item.customer_phone})`}
+                            href={`tel:${row.phone}`}
+                            title={`Call ${row.customerName}`}
                             className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition shrink-0"
                           >
                             <Phone size={13} />
                           </a>
                         )}
-                        {item.customer_phone && (
+                        {row.phone && (
                           <a
-                            href={`https://wa.me/${item.customer_phone.replace(/[^\d]/g, '')}`}
+                            href={`https://wa.me/${row.phone.replace(/[^\d]/g, '')}`}
                             target="_blank"
                             rel="noreferrer"
-                            title={`WhatsApp Chat with ${item.customer_name}`}
+                            title="WhatsApp Chat"
                             className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition shrink-0"
                           >
                             <MessageSquare size={13} />
                           </a>
                         )}
-                        {item.customer_email && (
-                          <a
-                            href={`mailto:${item.customer_email}`}
-                            title={`Send Email to ${item.customer_email}`}
-                            className="p-1.5 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 transition shrink-0"
-                          >
-                            <Mail size={13} />
-                          </a>
-                        )}
                         <button
-                          title="Mark follow-up as done"
-                          onClick={() => setActiveFollowUp(item)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 ml-1 shrink-0 bg-[var(--bg-page)] dark:bg-zinc-800"
+                          onClick={() => handleDoneClick(row)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F97316] text-white hover:bg-[#ea580c] shrink-0 shadow-sm ml-1"
                         >
                           <Check size={13} /> Done
                         </button>
+                        {row.sourceType === 'lead' && (
+                          <button
+                            onClick={() => setViewingLead({ leadId: row.sourceId, customerName: row.customerName })}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 ml-1 shrink-0"
+                          >
+                            <ExternalLink size={12} /> Open Lead
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -125,8 +294,8 @@ export default function FollowUps() {
             </tbody>
           </table>
         </div>
-        {!loading && items.length === 0 && (
-          <EmptyState title="All caught up!" message="No follow-ups are due today or overdue." />
+        {!loading && rows.length === 0 && (
+          <EmptyState title="No follow-ups found" message="All caught up for this filter segment!" />
         )}
       </div>
 
@@ -134,9 +303,14 @@ export default function FollowUps() {
         open={!!activeFollowUp}
         onClose={() => setActiveFollowUp(null)}
         followUp={activeFollowUp}
-        onCompleted={(completedId) => {
-          setItems((prev) => prev.filter((i) => i.id !== completedId));
-        }}
+        onCompleted={load}
+      />
+
+      <LeadViewModal
+        open={!!viewingLead}
+        lead={viewingLead}
+        onClose={() => setViewingLead(null)}
+        onRefresh={load}
       />
     </div>
   );

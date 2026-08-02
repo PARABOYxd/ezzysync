@@ -11,6 +11,7 @@ import * as bookingService from '../../services/bookingService';
 import * as userService from '../../services/userService';
 import * as quotationService from '../../services/quotationService';
 import * as hotelService from '../../services/hotelService';
+import * as batchService from '../../services/batchService';
 import { useToast } from '../../hooks/useToast.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import {
@@ -38,6 +39,7 @@ const emptyForm = {
   paymentStatus: 'Pending', notes: '',
   vendorHotelCost: 0, vendorFlightCost: 0, vendorTransportCost: 0, vendorOtherCost: 0,
   hotelId: '', roomCategory: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '', sourceQuotationId: '',
+  batchId: '',
 };
 
 export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
@@ -65,6 +67,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
   // Lists for dropdown selectors
   const [quotations, setQuotations] = useState([]);
   const [hotels, setHotels] = useState([]);
+  const [batches, setBatches] = useState([]);
 
   useEffect(() => {
     if (open) {
@@ -80,6 +83,10 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
       hotelService.getHotels().then((data) => {
         setHotels(data || []);
+      }).catch(() => {});
+
+      batchService.getBatches().then((data) => {
+        setBatches(data || []);
       }).catch(() => {});
     }
   }, [open]);
@@ -561,6 +568,17 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   placeholder="e.g. IGI Airport Terminal 3"
                   value={form.pickup}
                   onChange={set('pickup')}
+                />
+                <Select
+                  label="Tour Batch / Group (Optional)"
+                  icon={Users}
+                  hint="Link this booking to a fixed-departure group tour"
+                  value={form.batchId || ''}
+                  onChange={set('batchId')}
+                  options={[
+                    { value: '', label: '-- No Batch Linked --' },
+                    ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
+                  ]}
                 />
               </FormRow>
 

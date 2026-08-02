@@ -21,6 +21,7 @@ import Team from './pages/Team.jsx';
 import AITools from './pages/AITools.jsx';
 import CustomerProfile from './pages/CustomerProfile.jsx';
 import Hotels from './pages/Hotels.jsx';
+import TourBatches from './pages/TourBatches.jsx';
 import HelpGuide from './pages/HelpGuide.jsx';
 import NotFound from './pages/NotFound.jsx';
 
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/leads" element={<Leads />} />
         <Route path="/follow-ups" element={<FollowUps />} />
         <Route path="/bookings" element={<Bookings />} />
+        <Route path="/tour-batches" element={<TourBatches />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/quotations" element={<Quotations />} />
         <Route path="/profile" element={<Profile />} />
