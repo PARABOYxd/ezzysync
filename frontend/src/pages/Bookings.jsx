@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import BookingFilters from '../components/booking/BookingFilters.jsx';
 import BookingTable from '../components/booking/BookingTable.jsx';
-import BookingFormModal from '../components/booking/BookingFormModal.jsx';
+import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import BookingViewModal from '../components/booking/BookingViewModal.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import * as bookingService from '../services/bookingService';
@@ -169,7 +169,7 @@ export default function Bookings() {
         </div>
       )}
 
-      <BookingFormModal
+      <BookingFormDrawer
         open={formOpen}
         booking={editingBooking}
         onClose={() => setFormOpen(false)}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Drawer from '../common/Drawer.jsx';
 import Modal from '../common/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
@@ -21,7 +22,7 @@ const emptyForm = {
   stage: 'New', assignedTo: '', notes: '',
 };
 
-export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead }) {
+export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead }) {
   const isEdit = !!lead;
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
@@ -76,6 +77,17 @@ export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead 
     setSaving(true);
     try {
       if (isEdit) {
+        if (form.stage === 'Won' && lead.stage !== 'Won' && !lead.convertedBookingId) {
+          const formWithoutWon = { ...form, stage: lead.stage };
+          await leadService.updateLead(lead.leadId, formWithoutWon);
+          toast.info('Please complete the booking conversion to mark this lead as Won.');
+          onSaved?.();
+          onClose();
+          if (onConvert) {
+            onConvert({ ...lead, ...formWithoutWon });
+          }
+          return;
+        }
         await leadService.updateLead(lead.leadId, form);
         toast.success('Lead updated.');
       } else {
@@ -150,7 +162,7 @@ export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Lead' : 'Create New Lead'} size="lg">
+    <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Lead' : 'Create New Lead'}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormRow>
           <Input label="Customer Name" icon={User} required error={errors.customerName} placeholder="e.g. Rahul Kumar" value={form.customerName} onChange={set('customerName')} />
@@ -215,7 +227,7 @@ export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead 
         )}
         <Textarea label="Notes" rows={2} placeholder="Traveler preferences, budget range, conversation notes..." value={form.notes} onChange={set('notes')} />
 
-        <div className="flex justify-between items-center pt-5 border-t border-slate-200">
+        <div className="flex justify-between items-center pt-5 border-t border-slate-200 dark:border-zinc-800">
           <span className="text-xs text-slate-500 font-medium">Fields with * are mandatory</span>
           <div className="flex gap-3">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
@@ -223,6 +235,6 @@ export default function LeadFormModal({ open, onClose, onSaved, onConvert, lead 
           </div>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   );
 }

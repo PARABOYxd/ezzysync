@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Phone, Mail, UserCheck } from 'lucide-react';
 import * as leadService from '../services/leadService';
 import LeadViewModal from '../components/lead/LeadViewModal.jsx';
-import ConvertLeadModal from '../components/lead/ConvertLeadModal.jsx';
+import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 
 const STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
@@ -120,7 +120,7 @@ export default function Pipeline() {
       </DragDropContext>
 
       <LeadViewModal open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
-      <ConvertLeadModal
+      <ConvertLeadDrawer
         open={!!convertingLead}
         lead={convertingLead}
         onClose={() => { setConvertingLead(null); load(); }}

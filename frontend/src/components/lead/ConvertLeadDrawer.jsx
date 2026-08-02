@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal.jsx';
+import Drawer from '../common/Drawer.jsx';
 import Input from '../ui/Input.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
@@ -8,7 +8,7 @@ import * as leadService from '../../services/leadService';
 import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
 
-export default function ConvertLeadModal({ open, onClose, lead, onConverted }) {
+export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) {
   const [form, setForm] = useState({ 
     departure: '', 
     members: 1, 
@@ -70,7 +70,7 @@ export default function ConvertLeadModal({ open, onClose, lead, onConverted }) {
 
     setSaving(true);
     try {
-      const result = await leadService.convertLeadToBooking(lead.leadId, {
+      await leadService.convertLeadToBooking(lead.leadId, {
         departure: form.departure,
         members: Number(form.members || 1),
         pricePerPerson: Number(form.pricePerPerson || 0),
@@ -78,10 +78,6 @@ export default function ConvertLeadModal({ open, onClose, lead, onConverted }) {
         interest: form.interest
       });
       toast.success('Lead converted to booking!');
-      if (result.possibleDuplicates?.length) {
-        const ids = result.possibleDuplicates.map((b) => b.bookingId).join(', ');
-        toast.info(`Heads up: ${lead.customerName} already has an open booking (${ids}). Check you're not double-booking.`);
-      }
       onConverted?.();
       onClose();
     } catch (err) {
@@ -94,7 +90,7 @@ export default function ConvertLeadModal({ open, onClose, lead, onConverted }) {
   if (!lead) return null;
 
   return (
-    <Modal open={open} onClose={onClose} title="Convert Lead to Booking" size="md">
+    <Drawer open={open} onClose={onClose} title="Convert Lead to Booking">
       <form onSubmit={handleSubmit} className="space-y-5">
         <p className="text-sm text-slate-500">
           Creating a booking for <b className="text-slate-700">{lead.customerName}</b>.
@@ -156,6 +152,6 @@ export default function ConvertLeadModal({ open, onClose, lead, onConverted }) {
           <Button type="submit" disabled={saving}>{saving ? 'Converting...' : 'Create Booking'}</Button>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   );
 }

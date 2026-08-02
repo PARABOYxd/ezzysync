@@ -3,9 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import LeadFilters from '../components/lead/LeadFilters.jsx';
 import LeadTable from '../components/lead/LeadTable.jsx';
-import LeadFormModal from '../components/lead/LeadFormModal.jsx';
+import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import LeadViewModal from '../components/lead/LeadViewModal.jsx';
-import ConvertLeadModal from '../components/lead/ConvertLeadModal.jsx';
+import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
@@ -126,9 +126,9 @@ export default function Leads() {
         </div>
       )}
 
-      <LeadFormModal open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
+      <LeadFormDrawer open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
       <LeadViewModal open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
-      <ConvertLeadModal open={!!convertingLead} lead={convertingLead} onClose={() => setConvertingLead(null)} onConverted={load} />
+      <ConvertLeadDrawer open={!!convertingLead} lead={convertingLead} onClose={() => setConvertingLead(null)} onConverted={load} />
       <ConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

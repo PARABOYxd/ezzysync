@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Modal from '../common/Modal.jsx';
+import Drawer from '../common/Drawer.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
@@ -40,7 +40,7 @@ const emptyForm = {
   hotelId: '', roomCategory: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '', sourceQuotationId: '',
 };
 
-export default function BookingFormModal({ open, onClose, onSaved, booking }) {
+export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
   const { user } = useAuth();
   const isEdit = !!booking;
   const [form, setForm] = useState(emptyForm);
@@ -280,7 +280,7 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
   const resolvedTeamMember = teamMemberOther ? teamMemberCustom : form.teamMember;
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Booking Deal' : 'Create New Booking Deal'} size="lg">
+    <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Booking Deal' : 'Create New Booking Deal'}>
       <div className="space-y-6">
         {/* Floating AI Autofill Header */}
         {!isEdit && (
@@ -825,6 +825,6 @@ export default function BookingFormModal({ open, onClose, onSaved, booking }) {
           </div>
         </form>
       </div>
-    </Modal>
+    </Drawer>
   );
 }

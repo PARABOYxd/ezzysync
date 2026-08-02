@@ -8,7 +8,7 @@ import StatCard from '../components/dashboard/StatCard.jsx';
 import RecentBookingsTable from '../components/dashboard/RecentBookingsTable.jsx';
 import UpcomingDepartures from '../components/dashboard/UpcomingDepartures.jsx';
 import { SkeletonCard } from '../components/common/Skeleton.jsx';
-import BookingFormModal from '../components/booking/BookingFormModal.jsx';
+import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import * as dashboardService from '../services/dashboardService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -151,7 +151,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <BookingFormModal open={addOpen} onClose={() => setAddOpen(false)} onSaved={load} />
+      <BookingFormDrawer open={addOpen} onClose={() => setAddOpen(false)} onSaved={load} />
     </div>
   );
 }
