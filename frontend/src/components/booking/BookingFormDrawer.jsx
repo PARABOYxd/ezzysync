@@ -241,6 +241,14 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
   const handleSubmit = async (ev) => {
     ev.preventDefault();
+    if (activeTab !== 'financials') {
+      if (activeTab === 'customer') {
+        setActiveTab('trip');
+      } else if (activeTab === 'trip') {
+        setActiveTab('financials');
+      }
+      return;
+    }
     if (!validate()) {
       // Direct user to the first tab with an error
       const e = {};
