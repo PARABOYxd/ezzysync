@@ -5,36 +5,26 @@
 :root {
   --primary: #f97316;
   --primary-hover: #ea580c;
-  --text-main: #111827;
-  --text-muted: #6b7280;
-  --text-light: #9ca3af;
-  --border: #e5e7eb;
-  --bg-page: #f8fafc;
-  --bg-card: #fff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --bg-page: #f6f8fa;
+  --bg-card: #ffffff;
   --error: #dc2626;
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 24px;
-  --sp-6: 32px;
-  --fs-caption: 12px;
-  --fs-label: 13px;
-  --fs-body: 14px;
-  --fs-title: 20px;
-  --radius: 8px;
+  --radius-badge: 6px;
+  --radius-btn: 8px;
   --radius-card: 12px;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --radius-modal: 16px;
 }
 
 .dark {
-  --text-main: #f3f4f6;
-  --text-muted: #a1a1aa;
-  --text-light: #71717a;
-  --border: #27272a;
-  --bg-page: #09090b;
-  --bg-card: #18181b;
-  --shadow-card: 0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.3);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+  --border: #1e293b;
+  --bg-page: #0b1220;
+  --bg-card: #0f172a;
 }
 
 @layer base {
@@ -46,66 +36,91 @@
     background: var(--bg-page);
     @apply antialiased;
     font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+  }
+  
+  /* Focus Rings visible on interactive elements */
+  *:focus-visible {
+    outline: 2px solid var(--primary) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Dense typography numbers mapping */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer components {
+  /* Cards: 1px border, 12px radius, no shadow (shadows allowed only on dropdowns/modals/ghosts) */
   .card {
-    @apply bg-white dark:bg-zinc-900 rounded-2xl shadow-card border border-slate-100 dark:border-zinc-800 p-5;
+    @apply bg-[var(--bg-card)] rounded-xl border border-[var(--border)] p-4;
+    box-shadow: none !important;
   }
+
+  /* Buttons: 8px radius, locks width if loading */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg h-11 px-4 text-sm font-medium transition
-      disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-1;
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] h-9 px-3.5 text-xs font-semibold transition
+      disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none;
   }
   .btn-primary {
-    @apply btn bg-brand-500 text-white hover:bg-brand-600 focus:ring-brand-400;
+    @apply btn bg-[var(--primary)] text-white hover:bg-[#ea580c];
   }
   .btn-secondary {
-    @apply btn bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 focus:ring-slate-300;
+    @apply btn bg-[var(--bg-card)] text-slate-700 dark:text-zinc-200 border border-[var(--border)] hover:bg-slate-50 dark:hover:bg-zinc-800;
   }
   .btn-danger {
-    @apply btn bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40 focus:ring-red-300;
+    @apply btn bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40;
   }
+
+  /* Badges: 22px height, 11px/500 text, 6px radius, 8-10% tinted background opacity */
+  .badge-tint {
+    height: 22px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: var(--radius-badge);
+    @apply inline-flex items-center px-2.5;
+  }
+  
+  .badge-new { @apply badge-tint bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400; }
+  .badge-contacted { @apply badge-tint bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400; }
+  .badge-quoted { @apply badge-tint bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400; }
+  .badge-followup { @apply badge-tint bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400; }
+  .badge-confirmed { @apply badge-tint bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400; }
+  .badge-lost { @apply badge-tint bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400; }
+
+  /* Input fields: 36px height */
   .input {
-    @apply w-full h-11 rounded-lg border border-slate-200 dark:border-zinc-800 px-3.5 text-sm bg-white dark:bg-zinc-950 text-slate-800 dark:text-zinc-200
-      transition focus:outline-none focus:ring-[3px] focus:ring-brand-500/15 focus:border-brand-400
-      placeholder:text-slate-400;
+    @apply w-full h-9 rounded-[var(--radius-badge)] border border-[var(--border)] px-3 text-xs bg-[var(--bg-card)] text-slate-800 dark:text-zinc-200
+      transition focus:outline-none placeholder:text-slate-400;
   }
   textarea.input {
-    @apply h-auto min-h-[96px] py-2.5;
+    @apply h-auto min-h-[80px] py-2;
   }
   .label {
-    @apply block text-[13px] font-medium text-slate-600 dark:text-zinc-300 mb-1.5;
-  }
-  .helper-text {
-    @apply text-xs text-slate-500 mt-1;
-  }
-  .helper-text-error {
-    @apply text-xs mt-1;
-    color: var(--error);
-  }
-  .badge {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+    @apply block text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1;
   }
 }
 
-/* simple skeleton shimmer */
+/* Skeleton Loading Shimmer */
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 .skeleton {
   background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite linear;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 37%, #1e293b 63%);
+  background-size: 200% 100%;
 }
 
-/* Hide scrollbar for Chrome, Safari, Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-/* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
