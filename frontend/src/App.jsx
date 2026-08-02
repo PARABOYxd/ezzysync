@@ -11,7 +11,6 @@ import GoogleCallback from './pages/GoogleCallback.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Bookings from './pages/Bookings.jsx';
 import Leads from './pages/Leads.jsx';
-import Pipeline from './pages/Pipeline.jsx';
 import FollowUps from './pages/FollowUps.jsx';
 import Invoices from './pages/Invoices.jsx';
 import Quotations from './pages/Quotations.jsx';
@@ -46,7 +45,6 @@ export default function App() {
       >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leads" element={<Leads />} />
-        <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/follow-ups" element={<FollowUps />} />
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/invoices" element={<Invoices />} />

@@ -9,7 +9,6 @@ export default function Sidebar({ open, onClose }) {
   const mainLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/leads', label: 'Leads', icon: Contact2 },
-    { to: '/pipeline', label: 'Sales Pipeline', icon: Kanban },
     { to: '/follow-ups', label: 'Follow-ups', icon: ListTodo },
   ];
 

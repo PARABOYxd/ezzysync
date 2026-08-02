@@ -40,7 +40,7 @@ export default function Drawer({ open, onClose, title, children }) {
       {/* Drawer Surface: 600px wide right-side slide-over */}
       <div 
         ref={drawerRef}
-        className="relative bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 w-full md:w-[600px] h-full flex flex-col shadow-2xl transition-transform duration-200 ease-out transform translate-x-0"
+        className="relative bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 w-full md:w-[600px] h-screen top-0 bottom-0 flex flex-col shadow-2xl transition-transform duration-200 ease-out transform translate-x-0"
       >
         {/* Header: 64px tall */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-slate-100 dark:border-zinc-800/80 shrink-0">

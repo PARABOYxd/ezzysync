@@ -9,7 +9,6 @@ import ThemeToggle from '../components/layout/ThemeToggle.jsx';
 const TITLES = {
   '/dashboard': 'Dashboard',
   '/leads': 'Leads',
-  '/pipeline': 'Sales Pipeline',
   '/follow-ups': 'Follow-ups',
   '/bookings': 'Bookings',
   '/invoices': 'Invoices',

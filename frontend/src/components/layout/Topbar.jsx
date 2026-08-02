@@ -33,19 +33,6 @@ export default function Topbar({ title, onMenuClick, actions }) {
       {/* Right section: actions bar */}
       <div className="flex items-center gap-3">
         {actions}
-        
-        <div className="w-[1px] h-4 bg-slate-200 dark:bg-zinc-800 hidden sm:block" />
-
-        <button className="p-1.5 rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition relative">
-          <Bell size={16} />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-orange-500" />
-        </button>
-
-        <button className="p-1.5 rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition">
-          <HelpCircle size={16} />
-        </button>
-
-        <ThemeToggle />
       </div>
     </header>
   );
