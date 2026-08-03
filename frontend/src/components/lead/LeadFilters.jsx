@@ -5,7 +5,7 @@ import Select from '../ui/Select.jsx';
 
 const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
 
-function DateRangeField({ label, from, to, onFromChange, onToChange }) {
+function DateRangeField({ label, from, to, onFromChange, onToChange, onClear }) {
   const hasValue = from || to;
   return (
     <div className="flex flex-col gap-1 w-full sm:w-auto">
@@ -13,10 +13,7 @@ function DateRangeField({ label, from, to, onFromChange, onToChange }) {
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</span>
         {hasValue && (
           <button 
-            onClick={() => {
-              onFromChange({ target: { value: '' } });
-              onToChange({ target: { value: '' } });
-            }}
+            onClick={onClear}
             className="text-[10px] text-brand-600 hover:text-brand-700 font-medium"
           >
             Clear
@@ -73,6 +70,7 @@ export default function LeadFilters({ filters, onChange }) {
           to={filters.createdTo}
           onFromChange={set('createdFrom')}
           onToChange={set('createdTo')}
+          onClear={() => onChange({ ...filters, createdFrom: '', createdTo: '' })}
         />
 
         <Select
