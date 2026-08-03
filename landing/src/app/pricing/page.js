@@ -45,6 +45,43 @@ export default function PricingPage() {
     },
     {
       "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "EzzySync",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "url": "https://www.ezzysync.com/pricing",
+      "description": "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "INR",
+        "lowPrice": "0",
+        "highPrice": "2499",
+        "offerCount": "3",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free Starter Plan",
+            "price": "0",
+            "priceCurrency": "INR"
+          },
+          {
+            "@type": "Offer",
+            "name": "Agency Growth Plan",
+            "price": "2499",
+            "priceCurrency": "INR"
+          },
+          {
+            "@type": "Offer",
+            "name": "Custom Enterprise Plan",
+            "price": "0",
+            "priceCurrency": "INR",
+            "description": "Contact for pricing"
+          }
+        ]
+      }
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": pricingFaqs.map((item) => ({
         "@type": "Question",
@@ -98,22 +135,22 @@ export default function PricingPage() {
                     <span className="text-[10px] font-bold text-brand-600">Value Unleashed</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
-                      <span className="text-[18px]">🕒</span>
-                      <div className="mt-3">
-                        <p className="text-lg font-bold text-slate-900 leading-tight">12 hrs</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Saved per week</p>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
+                        <span className="text-[18px]">🕒</span>
+                        <div className="mt-3">
+                          <p className="text-lg font-bold text-slate-900 leading-tight">Hours</p>
+                          <p className="text-[10px] text-slate-400 font-medium">Saved each week</p>
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
+                        <span className="text-[18px]">📈</span>
+                        <div className="mt-3">
+                          <p className="text-lg font-bold text-slate-900 leading-tight">Higher</p>
+                          <p className="text-[10px] text-slate-400 font-medium">Lead Conversion</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
-                      <span className="text-[18px]">📈</span>
-                      <div className="mt-3">
-                        <p className="text-lg font-bold text-slate-900 leading-tight">+35%</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Lead Conversion</p>
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60 flex items-center justify-between">
                     <div>

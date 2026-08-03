@@ -6,7 +6,7 @@ export default function robots() {
         allow: '/',
       },
       {
-        userAgent: ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'Bingbot'],
+        userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-User', 'anthropic-ai', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Bingbot'],
         allow: '/',
       }
     ],

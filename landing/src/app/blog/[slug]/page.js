@@ -4,10 +4,11 @@ import React from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import authors from "@/data/authors.json";
 
 const articlesData = {
   "whatsapp-marketing-for-travel-agents": {
-    title: "Why Travel Agents Lose 40% of Bookings in Scattered WhatsApp Chats",
+    title: "Why Travel Agents Lose Untracked Bookings in Scattered WhatsApp Chats",
     date: "July 28, 2026",
     readTime: "5 min read",
     category: "Operations",
@@ -25,7 +26,7 @@ const articlesData = {
         </ul>
 
         <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[20px] tracking-tight">The Solution: Centralized CRM Database</h2>
-        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7]">By connecting your operations to a travel CRM like EzzySync that integrates directly with the Meta WhatsApp Cloud API, you establish a centralized lead pipeline. Inquiries are automatically logged, follow-ups are scheduled systematically, and client communication remains secure within your business portal.</p>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7]">By connecting your operations to a travel CRM like EzzySync that integrates directly with the <a href="https://developers.facebook.com/docs/whatsapp/cloud-api" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Meta WhatsApp Cloud API</a>, you establish a centralized lead pipeline. Inquiries are automatically logged, follow-ups are scheduled systematically, and client communication remains secure within your business portal.</p>
       </>
     )
   },
@@ -167,7 +168,7 @@ const articlesData = {
             <text x="40" y="170" fill="#9F1239" fontFamily="Inter, sans-serif" fontSize="11" fontWeight="600">📊 Lost Excel Sheets</text>
 
             <path d="M120 182v15m-5 5l5 5 5-5" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round"/>
-            <text x="120" y="222" fill="#E11D48" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="600" textAnchor="middle">❌ 40% Inquiries Forgotten</text>
+            <text x="120" y="222" fill="#E11D48" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="600" textAnchor="middle">❌ Inquiries Forgotten</text>
 
             <rect x="370" y="10" width="220" height="200" rx="16" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5"/>
             <text x="480" y="36" fill="#059669" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="700" textAnchor="middle">EZZYSYNC CRM (Unified)</text>
@@ -278,6 +279,7 @@ export default function BlogPostPage({ params }) {
   const { slug } = React.use(params);
   const article = articlesData[slug];
   const crmUrl = "https://www.ezzysync.com/app";
+  const author = authors["rishab-jain"];
 
   React.useEffect(() => {
     if (article) {
@@ -329,7 +331,36 @@ export default function BlogPostPage({ params }) {
             <h1 className="font-semibold text-slate-950 text-2xl sm:text-3xl tracking-[-0.02em] leading-tight">
               {article.title}
             </h1>
+            {author && (
+              <div className="flex items-center gap-3 pt-4 mt-4 border-t border-slate-100">
+                <img src={author.avatar} alt={author.name} className="w-10 h-10 rounded-full" />
+                <div>
+                  <div className="text-sm font-bold text-slate-900">{author.name}</div>
+                  <div className="text-xs text-slate-500">{author.role}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Last updated: {article.date}</div>
+                </div>
+              </div>
+            )}
           </div>
+
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "BlogPosting",
+                "headline": article.title,
+                "image": `https://www.ezzysync.com${article.image}`,
+                "datePublished": new Date(article.date).toISOString(),
+                "dateModified": new Date(article.date).toISOString(),
+                "author": [{
+                  "@type": "Person",
+                  "name": author?.name || "Rishab Jain",
+                  "url": author?.url || "https://www.ezzysync.com/about"
+                }]
+              })
+            }}
+          />
 
           {/* Article Banner Cover Image */}
           <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative">

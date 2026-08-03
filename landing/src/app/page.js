@@ -17,6 +17,18 @@ export default function Home() {
   const pageJsonLd = [
     {
       "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "EzzySync",
+      "url": "https://www.ezzysync.com",
+      "logo": "https://www.ezzysync.com/logo.png",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "jainpayal0201@gmail.com",
+        "contactType": "customer support"
+      }
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "EzzySync",
       "applicationCategory": "BusinessApplication",

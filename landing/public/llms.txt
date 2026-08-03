@@ -1,42 +1,18 @@
-# EzzySync — Travel CRM & Booking Management Software
+# EzzySync
 
-EzzySync is a travel CRM and booking management platform that helps travel agencies manage leads, bookings, and itineraries in one system. It is built specifically for travel agencies, tour operators, and independent travel agents — not adapted from a generic sales CRM.
+EzzySync is a modern, AI-powered travel CRM designed specifically for travel agencies and independent travel advisors. It helps travel professionals manage their entire lead pipeline, automate client follow-ups via WhatsApp (using the official Meta Cloud API), track bookings, manage invoices, and calculate profitability without switching between multiple disorganized tools.
 
-It optimizes lead pipelines, automates day-wise itinerary planning, auto-generates digital PDF invoices, and integrates directly with the WhatsApp Cloud API for automated booking notifications.
-
-## Who It's For
-
-- Independent travel agents managing bookings solo
-- Small and mid-size travel agencies and tour operators
-- Agencies currently relying on spreadsheets, WhatsApp chat history, or generic sales CRMs for booking management
-- Primary market: India (pricing in INR), English-language interface
+## Key Links
+- Homepage: https://www.ezzysync.com/
+- Features: https://www.ezzysync.com/#features
+- Pricing: https://www.ezzysync.com/pricing (Markdown version: https://www.ezzysync.com/pricing.md)
+- About: https://www.ezzysync.com/about
+- Blog: https://www.ezzysync.com/blog
 
 ## Core Capabilities
-
-1. **Lead Pipeline Tracking**: Organize client inquiries from initial touchpoint to booking completion. Monitor sales pipelines, track pending amounts, and assign tasks to team members in real-time.
-2. **Dynamic Day-Wise Itinerary Planner**: Design detailed trip itineraries, including hotel cards, daily activities, transportation nodes, and flight connections. Export plans directly as client-ready travel PDFs.
-3. **Automated WhatsApp Alerts**: Integrate official Meta developer keys to automatically send rich text messages, itinerary links, and PDF documents directly to travelers' WhatsApp numbers.
-4. **Instant Invoices & Financial Summary**: Generate itemized receipts, bill breakdowns, and PDF invoice sheets instantly. Track vendor costs (flight, hotel, transport, other) for automatic P&L logging.
-
-## Pricing Plans
-
-- **Free Starter Plan**:
-  - Cost: ₹0/forever free
-  - Features: Up to 100 client leads, basic itinerary builder, and PDF invoice generation.
-- **Agency Growth Plan**:
-  - Cost: ₹2,499/month (or equivalent currency)
-  - Features: Unlimited leads, advanced Day-Wise itinerary builder, full Meta WhatsApp API integration, up to 5 agent accounts, and 7-day free trial.
-- **Custom Enterprise Plan**:
-  - Cost: Custom / Contact for pricing
-  - Features: Dedicated server resources, unlimited agents, custom email/API integrations, and 24/7 dedicated support representative.
-
-## Technical Specifications
-
-- **Backend Stack**: Node.js, Express, PostgreSQL
-- **Frontend Stack**: React, Tailwind CSS
-- **Data Isolation**: Strict multi-tenant row-level partitioning by tenant UUID in PostgreSQL.
-
-## Official Site
-
-- Website: https://www.ezzysync.com
-- App login: https://www.ezzysync.com/app/login
+- **Lead Pipeline Management**: Visual Kanban board to track incoming travel inquiries from "New" to "Won".
+- **WhatsApp Automation**: Direct integration with the Meta Cloud API for sending automated follow-ups, payment reminders, and itinerary updates to clients without unauthorized third-party extensions.
+- **AI Itinerary Builder**: (Upcoming/Beta) Generate personalized day-by-day travel itineraries based on client preferences in seconds.
+- **PDF Invoicing & Finance Tracking**: Generate professional invoices, track B2B supplier costs, and automatically calculate net profit margins per booking.
+- **Multi-Tenant Isolation**: Secure data isolation so every travel agency's client data and financial records are completely private.
+- **Team Management**: Role-based access control (Admin/Staff) with granular permissions for editing leads, downloading invoices, or exporting data.

@@ -34,7 +34,7 @@ const blogPosts = [
   },
   {
     slug: "whatsapp-marketing-for-travel-agents",
-    title: "Why Travel Agents Lose 40% of Bookings in Scattered WhatsApp Chats",
+    title: "Why Travel Agents Lose Untracked Bookings in Scattered WhatsApp Chats",
     excerpt: "Discover how relying on personal WhatsApp chats for lead follow-ups limits your growth and how centralizing your customer database recovers lost inquiries.",
     date: "July 28, 2026",
     readTime: "5 min read",
