@@ -42,6 +42,15 @@ export const metadata = {
     description: "EzzySync is the best travel CRM for travel agents — automate client updates via WhatsApp, generate itineraries with AI, and manage billing statements in one platform. Start free.",
     images: ["/images/og-image.png"], // TODO: Create and place 1200x630 OG image in public/images/og-image.png
   },
+  icons: {
+    icon: [
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    shortcut: ['/logo.png'],
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({ children }) {
