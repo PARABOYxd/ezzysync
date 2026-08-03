@@ -36,14 +36,16 @@
 }
 
 .dark {
-  --text-main: #f4f4f5;
-  --text-muted: #a1a1aa;
-  --text-light: #71717a;
-  --border: #27272a;
-  --bg-page: #09090b;
-  --bg-card: #18181b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+  --border: #1e293b;
+  
+  /* Reverting from matte black (zinc-950) to the original deep blue/slate */
+  --bg-page: #0b1220;
+  --bg-card: #0f172a;
 
-  --surface-muted: #27272a;
+  --surface-muted: #1e293b;
   --success: #34d399;
   --success-bg: rgba(5, 150, 105, 0.14);
   --warning: #fbbf24;
@@ -129,8 +131,8 @@
 
   /* Input fields: 40px height */
   .input {
-    @apply w-full h-10 rounded-[var(--radius-badge)] border border-[var(--border)] px-3 text-sm bg-[var(--bg-card)] dark:bg-zinc-950 text-slate-800 dark:text-zinc-200
-      transition focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-500;
+    @apply w-full h-10 rounded-[var(--radius-badge)] border border-[var(--border)] px-3 text-sm bg-[var(--bg-card)] dark:bg-slate-900/50 text-slate-800 dark:text-slate-200
+      transition focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500;
   }
   textarea.input {
     @apply h-auto min-h-[80px] py-2;
