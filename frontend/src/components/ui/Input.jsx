@@ -25,7 +25,7 @@ export default function Input({
         )}
         <input
           type={type}
-          className={`input disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed
+          className={`input disabled:bg-slate-50 dark:disabled:bg-zinc-900 disabled:text-slate-400 dark:disabled:text-zinc-600 disabled:cursor-not-allowed
             ${Icon ? 'pl-10' : ''}
             ${error ? 'border-red-400 focus:ring-red-500/15 focus:border-red-400' : ''}
             ${inputClassName}`}

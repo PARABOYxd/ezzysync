@@ -6,7 +6,7 @@ import Button from '../ui/Button.jsx';
 
 const TRAVEL_STATUSES = ['Booked', 'Completed', 'Cancelled', 'Refunded', 'Postponed'];
 
-function DateRangeField({ label, from, to, onFromChange, onToChange }) {
+function DateRangeField({ label, from, to, onFromChange, onToChange, onClear }) {
   const hasValue = from || to;
   return (
     <div className="flex flex-col gap-1 w-full sm:w-auto">
@@ -14,10 +14,7 @@ function DateRangeField({ label, from, to, onFromChange, onToChange }) {
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</span>
         {hasValue && (
           <button 
-            onClick={() => {
-              onFromChange({ target: { value: '' } });
-              onToChange({ target: { value: '' } });
-            }}
+            onClick={onClear}
             className="text-[10px] text-brand-600 hover:text-brand-700 font-medium"
           >
             Clear
@@ -72,8 +69,16 @@ export default function BookingFilters({ filters, onChange, onExport }) {
           onChange={set('status')}
           options={[{ value: '', label: 'All Statuses' }, ...TRAVEL_STATUSES]}
         />
-        <Input className="w-auto" inputClassName="w-auto" placeholder="Trip" value={filters.trip} onChange={set('trip')} />
-        <Input className="w-auto" inputClassName="w-auto" placeholder="Team Member" value={filters.teamMember} onChange={set('teamMember')} />
+        <DateRangeField
+          label="Travel Dates"
+          from={filters.travelDateFrom}
+          to={filters.travelDateTo}
+          onFromChange={set('travelDateFrom')}
+          onToChange={set('travelDateTo')}
+          onClear={() => onChange({ ...filters, travelDateFrom: '', travelDateTo: '' })}
+        />
+        <Input className="w-full sm:w-auto" inputClassName="w-full sm:w-auto" placeholder="Trip" value={filters.trip} onChange={set('trip')} />
+        <Input className="w-full sm:w-auto" inputClassName="w-full sm:w-auto" placeholder="Team Member" value={filters.teamMember} onChange={set('teamMember')} />
 
         <DateRangeField
           label="Departure"
@@ -81,6 +86,7 @@ export default function BookingFilters({ filters, onChange, onExport }) {
           to={filters.departureTo}
           onFromChange={set('departureFrom')}
           onToChange={set('departureTo')}
+          onClear={() => onChange({ ...filters, departureFrom: '', departureTo: '' })}
         />
         <DateRangeField
           label="Created"
@@ -88,6 +94,7 @@ export default function BookingFilters({ filters, onChange, onExport }) {
           to={filters.createdTo}
           onFromChange={set('createdFrom')}
           onToChange={set('createdTo')}
+          onClear={() => onChange({ ...filters, createdFrom: '', createdTo: '' })}
         />
 
         <Select
