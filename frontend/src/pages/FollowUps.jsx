@@ -257,7 +257,7 @@ export default function FollowUps() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead>
-              <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
+              <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
                 <th className="py-3 px-4 font-medium">Customer</th>
                 <th className="py-3 px-4 font-medium">Note / Action</th>
                 <th className="py-3 px-4 font-medium">Assigned To</th>
@@ -270,14 +270,14 @@ export default function FollowUps() {
               {loading && <SkeletonTableRows rows={6} cols={6} />}
               {!loading && rows.map((row) => {
                 return (
-                  <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/60">
+                  <tr key={row.id} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
                     <td className="py-3 px-4 font-medium">
                       <div>
-                        <p className="text-slate-700">{row.customerName}</p>
+                        <p className="text-slate-700 dark:text-zinc-200">{row.customerName}</p>
                         <button
                           onClick={() => handleEditClick(row)}
                           disabled={editLoadingId === row.id}
-                          className="text-xs text-brand-600 hover:underline disabled:opacity-50 disabled:cursor-wait"
+                          className="text-xs text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 disabled:cursor-wait"
                           title={`Edit ${row.customerName}'s details`}
                         >
                           {editLoadingId === row.id ? 'Loading…' : (row.phone || '-')}
@@ -287,33 +287,33 @@ export default function FollowUps() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-slate-500">
+                    <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">
                       <span className="flex items-center gap-1.5">
                         {getActivityIcon(row.activityType)} {row.note}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-500">{row.assignedTo || '-'}</td>
+                    <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{row.assignedTo || '-'}</td>
                     <td className="py-3 px-4"><FollowUpStatusBadge status={row.status} /></td>
                     <td className="py-3 px-4">
                       {row.type === 'done' ? (
-                        <span className="badge-tint px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        <span className="badge-tint px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50">
                           Completed ({new Date(row.completedAt).toLocaleDateString('en-IN')})
                         </span>
                       ) : row.dueDate ? (
                         <span className={`badge-tint px-2 py-0.5 text-[10px] font-bold rounded ${
                           row.overdue
-                            ? 'bg-rose-50 text-rose-600 border border-rose-100'
-                            : 'bg-amber-50 text-amber-600 border border-amber-100'
+                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50'
+                            : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
                         }`}>
                           {row.overdue ? 'Overdue' : 'Today'} ({new Date(row.dueDate).toLocaleDateString('en-IN')})
                         </span>
                       ) : (
                         <span className={`badge-tint px-2 py-0.5 text-[10px] font-bold rounded ${
                           row.idleDays >= 5
-                            ? 'bg-red-50 text-red-600 border border-red-100'
+                            ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50'
                             : row.idleDays >= 2
-                            ? 'bg-amber-50 text-amber-600 border border-amber-100'
-                            : 'bg-slate-50 text-slate-600 border border-slate-200'
+                            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                            : 'bg-slate-50 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/50'
                         }`}>
                           {row.idleDays === 0 ? 'Updated today' : `Idle for ${row.idleDays} days`}
                         </span>

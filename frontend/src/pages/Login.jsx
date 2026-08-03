@@ -44,11 +44,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950 px-4 relative overflow-hidden">
       
       {/* Background Decorative Glows */}
-      <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-brand-300/10 filter blur-[90px] -z-10"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[250px] h-[250px] rounded-full bg-amber-200/15 filter blur-[80px] -z-10"></div>
+      <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-brand-300/10 dark:bg-brand-900/20 filter blur-[90px] -z-10"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[250px] h-[250px] rounded-full bg-amber-200/15 dark:bg-brand-900/10 filter blur-[80px] -z-10"></div>
 
       <div className="w-full max-w-[390px] relative z-10">
         
@@ -57,12 +57,12 @@ export default function Login() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 text-white flex items-center justify-center mb-3 shadow-lg shadow-brand-500/20">
             <Compass size={24} />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">EzzySync</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 text-center">Sign in to manage your travel bookings</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-zinc-100 font-display">EzzySync</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1.5 text-center">Sign in to manage your travel bookings</p>
         </div>
 
         {/* Card Form */}
-        <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-xl space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xl space-y-4" noValidate>
           <Input
             label="Email"
             type="email"
@@ -102,8 +102,8 @@ export default function Login() {
           </Button>
 
           <div className="relative my-4 flex items-center justify-center">
-            <div className="border-t border-slate-100 w-full"></div>
-            <span className="absolute bg-white px-3 text-[10px] uppercase font-bold text-slate-400 tracking-wider">or</span>
+            <div className="border-t border-slate-100 dark:border-zinc-800 w-full"></div>
+            <span className="absolute bg-white dark:bg-zinc-900 px-3 text-[10px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">or</span>
           </div>
 
           <button
@@ -111,7 +111,7 @@ export default function Login() {
             onClick={() => {
               window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/google`;
             }}
-            className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold transition-all active:scale-[0.98] text-sm"
+            className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold transition-all active:scale-[0.98] text-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path

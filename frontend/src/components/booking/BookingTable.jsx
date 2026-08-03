@@ -32,7 +32,7 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[950px]">
           <thead>
-            <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
+            <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
               <th className="py-3 px-4 font-medium">Customer</th>
               <th className="py-3 px-4 font-medium">Trip</th>
               <th className="py-3 px-4 font-medium">Departure</th>
@@ -47,23 +47,23 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
           <tbody>
             {loading && <SkeletonTableRows rows={6} cols={9} />}
             {!loading && bookings.map((b) => (
-              <tr key={b.bookingId} className="border-b border-slate-50 hover:bg-slate-50/60">
+              <tr key={b.bookingId} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
                 <td className="py-3 px-4">
-                  <p className="font-medium text-slate-700">{b.customerName}</p>
+                  <p className="font-medium text-slate-700 dark:text-zinc-200">{b.customerName}</p>
                   <button
                     onClick={() => (canEdit ? onEdit(b) : onView(b))}
-                    className="text-xs text-brand-600 hover:underline cursor-pointer"
+                    className="text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                     title={canEdit ? `Edit ${b.customerName}'s booking` : `View ${b.customerName}'s booking`}
                   >
                     {b.phone || '-'}
                   </button>
                 </td>
-                <td className="py-3 px-4 text-slate-500">{b.trip}</td>
-                <td className="py-3 px-4 text-slate-500">{formatDate(b.departure)}</td>
-                <td className="py-3 px-4 text-slate-500">{b.members}</td>
-                <td className="py-3 px-4 text-slate-500">{formatCurrency(b.remaining)}</td>
+                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{b.trip}</td>
+                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{formatDate(b.departure)}</td>
+                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{b.members}</td>
+                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{formatCurrency(b.remaining)}</td>
                 <td className="py-3 px-4">{getFollowUpDisplay(b.nextFollowUpDate)}</td>
-                <td className="py-3 px-4 text-slate-500 text-xs">{formatRelativeDate(b.bookingTimestamp)}</td>
+                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400 text-xs">{formatRelativeDate(b.bookingTimestamp)}</td>
                 <td className="py-3 px-4"><TravelStatusBadge status={b.travelStatus} /></td>
                 <td className="py-3 px-4">
                   <div className="flex justify-end gap-1">
