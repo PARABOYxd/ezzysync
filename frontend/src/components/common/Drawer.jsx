@@ -5,11 +5,11 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
   const drawerRef = useRef(null);
 
   const sizeClasses = {
-    sm: 'w-full md:w-[400px]',
-    md: 'w-full md:w-[600px]',
-    lg: 'w-full md:w-[800px]',
-    xl: 'w-full md:w-[1000px]',
-    full: 'w-full md:w-screen max-w-7xl'
+    sm: 'w-full max-w-[400px]',
+    md: 'w-full max-w-[600px]',
+    lg: 'w-full max-w-[800px]',
+    xl: 'w-full max-w-[1000px]',
+    full: 'w-full max-w-7xl'
   };
 
   const widthClass = sizeClasses[size] || sizeClasses.md;
@@ -53,7 +53,7 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
         className={`relative bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 h-full flex flex-col shadow-2xl transition-transform duration-200 ease-out transform translate-x-0 ${widthClass}`}
       >
         {/* Header: 64px tall */}
-        <div className="flex items-center justify-between px-6 h-16 border-b border-slate-100 dark:border-zinc-800/80 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 h-16 border-b border-slate-100 dark:border-zinc-800/80 shrink-0">
           <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">{title}</h3>
           <button
             type="button"
@@ -66,7 +66,7 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
         </div>
         
         {/* Scrollable Body: 24px padding */}
-        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 no-scrollbar">
           {children}
         </div>
       </div>
