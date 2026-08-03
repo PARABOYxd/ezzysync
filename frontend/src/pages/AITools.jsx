@@ -238,11 +238,11 @@ export default function AITools() {
   return (
     <div className="max-w-5xl space-y-8 pb-10">
       {/* Premium Hero Header */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col justify-center space-y-3">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center space-y-3">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-zinc-100">
           Supercharge Your Travel Agency with Generative AI
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-2xl">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 leading-relaxed max-w-2xl">
           Automate daily tasks, respond to customer queries in seconds, score leads, and generate personalized travel itineraries automatically.
         </p>
       </div>
@@ -251,14 +251,14 @@ export default function AITools() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Tool 1: 1-Click Itinerary Generator */}
-        <div className="relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-4 overflow-hidden">
+        <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-between space-y-4 overflow-hidden">
           {user?.planId === 'FREE' && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
-              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mb-3 border border-slate-200/50">
+            <div className="absolute inset-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
+              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 flex items-center justify-center mb-3 border border-slate-200/50 dark:border-zinc-700/50">
                 <Lock size={18} />
               </div>
-              <h5 className="font-bold text-slate-800 text-sm">Unlock AI Itinerary Planner</h5>
-              <p className="text-[11px] text-slate-500 max-w-[220px] mt-1 mb-4 leading-normal">
+              <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">Unlock AI Itinerary Planner</h5>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-[220px] mt-1 mb-4 leading-normal">
                 Generate highly detailed, customizable day-by-day travel plans for your clients.
               </p>
               <button 
@@ -275,8 +275,8 @@ export default function AITools() {
                 <FileCheck size={20} />
               </div>
               <div>
-                <h4 className="font-bold text-slate-800 text-base">1-Click Itinerary Generator</h4>
-                <p className="text-xs text-slate-500">Create detailed travel plans powered by Gemini 3.5 Flash</p>
+                <h4 className="font-bold text-slate-800 dark:text-zinc-200 text-base">1-Click Itinerary Generator</h4>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Create detailed travel plans powered by Gemini 3.5 Flash</p>
               </div>
             </div>
 
@@ -321,29 +321,29 @@ export default function AITools() {
             </form>
 
             {generatedItinerary && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 max-h-[300px] overflow-y-auto space-y-2 mt-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Generated Itinerary</span>
+              <div className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-4 max-h-[300px] overflow-y-auto space-y-2 mt-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-zinc-700">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-zinc-500">Generated Itinerary</span>
                   <div className="flex gap-3">
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(generatedItinerary);
                         toast.success('Itinerary copied to clipboard!');
                       }}
-                      className="text-[10px] text-brand-600 font-bold hover:underline"
+                      className="text-[10px] text-brand-600 dark:text-brand-400 font-bold hover:underline"
                     >
                       Copy Output
                     </button>
                     <button 
                       onClick={handleDownloadItinerary}
                       disabled={downloading}
-                      className="text-[10px] text-orange-600 font-bold hover:underline disabled:opacity-50"
+                      className="text-[10px] text-orange-600 dark:text-orange-400 font-bold hover:underline disabled:opacity-50"
                     >
                       {downloading ? 'Downloading...' : 'Download PDF'}
                     </button>
                   </div>
                 </div>
-                <div className="prose prose-sm max-w-none">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
                   {renderMarkdown(generatedItinerary)}
                 </div>
               </div>
@@ -352,14 +352,14 @@ export default function AITools() {
         </div>
 
         {/* Tool 2: AI WhatsApp Auto-Replies (Simulator) */}
-        <div className="relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-4 overflow-hidden">
+        <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-between space-y-4 overflow-hidden">
           {user?.planId === 'FREE' && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
-              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mb-3 border border-slate-200/50">
+            <div className="absolute inset-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
+              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 flex items-center justify-center mb-3 border border-slate-200/50 dark:border-zinc-700/50">
                 <Lock size={18} />
               </div>
-              <h5 className="font-bold text-slate-800 text-sm">Unlock AI WhatsApp Agent</h5>
-              <p className="text-[11px] text-slate-500 max-w-[220px] mt-1 mb-4 leading-normal">
+              <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">Unlock AI WhatsApp Agent</h5>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-[220px] mt-1 mb-4 leading-normal">
                 Draft context-aware customer auto-replies referencing actual booking data.
               </p>
               <button 
@@ -376,8 +376,8 @@ export default function AITools() {
                 <Bot size={20} />
               </div>
               <div>
-                <h4 className="font-bold text-slate-800 text-base">WhatsApp AI Auto-Replies</h4>
-                <p className="text-xs text-slate-500">Test how the AI auto-replies to clients based on database records</p>
+                <h4 className="font-bold text-slate-800 dark:text-zinc-200 text-base">WhatsApp AI Auto-Replies</h4>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Test how the AI auto-replies to clients based on database records</p>
               </div>
             </div>
 
@@ -426,18 +426,18 @@ export default function AITools() {
             </form>
 
             {chatLog.length > 0 && (
-              <div className="border border-slate-200 rounded-xl bg-slate-500/5 flex flex-col h-[250px] overflow-hidden mt-4">
-                <div className="bg-slate-100 px-3 py-1.5 text-[10px] text-slate-500 font-bold flex justify-between items-center border-b border-slate-200">
+              <div className="border border-slate-200 dark:border-zinc-800 rounded-xl bg-slate-500/5 dark:bg-zinc-950/50 flex flex-col h-[250px] overflow-hidden mt-4">
+                <div className="bg-slate-100 dark:bg-zinc-800/80 px-3 py-1.5 text-[10px] text-slate-500 dark:text-zinc-400 font-bold flex justify-between items-center border-b border-slate-200 dark:border-zinc-800">
                   <span>MOCK WHATSAPP CONVERSATION</span>
                   <button onClick={clearChat} className="text-red-500 hover:underline">Clear Chat</button>
                 </div>
-                <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-slate-50">
+                <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-slate-50 dark:bg-zinc-900/50">
                   {chatLog.map((msg, i) => (
                     <div key={i} className={`flex flex-col ${msg.sender === 'customer' ? 'items-end' : 'items-start'}`}>
                       <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs shadow-sm ${
                         msg.sender === 'customer' 
                           ? 'bg-emerald-600 text-white rounded-tr-none' 
-                          : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
+                          : 'bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-200 rounded-tl-none'
                       }`}>
                         {msg.sender === 'ai' ? renderMarkdown(msg.text) : <p>{msg.text}</p>}
                         
@@ -460,8 +460,8 @@ export default function AITools() {
                   ))}
                   {chatLoading && (
                     <div className="flex items-start">
-                      <div className="bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none px-3 py-2 text-xs shadow-sm">
-                        <span className="animate-pulse text-slate-400">AI is drafting a reply...</span>
+                      <div className="bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-200 rounded-2xl rounded-tl-none px-3 py-2 text-xs shadow-sm">
+                        <span className="animate-pulse text-slate-400 dark:text-zinc-500">AI is drafting a reply...</span>
                       </div>
                     </div>
                   )}
@@ -474,16 +474,16 @@ export default function AITools() {
       </div>
 
       {/* Subscription Pricing / Info Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
-            {user?.planId === 'PRO' ? <Star size={20} className="text-teal-600 fill-teal-600" /> : <ShieldAlert size={20} className="text-slate-400" />}
+          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-100 dark:border-teal-900/50">
+            {user?.planId === 'PRO' ? <Star size={20} className="text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400" /> : <ShieldAlert size={20} className="text-slate-400 dark:text-zinc-500" />}
           </div>
           <div>
-            <h5 className="font-bold text-slate-800 text-sm">
+            <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">
               Current Plan: {user?.planId === 'PRO' ? 'Premium Pro Tier' : 'Free Beta Tier'}
             </h5>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               {user?.planId === 'PRO' 
                 ? 'Your AI tools are fully unlocked. Thank you for subscribing to EzzySync Pro!' 
                 : 'All AI features are currently locked. Upgrade to unlock the full AI Travel CRM Suite.'}

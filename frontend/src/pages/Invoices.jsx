@@ -4,7 +4,7 @@ import * as bookingService from '../services/bookingService';
 import * as invoiceService from '../services/invoiceService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PaymentStatusBadge } from '../components/common/StatusBadge.jsx';
-import SkeletonTableRows from '../components/common/SkeletonTableRows.jsx';
+import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';

@@ -2,7 +2,7 @@ import React from 'react';
 import { Eye, Pencil, Trash2, ArrowRightCircle, Edit2 } from 'lucide-react';
 import { formatRelativeDate } from '../../utils/formatters';
 import { LeadStageBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
-import SkeletonTableRows from '../common/SkeletonTableRows.jsx';
+import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';

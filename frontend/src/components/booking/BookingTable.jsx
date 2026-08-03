@@ -1,8 +1,8 @@
 import React from 'react';
 import { Eye, Pencil, Trash2, FileText, MessageCircle, Edit2 } from 'lucide-react';
 import { formatCurrency, formatDate, formatRelativeDate } from '../../utils/formatters';
-import { TravelStatusBadge } from '../common/StatusBadge.jsx';
-import SkeletonTableRows from '../common/SkeletonTableRows.jsx';
+import { TravelStatusBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
+import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 
@@ -89,6 +89,8 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
       )}
     </div>
   );
+}
+
 function IconBtn({ children, onClick, title, danger }) {
   return (
     <button
