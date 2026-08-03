@@ -7,13 +7,27 @@ import Button from '../ui/Button.jsx';
 const TRAVEL_STATUSES = ['Booked', 'Completed', 'Cancelled', 'Refunded', 'Postponed'];
 
 function DateRangeField({ label, from, to, onFromChange, onToChange }) {
+  const hasValue = from || to;
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-0.5">{label}</span>
-      <div className="flex items-center gap-1">
-        <Input type="date" className="w-auto" inputClassName="w-auto" title={`${label} from`} value={from || ''} onChange={onFromChange} />
+    <div className="flex flex-col gap-1 w-full sm:w-auto">
+      <div className="flex items-center justify-between px-0.5">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</span>
+        {hasValue && (
+          <button 
+            onClick={() => {
+              onFromChange({ target: { value: '' } });
+              onToChange({ target: { value: '' } });
+            }}
+            className="text-[10px] text-brand-600 hover:text-brand-700 font-medium"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-1 w-full sm:w-auto">
+        <Input type="date" className="flex-1 sm:w-auto" inputClassName="w-full sm:w-auto" title={`${label} from`} value={from || ''} onChange={onFromChange} />
         <span className="text-[10px] text-slate-300">to</span>
-        <Input type="date" className="w-auto" inputClassName="w-auto" title={`${label} to`} value={to || ''} onChange={onToChange} />
+        <Input type="date" className="flex-1 sm:w-auto" inputClassName="w-full sm:w-auto" title={`${label} to`} value={to || ''} onChange={onToChange} />
       </div>
     </div>
   );
@@ -50,10 +64,10 @@ export default function BookingFilters({ filters, onChange, onExport }) {
         />
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-end gap-3 sm:gap-2 w-full lg:w-auto">
         <Select
-          className="w-auto"
-          inputClassName="w-auto"
+          className="w-full sm:w-auto"
+          inputClassName="w-full sm:w-auto"
           value={filters.status}
           onChange={set('status')}
           options={[{ value: '', label: 'All Statuses' }, ...TRAVEL_STATUSES]}

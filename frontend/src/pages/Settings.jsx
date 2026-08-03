@@ -118,7 +118,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Tabs Navigator */}
-      <div className="flex gap-2 border-b border-slate-100 pb-px">
+      <div className="flex gap-2 border-b border-slate-100 pb-px overflow-x-auto whitespace-nowrap no-scrollbar">
         <button
           onClick={() => setActiveTab('general')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'general'
