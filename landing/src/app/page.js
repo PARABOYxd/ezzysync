@@ -25,7 +25,11 @@ export default function Home() {
         "@type": "ContactPoint",
         "email": "jainpayal0201@gmail.com",
         "contactType": "customer support"
-      }
+      },
+      "sameAs": [
+        "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
+        "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr" 
+      ]
     },
     {
       "@context": "https://schema.org",
