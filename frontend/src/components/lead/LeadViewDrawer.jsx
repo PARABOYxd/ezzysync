@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import Modal from '../common/Modal.jsx';
+import Drawer from '../common/Drawer.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
@@ -37,7 +37,7 @@ function getActivityBg(type) {
   }
 }
 
-export default function LeadViewModal({ open, onClose, lead, onRefresh }) {
+export default function LeadViewDrawer({ open, onClose, lead, onRefresh }) {
   const toast = useToast();
   const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
@@ -81,7 +81,7 @@ export default function LeadViewModal({ open, onClose, lead, onRefresh }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={`Lead Details · ${lead.leadId}`} size="xl">
+    <Drawer open={open} onClose={onClose} title={`Lead Details · ${lead.leadId}`} size="xl">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-700">
         <div className="lg:col-span-5 space-y-6">
           <div className="flex items-center justify-between gap-2">
@@ -222,6 +222,6 @@ export default function LeadViewModal({ open, onClose, lead, onRefresh }) {
           </div>
         </div>
       </div>
-    </Modal>
+    </Drawer>
   );
 }

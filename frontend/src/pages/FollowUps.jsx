@@ -7,8 +7,8 @@ import * as bookingService from '../services/bookingService';
 import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';
-import CompleteFollowUpModal from '../components/followup/CompleteFollowUpModal.jsx';
-import LeadViewModal from '../components/lead/LeadViewModal.jsx';
+import CompleteFollowUpDrawer from '../components/followup/CompleteFollowUpDrawer.jsx';
+import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import { LeadStageBadge, FollowUpStatusBadge } from '../components/common/StatusBadge.jsx';
@@ -370,14 +370,14 @@ export default function FollowUps() {
         )}
       </div>
 
-      <CompleteFollowUpModal
+      <CompleteFollowUpDrawer
         open={!!activeFollowUp}
         onClose={() => setActiveFollowUp(null)}
         followUp={activeFollowUp}
         onCompleted={load}
       />
 
-      <LeadViewModal
+      <LeadViewDrawer
         open={!!viewingLead}
         lead={viewingLead}
         onClose={() => setViewingLead(null)}

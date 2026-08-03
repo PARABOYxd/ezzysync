@@ -79,8 +79,9 @@
   
   /* Focus Rings visible on interactive elements */
   *:focus-visible {
-    outline: 2px solid var(--primary) !important;
-    outline-offset: 2px !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+    border-color: var(--primary) !important;
   }
 
   /* Dense typography numbers mapping */
@@ -90,19 +91,18 @@
 }
 
 @layer components {
-  /* Cards: 1px border, 12px radius, no shadow (shadows allowed only on dropdowns/modals/ghosts) */
+  /* Cards: 1px border, 12px radius, subtle shadow */
   .card {
-    @apply bg-[var(--bg-card)] rounded-xl border border-[var(--border)] p-4;
-    box-shadow: none !important;
+    @apply bg-[var(--bg-card)] rounded-xl border border-[var(--border)] p-4 shadow-sm;
   }
 
   /* Buttons: 8px radius, locks width if loading */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] h-9 px-3.5 text-xs font-semibold transition
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] h-10 px-4 text-sm font-semibold transition
       disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none;
   }
   .btn-primary {
-    @apply btn bg-[var(--primary)] text-white hover:bg-[#ea580c];
+    @apply btn bg-[var(--primary)] text-white hover:bg-[#ea580c] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)];
   }
   .btn-secondary {
     @apply btn bg-[var(--bg-card)] text-slate-700 dark:text-zinc-200 border border-[var(--border)] hover:bg-slate-50 dark:hover:bg-zinc-800;
@@ -127,16 +127,16 @@
   .badge-confirmed { @apply badge-tint bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400; }
   .badge-lost { @apply badge-tint bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400; }
 
-  /* Input fields: 36px height */
+  /* Input fields: 40px height */
   .input {
-    @apply w-full h-9 rounded-[var(--radius-badge)] border border-[var(--border)] px-3 text-xs bg-[var(--bg-card)] text-slate-800 dark:text-zinc-200
+    @apply w-full h-10 rounded-[var(--radius-badge)] border border-[var(--border)] px-3 text-sm bg-[var(--bg-card)] text-slate-800 dark:text-zinc-200
       transition focus:outline-none placeholder:text-slate-400;
   }
   textarea.input {
     @apply h-auto min-h-[80px] py-2;
   }
   .label {
-    @apply block text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1;
+    @apply block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5;
   }
 }
 

@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast.jsx';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Button from '../components/ui/Button.jsx';
+import Drawer from '../components/common/Drawer.jsx';
 
 export default function Hotels() {
   const [hotels, setHotels] = useState([]);
@@ -263,18 +264,13 @@ export default function Hotels() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800 text-[16px]">{editingId ? 'Edit Property details' : 'Add New Property'}</h3>
-              <button onClick={() => setModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* Add/Edit Drawer */}
+      <Drawer
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? 'Edit Property details' : 'Add New Property'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <Input
                   label="Hotel / Property Name *"
@@ -411,7 +407,7 @@ export default function Hotels() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 mt-4">
                 <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
                   Cancel
                 </Button>
@@ -420,9 +416,7 @@ export default function Hotels() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Drawer>
     </div>
   );
 }

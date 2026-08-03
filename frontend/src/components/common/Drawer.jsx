@@ -1,8 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
-export default function Drawer({ open, onClose, title, children }) {
+export default function Drawer({ open, onClose, title, children, size = 'md' }) {
   const drawerRef = useRef(null);
+
+  const sizeClasses = {
+    sm: 'w-full md:w-[400px]',
+    md: 'w-full md:w-[600px]',
+    lg: 'w-full md:w-[800px]',
+    xl: 'w-full md:w-[1000px]',
+    full: 'w-full md:w-screen max-w-7xl'
+  };
+
+  const widthClass = sizeClasses[size] || sizeClasses.md;
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -37,10 +47,10 @@ export default function Drawer({ open, onClose, title, children }) {
         onClick={onClose} 
       />
       
-      {/* Drawer Surface: 600px wide right-side slide-over */}
+      {/* Drawer Surface */}
       <div 
         ref={drawerRef}
-        className="relative bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 w-full md:w-[600px] h-full flex flex-col shadow-2xl transition-transform duration-200 ease-out transform translate-x-0"
+        className={`relative bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 h-full flex flex-col shadow-2xl transition-transform duration-200 ease-out transform translate-x-0 ${widthClass}`}
       >
         {/* Header: 64px tall */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-slate-100 dark:border-zinc-800/80 shrink-0">

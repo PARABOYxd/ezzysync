@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Modal from '../common/Modal.jsx';
+import Drawer from '../common/Drawer.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
@@ -19,7 +19,7 @@ const ACTIVITY_TYPES = [
   { value: 'meeting', label: '📅 Meeting' },
 ];
 
-export default function CompleteFollowUpModal({ open, onClose, followUp, onCompleted }) {
+export default function CompleteFollowUpDrawer({ open, onClose, followUp, onCompleted }) {
   const [outcomeNote, setOutcomeNote] = useState('');
   const [scheduleNext, setScheduleNext] = useState(false);
   const [nextTask, setNextTask] = useState({
@@ -121,7 +121,7 @@ export default function CompleteFollowUpModal({ open, onClose, followUp, onCompl
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Complete Follow-up Task" size="md">
+    <Drawer open={open} onClose={onClose} title="Complete Follow-up Task">
       <form onSubmit={handleSubmit} className="space-y-5 text-[var(--text-main)]">
         
         {/* Task Details Info Card */}
@@ -200,6 +200,6 @@ export default function CompleteFollowUpModal({ open, onClose, followUp, onCompl
           </Button>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   );
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import api from '../services/api';
 import Input from '../components/ui/Input.jsx';
+import Drawer from '../components/common/Drawer.jsx';
 import { Plus, Edit2, Trash2, Shield, User, Check, X, ShieldAlert } from 'lucide-react';
 
 export default function Team() {
@@ -362,13 +363,9 @@ export default function Team() {
         )}
       </div>
 
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto no-scrollbar pt-8 sm:pt-16 pb-8 bg-slate-900/40 backdrop-blur-sm">
-          <div className="relative bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-2xl p-6 relative z-10">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Add Team Member</h2>
-            
-            <form onSubmit={handleAddSubmit} className="space-y-4" noValidate>
+      {/* Add Drawer */}
+      <Drawer open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Team Member">
+        <form onSubmit={handleAddSubmit} className="space-y-6" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Input
@@ -494,34 +491,28 @@ export default function Team() {
                 </div>
               )}
 
-              {/* Modal controls */}
+              {/* Drawer controls */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition text-sm"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold shadow-md shadow-brand-500/10 transition text-sm"
+                  className="btn-primary"
                 >
                   Save Member
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Drawer>
 
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto no-scrollbar pt-8 sm:pt-16 pb-8 bg-slate-900/40 backdrop-blur-sm">
-          <div className="relative bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-2xl p-6 relative z-10">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Edit Team Member Permissions</h2>
-            
-            <form onSubmit={handleEditSubmit} className="space-y-4" noValidate>
+      {/* Edit Drawer */}
+      <Drawer open={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Team Member Permissions">
+        <form onSubmit={handleEditSubmit} className="space-y-6" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Input
@@ -630,26 +621,24 @@ export default function Team() {
                 </div>
               )}
 
-              {/* Modal controls */}
+              {/* Drawer controls */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition text-sm"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold shadow-md shadow-brand-500/10 transition text-sm"
+                  className="btn-primary"
                 >
                   Update Member
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Drawer>
     </div>
   );
 }

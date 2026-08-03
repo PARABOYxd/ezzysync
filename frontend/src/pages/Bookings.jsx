@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import BookingFilters from '../components/booking/BookingFilters.jsx';
 import BookingTable from '../components/booking/BookingTable.jsx';
 import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
-import BookingViewModal from '../components/booking/BookingViewModal.jsx';
+import BookingViewDrawer from '../components/booking/BookingViewDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import * as bookingService from '../services/bookingService';
 import * as invoiceService from '../services/invoiceService';
@@ -177,7 +177,7 @@ export default function Bookings() {
         onClose={() => setFormOpen(false)}
         onSaved={load}
       />
-      <BookingViewModal open={!!viewingBooking} booking={viewingBooking} onClose={() => setViewingBooking(null)} onRefresh={load} />
+      <BookingViewDrawer open={!!viewingBooking} booking={viewingBooking} onClose={() => setViewingBooking(null)} onRefresh={load} />
       <ConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

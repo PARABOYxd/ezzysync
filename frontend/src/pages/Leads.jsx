@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import LeadFilters from '../components/lead/LeadFilters.jsx';
 import LeadTable from '../components/lead/LeadTable.jsx';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
-import LeadViewModal from '../components/lead/LeadViewModal.jsx';
+import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
 import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import * as leadService from '../services/leadService';
@@ -278,7 +278,7 @@ export default function Leads() {
       )}
 
       <LeadFormDrawer open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
-      <LeadViewModal open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
+      <LeadViewDrawer open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
       <ConvertLeadDrawer 
         open={!!convertingLead} 
         lead={convertingLead} 

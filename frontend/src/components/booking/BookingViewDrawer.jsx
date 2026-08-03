@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import Modal from '../common/Modal.jsx';
+import Drawer from '../common/Drawer.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Input from '../ui/Input.jsx';
 import { formatCurrency, formatDate } from '../../utils/formatters';
@@ -10,7 +10,7 @@ import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info,
 import { useToast } from '../../hooks/useToast.jsx';
 import * as hotelService from '../../services/hotelService';
 
-export default function BookingViewModal({ open, onClose, booking, onRefresh }) {
+export default function BookingViewDrawer({ open, onClose, booking, onRefresh }) {
   const toast = useToast();
   const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
@@ -95,7 +95,7 @@ export default function BookingViewModal({ open, onClose, booking, onRefresh }) 
   ];
 
   return (
-    <Modal open={open} onClose={onClose} title={`Booking Details · ${booking.bookingId}`} size="xl">
+    <Drawer open={open} onClose={onClose} title={`Booking Details · ${booking.bookingId}`} size="xl">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-700">
         
         {/* Left Column: Clean details pane */}
@@ -360,6 +360,6 @@ export default function BookingViewModal({ open, onClose, booking, onRefresh }) 
         </div>
 
       </div>
-    </Modal>
+    </Drawer>
   );
 }
