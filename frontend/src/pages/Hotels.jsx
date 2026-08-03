@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Search, Building2, MapPin, Phone, Trash2, Edit2, Star, StarOff, DollarSign, X } from 'lucide-react';
 import * as hotelService from '../services/hotelService';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
@@ -220,24 +221,22 @@ export default function Hotels() {
                   <div className="space-y-1.5 pt-1">
                     <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Room Rates (Per Night)</h5>
                     <div className="border border-slate-100 dark:border-zinc-800 rounded-xl overflow-hidden text-xs">
-                      <table className="w-full text-slate-600 dark:text-zinc-300 bg-white dark:bg-zinc-900">
-                        <thead>
-                          <tr className="bg-slate-50 dark:bg-zinc-800 text-[10px] text-slate-400 dark:text-zinc-500 text-left uppercase border-b border-slate-100 dark:border-zinc-800 font-bold">
-                            <th className="py-1.5 px-3">Room Type</th>
-                            <th className="py-1.5 px-3 text-right">B2B Cost</th>
-                            <th className="py-1.5 px-3 text-right">Selling</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
+                      <Table className="text-slate-600 dark:text-zinc-300 bg-white dark:bg-zinc-900">
+                        <Thead>
+                          <Th className="py-1.5 px-3">Room Type</Th>
+                          <Th className="py-1.5 px-3 text-right">B2B Cost</Th>
+                          <Th className="py-1.5 px-3 text-right">Selling</Th>
+                        </Thead>
+                        <Tbody>
                           {h.rooms_and_rates.map((r, i) => (
-                            <tr key={i} className="hover:bg-slate-50/30 dark:hover:bg-zinc-800/50">
-                              <td className="py-1.5 px-3 font-medium text-slate-700 dark:text-zinc-200">{r.roomType}</td>
-                              <td className="py-1.5 px-3 text-right font-mono text-slate-500 dark:text-zinc-400">₹{r.costPrice}</td>
-                              <td className="py-1.5 px-3 text-right font-mono text-brand-600 dark:text-brand-400 font-semibold">₹{r.sellingPrice}</td>
-                            </tr>
+                            <Tr key={i}>
+                              <Td className="py-1.5 px-3 font-medium text-slate-700 dark:text-zinc-200">{r.roomType}</Td>
+                              <Td className="py-1.5 px-3 text-right font-mono text-slate-500 dark:text-zinc-400">₹{r.costPrice}</Td>
+                              <Td className="py-1.5 px-3 text-right font-mono text-brand-600 dark:text-brand-400 font-semibold">₹{r.sellingPrice}</Td>
+                            </Tr>
                           ))}
-                        </tbody>
-                      </table>
+                        </Tbody>
+                      </Table>
                     </div>
                   </div>
                 )}

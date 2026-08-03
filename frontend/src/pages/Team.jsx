@@ -5,7 +5,8 @@ import { useToast } from '../hooks/useToast.jsx';
 import api from '../services/api';
 import Input from '../components/ui/Input.jsx';
 import Drawer from '../components/common/Drawer.jsx';
-import { Plus, Edit2, Trash2, Shield, User, Check, X, ShieldAlert } from 'lucide-react';
+import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search } from 'lucide-react';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 
 export default function Team() {
   const { user } = useAuth();
@@ -225,7 +226,7 @@ export default function Team() {
       </div>
 
       {/* Team Table Grid */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-500 border-t-transparent mb-4"></div>
@@ -242,25 +243,22 @@ export default function Team() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                  <th className="px-6 py-4">Name & Email</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Performance</th>
-                  <th className="px-6 py-4">Access Rights</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/50 text-sm">
+          <Table>
+            <Thead>
+              <Th>Name & Email</Th>
+              <Th>Role</Th>
+              <Th>Performance</Th>
+              <Th>Access Rights</Th>
+              <Th className="text-right">Actions</Th>
+            </Thead>
+            <Tbody>
                 {members.map((member) => {
                   const isSelf = member.userId === user.userId;
                   const perms = member.permissions || {};
                   
                   return (
-                    <tr key={member.userId} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                      <td className="px-6 py-4">
+                    <Tr key={member.userId}>
+                      <Td>
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
                             {member.name.slice(0, 2).toUpperCase()}
@@ -277,8 +275,8 @@ export default function Team() {
                             <div className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{member.email}</div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
+                      </Td>
+                      <Td>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                           member.role === 'ADMIN'
                             ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
@@ -287,8 +285,8 @@ export default function Team() {
                           {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
                           {member.role}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
+                      </Td>
+                      <Td>
                         <div className="flex gap-4">
                           <div className="flex flex-col items-center justify-center">
                             <span className="text-base font-extrabold text-slate-700">{member.totalLeads || 0}</span>
@@ -300,8 +298,8 @@ export default function Team() {
                             <span className="text-[9px] uppercase font-bold text-emerald-500/80 tracking-wider">Booked</span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
+                      </Td>
+                      <Td>
                         {member.role === 'ADMIN' ? (
                           <span className="text-xs font-medium text-slate-400">Full Administrative Access</span>
                         ) : (
@@ -333,8 +331,8 @@ export default function Team() {
                             </span>
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
+                      </Td>
+                      <Td className="text-right">
                         {!isSelf && (
                           <div className="flex justify-end gap-2">
                             <button
@@ -353,13 +351,12 @@ export default function Team() {
                             </button>
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </Tbody>
+            </Table>
         )}
       </div>
 

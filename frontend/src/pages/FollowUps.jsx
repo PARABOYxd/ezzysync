@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Check, Phone, MessageSquare, Mail, Calendar, FileText, AlertCircle, Clock, ExternalLink } from 'lucide-react';
+import { Check, Phone, MessageSquare, Mail, Calendar, FileText, ExternalLink } from 'lucide-react';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import Input from '../components/ui/Input.jsx';
 import * as followUpService from '../services/followUpService';
 import * as leadService from '../services/leadService';
@@ -254,24 +255,21 @@ export default function FollowUps() {
 
       {/* Unified Table */}
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[900px]">
-            <thead>
-              <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
-                <th className="py-3 px-4 font-medium">Customer</th>
-                <th className="py-3 px-4 font-medium">Note / Action</th>
-                <th className="py-3 px-4 font-medium">Assigned To</th>
-                <th className="py-3 px-4 font-medium">Status</th>
-                <th className="py-3 px-4 font-medium">Due</th>
-                <th className="py-3 px-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <SkeletonTableRows rows={6} cols={6} />}
+        <Table>
+          <Thead>
+            <Th>Customer</Th>
+            <Th>Note / Action</Th>
+            <Th>Assigned To</Th>
+            <Th>Status</Th>
+            <Th>Due</Th>
+            <Th className="text-right">Actions</Th>
+          </Thead>
+          <Tbody>
+            {loading && <SkeletonTableRows rows={6} cols={6} />}
               {!loading && rows.map((row) => {
                 return (
-                  <tr key={row.id} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
-                    <td className="py-3 px-4 font-medium">
+                  <Tr key={row.id}>
+                    <Td>
                       <div>
                         <p className="text-slate-700 dark:text-zinc-200">{row.customerName}</p>
                         <button
@@ -286,15 +284,15 @@ export default function FollowUps() {
                           <p className="text-[10px] text-rose-500 font-semibold mt-0.5 animate-pulse">Nothing happened yet</p>
                         )}
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">
+                    </Td>
+                    <Td className="text-slate-500 dark:text-zinc-400">
                       <span className="flex items-center gap-1.5">
                         {getActivityIcon(row.activityType)} {row.note}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{row.assignedTo || '-'}</td>
-                    <td className="py-3 px-4"><FollowUpStatusBadge status={row.status} /></td>
-                    <td className="py-3 px-4">
+                    </Td>
+                    <Td className="text-slate-500 dark:text-zinc-400">{row.assignedTo || '-'}</Td>
+                    <Td><FollowUpStatusBadge status={row.status} /></Td>
+                    <Td>
                       {row.type === 'done' ? (
                         <span className="badge-tint px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50">
                           Completed ({new Date(row.completedAt).toLocaleDateString('en-IN')})
@@ -318,8 +316,8 @@ export default function FollowUps() {
                           {row.idleDays === 0 ? 'Updated today' : `Idle for ${row.idleDays} days`}
                         </span>
                       )}
-                    </td>
-                    <td className="py-3 px-4">
+                    </Td>
+                    <Td>
                       <div className="flex justify-end items-center gap-2">
                         {row.phone && (
                           <a
@@ -358,13 +356,12 @@ export default function FollowUps() {
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+          </Tbody>
+        </Table>
         {!loading && rows.length === 0 && (
           <EmptyState title="No follow-ups found" message="All caught up for this filter segment!" />
         )}

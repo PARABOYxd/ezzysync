@@ -6,6 +6,8 @@ import { useToast } from '../hooks/useToast.jsx';
 import QuotationFormModal from '../components/quotation/QuotationFormModal.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import { QuotationStatusBadge } from '../components/common/StatusBadge.jsx';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
+import EmptyState from '../components/common/EmptyState.jsx';
 import Input from '../components/ui/Input.jsx';
 
 export default function Quotations() {
@@ -119,40 +121,37 @@ export default function Quotations() {
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
-                <th className="py-3 px-4 font-medium">Trip & Package</th>
-                <th className="py-3 px-4 font-medium">Quote Price</th>
-                <th className="py-3 px-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Table>
+          <Thead>
+            <Th>Trip & Package</Th>
+            <Th>Quote Price</Th>
+            <Th className="text-right">Actions</Th>
+          </Thead>
+          <Tbody>
               {loading && (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400 dark:text-zinc-500">
+                <Tr>
+                  <Td colSpan={3} className="py-8 text-center text-slate-400 dark:text-zinc-500">
                     <span className="loading loading-spinner text-slate-400" /> Loading itineraries...
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               )}
               {!loading && quotations.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="py-12 text-center text-slate-400 dark:text-zinc-500">
+                <Tr>
+                  <Td colSpan={3} className="py-12 text-center text-slate-400 dark:text-zinc-500">
                     No quotations found. Click "Create Quotation" to draft your first day-by-day plan.
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               )}
               {!loading &&
                 quotations.map((q) => (
-                  <tr key={q.quotationId} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
-                    <td className="py-3.5 px-4">
+                  <Tr key={q.quotationId}>
+                    <Td>
                       <div className="font-medium text-slate-700 dark:text-zinc-200">
                         {q.tripName} - {q.itineraryDays?.length || 0}D{q.itineraryDays?.length > 1 ? `${q.itineraryDays.length - 1}N` : ''}
                       </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-zinc-200">{formatCurrency(q.priceQuote)}</td>
-                    <td className="py-3.5 px-4 text-right">
+                    </Td>
+                    <Td className="font-semibold text-slate-700 dark:text-zinc-200">{formatCurrency(q.priceQuote)}</Td>
+                    <Td>
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => copyPreviewLink(q.id, q.quotationId)}
@@ -186,12 +185,11 @@ export default function Quotations() {
                           <Trash2 size={14} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))}
-            </tbody>
-          </table>
-        </div>
+          </Tbody>
+        </Table>
 
         {/* Pagination controls */}
         {!loading && quotations.length > 0 && (

@@ -4,7 +4,8 @@ import * as bookingService from '../services/bookingService';
 import * as invoiceService from '../services/invoiceService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PaymentStatusBadge } from '../components/common/StatusBadge.jsx';
-import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
+import SkeletonTableRows from '../components/common/SkeletonTableRows.jsx';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -65,28 +66,25 @@ export default function Invoices() {
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
-                <th className="py-3 px-4 font-medium">Booking ID</th>
-                <th className="py-3 px-4 font-medium">Customer</th>
-                <th className="py-3 px-4 font-medium">Trip</th>
-                <th className="py-3 px-4 font-medium">Total</th>
-                <th className="py-3 px-4 font-medium">Payment</th>
-                <th className="py-3 px-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Table>
+          <Thead>
+            <Th>Booking ID</Th>
+            <Th>Customer</Th>
+            <Th>Trip</Th>
+            <Th>Total</Th>
+            <Th>Payment</Th>
+            <Th className="text-right">Actions</Th>
+          </Thead>
+          <Tbody>
               {loading && <SkeletonTableRows rows={6} cols={6} />}
               {!loading && bookings.map((b) => (
-                <tr key={b.bookingId} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
-                  <td className="py-3 px-4 text-slate-400 dark:text-zinc-500 font-mono text-xs">{b.bookingId}</td>
-                  <td className="py-3 px-4 font-medium text-slate-700 dark:text-zinc-200">{b.customerName}</td>
-                  <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{b.trip}</td>
-                  <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{formatCurrency(b.totalAmount)}</td>
-                  <td className="py-3 px-4"><PaymentStatusBadge status={b.paymentStatus} /></td>
-                  <td className="py-3 px-4">
+                <Tr key={b.bookingId}>
+                  <Td className="text-slate-400 dark:text-zinc-500 font-mono text-xs">{b.bookingId}</Td>
+                  <Td className="font-medium text-slate-700 dark:text-zinc-200">{b.customerName}</Td>
+                  <Td className="text-slate-500 dark:text-zinc-400">{b.trip}</Td>
+                  <Td className="text-slate-500 dark:text-zinc-400">{formatCurrency(b.totalAmount)}</Td>
+                  <Td><PaymentStatusBadge status={b.paymentStatus} /></Td>
+                  <Td>
                     <div className="flex justify-end gap-1">
                       {user?.role === 'ADMIN' || user?.permissions?.canDownloadInvoice !== false ? (
                         <>
@@ -101,12 +99,11 @@ export default function Invoices() {
                         <span className="text-xs text-slate-400 dark:text-zinc-500 bg-slate-50 dark:bg-zinc-900 px-2 py-1 rounded">No Access</span>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+          </Tbody>
+        </Table>
         {!loading && bookings.length === 0 && (
           <EmptyState title="No bookings to invoice yet" message="Once you create bookings, invoices will be generated from here." />
         )}

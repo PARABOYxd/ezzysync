@@ -1,8 +1,9 @@
 import React from 'react';
-import { Eye, Pencil, Trash2, ArrowRightCircle } from 'lucide-react';
+import { Eye, Pencil, Trash2, ArrowRightCircle, Edit2 } from 'lucide-react';
 import { formatRelativeDate } from '../../utils/formatters';
-import { LeadStageBadge } from '../common/StatusBadge.jsx';
-import { SkeletonTableRows } from '../common/Skeleton.jsx';
+import { LeadStageBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
+import SkeletonTableRows from '../common/SkeletonTableRows.jsx';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
@@ -27,55 +28,55 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
 
   return (
     <div className="card p-0 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[900px]">
-          <thead>
-            <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
-              <th className="py-3 px-4 font-medium">Customer</th>
-              <th className="py-3 px-4 font-medium">Interest</th>
-              <th className="py-3 px-4 font-medium">Source</th>
-              <th className="py-3 px-4 font-medium">Assigned To</th>
-              <th className="py-3 px-4 font-medium">Follow-up</th>
-              <th className="py-3 px-4 font-medium">Created</th>
-              <th className="py-3 px-4 font-medium">Stage</th>
-              <th className="py-3 px-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <SkeletonTableRows rows={6} cols={8} />}
-            {!loading && leads.map((l) => (
-              <tr key={l.leadId} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
-                <td className="py-3 px-4">
-                  <p className="font-medium text-slate-700 dark:text-zinc-200">{l.customerName}</p>
-                  <button
-                    onClick={() => (canEdit ? onEdit(l) : onView(l))}
-                    className="text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                    title={canEdit ? `Edit ${l.customerName}'s lead` : `View ${l.customerName}'s lead`}
-                  >
-                    {l.phone || '-'}
-                  </button>
-                </td>
-                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{l.interest || '-'}</td>
-                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{l.source}</td>
-                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{l.assignedTo || '-'}</td>
-                <td className="py-3 px-4">{getFollowUpDisplay(l.nextFollowUpDate)}</td>
-                <td className="py-3 px-4 text-slate-500 dark:text-zinc-400 text-xs">{formatRelativeDate(l.createdAt)}</td>
-                <td className="py-3 px-4"><LeadStageBadge stage={l.stage} /></td>
-                <td className="py-3 px-4">
-                  <div className="flex justify-end gap-1">
-                    <IconBtn title="View" onClick={() => onView(l)}><Eye size={16} /></IconBtn>
-                    {canEdit && <IconBtn title="Edit" onClick={() => onEdit(l)}><Pencil size={16} /></IconBtn>}
-                    {canEdit && l.stage !== 'Won' && !l.convertedBookingId && (
-                      <IconBtn title="Convert to Booking" onClick={() => onConvert(l)}><ArrowRightCircle size={16} /></IconBtn>
-                    )}
-                    {canDelete && <IconBtn title="Delete" danger onClick={() => onDelete(l)}><Trash2 size={16} /></IconBtn>}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <Thead>
+          <Th>Customer</Th>
+          <Th>Interest</Th>
+          <Th>Source</Th>
+          <Th>Assigned To</Th>
+          <Th>Follow-up</Th>
+          <Th>Created</Th>
+          <Th>Stage</Th>
+          <Th className="text-right">Actions</Th>
+        </Thead>
+        <Tbody>
+          {loading && <SkeletonTableRows rows={6} cols={8} />}
+          {!loading && leads.map((l) => (
+            <Tr key={l.leadId}>
+              <Td>
+                <p className="font-medium text-slate-700 dark:text-zinc-200">{l.customerName}</p>
+                <button
+                  onClick={() => (canEdit ? onEdit(l) : onView(l))}
+                  className="text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  title={canEdit ? `Edit ${l.customerName}'s lead` : `View ${l.customerName}'s lead`}
+                >
+                  {l.phone || '-'}
+                </button>
+              </Td>
+              <Td className="text-slate-500 dark:text-zinc-400">{l.interest || '-'}</Td>
+              <Td className="text-slate-500 dark:text-zinc-400">{l.source}</Td>
+              <Td className="text-slate-500 dark:text-zinc-400">{l.assignedTo || '-'}</Td>
+              <Td>{getFollowUpDisplay(l.nextFollowUpDate)}</Td>
+              <Td className="text-slate-500 dark:text-zinc-400 text-xs">{formatRelativeDate(l.createdAt)}</Td>
+              <Td><LeadStageBadge stage={l.stage} /></Td>
+              <Td>
+                <div className="flex justify-end gap-1">
+                  {canEdit && (
+                    <button onClick={() => onEdit(l)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Edit Lead">
+                      <Edit2 size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button onClick={() => onDelete(l)} className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" title="Delete Lead">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
       {!loading && leads.length === 0 && (
         <EmptyState title="No leads found" message="Try adjusting your filters, or add a new lead to get started." />
       )}
