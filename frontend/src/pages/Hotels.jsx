@@ -219,10 +219,10 @@ export default function Hotels() {
                 {h.rooms_and_rates?.length > 0 && (
                   <div className="space-y-1.5 pt-1">
                     <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Room Rates (Per Night)</h5>
-                    <div className="border border-slate-100 rounded-xl overflow-hidden text-xs">
-                      <table className="w-full text-slate-600 bg-white">
+                    <div className="border border-slate-100 dark:border-zinc-800 rounded-xl overflow-hidden text-xs">
+                      <table className="w-full text-slate-600 dark:text-zinc-300 bg-white dark:bg-zinc-900">
                         <thead>
-                          <tr className="bg-slate-50 text-[10px] text-slate-400 text-left uppercase border-b border-slate-100 font-bold">
+                          <tr className="bg-slate-50 dark:bg-zinc-800 text-[10px] text-slate-400 dark:text-zinc-500 text-left uppercase border-b border-slate-100 dark:border-zinc-800 font-bold">
                             <th className="py-1.5 px-3">Room Type</th>
                             <th className="py-1.5 px-3 text-right">B2B Cost</th>
                             <th className="py-1.5 px-3 text-right">Selling</th>
@@ -230,10 +230,10 @@ export default function Hotels() {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                           {h.rooms_and_rates.map((r, i) => (
-                            <tr key={i} className="hover:bg-slate-50/30">
-                              <td className="py-1.5 px-3 font-medium text-slate-700">{r.roomType}</td>
-                              <td className="py-1.5 px-3 text-right font-mono text-slate-500">₹{r.costPrice}</td>
-                              <td className="py-1.5 px-3 text-right font-mono text-brand-600 font-semibold">₹{r.sellingPrice}</td>
+                            <tr key={i} className="hover:bg-slate-50/30 dark:hover:bg-zinc-800/50">
+                              <td className="py-1.5 px-3 font-medium text-slate-700 dark:text-zinc-200">{r.roomType}</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-slate-500 dark:text-zinc-400">₹{r.costPrice}</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-brand-600 dark:text-brand-400 font-semibold">₹{r.sellingPrice}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -243,17 +243,17 @@ export default function Hotels() {
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 border-t border-slate-50 pt-3.5 mt-4">
+              <div className="flex justify-end gap-2 border-t border-slate-50 dark:border-zinc-800 pt-3.5 mt-4">
                 <button
                   onClick={() => openEditModal(h)}
-                  className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition"
+                  className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 transition"
                   title="Edit Property"
                 >
                   <Edit2 size={13} />
                 </button>
                 <button
                   onClick={() => handleDelete(h.id, h.name)}
-                  className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                  className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition"
                   title="Delete Property"
                 >
                   <Trash2 size={13} />

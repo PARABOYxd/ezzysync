@@ -68,7 +68,7 @@ export default function Invoices() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[800px]">
             <thead>
-              <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
+              <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
                 <th className="py-3 px-4 font-medium">Booking ID</th>
                 <th className="py-3 px-4 font-medium">Customer</th>
                 <th className="py-3 px-4 font-medium">Trip</th>
@@ -80,25 +80,25 @@ export default function Invoices() {
             <tbody>
               {loading && <SkeletonTableRows rows={6} cols={6} />}
               {!loading && bookings.map((b) => (
-                <tr key={b.bookingId} className="border-b border-slate-50 hover:bg-slate-50/60">
-                  <td className="py-3 px-4 text-slate-400 font-mono text-xs">{b.bookingId}</td>
-                  <td className="py-3 px-4 font-medium text-slate-700">{b.customerName}</td>
-                  <td className="py-3 px-4 text-slate-500">{b.trip}</td>
-                  <td className="py-3 px-4 text-slate-500">{formatCurrency(b.totalAmount)}</td>
+                <tr key={b.bookingId} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
+                  <td className="py-3 px-4 text-slate-400 dark:text-zinc-500 font-mono text-xs">{b.bookingId}</td>
+                  <td className="py-3 px-4 font-medium text-slate-700 dark:text-zinc-200">{b.customerName}</td>
+                  <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{b.trip}</td>
+                  <td className="py-3 px-4 text-slate-500 dark:text-zinc-400">{formatCurrency(b.totalAmount)}</td>
                   <td className="py-3 px-4"><PaymentStatusBadge status={b.paymentStatus} /></td>
                   <td className="py-3 px-4">
                     <div className="flex justify-end gap-1">
                       {user?.role === 'ADMIN' || user?.permissions?.canDownloadInvoice !== false ? (
                         <>
-                          <button title="Download PDF" onClick={() => handleDownload(b)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+                          <button title="Download PDF" onClick={() => handleDownload(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
                             <Download size={16} />
                           </button>
-                          <button title="Email Invoice" onClick={() => handleEmail(b)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+                          <button title="Email Invoice" onClick={() => handleEmail(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
                             <Mail size={16} />
                           </button>
                         </>
                       ) : (
-                        <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded">No Access</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-500 bg-slate-50 dark:bg-zinc-900 px-2 py-1 rounded">No Access</span>
                       )}
                     </div>
                   </td>

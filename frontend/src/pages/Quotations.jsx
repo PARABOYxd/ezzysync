@@ -122,7 +122,7 @@ export default function Quotations() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[800px]">
             <thead>
-              <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/60">
+              <tr className="text-left text-xs text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/50">
                 <th className="py-3 px-4 font-medium">Trip & Package</th>
                 <th className="py-3 px-4 font-medium">Quote Price</th>
                 <th className="py-3 px-4 font-medium text-right">Actions</th>
@@ -131,35 +131,35 @@ export default function Quotations() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400">
+                  <td colSpan={3} className="py-8 text-center text-slate-400 dark:text-zinc-500">
                     <span className="loading loading-spinner text-slate-400" /> Loading itineraries...
                   </td>
                 </tr>
               )}
               {!loading && quotations.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="py-12 text-center text-slate-400">
+                  <td colSpan={3} className="py-12 text-center text-slate-400 dark:text-zinc-500">
                     No quotations found. Click "Create Quotation" to draft your first day-by-day plan.
                   </td>
                 </tr>
               )}
               {!loading &&
                 quotations.map((q) => (
-                  <tr key={q.quotationId} className="border-b border-slate-50 hover:bg-slate-50/60">
+                  <tr key={q.quotationId} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/60 dark:hover:bg-zinc-800/50">
                     <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-700">
+                      <div className="font-medium text-slate-700 dark:text-zinc-200">
                         {q.tripName} - {q.itineraryDays?.length || 0}D{q.itineraryDays?.length > 1 ? `${q.itineraryDays.length - 1}N` : ''}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-700">{formatCurrency(q.priceQuote)}</td>
+                    <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-zinc-200">{formatCurrency(q.priceQuote)}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => copyPreviewLink(q.id, q.quotationId)}
-                          className="btn-icon text-slate-400 hover:text-slate-700"
+                          className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
                           title="Copy public itinerary link for client review"
                         >
-                          {copiedId === q.quotationId ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                          {copiedId === q.quotationId ? <Check size={14} className="text-emerald-500 dark:text-emerald-400" /> : <Copy size={14} />}
                         </button>
                         <button
                           onClick={() => handleDuplicate(q.quotationId)}
@@ -173,14 +173,14 @@ export default function Quotations() {
                             setEditingQuotation(q);
                             setFormOpen(true);
                           }}
-                          className="btn-icon text-slate-400 hover:text-slate-700"
+                          className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
                           title="Edit itinerary"
                         >
                           <Edit size={14} />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(q)}
-                          className="btn-icon text-red-500 hover:bg-red-50"
+                          className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
                           title="Delete quotation"
                         >
                           <Trash2 size={14} />
@@ -195,11 +195,11 @@ export default function Quotations() {
 
         {/* Pagination controls */}
         {!loading && quotations.length > 0 && (
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-slate-50 text-xs text-slate-500 bg-white">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-slate-50 dark:border-zinc-800/50 text-xs text-slate-500 dark:text-zinc-400 bg-white dark:bg-zinc-950/30">
             <div>
-              Showing <span className="font-semibold text-slate-700">{Math.min((filters.page - 1) * filters.limit + 1, pagination.totalCount)}</span> to{' '}
-              <span className="font-semibold text-slate-700">{Math.min(filters.page * filters.limit, pagination.totalCount)}</span> of{' '}
-              <span className="font-semibold text-slate-700">{pagination.totalCount}</span> quotations
+              Showing <span className="font-semibold text-slate-700 dark:text-zinc-200">{Math.min((filters.page - 1) * filters.limit + 1, pagination.totalCount)}</span> to{' '}
+              <span className="font-semibold text-slate-700 dark:text-zinc-200">{Math.min(filters.page * filters.limit, pagination.totalCount)}</span> of{' '}
+              <span className="font-semibold text-slate-700 dark:text-zinc-200">{pagination.totalCount}</span> quotations
             </div>
             <div className="flex items-center gap-1">
               <button

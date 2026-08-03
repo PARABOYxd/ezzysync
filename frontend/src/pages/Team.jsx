@@ -245,7 +245,7 @@ export default function Team() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr className="border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   <th className="px-6 py-4">Name & Email</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4">Performance</th>
@@ -253,36 +253,36 @@ export default function Team() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/50 text-sm">
                 {members.map((member) => {
                   const isSelf = member.userId === user.userId;
                   const perms = member.permissions || {};
                   
                   return (
-                    <tr key={member.userId} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={member.userId} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center font-bold text-sm">
+                          <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
                             {member.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                            <div className="font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
                               {member.name}
                               {isSelf && (
-                                <span className="px-1.5 py-0.5 bg-slate-100 text-[10px] font-bold text-slate-600 rounded-md">
+                                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-zinc-400 rounded-md">
                                   YOU
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-slate-400 mt-0.5">{member.email}</div>
+                            <div className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{member.email}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                           member.role === 'ADMIN'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                            : 'bg-slate-100 text-slate-600'
+                            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
                         }`}>
                           {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
                           {member.role}
