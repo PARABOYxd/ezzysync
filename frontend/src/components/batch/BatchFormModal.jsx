@@ -43,7 +43,7 @@ export default function BatchFormModal({ open, onClose, onSaved, batch }) {
       setErrors({});
       quotationService.getQuotations({ limit: 100 }).then((data) => {
         setQuotations(data.quotations || data || []);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [open, batch]);
 
@@ -108,7 +108,7 @@ export default function BatchFormModal({ open, onClose, onSaved, batch }) {
 
   const itineraryOptions = [
     ...quotations.filter((q) => q.tripName).map((q) => ({ value: q.quotationId, label: q.tripName })),
-    { value: OTHER, label: '✏️ Other (type trip name manually)' },
+    { value: OTHER, label: 'Other' },
   ];
 
   return (
@@ -153,7 +153,7 @@ export default function BatchFormModal({ open, onClose, onSaved, batch }) {
               accentAsterisk
               error={errors.selectedItinerary}
               hint="Trip name, price & day-by-day plan are pulled from the itinerary you pick"
-              placeholder="-- Choose an itinerary --"
+              placeholder="select itinerary"
               value={form.selectedItinerary}
               onChange={setItinerary}
               options={itineraryOptions}

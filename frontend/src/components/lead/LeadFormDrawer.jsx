@@ -42,7 +42,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
       setErrors({});
       setDuplicateWarning(null);
       setInterestOther(false);
-      userService.getUsers().then((users) => setTeamMembers(users || [])).catch(() => {});
+      userService.getUsers().then((users) => setTeamMembers(users || [])).catch(() => { });
       quotationService.getQuotations({ limit: 100 }).then((data) => {
         const list = data.quotations || [];
         setItineraries(list);
@@ -50,8 +50,8 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
           const found = list.find((q) => q.trip_name === lead.interest || q.tripName === lead.interest);
           if (!found) setInterestOther(true);
         }
-      }).catch(() => {});
-      batchService.getBatches().then((data) => setBatches(data || [])).catch(() => {});
+      }).catch(() => { });
+      batchService.getBatches().then((data) => setBatches(data || [])).catch(() => { });
     }
   }, [open, lead]);
 
@@ -220,7 +220,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
                 const name = q.trip_name || q.tripName || '';
                 return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
               })}
-              <option value="__other__">✏️ Other (type manually)</option>
+              <option value="__other__">Other</option>
             </select>
             {interestOther && (
               <Input

@@ -9,9 +9,9 @@ import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
 
 export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) {
-  const [form, setForm] = useState({ 
-    departure: '', 
-    members: 1, 
+  const [form, setForm] = useState({
+    departure: '',
+    members: 1,
     pricePerPerson: '',
     email: '',
     interest: ''
@@ -40,7 +40,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
           const found = list.find((q) => q.trip_name === initialInterest || q.tripName === initialInterest);
           if (!found) setInterestOther(true);
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [open, lead]);
 
@@ -96,7 +96,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
           Creating a booking for <b className="text-slate-700">{lead.customerName}</b>.
           Fill in the trip details below to finalize.
         </p>
-        
+
         {(!lead.email || !lead.interest) && (
           <div className="space-y-4">
             {!lead.email && <Input label="Email Address" required type="email" value={form.email} onChange={set('email')} />}
@@ -122,7 +122,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
                     const name = q.trip_name || q.tripName || '';
                     return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
                   })}
-                  <option value="__other__">✏️ Other (type manually)</option>
+                  <option value="__other__">Other</option>
                 </select>
                 {interestOther && (
                   <Input

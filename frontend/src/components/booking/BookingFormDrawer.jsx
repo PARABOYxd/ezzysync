@@ -80,15 +80,15 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           const found = list.find((q) => (q.trip_name || q.tripName) === booking.trip);
           if (!found) setTripOther(true);
         }
-      }).catch(() => {});
+      }).catch(() => { });
 
       hotelService.getHotels().then((data) => {
         setHotels(data || []);
-      }).catch(() => {});
+      }).catch(() => { });
 
       batchService.getBatches().then((data) => {
         setBatches(data || []);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [open]);
 
@@ -188,7 +188,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
             setTeamMemberCustom(booking.teamMember);
           }
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [open]);
 
@@ -342,7 +342,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 {showAi ? 'Hide Assistant' : 'Try Now'}
               </span>
             </button>
-            
+
             {showAi && (
               user?.planId === 'FREE' ? (
                 <div className="pt-3 mt-3 border-t border-violet-100/60 text-center py-4 space-y-2">
@@ -388,7 +388,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end gap-2 pt-1 border-t border-violet-100/40">
                     <button
                       type="button"
@@ -411,11 +411,10 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           <button
             type="button"
             onClick={() => setActiveTab('customer')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${
-              activeTab === 'customer'
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'customer'
                 ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
                 : 'text-slate-500 hover:text-slate-700'
-            }`}
+              }`}
           >
             <User size={14} className={activeTab === 'customer' ? 'text-brand-500' : 'text-slate-400'} />
             <span className="hidden sm:inline">1. Customer Info</span>
@@ -425,11 +424,10 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           <button
             type="button"
             onClick={() => setActiveTab('trip')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${
-              activeTab === 'trip'
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'trip'
                 ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
                 : 'text-slate-500 hover:text-slate-700'
-            }`}
+              }`}
           >
             <MapPin size={14} className={activeTab === 'trip' ? 'text-brand-500' : 'text-slate-400'} />
             <span className="hidden sm:inline">2. Trip Details</span>
@@ -439,11 +437,10 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           <button
             type="button"
             onClick={() => setActiveTab('financials')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${
-              activeTab === 'financials'
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'financials'
                 ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
                 : 'text-slate-500 hover:text-slate-700'
-            }`}
+              }`}
           >
             <IndianRupee size={14} className={activeTab === 'financials' ? 'text-brand-500' : 'text-slate-400'} />
             <span className="hidden sm:inline">3. Pricing & P&L</span>
@@ -572,7 +569,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                       const name = q.trip_name || q.tripName || '';
                       return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
                     })}
-                    <option value="__other__">✏️ Other (type manually)</option>
+                    <option value="__other__">Other</option>
                   </select>
                   {tripOther && (
                     <Input
@@ -684,7 +681,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                     options={[
                       { value: '', label: '-- Not Assigned --' },
                       ...teamMembers.map((m) => ({ value: m.name, label: `${m.name} (${m.role})` })),
-                      { value: '__other__', label: 'Other (Type name manually)' },
+                      { value: '__other__', label: 'Other' },
                     ]}
                   />
                   {teamMemberOther && (
@@ -779,18 +776,17 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
               {/* Advanced Live Financial Statement */}
               {(() => {
                 const totalCost = Number(form.vendorHotelCost || 0) +
-                                  Number(form.vendorFlightCost || 0) +
-                                  Number(form.vendorTransportCost || 0) +
-                                  Number(form.vendorOtherCost || 0);
+                  Number(form.vendorFlightCost || 0) +
+                  Number(form.vendorTransportCost || 0) +
+                  Number(form.vendorOtherCost || 0);
                 const projectedProfit = totalAmount - totalCost;
                 const isPositive = projectedProfit >= 0;
-                
+
                 return (
-                  <div className={`p-4 rounded-2xl border transition-all duration-300 ${
-                    isPositive 
-                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30' 
+                  <div className={`p-4 rounded-2xl border transition-all duration-300 ${isPositive
+                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30'
                       : 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40 shadow-rose-50/30'
-                  } shadow-md`}>
+                    } shadow-md`}>
                     <div className="grid grid-cols-3 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
                       <div>
                         <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Gross Revenue</span>
@@ -807,7 +803,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                         </b>
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-zinc-500 border-t border-slate-200/30 dark:border-zinc-800 mt-3 pt-2">
                       <span>Pending balance for traveler collection: <b className="text-orange-600 dark:text-orange-400 font-bold">{formatCurrency(remaining)}</b></span>
                       <span className={`font-semibold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
