@@ -1,13 +1,20 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
+const userRepository = require('../repositories/userRepository');
+const { normalizePermissions } = require('../config/permissions');
 
 /**
  * Verifies the JWT and attaches the decoded, trusted tenant context to
- * req.user. Every downstream controller/service reads tenantId from
- * HERE ONLY - never from a request body/query param - so a user can never
- * request another tenant's data by tampering with the payload.
+ * req.user. tenantId is read from the signed JWT ONLY - never from a
+ * request body/query param - so a user can never request another
+ * tenant's data by tampering with the payload.
+ *
+ * role/permissions are re-fetched from the DB on every request (instead of
+ * trusting the JWT's baked-in copy) so an admin toggling a team member's
+ * permissions takes effect immediately, without requiring that member to
+ * log out and back in.
  */
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
@@ -17,15 +24,21 @@ function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, env.jwtSecret);
+    const dbUser = await userRepository.findUserById(decoded.userId);
+    if (!dbUser) {
+      return res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
+    }
+
+    const role = dbUser.role || 'ADMIN';
     req.user = {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
-      email: decoded.email,
-      name: decoded.name,
-      role: decoded.role || 'ADMIN',
-      permissions: decoded.permissions || {},
-      companyName: decoded.companyName,
-      planId: decoded.planId || 'FREE',
+      email: dbUser.email || decoded.email,
+      name: dbUser.name || decoded.name,
+      role,
+      permissions: normalizePermissions(dbUser.permissions, role),
+      companyName: dbUser.company_name || decoded.companyName,
+      planId: dbUser.plan_id || decoded.planId || 'FREE',
     };
     // Bind tenant/user onto req.log so every req.log.* call downstream
     // (controllers, services) carries this context automatically, not

@@ -142,8 +142,8 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
               <MapPin size={12} />
               <span>Trip & Travel Details</span>
             </h5>
-            <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-              <div className="col-span-2">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-xs">
+              <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Trip / Destination</span>
                 <span className="font-semibold text-slate-700">{booking.trip}</span>
               </div>
@@ -155,13 +155,9 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Group Size</span>
                 <span className="font-medium text-slate-600">{booking.members} Person(s)</span>
               </div>
-              <div className="col-span-2">
+              <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Pickup Location</span>
-                <span className="font-medium text-slate-600">{booking.pickup || <span className="text-slate-400 italic">Not specified</span>}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Assigned Team Member</span>
-                <span className="font-medium text-slate-600">{booking.teamMember || <span className="text-slate-400 italic">Not assigned</span>}</span>
+                <span className="font-medium text-slate-600">{booking.pickup || <span className="text-slate-400 italic">-</span>}</span>
               </div>
               {booking.sourceQuotationId && (
                 <div className="col-span-2">
@@ -240,6 +236,17 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
                 <span className="text-slate-400">Per person price</span>
               </div>
             )}
+          </div>
+
+          {/* Section 3.5: Assigned Team Member */}
+          <div className="space-y-2">
+            <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+              <User size={12} />
+              <span>Assigned Team Member</span>
+            </h5>
+            <p className="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200/60 rounded-xl p-3">
+              {booking.teamMember || <span className="italic text-slate-400">Not assigned</span>}
+            </p>
           </div>
 
           {/* Section 4: Notes */}

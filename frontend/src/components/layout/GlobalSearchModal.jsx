@@ -42,8 +42,10 @@ export default function GlobalSearchModal({ open, onClose }) {
 
   // Perform search across APIs
   useEffect(() => {
+    if (!open) return;
+
     if (!query.trim()) {
-      // Default Quick Actions when search is empty
+      // Default Quick Actions when search is empty — set immediately, no delay
       setResults([
         { id: 'q-dashboard', type: 'nav', title: 'Go to Dashboard', path: '/dashboard', icon: Command },
         { id: 'q-leads', type: 'nav', title: 'Manage Leads Pipeline', path: '/leads', icon: User },
@@ -52,11 +54,12 @@ export default function GlobalSearchModal({ open, onClose }) {
         { id: 'q-settings', type: 'nav', title: 'Open Settings', path: '/settings', icon: Settings },
       ]);
       setSelectedIndex(0);
+      setSearching(false);
       return;
     }
 
+    setSearching(true);
     const delayDebounce = setTimeout(async () => {
-      setSearching(true);
       try {
         const [leadData, bookingData] = await Promise.all([
           leadService.getLeads({ search: query, limit: 5 }).catch(() => ({ leads: [] })),
@@ -91,7 +94,7 @@ export default function GlobalSearchModal({ open, onClose }) {
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [query]);
+  }, [query, open]);
 
   // Keyboard navigation inside result list
   const handleKeyDown = (e) => {
@@ -187,11 +190,11 @@ export default function GlobalSearchModal({ open, onClose }) {
                 );
               })}
             </div>
-          ) : (
+          ) : query.trim() ? (
             <div className="py-8 text-center text-xs text-slate-400 dark:text-zinc-500">
               No matching records found for "{query}"
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

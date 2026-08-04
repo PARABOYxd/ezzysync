@@ -7,6 +7,43 @@ import Input from '../components/ui/Input.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search } from 'lucide-react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
+import { PERMISSION_MODULES, ACTION_LABELS, DEFAULT_TEAM_MEMBER_PERMISSIONS } from '../constants/permissions.js';
+
+const cloneDefaultPermissions = () => JSON.parse(JSON.stringify(DEFAULT_TEAM_MEMBER_PERMISSIONS));
+
+function mergeWithDefaults(memberPermissions) {
+  const defaults = cloneDefaultPermissions();
+  const merged = {};
+  for (const mod of PERMISSION_MODULES) {
+    merged[mod.key] = { ...defaults[mod.key], ...(memberPermissions?.[mod.key] || {}) };
+  }
+  return merged;
+}
+
+function PermissionMatrix({ permissions, onToggle }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {PERMISSION_MODULES.map((mod) => (
+        <div key={mod.key} className="p-3 rounded-lg border border-slate-100/50 bg-slate-50/20">
+          <div className="text-sm font-semibold text-slate-700 mb-2">{mod.label}</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {mod.actions.map((action) => (
+              <label key={action} className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!permissions?.[mod.key]?.[action]}
+                  onChange={() => onToggle(mod.key, action)}
+                  className="rounded text-brand-600 focus:ring-brand-500/20 border-slate-300 w-3.5 h-3.5"
+                />
+                {ACTION_LABELS[action] || action}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Team() {
   const { user } = useAuth();
@@ -28,13 +65,7 @@ export default function Team() {
     email: '',
     password: '',
     role: 'TEAM_MEMBER',
-    permissions: {
-      canEditLeads: true,
-      canEditMobileNumber: false,
-      canDownloadInvoice: true,
-      canCreateLeads: true,
-      canDeleteLeads: false
-    }
+    permissions: cloneDefaultPermissions()
   });
 
   const [editForm, setEditForm] = useState({
@@ -42,13 +73,7 @@ export default function Team() {
     name: '',
     role: 'TEAM_MEMBER',
     password: '',
-    permissions: {
-      canEditLeads: true,
-      canEditMobileNumber: false,
-      canDownloadInvoice: true,
-      canCreateLeads: true,
-      canDeleteLeads: false
-    }
+    permissions: cloneDefaultPermissions()
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -69,22 +94,28 @@ export default function Team() {
       .finally(() => setLoading(false));
   };
 
-  const handleAddPermissionChange = (key) => {
+  const toggleAddPermission = (moduleKey, action) => {
     setAddForm(prev => ({
       ...prev,
       permissions: {
         ...prev.permissions,
-        [key]: !prev.permissions[key]
+        [moduleKey]: {
+          ...prev.permissions[moduleKey],
+          [action]: !prev.permissions[moduleKey]?.[action]
+        }
       }
     }));
   };
 
-  const handleEditPermissionChange = (key) => {
+  const toggleEditPermission = (moduleKey, action) => {
     setEditForm(prev => ({
       ...prev,
       permissions: {
         ...prev.permissions,
-        [key]: !prev.permissions[key]
+        [moduleKey]: {
+          ...prev.permissions[moduleKey],
+          [action]: !prev.permissions[moduleKey]?.[action]
+        }
       }
     }));
   };
@@ -130,13 +161,7 @@ export default function Team() {
         email: '',
         password: '',
         role: 'TEAM_MEMBER',
-        permissions: {
-          canEditLeads: true,
-          canEditMobileNumber: false,
-          canDownloadInvoice: true,
-          canCreateLeads: true,
-          canDeleteLeads: false
-        }
+        permissions: cloneDefaultPermissions()
       });
       setFormErrors({});
       fetchMembers();
@@ -180,24 +205,12 @@ export default function Team() {
   };
 
   const openEditModal = (member) => {
-    // Merge member permissions default values
-    const defaultPerms = {
-      canEditLeads: true,
-      canEditMobileNumber: false,
-      canDownloadInvoice: true,
-      canCreateLeads: true,
-      canDeleteLeads: false
-    };
-
     setEditForm({
       userId: member.userId,
       name: member.name,
       role: member.role || 'TEAM_MEMBER',
       password: '',
-      permissions: {
-        ...defaultPerms,
-        ...(member.permissions || {})
-      }
+      permissions: mergeWithDefaults(member.permissions)
     });
     setFormErrors({});
     setShowEditModal(true);
@@ -304,31 +317,20 @@ export default function Team() {
                           <span className="text-xs font-medium text-slate-400">Full Administrative Access</span>
                         ) : (
                           <div className="flex flex-wrap gap-1.5 max-w-md">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
-                              perms.canCreateLeads !== false ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-slate-50 text-slate-400 line-through'
-                            }`}>
-                              Create Leads
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
-                              perms.canEditLeads !== false ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-slate-50 text-slate-400 line-through'
-                            }`}>
-                              Edit Details
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
-                              perms.canEditMobileNumber ? 'bg-brand-50 text-brand-700 border border-brand-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
-                            }`}>
-                              {perms.canEditMobileNumber ? '✓ Mobile Edit' : '✕ Mobile Lock'}
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
-                              perms.canDownloadInvoice !== false ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-slate-50 text-slate-400 line-through'
-                            }`}>
-                              Download Invoices
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
-                              perms.canDeleteLeads ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-slate-50 text-slate-400 line-through'
-                            }`}>
-                              Delete Leads
-                            </span>
+                            {PERMISSION_MODULES.map((mod) => {
+                              const modPerms = perms[mod.key] || {};
+                              const enabledActions = mod.actions.filter((a) => modPerms[a]);
+                              if (enabledActions.length === 0) return null;
+                              return (
+                                <span
+                                  key={mod.key}
+                                  title={enabledActions.map((a) => ACTION_LABELS[a] || a).join(', ')}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100"
+                                >
+                                  {mod.label} ({enabledActions.length}/{mod.actions.length})
+                                </span>
+                              );
+                            })}
                           </div>
                         )}
                       </Td>
@@ -451,40 +453,7 @@ export default function Team() {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
                     Configurable Access Permissions
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { key: 'canCreateLeads', label: 'Allow Creating Leads' },
-                      { key: 'canEditLeads', label: 'Allow Editing Lead Details' },
-                      { key: 'canEditMobileNumber', label: 'Allow Editing Mobile Numbers', warning: true },
-                      { key: 'canDownloadInvoice', label: 'Allow Downloading & Emailing Invoices' },
-                      { key: 'canDeleteLeads', label: 'Allow Deleting Leads' }
-                    ].map((perm) => (
-                      <label key={perm.key} className="flex items-start gap-3 cursor-pointer p-2 hover:bg-slate-100 rounded-lg transition border border-slate-100/50 bg-slate-50/20">
-                        <input
-                          type="checkbox"
-                          checked={addForm.permissions[perm.key]}
-                          onChange={() => handleAddPermissionChange(perm.key)}
-                          className="mt-0.5 rounded text-brand-600 focus:ring-brand-500/20 border-slate-300 w-4 h-4"
-                        />
-                        <div className="text-sm">
-                          <div className={`font-semibold ${perm.warning ? 'text-slate-800 flex items-center gap-1.5' : 'text-slate-700'}`}>
-                            {perm.label}
-                            {perm.warning && !addForm.permissions[perm.key] && (
-                              <span className="px-1.5 py-0.5 bg-rose-50 text-[10px] font-bold text-rose-600 rounded">
-                                SECURED
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {perm.key === 'canEditMobileNumber' 
-                              ? 'Locks editing of phone fields in forms.'
-                              : `Grants access to execute operations.`
-                            }
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                  <PermissionMatrix permissions={addForm.permissions} onToggle={toggleAddPermission} />
                 </div>
               )}
 
@@ -581,40 +550,7 @@ export default function Team() {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
                     Configurable Access Permissions
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { key: 'canCreateLeads', label: 'Allow Creating Leads' },
-                      { key: 'canEditLeads', label: 'Allow Editing Lead Details' },
-                      { key: 'canEditMobileNumber', label: 'Allow Editing Mobile Numbers', warning: true },
-                      { key: 'canDownloadInvoice', label: 'Allow Downloading & Emailing Invoices' },
-                      { key: 'canDeleteLeads', label: 'Allow Deleting Leads' }
-                    ].map((perm) => (
-                      <label key={perm.key} className="flex items-start gap-3 cursor-pointer p-2 hover:bg-slate-100 rounded-lg transition border border-slate-100/50 bg-slate-50/20">
-                        <input
-                          type="checkbox"
-                          checked={editForm.permissions[perm.key] !== false}
-                          onChange={() => handleEditPermissionChange(perm.key)}
-                          className="mt-0.5 rounded text-brand-600 focus:ring-brand-500/20 border-slate-300 w-4 h-4"
-                        />
-                        <div className="text-sm">
-                          <div className={`font-semibold ${perm.warning ? 'text-slate-800 flex items-center gap-1.5' : 'text-slate-700'}`}>
-                            {perm.label}
-                            {!editForm.permissions[perm.key] && perm.warning && (
-                              <span className="px-1.5 py-0.5 bg-rose-50 text-[10px] font-bold text-rose-600 rounded">
-                                SECURED
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {perm.key === 'canEditMobileNumber' 
-                              ? 'Locks editing of phone fields in forms.'
-                              : `Grants access to execute operations.`
-                            }
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                  <PermissionMatrix permissions={editForm.permissions} onToggle={toggleEditPermission} />
                 </div>
               )}
 

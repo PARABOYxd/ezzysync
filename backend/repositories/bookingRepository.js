@@ -176,7 +176,7 @@ async function listBookingsPaged(params) {
   }
 
   if (search) {
-    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR booking_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
+    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR booking_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex} OR trip ILIKE $${paramIndex} OR team_member ILIKE $${paramIndex} OR travel_status ILIKE $${paramIndex})`);
     values.push(`%${search}%`);
     paramIndex++;
   }

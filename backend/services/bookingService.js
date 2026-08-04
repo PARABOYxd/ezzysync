@@ -123,8 +123,11 @@ async function softDeleteBooking(tenantId, bookingId, updatedByUser) {
   return updateBooking(tenantId, bookingId, { deleted: true }, updatedByUser);
 }
 
-async function dashboardStats(tenantId) {
-  const bookings = await listBookings(tenantId);
+async function dashboardStats(tenantId, teamMemberName = null) {
+  let bookings = await listBookings(tenantId);
+  if (teamMemberName) {
+    bookings = bookings.filter((b) => (b.teamMember || '') === teamMemberName);
+  }
   const today = new Date().toISOString().slice(0, 10);
 
   let totalRevenue = 0;
@@ -237,6 +240,77 @@ async function getActiveBookingsByCustomer(tenantId, customerId) {
   return rows.map(rowToBooking);
 }
 
+async function billingAnalytics(tenantId, teamMemberName = null) {
+  let allBookings = await listBookings(tenantId, { includeDeleted: false });
+  if (teamMemberName) {
+    allBookings = allBookings.filter((b) => (b.teamMember || '') === teamMemberName);
+  }
+  // Also get leads to count leads worked on per team member
+  const { query } = require('../config/db');
+  const leadsResult = await query(`SELECT assigned_to, COUNT(*) as lead_count FROM leads WHERE tenant_id = $1 AND deleted = FALSE GROUP BY assigned_to`, [tenantId]);
+  
+  const teamLeads = {};
+  for (const row of leadsResult.rows) {
+    if (row.assigned_to) {
+      teamLeads[row.assigned_to] = Number(row.lead_count);
+    }
+  }
+
+  const tripStats = {};
+  const monthlyStats = {};
+  const teamStats = {};
+
+  for (const b of allBookings) {
+    // Only count confirmed/completed bookings for revenue
+    if (b.travelStatus === 'Cancelled' || b.travelStatus === 'Postponed' || b.travelStatus === 'Refunded') {
+      continue;
+    }
+
+    const revenue = b.totalAmount || 0;
+    const vendorCost = (b.vendorHotelCost || 0) + (b.vendorFlightCost || 0) + (b.vendorTransportCost || 0) + (b.vendorOtherCost || 0);
+    // Prefer explicitly saved netProfit, fallback to calculation (total - all vendor costs)
+    const profit = b.netProfit || (revenue - vendorCost);
+    
+    // Trip Wise
+    const trip = b.trip || 'Uncategorized';
+    if (!tripStats[trip]) tripStats[trip] = { trip, count: 0, members: 0, revenue: 0, vendorCost: 0, profit: 0 };
+    tripStats[trip].count++;
+    tripStats[trip].members += b.members;
+    tripStats[trip].revenue += revenue;
+    tripStats[trip].vendorCost += vendorCost;
+    tripStats[trip].profit += profit;
+
+    // Month Wise (By departure)
+    const month = (b.departure || '').substring(0, 7) || 'Unknown';
+    if (!monthlyStats[month]) monthlyStats[month] = { month, count: 0, revenue: 0, vendorCost: 0, profit: 0 };
+    monthlyStats[month].count++;
+    monthlyStats[month].revenue += revenue;
+    monthlyStats[month].vendorCost += vendorCost;
+    monthlyStats[month].profit += profit;
+
+    // Team Wise
+    const teamMember = b.teamMember || 'Unassigned';
+    if (!teamStats[teamMember]) teamStats[teamMember] = { teamMember, leads: 0, bookingsClosed: 0, revenue: 0, profit: 0 };
+    teamStats[teamMember].bookingsClosed++;
+    teamStats[teamMember].revenue += revenue;
+    teamStats[teamMember].profit += profit;
+  }
+
+  // Merge leads count into teamStats
+  for (const member of Object.keys(teamLeads)) {
+    if (!teamStats[member]) {
+      teamStats[member] = { teamMember: member, leads: 0, bookingsClosed: 0, revenue: 0, profit: 0 };
+    }
+    teamStats[member].leads = teamLeads[member];
+  }
+
+  return {
+    tripWise: Object.values(tripStats).sort((a, b) => b.revenue - a.revenue),
+    monthWise: Object.values(monthlyStats).sort((a, b) => a.month.localeCompare(b.month)),
+    teamWise: Object.values(teamStats).sort((a, b) => b.revenue - a.revenue),
+  };
+}
+
 module.exports = {
   listBookings,
   getBookingById,
@@ -250,4 +324,5 @@ module.exports = {
   addFollowUp,
   getBookingBySourceQuotation,
   getActiveBookingsByCustomer,
+  billingAnalytics,
 };

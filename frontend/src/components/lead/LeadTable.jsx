@@ -5,13 +5,11 @@ import { LeadStageBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
 import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
-import { useAuth } from '../../hooks/useAuth.jsx';
+import { usePermission } from '../../hooks/usePermission.js';
 
 export default function LeadTable({ leads, loading, onView, onEdit, onDelete, onConvert }) {
-  const { user } = useAuth();
-
-  const canEdit = user?.role === 'ADMIN' || user?.permissions?.canEditLeads !== false;
-  const canDelete = user?.role === 'ADMIN' || user?.permissions?.canDeleteLeads === true;
+  const canEdit = usePermission('leads', 'update');
+  const canDelete = usePermission('leads', 'delete');
 
   const getFollowUpDisplay = (dateStr) => {
     if (!dateStr) return <span className="text-slate-300">-</span>;
@@ -61,6 +59,9 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
               <Td><LeadStageBadge stage={l.stage} /></Td>
               <Td>
                 <div className="flex justify-end gap-1">
+                  <button onClick={() => onView(l)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="View Lead">
+                    <Eye size={14} />
+                  </button>
                   {canEdit && (
                     <button onClick={() => onEdit(l)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Edit Lead">
                       <Edit2 size={14} />

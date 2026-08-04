@@ -1,35 +1,48 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 export default function Sidebar({ open, onClose }) {
   const { logout, user } = useAuth();
 
+  // Plain helper (not a hook) reusing the already-loaded user object -
+  // .filter() callbacks can't call hooks themselves.
+  const canRead = (moduleKey, action = 'read') => {
+    if (!moduleKey) return true;
+    if (user?.role === 'ADMIN') return true;
+    return !!user?.permissions?.[moduleKey]?.[action];
+  };
+
   const mainLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/leads', label: 'Leads', icon: Contact2 },
-    { to: '/follow-ups', label: 'Follow-ups', icon: ListTodo },
-  ];
+    { to: '/leads', label: 'Leads', icon: Contact2, module: 'leads' },
+    { to: '/follow-ups', label: 'Follow-ups', icon: ListTodo, module: 'followUps' },
+  ].filter(link => !link.module || canRead(link.module));
 
   const salesLinks = [
-    { to: '/bookings', label: 'Bookings', icon: CalendarCheck },
-    { to: '/tour-batches', label: 'Group Tours', icon: Layers },
-    { to: '/quotations', label: 'Itineraries & Quotes', icon: Map },
-    { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles },
-  ];
+    { to: '/bookings', label: 'Bookings', icon: CalendarCheck, module: 'bookings' },
+    { to: '/tour-batches', label: 'Group Tours', icon: Layers, module: 'tourBatches' },
+    { to: '/quotations', label: 'Itineraries & Quotes', icon: Map, module: 'quotations' },
+    { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles, module: 'aiTools', action: 'use' },
+  ].filter(link => canRead(link.module, link.action || 'read'));
 
   const billingLinks = [
-    { to: '/invoices', label: 'Invoices', icon: FileText },
-  ];
+    { to: '/billing', label: 'Billing & Analytics', icon: PieChart, role: 'ADMIN', module: 'billing' },
+    { to: '/invoices', label: 'Invoices', icon: FileText, module: 'invoices' },
+  ]
+    .filter(link => !link.role || link.role === (user?.role || 'ADMIN'))
+    .filter(link => canRead(link.module));
 
   const settingsLinks = [
     { to: '/team', label: 'Team', icon: Users, role: 'ADMIN' },
     { to: '/profile', label: 'Profile', icon: User },
-    { to: '/hotels', label: 'Hotels', icon: Building2, role: 'ADMIN' },
+    { to: '/hotels', label: 'Hotels', icon: Building2, module: 'hotels' },
     { to: '/guide', label: 'User Guide 📖', icon: HelpCircle },
     { to: '/settings', label: 'Settings', icon: Settings, role: 'ADMIN' },
-  ].filter(link => !link.role || link.role === (user?.role || 'ADMIN'));
+  ]
+    .filter(link => !link.role || link.role === (user?.role || 'ADMIN'))
+    .filter(link => !link.module || canRead(link.module));
 
   const renderSection = (title, links) => (
     <div className="space-y-1">

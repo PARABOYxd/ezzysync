@@ -1,11 +1,15 @@
 const bookingService = require('../services/bookingService');
 const auditService = require('../services/auditService');
+const settingsService = require('../services/settingsService');
+const logger = require('../utils/logger').child({ module: 'bookingController' });
+const { shouldScopeToSelf } = require('../config/permissions');
 
 async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { status, trip, teamMember, departureFrom, departureTo, createdFrom, createdTo, search, sort } = req.query;
+    const { status, trip, departureFrom, departureTo, createdFrom, createdTo, search, sort } = req.query;
+    const teamMember = shouldScopeToSelf(req.user, 'bookings') ? req.user.name : req.query.teamMember;
 
     const result = await bookingService.listBookingsPaged(req.user.tenantId, {
       page,
@@ -39,22 +43,22 @@ async function getOne(req, res, next) {
   try {
     const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+    if (shouldScopeToSelf(req.user, 'bookings') && booking.teamMember !== req.user.name) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
     res.json({ booking });
   } catch (err) {
     next(err);
   }
 }
 
-const tenantService = require('../services/tenantService');
-const logger = require('../utils/logger').child({ module: 'bookingController' });
-
 async function create(req, res, next) {
   try {
     const booking = await bookingService.createBooking(req.user.tenantId, req.body, req.user.email);
     await auditService.logAction(req, 'CREATE_LEAD', { bookingId: booking.bookingId, customerName: booking.customerName, trip: booking.trip });
-    
+
     // Auto invoice sharing logic
-    const settings = await tenantService.getSettings(req.user.tenantId);
+    const settings = await settingsService.getSettings(req.user.tenantId);
     if (settings && settings.autoSendInvoice) {
       logger.info(`[Auto-Invoice] Sending invoice to ${booking.email} for booking ${booking.bookingId}`);
       // In MVP, we mock the email send. 
@@ -89,7 +93,10 @@ async function remove(req, res, next) {
 
 async function exportCSV(req, res, next) {
   try {
-    const bookings = await bookingService.listBookings(req.user.tenantId);
+    let bookings = await bookingService.listBookings(req.user.tenantId);
+    if (shouldScopeToSelf(req.user, 'bookings')) {
+      bookings = bookings.filter((b) => b.teamMember === req.user.name);
+    }
     const headers = [
       'Booking ID', 'Customer', 'Email', 'Phone', 'Trip', 'Departure', 'Members',
       'Total Amount', 'Paid', 'Remaining', 'Travel Status', 'Payment Status',

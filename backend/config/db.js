@@ -313,6 +313,13 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding reset_otp columns to users');
   }
 
+  // B2B Supplier Cost column for bookings
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS b2b_cost NUMERIC(12,2) DEFAULT 0;`);
+  } catch (err) {
+    logger.warn({ err }, 'Error adding b2b_cost column to bookings');
+  }
+
   // Lightweight, auto-populated customer rollup - natural key is (tenant_id, phone).
   // Populated by customerService.upsertFromContact(), called from booking/quotation/lead
   // creation - NOT something the existing booking/quotation forms need to know about.

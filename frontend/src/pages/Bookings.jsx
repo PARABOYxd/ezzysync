@@ -10,10 +10,9 @@ import * as bookingService from '../services/bookingService';
 import * as invoiceService from '../services/invoiceService';
 import * as whatsappService from '../services/whatsappService';
 import { useToast } from '../hooks/useToast.jsx';
-import { useAuth } from '../hooks/useAuth.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 
 export default function Bookings() {
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +98,7 @@ export default function Bookings() {
     }
   };
 
-  const canCreate = user?.role === 'ADMIN' || user?.permissions?.canCreateLeads !== false;
+  const canCreate = usePermission('bookings', 'create');
 
   const handleFiltersChange = (newFilters) => {
     setFilters({ ...newFilters, page: 1 });

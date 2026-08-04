@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Plus, Search, Layers, MapPin, Calendar, Users, Edit2, Trash2 } from 'lucide-react';
 import * as batchService from '../services/batchService';
 import { useToast } from '../hooks/useToast.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 import { formatDate } from '../utils/formatters';
 import Input from '../components/ui/Input.jsx';
 import ProgressBar from '../components/ui/ProgressBar.jsx';
@@ -23,7 +24,7 @@ const CHIP_TONE = {
   muted: 'bg-slate-100 dark:bg-zinc-800 text-[var(--text-secondary)]',
 };
 
-function BatchCard({ b, onOpen, onEdit, onDelete }) {
+function BatchCard({ b, onOpen, onEdit, onDelete, canEdit, canDelete }) {
   const departure = departureLabelFor(b.departureDate);
 
   const activate = () => onOpen(b.batchId);
@@ -76,32 +77,39 @@ function BatchCard({ b, onOpen, onEdit, onDelete }) {
       </div>
 
       <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-3">
-        <button
-          onClick={(e) => onEdit(b, e)}
-          title="Edit batch"
-          aria-label="Edit batch"
-          className="w-11 h-11 flex items-center justify-center rounded-lg bg-[var(--surface-muted)] text-[var(--text-secondary)]
-            hover:bg-slate-200/70 dark:hover:bg-zinc-700 active:bg-slate-300/70 dark:active:bg-zinc-600
-            transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-        >
-          <Edit2 size={16} strokeWidth={1.75} />
-        </button>
-        <button
-          onClick={(e) => onDelete(b, e)}
-          title="Delete batch"
-          aria-label="Delete batch"
-          className="w-11 h-11 flex items-center justify-center rounded-lg bg-[var(--danger-bg)] text-[var(--danger)]
-            hover:bg-red-100 dark:hover:bg-red-950/40 active:bg-red-200 dark:active:bg-red-950/60
-            transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
-        >
-          <Trash2 size={16} strokeWidth={1.75} />
-        </button>
+        {canEdit && (
+          <button
+            onClick={(e) => onEdit(b, e)}
+            title="Edit batch"
+            aria-label="Edit batch"
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-[var(--surface-muted)] text-[var(--text-secondary)]
+              hover:bg-slate-200/70 dark:hover:bg-zinc-700 active:bg-slate-300/70 dark:active:bg-zinc-600
+              transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          >
+            <Edit2 size={16} strokeWidth={1.75} />
+          </button>
+        )}
+        {canDelete && (
+          <button
+            onClick={(e) => onDelete(b, e)}
+            title="Delete batch"
+            aria-label="Delete batch"
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-[var(--danger-bg)] text-[var(--danger)]
+              hover:bg-red-100 dark:hover:bg-red-950/40 active:bg-red-200 dark:active:bg-red-950/60
+              transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
+          >
+            <Trash2 size={16} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 export default function TourBatches() {
+  const canCreate = usePermission('tourBatches', 'create');
+  const canEdit = usePermission('tourBatches', 'update');
+  const canDelete = usePermission('tourBatches', 'delete');
   const [searchParams, setSearchParams] = useSearchParams();
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,9 +183,11 @@ export default function TourBatches() {
           <h1 className="text-xl font-semibold text-[var(--text-primary)]">Group Tours</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">Fixed-departure batches with a shared itinerary, date and seat capacity.</p>
         </div>
-        <button className="btn-primary h-11 px-4" onClick={openCreate}>
-          <Plus size={16} strokeWidth={2} /> Create Batch
-        </button>
+        {canCreate && (
+          <button className="btn-primary h-11 px-4" onClick={openCreate}>
+            <Plus size={16} strokeWidth={2} /> Create Batch
+          </button>
+        )}
       </div>
 
       <div className="w-full sm:max-w-xs">
@@ -223,7 +233,7 @@ export default function TourBatches() {
                 : 'Group multiple bookings under one fixed-departure tour with a shared itinerary, price and seat capacity.'}
             </p>
           </div>
-          {!search && (
+          {!search && canCreate && (
             <button className="btn-primary h-11 px-4 mx-auto" onClick={openCreate}>
               <Plus size={16} strokeWidth={2} /> Create First Batch
             </button>
@@ -232,7 +242,7 @@ export default function TourBatches() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((b) => (
-            <BatchCard key={b.batchId} b={b} onOpen={setActiveBatchId} onEdit={openEdit} onDelete={handleDelete} />
+            <BatchCard key={b.batchId} b={b} onOpen={setActiveBatchId} onEdit={openEdit} onDelete={handleDelete} canEdit={canEdit} canDelete={canDelete} />
           ))}
         </div>
       )}

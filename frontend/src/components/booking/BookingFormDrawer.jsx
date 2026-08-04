@@ -14,6 +14,7 @@ import * as hotelService from '../../services/hotelService';
 import * as batchService from '../../services/batchService';
 import { useToast } from '../../hooks/useToast.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
+import { usePermission } from '../../hooks/usePermission.js';
 import {
   User, Mail, Phone, ShieldAlert, MapPin, Calendar, Navigation,
   Users, UserCheck, IndianRupee, CreditCard, Home, Plane, Car,
@@ -193,7 +194,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
   const totalAmount = Number(form.members || 0) * Number(form.pricePerPerson || 0);
   const remaining = Math.max(totalAmount - Number(form.paid || 0), 0);
-  const canEditPhone = user?.role === 'ADMIN' || user?.permissions?.canEditMobileNumber === true;
+  const canEditPhone = usePermission('bookings', 'editPhone');
 
   const set = (key) => (e) => {
     let val = e.target.value;

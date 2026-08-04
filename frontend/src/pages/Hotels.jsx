@@ -3,12 +3,16 @@ import { Plus, Search, Building2, MapPin, Phone, Trash2, Edit2, Star, StarOff, D
 import * as hotelService from '../services/hotelService';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import { useToast } from '../hooks/useToast.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Button from '../components/ui/Button.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 
 export default function Hotels() {
+  const canCreate = usePermission('hotels', 'create');
+  const canEdit = usePermission('hotels', 'update');
+  const canDelete = usePermission('hotels', 'delete');
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -160,9 +164,11 @@ export default function Hotels() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <button className="btn-primary" onClick={openAddModal}>
-          <Plus size={16} /> Add Property
-        </button>
+        {canCreate && (
+          <button className="btn-primary" onClick={openAddModal}>
+            <Plus size={16} /> Add Property
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -180,9 +186,11 @@ export default function Hotels() {
             <h3 className="font-bold text-slate-800">No properties in inventory</h3>
             <p className="text-xs text-slate-400 mt-1">Get started by creating your partner hotel properties and tariff rules.</p>
           </div>
-          <button className="btn-primary mx-auto" onClick={openAddModal}>
-            <Plus size={16} /> Add First Property
-          </button>
+          {canCreate && (
+            <button className="btn-primary mx-auto" onClick={openAddModal}>
+              <Plus size={16} /> Add First Property
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,20 +251,24 @@ export default function Hotels() {
               </div>
 
               <div className="flex justify-end gap-2 border-t border-slate-50 dark:border-zinc-800 pt-3.5 mt-4">
-                <button
-                  onClick={() => openEditModal(h)}
-                  className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 transition"
-                  title="Edit Property"
-                >
-                  <Edit2 size={13} />
-                </button>
-                <button
-                  onClick={() => handleDelete(h.id, h.name)}
-                  className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition"
-                  title="Delete Property"
-                >
-                  <Trash2 size={13} />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => openEditModal(h)}
+                    className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 transition"
+                    title="Edit Property"
+                  >
+                    <Edit2 size={13} />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => handleDelete(h.id, h.name)}
+                    className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition"
+                    title="Delete Property"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             </div>
           ))}

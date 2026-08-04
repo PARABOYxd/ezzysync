@@ -8,11 +8,12 @@ import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';
-import { useAuth } from '../hooks/useAuth.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 import Input from '../components/ui/Input.jsx';
 
 export default function Invoices() {
-  const { user } = useAuth();
+  const canDownload = usePermission('invoices', 'download');
+  const canEmail = usePermission('invoices', 'email');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
@@ -86,16 +87,17 @@ export default function Invoices() {
                   <Td><PaymentStatusBadge status={b.paymentStatus} /></Td>
                   <Td>
                     <div className="flex justify-end gap-1">
-                      {user?.role === 'ADMIN' || user?.permissions?.canDownloadInvoice !== false ? (
-                        <>
-                          <button title="Download PDF" onClick={() => handleDownload(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
-                            <Download size={16} />
-                          </button>
-                          <button title="Email Invoice" onClick={() => handleEmail(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
-                            <Mail size={16} />
-                          </button>
-                        </>
-                      ) : (
+                      {canDownload && (
+                        <button title="Download PDF" onClick={() => handleDownload(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
+                          <Download size={16} />
+                        </button>
+                      )}
+                      {canEmail && (
+                        <button title="Email Invoice" onClick={() => handleEmail(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
+                          <Mail size={16} />
+                        </button>
+                      )}
+                      {!canDownload && !canEmail && (
                         <span className="text-xs text-slate-400 dark:text-zinc-500 bg-slate-50 dark:bg-zinc-900 px-2 py-1 rounded">No Access</span>
                       )}
                     </div>

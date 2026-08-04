@@ -64,7 +64,7 @@ async function listLeadsPaged(params) {
     values.push(`%${assignedTo}%`);
   }
   if (search) {
-    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR lead_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
+    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR lead_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex} OR interest ILIKE $${paramIndex} OR source ILIKE $${paramIndex} OR assigned_to ILIKE $${paramIndex})`);
     values.push(`%${search}%`);
     paramIndex++;
   }
@@ -104,10 +104,16 @@ async function listLeadsPaged(params) {
 }
 
 /** All non-deleted leads grouped by stage, for the Kanban pipeline (Phase 3). */
-async function listLeadsForPipeline(tenantId) {
+async function listLeadsForPipeline(tenantId, assignedTo) {
+  const values = [tenantId];
+  let whereSql = 'tenant_id = $1 AND deleted = FALSE';
+  if (assignedTo) {
+    values.push(assignedTo);
+    whereSql += ` AND assigned_to = $${values.length}`;
+  }
   const { rows } = await query(
-    `SELECT * FROM leads WHERE tenant_id = $1 AND deleted = FALSE ORDER BY created_at DESC`,
-    [tenantId]
+    `SELECT * FROM leads WHERE ${whereSql} ORDER BY created_at DESC`,
+    values
   );
   return rows;
 }

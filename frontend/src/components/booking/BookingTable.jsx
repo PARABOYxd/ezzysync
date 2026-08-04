@@ -6,14 +6,12 @@ import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 
-import { useAuth } from '../../hooks/useAuth.jsx';
+import { usePermission } from '../../hooks/usePermission.js';
 
 export default function BookingTable({ bookings, loading, onView, onEdit, onDelete, onSendInvoice, onSendWhatsApp }) {
-  const { user } = useAuth();
-
-  const canEdit = user?.role === 'ADMIN' || user?.permissions?.canEditLeads !== false;
-  const canDelete = user?.role === 'ADMIN' || user?.permissions?.canDeleteLeads === true;
-  const canDownload = user?.role === 'ADMIN' || user?.permissions?.canDownloadInvoice !== false;
+  const canEdit = usePermission('bookings', 'update');
+  const canDelete = usePermission('bookings', 'delete');
+  const canDownload = usePermission('invoices', 'download');
 
   const getFollowUpDisplay = (dateStr) => {
     if (!dateStr) return <span className="text-slate-300">-</span>;

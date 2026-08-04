@@ -24,16 +24,16 @@ const leadUpdateValidators = [
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('A valid email is required.'),
 ];
 
-router.get('/', ctrl.list);
-router.get('/pipeline', ctrl.pipeline);
-router.get('/:id', ctrl.getOne);
-router.post('/', requirePermission('canCreateLeads', true), leadValidators, validate, ctrl.create);
-router.put('/:id', requirePermission('canEditLeads', true), leadUpdateValidators, validate, ctrl.update);
-router.patch('/:id/stage', requirePermission('canEditLeads', true), ctrl.updateStage);
-router.post('/:id/convert', requirePermission('canEditLeads', true), ctrl.convert);
-router.delete('/:id', requirePermission('canDeleteLeads', false), ctrl.remove);
+router.get('/', requirePermission('leads', 'read'), ctrl.list);
+router.get('/pipeline', requirePermission('leads', 'read'), ctrl.pipeline);
+router.get('/:id', requirePermission('leads', 'read'), ctrl.getOne);
+router.post('/', requirePermission('leads', 'create'), leadValidators, validate, ctrl.create);
+router.put('/:id', requirePermission('leads', 'update'), leadUpdateValidators, validate, ctrl.update);
+router.patch('/:id/stage', requirePermission('leads', 'update'), ctrl.updateStage);
+router.post('/:id/convert', requirePermission('leads', 'update'), ctrl.convert);
+router.delete('/:id', requirePermission('leads', 'delete'), ctrl.remove);
 
-router.get('/:id/follow-ups', ctrl.listFollowUps);
-router.post('/:id/follow-ups', ctrl.createFollowUp);
+router.get('/:id/follow-ups', requirePermission('leads', 'read'), ctrl.listFollowUps);
+router.post('/:id/follow-ups', requirePermission('leads', 'update'), ctrl.createFollowUp);
 
 module.exports = router;

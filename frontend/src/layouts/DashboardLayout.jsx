@@ -15,6 +15,7 @@ const TITLES = {
   '/quotations': 'Itineraries & Quotes',
   '/profile': 'Profile',
   '/settings': 'Settings',
+  '/billing': 'Billing & Analytics',
 };
 
 export default function DashboardLayout() {

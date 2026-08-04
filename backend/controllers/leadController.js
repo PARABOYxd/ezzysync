@@ -1,11 +1,13 @@
 const leadService = require('../services/leadService');
 const auditService = require('../services/auditService');
+const { shouldScopeToSelf } = require('../config/permissions');
 
 async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { stage, assignedTo, search, sort, createdFrom, createdTo } = req.query;
+    const { stage, search, sort, createdFrom, createdTo } = req.query;
+    const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : req.query.assignedTo;
 
     const result = await leadService.listLeadsPaged(req.user.tenantId, {
       page, limit, stage, assignedTo, search, sort, createdFrom, createdTo,
@@ -27,7 +29,8 @@ async function list(req, res, next) {
 
 async function pipeline(req, res, next) {
   try {
-    const leads = await leadService.listLeadsForPipeline(req.user.tenantId);
+    const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : undefined;
+    const leads = await leadService.listLeadsForPipeline(req.user.tenantId, assignedTo);
     res.json({ leads });
   } catch (err) {
     next(err);
@@ -38,6 +41,9 @@ async function getOne(req, res, next) {
   try {
     const lead = await leadService.getLeadById(req.user.tenantId, req.params.id);
     if (!lead) return res.status(404).json({ message: 'Lead not found.' });
+    if (shouldScopeToSelf(req.user, 'leads') && lead.assignedTo !== req.user.name) {
+      return res.status(404).json({ message: 'Lead not found.' });
+    }
     res.json({ lead });
   } catch (err) {
     next(err);

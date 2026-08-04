@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
+import RequirePermission from './components/common/RequirePermission.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 
 import Login from './pages/Login.jsx';
@@ -25,6 +26,10 @@ import TourBatches from './pages/TourBatches.jsx';
 import HelpGuide from './pages/HelpGuide.jsx';
 import NotFound from './pages/NotFound.jsx';
 
+import BillingAnalytics from './pages/BillingAnalytics.jsx';
+
+// ... other imports
+
 export default function App() {
   return (
     <Routes>
@@ -45,19 +50,20 @@ export default function App() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/leads" element={<Leads />} />
-        <Route path="/follow-ups" element={<FollowUps />} />
-        <Route path="/bookings" element={<Bookings />} />
-        <Route path="/tour-batches" element={<TourBatches />} />
-        <Route path="/invoices" element={<Invoices />} />
-        <Route path="/quotations" element={<Quotations />} />
+        <Route path="/leads" element={<RequirePermission module="leads"><Leads /></RequirePermission>} />
+        <Route path="/follow-ups" element={<RequirePermission module="followUps"><FollowUps /></RequirePermission>} />
+        <Route path="/bookings" element={<RequirePermission module="bookings"><Bookings /></RequirePermission>} />
+        <Route path="/tour-batches" element={<RequirePermission module="tourBatches"><TourBatches /></RequirePermission>} />
+        <Route path="/invoices" element={<RequirePermission module="invoices"><Invoices /></RequirePermission>} />
+        <Route path="/quotations" element={<RequirePermission module="quotations"><Quotations /></RequirePermission>} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/hotels" element={<Hotels />} />
+        <Route path="/hotels" element={<RequirePermission module="hotels"><Hotels /></RequirePermission>} />
         <Route path="/guide" element={<HelpGuide />} />
         <Route path="/team" element={<Team />} />
-        <Route path="/ai-tools" element={<AITools />} />
-        <Route path="/customers/:id" element={<CustomerProfile />} />
+        <Route path="/ai-tools" element={<RequirePermission module="aiTools" action="use"><AITools /></RequirePermission>} />
+        <Route path="/customers/:id" element={<RequirePermission module="customers"><CustomerProfile /></RequirePermission>} />
+        <Route path="/billing" element={<RequirePermission module="billing"><BillingAnalytics /></RequirePermission>} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

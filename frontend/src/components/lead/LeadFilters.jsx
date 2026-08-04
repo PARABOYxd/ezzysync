@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
+import Button from '../ui/Button.jsx';
+import TeamMemberSelect from '../common/TeamMemberSelect.jsx';
 
 const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
 
@@ -31,6 +33,7 @@ function DateRangeField({ label, from, to, onFromChange, onToChange, onClear }) 
 
 export default function LeadFilters({ filters, onChange }) {
   const [localSearch, setLocalSearch] = useState(filters.search || '');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     setLocalSearch(filters.search || '');
@@ -50,11 +53,25 @@ export default function LeadFilters({ filters, onChange }) {
 
   return (
     <div className="flex flex-col lg:flex-row gap-3 lg:items-start lg:justify-between w-full">
-      <div className="w-full lg:max-w-xs">
-        <Input icon={Search} placeholder="Search by name, ID, email…" value={localSearch} onChange={(e) => setLocalSearch(e.target.value)} />
+      <div className="flex flex-col sm:flex-row gap-2 w-full lg:max-w-xs">
+        <Input 
+          className="flex-1"
+          icon={Search} 
+          placeholder="Search by name, ID, email…" 
+          value={localSearch} 
+          onChange={(e) => setLocalSearch(e.target.value)} 
+        />
+        <Button 
+          type="button" 
+          variant="secondary" 
+          className="lg:hidden shrink-0" 
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          {showFilters ? 'Hide Filters' : 'Filters'}
+        </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-end gap-3 sm:gap-2 w-full lg:w-auto">
+      <div className={`flex-col sm:flex-row sm:flex-wrap items-start sm:items-end gap-3 sm:gap-2 w-full lg:w-auto ${showFilters ? 'flex' : 'hidden lg:flex'}`}>
         <Select
           className="w-full sm:w-auto"
           inputClassName="w-full sm:w-auto"
@@ -62,7 +79,11 @@ export default function LeadFilters({ filters, onChange }) {
           onChange={set('stage')}
           options={[{ value: '', label: 'All Stages' }, ...LEAD_STAGES]}
         />
-        <Input className="w-full sm:w-auto" inputClassName="w-full sm:w-auto" placeholder="Assigned To" value={filters.assignedTo} onChange={set('assignedTo')} />
+        <TeamMemberSelect
+          value={filters.assignedTo}
+          onChange={(name) => onChange({ ...filters, assignedTo: name })}
+          className="w-full sm:w-auto"
+        />
 
         <DateRangeField
           label="Created"
@@ -74,8 +95,8 @@ export default function LeadFilters({ filters, onChange }) {
         />
 
         <Select
-          className="w-auto"
-          inputClassName="w-auto"
+          className="w-full sm:w-auto"
+          inputClassName="w-full sm:w-auto"
           value={filters.sort}
           onChange={set('sort')}
           options={[{ value: 'newest', label: 'Newest First' }, { value: 'oldest', label: 'Oldest First' }]}

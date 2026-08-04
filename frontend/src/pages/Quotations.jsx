@@ -3,6 +3,7 @@ import { Plus, Search, Copy, Check, Trash2, Edit, Files } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 import QuotationFormModal from '../components/quotation/QuotationFormModal.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import { QuotationStatusBadge } from '../components/common/StatusBadge.jsx';
@@ -11,6 +12,9 @@ import EmptyState from '../components/common/EmptyState.jsx';
 import Input from '../components/ui/Input.jsx';
 
 export default function Quotations() {
+  const canCreate = usePermission('quotations', 'create');
+  const canEdit = usePermission('quotations', 'update');
+  const canDelete = usePermission('quotations', 'delete');
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
@@ -109,15 +113,17 @@ export default function Quotations() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => {
-            setEditingQuotation(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus size={16} /> Create Quotation / Itinerary
-        </button>
+        {canCreate && (
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setEditingQuotation(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus size={16} /> Create Quotation / Itinerary
+          </button>
+        )}
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -160,30 +166,36 @@ export default function Quotations() {
                         >
                           {copiedId === q.quotationId ? <Check size={14} className="text-emerald-500 dark:text-emerald-400" /> : <Copy size={14} />}
                         </button>
-                        <button
-                          onClick={() => handleDuplicate(q.quotationId)}
-                          className="btn-icon text-slate-400 hover:text-slate-700"
-                          title="Duplicate itinerary"
-                        >
-                          <Files size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingQuotation(q);
-                            setFormOpen(true);
-                          }}
-                          className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
-                          title="Edit itinerary"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(q)}
-                          className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                          title="Delete quotation"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {canCreate && (
+                          <button
+                            onClick={() => handleDuplicate(q.quotationId)}
+                            className="btn-icon text-slate-400 hover:text-slate-700"
+                            title="Duplicate itinerary"
+                          >
+                            <Files size={14} />
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button
+                            onClick={() => {
+                              setEditingQuotation(q);
+                              setFormOpen(true);
+                            }}
+                            className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                            title="Edit itinerary"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeleteTarget(q)}
+                            className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            title="Delete quotation"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </Td>
                   </Tr>

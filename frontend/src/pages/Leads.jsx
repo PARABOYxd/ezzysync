@@ -10,7 +10,7 @@ import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
-import { useAuth } from '../hooks/useAuth.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 
 const STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
 
@@ -24,7 +24,6 @@ const STAGE_HEADER_STYLES = {
 };
 
 export default function Leads() {
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState(localStorage.getItem('leads_view_mode') || 'table');
   const [leads, setLeads] = useState([]);
@@ -118,7 +117,7 @@ export default function Leads() {
     return acc;
   }, {});
 
-  const canCreate = user?.role === 'ADMIN' || user?.permissions?.canCreateLeads !== false;
+  const canCreate = usePermission('leads', 'create');
   const handleFiltersChange = (newFilters) => setFilters({ ...newFilters, page: 1 });
 
   return (

@@ -1,9 +1,11 @@
 const followUpRepository = require('../repositories/followUpRepository');
 const auditService = require('../services/auditService');
+const { shouldScopeToSelf } = require('../config/permissions');
 
 async function list(req, res, next) {
   try {
-    const { overdue, dueToday, assignedTo } = req.query;
+    const { overdue, dueToday } = req.query;
+    const assignedTo = shouldScopeToSelf(req.user, 'followUps') ? req.user.name : req.query.assignedTo;
     const followUps = await followUpRepository.listDueFollowUps(req.user.tenantId, {
       overdue: overdue === 'true',
       dueToday: dueToday === 'true',
@@ -17,7 +19,7 @@ async function list(req, res, next) {
 
 async function listCompleted(req, res, next) {
   try {
-    const { assignedTo } = req.query;
+    const assignedTo = shouldScopeToSelf(req.user, 'followUps') ? req.user.name : req.query.assignedTo;
     const followUps = await followUpRepository.listCompletedFollowUps(req.user.tenantId, { assignedTo });
     res.json({ followUps });
   } catch (err) {

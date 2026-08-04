@@ -98,14 +98,14 @@ const bookingUpdateValidators = [
   body('pricePerPerson').optional().isFloat({ min: 0 }).withMessage('Price per person must be a positive number.'),
 ];
 
-router.get('/', ctrl.list);
-router.get('/export/csv', ctrl.exportCSV);
-router.get('/:id', ctrl.getOne);
-router.post('/', requirePermission('canCreateLeads', true), bookingValidators, validate, ctrl.create);
-router.put('/:id', requirePermission('canEditLeads', true), restrictPhoneEdit, bookingUpdateValidators, validate, ctrl.update);
-router.delete('/:id', requirePermission('canDeleteLeads', false), ctrl.remove);
+router.get('/', requirePermission('bookings', 'read'), ctrl.list);
+router.get('/export/csv', requirePermission('bookings', 'read'), ctrl.exportCSV);
+router.get('/:id', requirePermission('bookings', 'read'), ctrl.getOne);
+router.post('/', requirePermission('bookings', 'create'), bookingValidators, validate, ctrl.create);
+router.put('/:id', requirePermission('bookings', 'update'), restrictPhoneEdit, bookingUpdateValidators, validate, ctrl.update);
+router.delete('/:id', requirePermission('bookings', 'delete'), ctrl.remove);
 
-router.get('/:id/follow-ups', ctrl.listFollowUps);
-router.post('/:id/follow-ups', ctrl.createFollowUp);
+router.get('/:id/follow-ups', requirePermission('bookings', 'read'), ctrl.listFollowUps);
+router.post('/:id/follow-ups', requirePermission('bookings', 'update'), ctrl.createFollowUp);
 
 module.exports = router;

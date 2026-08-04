@@ -126,8 +126,8 @@ async function listLeadsPaged(tenantId, params) {
   return { leads: result.leads.map(rowToLead), totalCount: result.totalCount };
 }
 
-async function listLeadsForPipeline(tenantId) {
-  const rows = await leadRepository.listLeadsForPipeline(tenantId);
+async function listLeadsForPipeline(tenantId, assignedTo) {
+  const rows = await leadRepository.listLeadsForPipeline(tenantId, assignedTo);
   return rows.map(rowToLead);
 }
 

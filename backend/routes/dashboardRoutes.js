@@ -1,12 +1,11 @@
 const express = require('express');
 const ctrl = require('../controllers/dashboardController');
 const { requireAuth } = require('../middleware/authMiddleware');
+const { requirePermission } = require('../middleware/permissionMiddleware');
 
 const router = express.Router();
-router.get('/', requireAuth, (req, res, next) => {
-  if (req.user.role === 'TEAM_MEMBER') {
-    return res.status(403).json({ message: 'Access denied. Team members do not have access to analytics.' });
-  }
-  next();
-}, ctrl.getDashboard);
+
+router.get('/', requireAuth, ctrl.getDashboard);
+router.get('/analytics', requireAuth, requirePermission('billing', 'read'), ctrl.getBillingAnalytics);
+
 module.exports = router;

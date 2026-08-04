@@ -4,6 +4,7 @@ const ctrl = require('../controllers/quotationController');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validate');
 const { publicLimiter } = require('../middleware/rateLimiter');
+const { requirePermission } = require('../middleware/permissionMiddleware');
 
 const router = express.Router();
 
@@ -24,12 +25,12 @@ router.post('/:id/accept-public', publicLimiter, ctrl.accept);
 
 // Authenticated CRM team routes
 router.use(requireAuth);
-router.get('/', ctrl.list);
-router.get('/:id', ctrl.getOne);
-router.post('/', quotationValidators, validate, ctrl.create);
-router.put('/:id', quotationValidators, validate, ctrl.update);
-router.delete('/:id', ctrl.deleteQuote);
-router.post('/:id/accept', ctrl.accept);
-router.post('/:id/duplicate', ctrl.duplicate);
+router.get('/', requirePermission('quotations', 'read'), ctrl.list);
+router.get('/:id', requirePermission('quotations', 'read'), ctrl.getOne);
+router.post('/', requirePermission('quotations', 'create'), quotationValidators, validate, ctrl.create);
+router.put('/:id', requirePermission('quotations', 'update'), quotationValidators, validate, ctrl.update);
+router.delete('/:id', requirePermission('quotations', 'delete'), ctrl.deleteQuote);
+router.post('/:id/accept', requirePermission('quotations', 'update'), ctrl.accept);
+router.post('/:id/duplicate', requirePermission('quotations', 'create'), ctrl.duplicate);
 
 module.exports = router;

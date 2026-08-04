@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
 const settingsRepository = require('../repositories/settingsRepository');
 const { rowToUser } = require('../models/userSchema');
+const { sanitizePermissions } = require('../config/permissions');
 
 // rowToUser includes passwordHash/resetOTP/resetOTPExpiry because internal
 // auth flows (verifyPassword, resetPasswordWithOTP) need them - but
@@ -185,7 +186,7 @@ async function createTeamMember(tenantId, { email, password, name, role, permiss
     throw err;
   }
   const passwordHash = await bcrypt.hash(password, 10);
-  const row = await userRepository.insertTeamMember(tenantId, email, passwordHash, name, role, permissions);
+  const row = await userRepository.insertTeamMember(tenantId, email, passwordHash, name, role, sanitizePermissions(permissions));
   return stripSecrets(rowToUser(row));
 }
 
@@ -204,7 +205,7 @@ async function updateTeamMember(tenantId, userId, updates) {
   }
   if (updates.permissions) {
     fields.push(`permissions = $${idx++}`);
-    values.push(JSON.stringify(updates.permissions));
+    values.push(JSON.stringify(sanitizePermissions(updates.permissions)));
   }
   if (updates.password) {
     const passwordHash = await bcrypt.hash(updates.password, 10);

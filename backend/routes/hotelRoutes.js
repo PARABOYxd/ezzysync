@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const ctrl = require('../controllers/hotelController');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validate');
+const { requirePermission } = require('../middleware/permissionMiddleware');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -12,10 +13,10 @@ const hotelValidators = [
   body('city').notEmpty().withMessage('City name is required.'),
 ];
 
-router.get('/', ctrl.listHotels);
-router.get('/:id', ctrl.getHotelById);
-router.post('/', hotelValidators, validate, ctrl.createHotel);
-router.put('/:id', hotelValidators, validate, ctrl.updateHotel);
-router.delete('/:id', ctrl.deleteHotel);
+router.get('/', requirePermission('hotels', 'read'), ctrl.listHotels);
+router.get('/:id', requirePermission('hotels', 'read'), ctrl.getHotelById);
+router.post('/', requirePermission('hotels', 'create'), hotelValidators, validate, ctrl.createHotel);
+router.put('/:id', requirePermission('hotels', 'update'), hotelValidators, validate, ctrl.updateHotel);
+router.delete('/:id', requirePermission('hotels', 'delete'), ctrl.deleteHotel);
 
 module.exports = router;
