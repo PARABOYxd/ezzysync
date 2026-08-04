@@ -20,3 +20,9 @@ export const linkBooking = (batchId, bookingId) =>
 
 export const unlinkBooking = (batchId, bookingId) =>
   api.post(`/batches/${batchId}/unlink`, { bookingId }).then((r) => r.data.booking);
+
+export const linkLead = (batchId, leadId) =>
+  api.post(`/batches/${batchId}/link-lead`, { leadId }).then((r) => r.data.lead);
+
+export const unlinkLead = (batchId, leadId) =>
+  api.post(`/batches/${batchId}/unlink-lead`, { leadId }).then((r) => r.data.lead);

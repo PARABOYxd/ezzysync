@@ -366,6 +366,13 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding lead_id to bookings');
   }
 
+  // Link leads to tour batches
+  try {
+    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding batch_id to leads');
+  }
+
   // Link bookings/quotations to the customer rollup (additive, nullable -
   // existing rows and existing create/update flows keep working unchanged).
   try {

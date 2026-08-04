@@ -7,11 +7,12 @@ import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
-import { User, Mail, Phone, MapPin, Tag, UserCheck, AlertTriangle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Tag, UserCheck, AlertTriangle, Users } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '../../utils/validators';
 import * as leadService from '../../services/leadService';
 import * as userService from '../../services/userService';
 import * as quotationService from '../../services/quotationService';
+import * as batchService from '../../services/batchService';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp'];
@@ -19,7 +20,7 @@ const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Los
 
 const emptyForm = {
   customerName: '', email: '', phone: '', interest: '', source: 'Manual',
-  stage: 'New', assignedTo: '', notes: '',
+  stage: 'New', assignedTo: '', notes: '', batchId: '',
 };
 
 export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead }) {
@@ -31,6 +32,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
   const [itineraries, setItineraries] = useState([]);
   const [interestOther, setInterestOther] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [batches, setBatches] = useState([]);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -49,6 +51,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
           if (!found) setInterestOther(true);
         }
       }).catch(() => {});
+      batchService.getBatches().then((data) => setBatches(data || [])).catch(() => {});
     }
   }, [open, lead]);
 
@@ -57,6 +60,19 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
     if (key === 'phone') val = val.replace(/[^0-9+\-\s()]/g, '');
     setForm({ ...form, [key]: val });
     if (errors[key]) setErrors({ ...errors, [key]: '' });
+  };
+
+  const handleBatchChange = (e) => {
+    const bId = e.target.value;
+    if (!bId) {
+      setForm((prev) => ({ ...prev, batchId: '' }));
+      return;
+    }
+    const b = batches.find((x) => x.id === bId);
+    if (!b) return;
+    setInterestOther(false);
+    setForm((prev) => ({ ...prev, batchId: bId, interest: b.tripName }));
+    if (errors.interest) setErrors((prev) => ({ ...prev, interest: '' }));
   };
 
   const validate = () => {
@@ -170,6 +186,19 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
         </FormRow>
         <FormRow>
           <Input label="Contact Number" icon={Phone} required error={errors.phone} hint="Include country code for WhatsApp updates" placeholder="e.g. +919876543210" value={form.phone} onChange={set('phone')} />
+          <Select
+            label="Tour Batch / Group (Optional)"
+            icon={Users}
+            hint="Linking a batch sets the trip interest automatically"
+            value={form.batchId || ''}
+            onChange={handleBatchChange}
+            options={[
+              { value: '', label: '-- No Batch Linked --' },
+              ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
+            ]}
+          />
+        </FormRow>
+        <FormRow>
           <div className="w-full space-y-1.5">
             <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">Trip / Destination Interest</label>
             <select
@@ -196,15 +225,19 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
             {interestOther && (
               <Input
                 icon={MapPin}
+                disabled={!!form.batchId}
                 placeholder="e.g. Bali Honeymoon Package"
                 value={form.interest}
                 onChange={set('interest')}
               />
             )}
+            {!!form.batchId && (
+              <p className="text-[10px] text-slate-400">Locked to the linked batch's itinerary.</p>
+            )}
           </div>
+          <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />
         </FormRow>
         <FormRow>
-          <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />
           <Select
             label="Assigned Team Member"
             icon={UserCheck}
