@@ -9,7 +9,7 @@ import * as bookingService from '../../services/bookingService';
 import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Search, Link2, Unlink, Users, MapPin, Calendar, ExternalLink, Wallet, Hourglass } from 'lucide-react';
+import { Search, Link2, Unlink, Users, MapPin, Calendar, ExternalLink, Wallet, Hourglass, Target } from 'lucide-react';
 
 function initials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -122,9 +122,21 @@ export default function BatchDetailDrawer({ open, onClose, batchId, onChanged })
     }
   };
 
+  const handleUnlinkLead = async (lead) => {
+    if (!window.confirm(`Remove ${lead.customerName} from this batch?`)) return;
+    try {
+      await batchService.unlinkLead(batchId, lead.leadId);
+      toast.success('Lead unlinked from batch.');
+      load();
+      onChanged?.();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not unlink lead.');
+    }
+  };
+
   if (!open) return null;
 
-  const { batch, bookings = [], summary } = detail || {};
+  const { batch, bookings = [], leads = [], summary } = detail || {};
 
   return (
     <Drawer open={open} onClose={onClose} title={batch?.tripName || 'Tour Batch'}>
@@ -259,6 +271,52 @@ export default function BatchDetailDrawer({ open, onClose, batchId, onChanged })
                       <button
                         onClick={() => handleUnlink(b)}
                         aria-label={`Unlink ${b.customerName} from this batch`}
+                        title="Unlink from batch"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-[var(--danger-bg)] text-[var(--danger)]
+                          hover:bg-red-100 dark:hover:bg-red-950/40 active:bg-red-200 dark:active:bg-red-950/60 transition-colors duration-150
+                          focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
+                      >
+                        <Unlink size={16} strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Linked leads roster */}
+          <div className="space-y-2 mt-6">
+            <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+              Lead Pipeline ({leads.length} lead{leads.length !== 1 ? 's' : ''})
+            </h4>
+            {leads.length === 0 ? (
+              <p className="text-sm text-[var(--text-secondary)] py-6 text-center border border-dashed border-[var(--border)] rounded-xl">
+                No active leads linked to this batch yet.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {leads.map((l) => (
+                  <div
+                    key={l.leadId}
+                    className="border border-[var(--border)] rounded-xl p-3 flex items-center gap-3 hover:bg-[var(--surface-muted)] transition-colors duration-150"
+                  >
+                    <div className="w-9 h-9 shrink-0 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-xs font-bold flex items-center justify-center">
+                      {initials(l.customerName)}
+                    </div>
+                    <div className="text-xs min-w-0 flex-1">
+                      <p className="font-semibold text-[var(--text-primary)] truncate">{l.customerName}</p>
+                      <p className="text-[var(--text-secondary)] truncate">{l.phone}</p>
+                      <div className="flex gap-1.5 mt-1.5">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-[var(--text-secondary)]">
+                          <Target size={10} /> {l.stage}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleUnlinkLead(l)}
+                        aria-label={`Unlink ${l.customerName} from this batch`}
                         title="Unlink from batch"
                         className="w-11 h-11 flex items-center justify-center rounded-lg bg-[var(--danger-bg)] text-[var(--danger)]
                           hover:bg-red-100 dark:hover:bg-red-950/40 active:bg-red-200 dark:active:bg-red-950/60 transition-colors duration-150

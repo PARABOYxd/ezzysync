@@ -74,4 +74,28 @@ async function unlink(req, res, next) {
   }
 }
 
-module.exports = { list, getOne, create, update, remove, link, unlink };
+async function linkLead(req, res, next) {
+  try {
+    const { leadId } = req.body;
+    if (!leadId) return res.status(400).json({ message: 'leadId is required.' });
+    const lead = await batchService.linkLead(req.user.tenantId, req.params.id, leadId);
+    await auditService.logAction(req, 'LINK_LEAD_TO_BATCH', { batchId: req.params.id, leadId });
+    res.json({ lead });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function unlinkLead(req, res, next) {
+  try {
+    const { leadId } = req.body;
+    if (!leadId) return res.status(400).json({ message: 'leadId is required.' });
+    const lead = await batchService.unlinkLead(req.user.tenantId, leadId);
+    await auditService.logAction(req, 'UNLINK_LEAD_FROM_BATCH', { batchId: req.params.id, leadId });
+    res.json({ lead });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, getOne, create, update, remove, link, unlink, linkLead, unlinkLead };

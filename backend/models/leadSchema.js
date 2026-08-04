@@ -22,6 +22,7 @@ function rowToLead(row) {
     updatedAt: row.updated_at,
     deleted: !!row.deleted,
     followUpCount: row.follow_up_count !== undefined ? Number(row.follow_up_count) : null,
+    batchId: row.batch_id || null,
   };
 }
 

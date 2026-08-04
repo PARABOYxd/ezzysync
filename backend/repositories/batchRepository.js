@@ -97,6 +97,30 @@ async function countBySourceQuotation(tenantId, quotationId) {
   return rows[0]?.count || 0;
 }
 
+async function listLeadsForBatch(tenantId, batchUuid) {
+  const { rows } = await query(
+    `SELECT * FROM leads WHERE tenant_id = $1 AND batch_id = $2 AND deleted = FALSE ORDER BY created_at DESC`,
+    [tenantId, batchUuid]
+  );
+  return rows;
+}
+
+async function assignLeadToBatch(tenantId, leadIdText, batchUuid) {
+  const { rows } = await query(
+    `UPDATE leads SET batch_id = $1 WHERE tenant_id = $2 AND lead_id = $3 RETURNING *`,
+    [batchUuid, tenantId, leadIdText]
+  );
+  return rows[0];
+}
+
+async function unassignLeadFromBatch(tenantId, leadIdText) {
+  const { rows } = await query(
+    `UPDATE leads SET batch_id = NULL WHERE tenant_id = $1 AND lead_id = $2 RETURNING *`,
+    [tenantId, leadIdText]
+  );
+  return rows[0];
+}
+
 module.exports = {
   insertBatch,
   listBatches,
@@ -105,5 +129,8 @@ module.exports = {
   listBookingsForBatch,
   assignBookingToBatch,
   unassignBookingFromBatch,
+  listLeadsForBatch,
+  assignLeadToBatch,
+  unassignLeadFromBatch,
   countBySourceQuotation,
 };

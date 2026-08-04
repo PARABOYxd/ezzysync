@@ -21,5 +21,6 @@ router.put('/:id', batchValidators, validate, ctrl.update);
 router.delete('/:id', ctrl.remove);
 router.post('/:id/link', ctrl.link);
 router.post('/:id/unlink', ctrl.unlink);
-
+router.post('/:id/link-lead', ctrl.linkLead);
+router.post('/:id/unlink-lead', ctrl.unlinkLead);
 module.exports = router;

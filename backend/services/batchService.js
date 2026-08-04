@@ -2,6 +2,7 @@ const batchRepository = require('../repositories/batchRepository');
 const bookingRepository = require('../repositories/bookingRepository');
 const { BATCH_STATUSES, rowToBatch } = require('../models/batchSchema');
 const { rowToBooking } = require('../models/bookingSchema');
+const { rowToLead } = require('../models/leadSchema');
 const db = require('../config/db');
 
 async function getBatchByBatchId(tenantId, batchId) {
@@ -54,12 +55,16 @@ async function getBatchDetail(tenantId, batchId) {
   const bookingRows = await batchRepository.listBookingsForBatch(tenantId, batch.id);
   const bookings = bookingRows.map(rowToBooking);
 
+  const leadRows = await batchRepository.listLeadsForBatch(tenantId, batch.id);
+  const leads = leadRows.map(rowToLead);
+
   const totalPaid = bookings.reduce((sum, b) => sum + (b.paid || 0), 0);
   const totalPending = bookings.reduce((sum, b) => sum + (b.remaining || 0), 0);
 
   return {
     batch,
     bookings,
+    leads,
     summary: {
       totalCapacity: batch.totalCapacity,
       confirmedSeats: batch.confirmedSeats,
@@ -109,6 +114,32 @@ async function unlinkBooking(tenantId, bookingIdText) {
   return rowToBooking(row);
 }
 
+async function linkLead(tenantId, batchId, leadIdText) {
+  const batch = await getBatchByBatchId(tenantId, batchId);
+  if (!batch) {
+    const err = new Error('Tour batch not found.');
+    err.status = 404;
+    throw err;
+  }
+  const row = await batchRepository.assignLeadToBatch(tenantId, leadIdText, batch.id);
+  if (!row) {
+    const err = new Error('Lead not found.');
+    err.status = 404;
+    throw err;
+  }
+  return rowToLead(row);
+}
+
+async function unlinkLead(tenantId, leadIdText) {
+  const row = await batchRepository.unassignLeadFromBatch(tenantId, leadIdText);
+  if (!row) {
+    const err = new Error('Lead not found.');
+    err.status = 404;
+    throw err;
+  }
+  return rowToLead(row);
+}
+
 module.exports = {
   listBatches,
   getBatchByBatchId,
@@ -118,4 +149,6 @@ module.exports = {
   getBatchDetail,
   linkBooking,
   unlinkBooking,
+  linkLead,
+  unlinkLead,
 };
