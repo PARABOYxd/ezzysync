@@ -86,15 +86,15 @@ export default function Dashboard() {
           <li className="flex items-start gap-2 bg-white/70 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
             <span className="w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
             <div>
-              <p className="font-bold text-slate-800 dark:text-slate-200 mb-0.5">Automate WhatsApp Alerts</p>
-              <p className="text-slate-500 dark:text-slate-400 leading-normal">Go to "Follow-ups" or "Leads" to set automatic notifications directly to client phone numbers.</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 mb-0.5">Manage Leads & Itineraries</p>
+              <p className="text-slate-500 dark:text-slate-400 leading-normal">Track your sales pipeline in the Leads tab and generate beautiful custom itineraries (Quotations) in seconds.</p>
             </div>
           </li>
           <li className="flex items-start gap-2 bg-white/70 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
             <span className="w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
             <div>
-              <p className="font-bold text-slate-800 dark:text-slate-200 mb-0.5">Share Invoices & Profit</p>
-              <p className="text-slate-500 dark:text-slate-400 leading-normal">Generate invoice PDFs from the "Invoices" tab. Track your net profits automatically below.</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 mb-0.5">Automatic Invoices</p>
+              <p className="text-slate-500 dark:text-slate-400 leading-normal">Invoices are automatically generated—just share them! You can also configure auto invoice sharing.</p>
             </div>
           </li>
         </ol>

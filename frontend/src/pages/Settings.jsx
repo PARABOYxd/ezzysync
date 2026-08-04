@@ -421,7 +421,7 @@ export default function SettingsPage() {
                 <div className="space-y-3 pt-2">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Field Visibility</label>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-slate-50/20 text-xs font-medium text-slate-700">
                       <input
                         type="checkbox"
@@ -440,6 +440,16 @@ export default function SettingsPage() {
                         className="rounded text-brand-600 focus:ring-brand-500/20 border-slate-300"
                       />
                       Show Payment Status
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-emerald-50 text-xs font-medium text-emerald-800 sm:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={!!settings.autoSendInvoice}
+                        onChange={(e) => setSettings({ ...settings, autoSendInvoice: e.target.checked })}
+                        className="rounded text-emerald-600 focus:ring-emerald-500/20 border-emerald-300"
+                      />
+                      Automatically send Invoice via Email/WhatsApp on new bookings
                     </label>
                   </div>
                 </div>

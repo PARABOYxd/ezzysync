@@ -1,6 +1,6 @@
 const DEFAULT_KEYS = [
   'companyName', 'companyLogoUrl', 'invoiceFooter', 'emailSenderName', 'whatsappNumber', 'gstNumber', 'address',
-  'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms',
+  'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms', 'autoSendInvoice',
   'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
   'instagramUsername', 'instagramAccountId', 'instagramAccessToken'
 ];
@@ -20,6 +20,7 @@ const COLUMN_MAP = {
   invoiceShowGst: 'invoice_show_gst',
   invoiceShowPaymentStatus: 'invoice_show_payment_status',
   invoiceTerms: 'invoice_terms',
+  autoSendInvoice: 'auto_send_invoice',
   whatsappPhoneNumberId: 'whatsapp_phone_number_id',
   whatsappAccessToken: 'whatsapp_access_token',
   whatsappWabaId: 'whatsapp_waba_id',
@@ -36,6 +37,8 @@ function rowToSettings(row) {
     const val = row ? row[COLUMN_MAP[k]] : undefined;
     if (k === 'invoiceShowGst' || k === 'invoiceShowPaymentStatus') {
       obj[k] = val !== undefined ? !!val : true;
+    } else if (k === 'autoSendInvoice') {
+      obj[k] = !!val;
     } else if (k === 'invoiceAccentColor') {
       obj[k] = val || '#0f766e';
     } else if (k === 'invoiceLayout') {

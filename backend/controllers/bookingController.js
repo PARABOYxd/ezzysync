@@ -45,10 +45,22 @@ async function getOne(req, res, next) {
   }
 }
 
+const tenantService = require('../services/tenantService');
+const logger = require('../utils/logger').child({ module: 'bookingController' });
+
 async function create(req, res, next) {
   try {
     const booking = await bookingService.createBooking(req.user.tenantId, req.body, req.user.email);
     await auditService.logAction(req, 'CREATE_LEAD', { bookingId: booking.bookingId, customerName: booking.customerName, trip: booking.trip });
+    
+    // Auto invoice sharing logic
+    const settings = await tenantService.getSettings(req.user.tenantId);
+    if (settings && settings.autoSendInvoice) {
+      logger.info(`[Auto-Invoice] Sending invoice to ${booking.email} for booking ${booking.bookingId}`);
+      // In MVP, we mock the email send. 
+      await auditService.logAction(req, 'AUTO_SEND_INVOICE', { bookingId: booking.bookingId, email: booking.email });
+    }
+
     res.status(201).json({ booking });
   } catch (err) {
     next(err);

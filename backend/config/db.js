@@ -451,6 +451,12 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding inclusions/exclusions to quotations');
   }
 
+  try {
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS auto_send_invoice BOOLEAN DEFAULT FALSE;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding auto_send_invoice to settings');
+  }
+
   // Optional trip highlights (short bullet list) and per-pickup-point
   // pricing (each entry is its own absolute total price, not an add-on).
   try {
