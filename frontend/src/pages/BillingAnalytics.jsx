@@ -1,16 +1,40 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { IndianRupee, MapPin, CalendarDays, Users, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Briefcase, Filter, X } from 'lucide-react';
+import { IndianRupee, MapPin, CalendarDays, Users, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Briefcase, Filter, X, Award } from 'lucide-react';
 import * as dashboardService from '../services/dashboardService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 
+const MONTHS_LIST = [
+  { val: 'all', label: 'All Months' },
+  { val: '01', label: 'January' },
+  { val: '02', label: 'February' },
+  { val: '03', label: 'March' },
+  { val: '04', label: 'April' },
+  { val: '05', label: 'May' },
+  { val: '06', label: 'June' },
+  { val: '07', label: 'July' },
+  { val: '08', label: 'August' },
+  { val: '09', label: 'September' },
+  { val: '10', label: 'October' },
+  { val: '11', label: 'November' },
+  { val: '12', label: 'December' },
+];
+
 export default function BillingAnalytics() {
   const { user } = useAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ tripWise: [], monthWise: [], teamWise: [] });
+  const [data, setData] = useState({ bookings: [], teamWise: [] });
   const [selectedMembers, setSelectedMembers] = useState([]); // [] = All
+
+  // Dashboard Filters
+  const [filterYear, setFilterYear] = useState(() => String(new Date().getFullYear())); // Default to current year
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [filterTrip, setFilterTrip] = useState('all');
+  
+  // Ledger table grouping interval
+  const [ledgerGroupBy, setLedgerGroupBy] = useState('month'); // 'month' | 'year'
 
   const isAdmin = user?.role !== 'TEAM_MEMBER';
 
@@ -24,27 +48,137 @@ export default function BillingAnalytics() {
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
-  // All unique team members from teamWise data
+  // 1. EXTRACT UNIQUE DATA DYNAMICALLY FOR FILTER OPTIONS
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    (data.bookings || []).forEach((b) => {
+      if (b.departure) {
+        const y = b.departure.split('-')[0];
+        if (y && y.length === 4) years.add(y);
+      }
+    });
+    // Ensure current year is always in options list
+    years.add(String(new Date().getFullYear()));
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [data.bookings]);
+
+  const availableTrips = useMemo(() => {
+    const trips = new Set();
+    (data.bookings || []).forEach((b) => {
+      if (b.trip) trips.add(b.trip);
+    });
+    return Array.from(trips).sort();
+  }, [data.bookings]);
+
   const allMembers = useMemo(() => data.teamWise.map((t) => t.teamMember), [data.teamWise]);
 
-  const toggleMember = (name) => {
-    setSelectedMembers((prev) =>
-      prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name]
-    );
-  };
+  // 2. FILTERED BOOKINGS PIPE
+  const filteredBookings = useMemo(() => {
+    let list = data.bookings || [];
 
-  const clearFilter = () => setSelectedMembers([]);
+    // Filter by Team Member
+    if (isAdmin && selectedMembers.length > 0) {
+      list = list.filter((b) => selectedMembers.includes(b.teamMember));
+    } else if (!isAdmin) {
+      list = list.filter((b) => b.teamMember === user?.name);
+    }
 
-  // Filter data based on selected members
-  const filteredData = useMemo(() => {
+    // Filter by Year
+    if (filterYear !== 'all') {
+      list = list.filter((b) => (b.departure || '').startsWith(filterYear));
+    }
+
+    // Filter by Month
+    if (filterMonth !== 'all') {
+      list = list.filter((b) => {
+        if (!b.departure) return false;
+        const parts = b.departure.split('-');
+        return parts[1] === filterMonth;
+      });
+    }
+
+    // Filter by Trip/Destination name
+    if (filterTrip !== 'all') {
+      list = list.filter((b) => b.trip === filterTrip);
+    }
+
+    return list;
+  }, [data.bookings, selectedMembers, isAdmin, user?.name, filterYear, filterMonth, filterTrip]);
+
+  // 3. STAT CARDS CALCULATIONS
+  const totalRevenue = useMemo(() => filteredBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0), [filteredBookings]);
+  const totalProfit = useMemo(() => filteredBookings.reduce((sum, b) => sum + (b.netProfit || 0), 0), [filteredBookings]);
+  const totalCost = useMemo(() => filteredBookings.reduce((sum, b) => sum + (b.vendorCost || 0), 0), [filteredBookings]);
+  const totalBookings = filteredBookings.length;
+  const profitMargin = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0;
+
+  // 4. TRIP WISE LEDGER CALCULATION
+  const tripWiseItems = useMemo(() => {
+    const tripStats = {};
+    filteredBookings.forEach((b) => {
+      const trip = b.trip || 'Uncategorized';
+      if (!tripStats[trip]) {
+        tripStats[trip] = { trip, count: 0, members: 0, revenue: 0, vendorCost: 0, profit: 0 };
+      }
+      tripStats[trip].count++;
+      tripStats[trip].members += b.members || 0;
+      tripStats[trip].revenue += b.totalAmount || 0;
+      tripStats[trip].vendorCost += b.vendorCost || 0;
+      tripStats[trip].profit += b.netProfit || 0;
+    });
+
+    return Object.values(tripStats).sort((a, b) => b.profit - a.profit);
+  }, [filteredBookings]);
+
+  // Highlights Widget
+  const highlights = useMemo(() => {
+    if (tripWiseItems.length === 0) return { topProfitTrip: null, mostBookedTrip: null };
+    const sortedByProfit = [...tripWiseItems].sort((a, b) => b.profit - a.profit);
+    const sortedByBookings = [...tripWiseItems].sort((a, b) => b.count - a.count);
+    return {
+      topProfitTrip: sortedByProfit[0].profit > 0 ? sortedByProfit[0] : null,
+      mostBookedTrip: sortedByBookings[0].count > 0 ? sortedByBookings[0] : null,
+    };
+  }, [tripWiseItems]);
+
+  // 5. INTERVAL LEDGER CALCULATION (DYNAMIC LEDGER)
+  const ledgerItems = useMemo(() => {
+    const groups = {};
+    filteredBookings.forEach((b) => {
+      let key = 'Unknown';
+      let dateLabel = 'Unknown';
+
+      if (b.departure) {
+        const d = new Date(b.departure);
+        if (!isNaN(d.getTime())) {
+          const year = String(d.getFullYear());
+          if (ledgerGroupBy === 'year') {
+            key = year;
+            dateLabel = year;
+          } else {
+            // default 'month'
+            const m = d.getMonth() + 1;
+            key = `${year}-${String(m).padStart(2, '0')}`;
+            dateLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          }
+        }
+      }
+
+      if (!groups[key]) {
+        groups[key] = { label: dateLabel, key, revenue: 0, vendorCost: 0, profit: 0 };
+      }
+      groups[key].revenue += b.totalAmount || 0;
+      groups[key].vendorCost += b.vendorCost || 0;
+      groups[key].profit += b.netProfit || 0;
+    });
+
+    return Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
+  }, [filteredBookings, ledgerGroupBy]);
+
+  // Filtered team totals (for selected members summary)
+  const filteredTeamData = useMemo(() => {
     if (!isAdmin || selectedMembers.length === 0) return data;
-
-    // Filter teamWise
     const teamWise = data.teamWise.filter((t) => selectedMembers.includes(t.teamMember));
-
-    // For tripWise & monthWise: we don't have per-member breakdown
-    // So show all (they're already tenant-wide aggregates)
-    // But indicate filter is active with a note
     return { ...data, teamWise };
   }, [data, selectedMembers, isAdmin]);
 
@@ -58,76 +192,119 @@ export default function BillingAnalytics() {
     );
   }
 
-  // Summary totals (from tripWise for revenue, cost, profit)
-  const totalRevenue = data.tripWise.reduce((sum, t) => sum + (t.revenue || 0), 0);
-  const totalProfit = data.tripWise.reduce((sum, t) => sum + (t.profit || 0), 0);
-  const totalCost = data.tripWise.reduce((sum, t) => sum + (t.vendorCost || 0), 0);
-  const totalBookings = data.tripWise.reduce((sum, t) => sum + (t.count || 0), 0);
-  const profitMargin = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0;
-
-  // Filtered team totals (for selected members summary)
-  const teamRevenue = filteredData.teamWise.reduce((sum, t) => sum + (t.revenue || 0), 0);
-  const teamProfit = filteredData.teamWise.reduce((sum, t) => sum + (t.profit || 0), 0);
-  const teamBookings = filteredData.teamWise.reduce((sum, t) => sum + (t.bookingsClosed || 0), 0);
-
-  const isFiltered = isAdmin && selectedMembers.length > 0;
-
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto pb-20">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <IndianRupee className="text-brand-600 dark:text-brand-400" size={26} strokeWidth={2.5} />
-            Billing & Analytics
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {isFiltered
-              ? `Showing data for: ${selectedMembers.join(', ')}`
-              : 'Deep dive into your financial health and team performance.'}
-          </p>
+      {/* Global Filter Dashboard Bar */}
+      <div className="bg-white dark:bg-zinc-900/50 p-6 rounded-2xl border border-slate-200/60 dark:border-zinc-800 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <IndianRupee className="text-brand-600 dark:text-brand-400" size={26} strokeWidth={2.5} />
+              Billing & Analytics
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Live updates on costing, revenue, and net profit performance metrics.
+            </p>
+          </div>
         </div>
 
-        {/* Team Member Filter — Admin only */}
-        {isAdmin && allMembers.length > 0 && (
-          <div className="flex flex-col gap-2 shrink-0">
-            <div className="flex items-center gap-2">
-              <Filter size={14} className="text-slate-400" />
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Filter by Team Member</span>
-              {isFiltered && (
-                <button
-                  onClick={clearFilter}
-                  className="flex items-center gap-1 text-[11px] text-rose-500 hover:text-rose-600 font-medium"
-                >
-                  <X size={12} /> Clear
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2 max-w-xs">
-              {allMembers.map((name) => {
-                const active = selectedMembers.includes(name);
-                return (
-                  <button
-                    key={name}
-                    onClick={() => toggleMember(name)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 ${
-                      active
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-500/20'
-                        : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-zinc-700 hover:border-brand-400 hover:text-brand-600'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
+        {/* Filters Matrix */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          
+          {/* Year Filter */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Year</span>
+            <div className="relative">
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
+              >
+                <option value="all">All Years</option>
+                {availableYears.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
           </div>
-        )}
+
+          {/* Month Filter */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Month</span>
+            <div className="relative">
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
+              >
+                {MONTHS_LIST.map((m) => (
+                  <option key={m.val} value={m.val}>{m.label}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Trip/Destination Filter */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Trip / Destination</span>
+            <div className="relative">
+              <select
+                value={filterTrip}
+                onChange={(e) => setFilterTrip(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
+              >
+                <option value="all">All Trips</option>
+                {availableTrips.map((trip) => (
+                  <option key={trip} value={trip}>{trip}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Team Member Filter — Admin only */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Team Member</span>
+            <div className="relative">
+              <select
+                value={selectedMembers[0] || ''}
+                onChange={(e) => setSelectedMembers(e.target.value ? [e.target.value] : [])}
+                disabled={!isAdmin}
+                className="w-full bg-slate-50 disabled:opacity-60 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
+              >
+                <option value="">All Team Members</option>
+                {allMembers.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       {/* STAT CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card flex items-start gap-4 p-5">
           <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-brand-50 text-brand-600 dark:bg-brand-950/30 dark:text-brand-400">
             <Wallet size={20} />
@@ -135,9 +312,8 @@ export default function BillingAnalytics() {
           <div className="min-w-0">
             <p className="text-xs text-slate-400 leading-tight mb-1 font-medium">Gross Revenue</p>
             <p className="text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-none">
-              {isFiltered ? formatCurrency(teamRevenue) : formatCurrency(totalRevenue)}
+              {formatCurrency(totalRevenue)}
             </p>
-            {isFiltered && <p className="text-[10px] text-slate-400 mt-1">All trips: {formatCurrency(totalRevenue)}</p>}
           </div>
         </div>
 
@@ -148,7 +324,7 @@ export default function BillingAnalytics() {
           <div className="min-w-0">
             <p className="text-xs text-slate-400 leading-tight mb-1 font-medium">Net Profit</p>
             <p className="text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-none">
-              {isFiltered ? formatCurrency(teamProfit) : formatCurrency(totalProfit)}
+              {formatCurrency(totalProfit)}
             </p>
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1.5 flex items-center gap-1">
               <ArrowUpRight size={12} /> {profitMargin}% Margin
@@ -174,21 +350,51 @@ export default function BillingAnalytics() {
             <MapPin size={20} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-slate-400 leading-tight mb-1 font-medium">
-              {isFiltered ? 'Bookings (Selected)' : 'Total Bookings'}
-            </p>
-            <p className="text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-none">
-              {isFiltered ? teamBookings : totalBookings}
-            </p>
+            <p className="text-xs text-slate-400 leading-tight mb-1 font-medium">Total Bookings</p>
+            <p className="text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-none">{totalBookings}</p>
           </div>
         </div>
       </div>
 
-      {/* TRIP-WISE P&L */}
+      {/* TRIP-WISE PERFORMANCE LEDGER & HIGHLIGHTS */}
       <section className="space-y-4">
-        <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2">
-          <MapPin className="text-indigo-500" size={20} /> Trip-wise Ledger
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2">
+            <MapPin className="text-indigo-500" size={20} /> Trip-wise Ledger
+          </h3>
+        </div>
+
+        {/* Top Highlights Block */}
+        {(highlights.topProfitTrip || highlights.mostBookedTrip) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-tr from-brand-500/5 to-teal-500/5 dark:from-brand-950/20 dark:to-teal-950/20 p-4 rounded-xl border border-brand-100/50 dark:border-brand-900/30">
+            {highlights.topProfitTrip && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 font-bold">
+                  <Award size={20} />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Top Performing Trip (Highest Profit)</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{highlights.topProfitTrip.trip}</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold ml-2">({formatCurrency(highlights.topProfitTrip.profit)} Profit)</span>
+                </div>
+              </div>
+            )}
+
+            {highlights.mostBookedTrip && (
+              <div className="flex items-center gap-3 border-t md:border-t-0 md:border-l border-slate-200/60 dark:border-zinc-800 pt-3 md:pt-0 md:pl-4">
+                <div className="w-10 h-10 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 font-bold">
+                  <Users size={20} />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Most Booked Trip</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{highlights.mostBookedTrip.trip}</span>
+                  <span className="text-xs text-brand-600 dark:text-brand-400 font-bold ml-2">({highlights.mostBookedTrip.count} Bookings)</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="card p-0 overflow-hidden">
           <Table>
             <Thead>
@@ -200,10 +406,10 @@ export default function BillingAnalytics() {
               <Th className="text-right">Net Profit</Th>
             </Thead>
             <Tbody>
-              {data.tripWise.length === 0 ? (
+              {tripWiseItems.length === 0 ? (
                 <Tr><Td colSpan="6" className="text-center text-slate-400 italic py-8">No trip data available.</Td></Tr>
               ) : (
-                data.tripWise.map((trip, i) => (
+                tripWiseItems.map((trip, i) => (
                   <Tr key={i}>
                     <Td className="font-medium text-slate-800 dark:text-slate-200">{trip.trip}</Td>
                     <Td className="text-center text-slate-600 dark:text-slate-300">{trip.count}</Td>
@@ -219,30 +425,48 @@ export default function BillingAnalytics() {
         </div>
       </section>
 
+      {/* INTERVAL LEDGER & TEAM PERFORMANCE */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* MONTHLY P&L */}
+        
+        {/* TIME INTERVAL LEDGER (DYNAMIC MONTHLY/YEARLY LEDGER) */}
         <section className="space-y-4">
-          <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2">
-            <CalendarDays className="text-emerald-500" size={20} /> Monthly Ledger
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2">
+              <CalendarDays className="text-emerald-500" size={20} /> Time Interval Ledger
+            </h3>
+            
+            <select
+              value={ledgerGroupBy}
+              onChange={(e) => setLedgerGroupBy(e.target.value)}
+              className="bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer shadow-sm animate-none"
+            >
+              <option value="month">Monthly Interval</option>
+              <option value="year">Yearly Interval</option>
+            </select>
+          </div>
+
           <div className="card p-0 overflow-hidden">
             <Table>
               <Thead>
-                <Th>Month</Th>
+                <Th>Time Interval</Th>
                 <Th className="text-right">Revenue</Th>
                 <Th className="text-right">Cost</Th>
                 <Th className="text-right">Profit</Th>
               </Thead>
               <Tbody>
-                {data.monthWise.length === 0 ? (
-                  <Tr><Td colSpan="4" className="text-center text-slate-400 italic py-8">No monthly data.</Td></Tr>
+                {ledgerItems.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={4} className="text-center text-slate-400 italic py-8">
+                      No ledger data matches filter.
+                    </Td>
+                  </Tr>
                 ) : (
-                  data.monthWise.map((m, i) => (
-                    <Tr key={i}>
-                      <Td className="font-medium text-slate-800 dark:text-slate-200">{m.month}</Td>
-                      <Td className="text-right font-medium text-emerald-700 dark:text-emerald-500">{formatCurrency(m.revenue)}</Td>
-                      <Td className="text-right font-medium text-rose-600 dark:text-rose-400">{formatCurrency(m.vendorCost)}</Td>
-                      <Td className="text-right font-semibold text-indigo-700 dark:text-indigo-400">{formatCurrency(m.profit)}</Td>
+                  ledgerItems.map((item, i) => (
+                    <Tr key={item.key || i}>
+                      <Td className="font-medium text-slate-800 dark:text-slate-200">{item.label}</Td>
+                      <Td className="text-right font-medium text-emerald-700 dark:text-emerald-500">{formatCurrency(item.revenue)}</Td>
+                      <Td className="text-right font-medium text-rose-600 dark:text-rose-400">{formatCurrency(item.vendorCost)}</Td>
+                      <Td className="text-right font-semibold text-indigo-700 dark:text-indigo-400">{formatCurrency(item.profit)}</Td>
                     </Tr>
                   ))
                 )}
@@ -254,13 +478,7 @@ export default function BillingAnalytics() {
         {/* TEAM PERFORMANCE */}
         <section className="space-y-4">
           <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2">
-            <Users className="text-amber-500" size={20} />
-            Team Performance
-            {isFiltered && (
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-[11px] font-semibold">
-                {selectedMembers.length} selected
-              </span>
-            )}
+            <Users className="text-amber-500" size={20} /> Team Performance
           </h3>
           <div className="card p-0 overflow-hidden">
             <Table>
@@ -272,10 +490,10 @@ export default function BillingAnalytics() {
                 <Th className="text-right">Profit</Th>
               </Thead>
               <Tbody>
-                {filteredData.teamWise.length === 0 ? (
-                  <Tr><Td colSpan="5" className="text-center text-slate-400 italic py-8">No data for selected members.</Td></Tr>
+                {filteredTeamData.teamWise.length === 0 ? (
+                  <Tr><Td colSpan="5" className="text-center text-slate-400 italic py-8">No team data.</Td></Tr>
                 ) : (
-                  filteredData.teamWise.map((t, i) => (
+                  filteredTeamData.teamWise.map((t, i) => (
                     <Tr key={i}>
                       <Td className="font-medium text-slate-800 dark:text-slate-200">
                         <div className="flex items-center gap-2">
@@ -301,6 +519,7 @@ export default function BillingAnalytics() {
             </Table>
           </div>
         </section>
+
       </div>
     </div>
   );

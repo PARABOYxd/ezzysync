@@ -47,7 +47,11 @@ async function createBooking(tenantId, data, createdBy) {
     createdBy || 'System'
   );
 
-  return rowToBooking(row);
+  const bookingObj = rowToBooking(row);
+  if (bookingObj.travelStatus === 'Booked') {
+    await autoGenerateExpensesFromTemplate(tenantId, bookingObj, createdBy);
+  }
+  return bookingObj;
 }
 
 async function updateBooking(tenantId, bookingId, updates, updatedByUser) {
@@ -116,7 +120,11 @@ async function updateBooking(tenantId, bookingId, updates, updatedByUser) {
     }
   }
 
-  return rowToBooking(row);
+  const updatedBooking = rowToBooking(row);
+  if (updatedBooking.travelStatus === 'Booked') {
+    await autoGenerateExpensesFromTemplate(tenantId, updatedBooking, updatedByUser);
+  }
+  return updatedBooking;
 }
 
 async function softDeleteBooking(tenantId, bookingId, updatedByUser) {
@@ -245,8 +253,38 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
   if (teamMemberName) {
     allBookings = allBookings.filter((b) => (b.teamMember || '') === teamMemberName);
   }
-  // Also get leads to count leads worked on per team member
+  
   const { query } = require('../config/db');
+  
+  // 1. Fetch all expenses for calculations
+  const expensesResult = await query(`SELECT * FROM expenses WHERE tenant_id = $1`, [tenantId]);
+  const expenses = expensesResult.rows;
+
+  // Group batch expenses
+  const batchExpensesTotal = {};
+  expenses.forEach(e => {
+    if (e.link_type === 'batch' && e.batch_id) {
+      batchExpensesTotal[e.batch_id] = (batchExpensesTotal[e.batch_id] || 0) + Number(e.amount);
+    }
+  });
+
+  // Calculate travelers in each batch
+  const batchTravelersCount = {};
+  allBookings.forEach(b => {
+    if (b.batchId && b.travelStatus !== 'Cancelled' && b.travelStatus !== 'Postponed' && b.travelStatus !== 'Refunded') {
+      batchTravelersCount[b.batchId] = (batchTravelersCount[b.batchId] || 0) + (b.members || 0);
+    }
+  });
+
+  // Group booking expenses
+  const directBookingExpenses = {};
+  expenses.forEach(e => {
+    if (e.link_type === 'booking' && e.booking_id) {
+      directBookingExpenses[e.booking_id] = (directBookingExpenses[e.booking_id] || 0) + Number(e.amount);
+    }
+  });
+
+  // Also get leads to count leads worked on per team member
   const leadsResult = await query(`SELECT assigned_to, COUNT(*) as lead_count FROM leads WHERE tenant_id = $1 AND deleted = FALSE GROUP BY assigned_to`, [tenantId]);
   
   const teamLeads = {};
@@ -267,9 +305,18 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
     }
 
     const revenue = b.totalAmount || 0;
-    const vendorCost = (b.vendorHotelCost || 0) + (b.vendorFlightCost || 0) + (b.vendorTransportCost || 0) + (b.vendorOtherCost || 0);
-    // Prefer explicitly saved netProfit, fallback to calculation (total - all vendor costs)
-    const profit = b.netProfit || (revenue - vendorCost);
+    
+    // Calculate dynamic vendor cost from expenses ledger
+    let vendorCost = directBookingExpenses[b.id] || 0;
+    if (b.batchId && batchExpensesTotal[b.batchId]) {
+      const totalTravelers = batchTravelersCount[b.batchId] || 0;
+      if (totalTravelers > 0) {
+        const costPerTraveler = batchExpensesTotal[b.batchId] / totalTravelers;
+        vendorCost += costPerTraveler * (b.members || 0);
+      }
+    }
+
+    const profit = revenue - vendorCost;
     
     // Trip Wise
     const trip = b.trip || 'Uncategorized';
@@ -304,11 +351,89 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
     teamStats[member].leads = teamLeads[member];
   }
 
+  const rawBookings = allBookings
+    .filter(b => b.travelStatus !== 'Cancelled' && b.travelStatus !== 'Postponed' && b.travelStatus !== 'Refunded')
+    .map(b => {
+      let vendorCost = directBookingExpenses[b.id] || 0;
+      if (b.batchId && batchExpensesTotal[b.batchId]) {
+        const totalTravelers = batchTravelersCount[b.batchId] || 0;
+        if (totalTravelers > 0) {
+          const costPerTraveler = batchExpensesTotal[b.batchId] / totalTravelers;
+          vendorCost += costPerTraveler * (b.members || 0);
+        }
+      }
+      return {
+        trip: b.trip,
+        departure: b.departure,
+        members: b.members,
+        totalAmount: Number(b.totalAmount || 0),
+        paid: Number(b.paid || 0),
+        remaining: Number(b.remaining || 0),
+        vendorCost: Number(vendorCost),
+        netProfit: Number(b.totalAmount || 0) - vendorCost,
+        travelStatus: b.travelStatus
+      };
+    });
+
   return {
     tripWise: Object.values(tripStats).sort((a, b) => b.revenue - a.revenue),
     monthWise: Object.values(monthlyStats).sort((a, b) => a.month.localeCompare(b.month)),
     teamWise: Object.values(teamStats).sort((a, b) => b.revenue - a.revenue),
+    bookings: rawBookings,
   };
+}
+
+async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
+  try {
+    const expenseRepository = require('../repositories/expenseRepository');
+    const existingExpenses = await expenseRepository.listExpenses(tenantId);
+    
+    // Filter expenses linked to this booking
+    const bookingExpenses = existingExpenses.filter((e) => e.booking_id === booking.id);
+    const hasManualExpenses = bookingExpenses.some((e) => e.vendor_name !== 'Default Template Vendor');
+    
+    // Protect manual custom expenses
+    if (hasManualExpenses) return;
+
+    // Delete existing template auto-generated expenses to support updates (pax changes, etc.)
+    for (const e of bookingExpenses) {
+      if (e.vendor_name === 'Default Template Vendor') {
+        await expenseRepository.deleteExpense(tenantId, e.id);
+      }
+    }
+
+    if (!booking.trip) return;
+    const template = await expenseRepository.getTemplateByTripName(tenantId, booking.trip);
+    if (!template) return;
+
+    const pax = Number(booking.members || 1);
+    const categories = [
+      { name: 'Hotel', field: 'hotel_cost_per_pax', title: 'Hotel Cost (Template)' },
+      { name: 'Flight', field: 'flight_cost_per_pax', title: 'Flight Cost (Template)' },
+      { name: 'Transport', field: 'transport_cost_per_pax', title: 'Transport Cost (Template)' },
+      { name: 'Other', field: 'other_cost_per_pax', title: 'Other Cost (Template)' }
+    ];
+
+    for (const cat of categories) {
+      const perPaxAmount = Number(template[cat.field] || 0);
+      if (perPaxAmount > 0) {
+        await expenseRepository.createExpense(tenantId, {
+          title: `${cat.title} - ${booking.trip}`,
+          amount: perPaxAmount * pax,
+          category: cat.name,
+          link_type: 'booking',
+          booking_id: booking.id,
+          batch_id: null,
+          vendor_name: 'Default Template Vendor',
+          status: 'Pending',
+          created_by: createdBy || 'System Automation'
+        });
+      }
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[bookingService] Error auto-generating template expenses:', err.message);
+  }
 }
 
 module.exports = {

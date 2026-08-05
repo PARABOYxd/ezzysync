@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 export default function Sidebar({ open, onClose }) {
@@ -29,6 +29,7 @@ export default function Sidebar({ open, onClose }) {
 
   const billingLinks = [
     { to: '/billing', label: 'Billing & Analytics', icon: PieChart, role: 'ADMIN', module: 'billing' },
+    { to: '/expenses', label: 'Expenses', icon: Wallet, role: 'ADMIN', module: 'billing' },
     { to: '/invoices', label: 'Invoices', icon: FileText, module: 'invoices' },
   ]
     .filter(link => !link.role || link.role === (user?.role || 'ADMIN'))

@@ -27,6 +27,7 @@ import HelpGuide from './pages/HelpGuide.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 import BillingAnalytics from './pages/BillingAnalytics.jsx';
+import Expenses from './pages/Expenses.jsx';
 
 // ... other imports
 
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/ai-tools" element={<RequirePermission module="aiTools" action="use"><AITools /></RequirePermission>} />
         <Route path="/customers/:id" element={<RequirePermission module="customers"><CustomerProfile /></RequirePermission>} />
         <Route path="/billing" element={<RequirePermission module="billing"><BillingAnalytics /></RequirePermission>} />
+        <Route path="/expenses" element={<RequirePermission module="billing"><Expenses /></RequirePermission>} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

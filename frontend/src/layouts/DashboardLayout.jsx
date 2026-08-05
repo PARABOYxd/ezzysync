@@ -16,6 +16,7 @@ const TITLES = {
   '/profile': 'Profile',
   '/settings': 'Settings',
   '/billing': 'Billing & Analytics',
+  '/expenses': 'Expenses',
 };
 
 export default function DashboardLayout() {

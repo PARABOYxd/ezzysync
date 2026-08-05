@@ -5,6 +5,7 @@ const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'];
 function rowToBooking(row) {
   if (!row) return null;
   return {
+    id: row.id,
     bookingId: row.booking_id,
     customerName: row.customer_name,
     email: row.email,

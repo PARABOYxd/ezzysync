@@ -269,6 +269,35 @@ async function ensureSchema() {
     );
   `);
 
+  // Create hotels table if it does not exist
+  await query(`
+    CREATE TABLE IF NOT EXISTS hotels (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      rating TEXT DEFAULT '3 Star',
+      address TEXT DEFAULT '',
+      contact_person TEXT DEFAULT '',
+      contact_phone TEXT DEFAULT '',
+      rooms_and_rates JSONB DEFAULT '[]'::jsonb,
+      contacts JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_hotels_tenant ON hotels(tenant_id);`);
+
+  // Add missing hotel columns to bookings table
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_id UUID REFERENCES hotels(id) ON DELETE SET NULL;`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS room_category TEXT DEFAULT '';`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_booking_status TEXT DEFAULT 'Pending';`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_confirmation_no TEXT DEFAULT '';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding hotel column details to bookings');
+  }
+
   // Bookings costing parameters for net profit ledger
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vendor_hotel_cost NUMERIC(12,2) DEFAULT 0;`);
@@ -472,6 +501,43 @@ async function ensureSchema() {
   } catch (err) {
     logger.warn({ err }, 'Note adding highlights/pickup_options to quotations');
   }
+
+  // Create expenses schema table for central tracking linked to bookings or batches
+  await query(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+      category TEXT NOT NULL DEFAULT 'Other',
+      link_type TEXT NOT NULL,
+      booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+      batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL,
+      vendor_name TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Pending',
+      created_by TEXT DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_expenses_tenant ON expenses(tenant_id);`);
+
+  // Create trip cost templates table for automation
+  await query(`
+    CREATE TABLE IF NOT EXISTS trip_cost_templates (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      trip_name TEXT NOT NULL,
+      hotel_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (tenant_id, trip_name)
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_trip_cost_templates_tenant ON trip_cost_templates(tenant_id);`);
 
   logger.info('Schema check complete.');
 }

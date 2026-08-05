@@ -11,7 +11,7 @@ function ipAndEmailKey(req) {
 
 const apiLimiter = rateLimit({
   windowMs: env.rateLimit.windowMs,
-  max: env.rateLimit.max,
+  max: env.nodeEnv === 'development' ? 999999 : env.rateLimit.max,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests. Please slow down and try again shortly.' },

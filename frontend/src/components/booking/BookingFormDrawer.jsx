@@ -759,60 +759,80 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 />
               </FormRow>
 
-              {/* B2B Supplier Cost Section */}
-              <div className="bg-slate-50/50 dark:bg-zinc-950/30 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800 pb-2">
-                  <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">B2B Supplier Costs (P&L Ledger)</h4>
-                  <span className="text-[10px] text-slate-400 dark:text-zinc-500">Values are subtracted from revenue to yield Net Profit</span>
+              {/* B2B Supplier Cost Section - ONLY visible to ADMIN */}
+              {user?.role === 'ADMIN' && (
+                <div className="bg-slate-50/50 dark:bg-zinc-950/30 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800 pb-2">
+                    <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">B2B Supplier Costs (P&L Ledger)</h4>
+                    <span className="text-[10px] text-slate-400 dark:text-zinc-500">Values are subtracted from revenue to yield Net Profit</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <Input label="Hotel Cost (₹)" icon={Home} type="number" min={0} hint="Supplier accommodation" placeholder="e.g. 12000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorHotelCost || ''} onChange={set('vendorHotelCost')} />
+                    <Input label="Flight Cost (₹)" icon={Plane} type="number" min={0} hint="Supplier airfare charges" placeholder="e.g. 15000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorFlightCost || ''} onChange={set('vendorFlightCost')} />
+                    <Input label="Transport Cost (₹)" icon={Car} type="number" min={0} hint="Supplier taxi/bus fees" placeholder="e.g. 5000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorTransportCost || ''} onChange={set('vendorTransportCost')} />
+                    <Input label="Other Cost (₹)" icon={Tag} type="number" min={0} hint="Visa/misc supplier fees" placeholder="e.g. 2000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorOtherCost || ''} onChange={set('vendorOtherCost')} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <Input label="Hotel Cost (₹)" icon={Home} type="number" min={0} hint="Supplier accommodation" placeholder="e.g. 12000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorHotelCost || ''} onChange={set('vendorHotelCost')} />
-                  <Input label="Flight Cost (₹)" icon={Plane} type="number" min={0} hint="Supplier airfare charges" placeholder="e.g. 15000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorFlightCost || ''} onChange={set('vendorFlightCost')} />
-                  <Input label="Transport Cost (₹)" icon={Car} type="number" min={0} hint="Supplier taxi/bus fees" placeholder="e.g. 5000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorTransportCost || ''} onChange={set('vendorTransportCost')} />
-                  <Input label="Other Cost (₹)" icon={Tag} type="number" min={0} hint="Visa/misc supplier fees" placeholder="e.g. 2000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorOtherCost || ''} onChange={set('vendorOtherCost')} />
-                </div>
-              </div>
+              )}
 
               {/* Advanced Live Financial Statement */}
-              {(() => {
-                const totalCost = Number(form.vendorHotelCost || 0) +
-                  Number(form.vendorFlightCost || 0) +
-                  Number(form.vendorTransportCost || 0) +
-                  Number(form.vendorOtherCost || 0);
-                const projectedProfit = totalAmount - totalCost;
-                const isPositive = projectedProfit >= 0;
+              {user?.role === 'ADMIN' ? (
+                (() => {
+                  const totalCost = Number(form.vendorHotelCost || 0) +
+                    Number(form.vendorFlightCost || 0) +
+                    Number(form.vendorTransportCost || 0) +
+                    Number(form.vendorOtherCost || 0);
+                  const projectedProfit = totalAmount - totalCost;
+                  const isPositive = projectedProfit >= 0;
 
-                return (
-                  <div className={`p-4 rounded-2xl border transition-all duration-300 ${isPositive
-                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30'
-                      : 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40 shadow-rose-50/30'
-                    } shadow-md`}>
-                    <div className="grid grid-cols-3 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
-                      <div>
-                        <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Gross Revenue</span>
-                        <b className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{formatCurrency(totalAmount)}</b>
+                  return (
+                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${isPositive
+                        ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30'
+                        : 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40 shadow-rose-50/30'
+                      } shadow-md`}>
+                      <div className="grid grid-cols-3 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Gross Revenue</span>
+                          <b className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{formatCurrency(totalAmount)}</b>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Total Supplier Cost</span>
+                          <b className="text-sm font-extrabold text-slate-700 dark:text-slate-300">{formatCurrency(totalCost)}</b>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Net Profit (P&L)</span>
+                          <b className={`text-sm font-extrabold transition-colors duration-200 ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                            {formatCurrency(projectedProfit)}
+                          </b>
+                        </div>
                       </div>
-                      <div>
-                        <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Total Supplier Cost</span>
-                        <b className="text-sm font-extrabold text-slate-700 dark:text-slate-300">{formatCurrency(totalCost)}</b>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Net Profit (P&L)</span>
-                        <b className={`text-sm font-extrabold transition-colors duration-200 ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                          {formatCurrency(projectedProfit)}
-                        </b>
+
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-zinc-500 border-t border-slate-200/30 dark:border-zinc-800 mt-3 pt-2">
+                        <span>Pending balance for traveler collection: <b className="text-orange-600 dark:text-orange-400 font-bold">{formatCurrency(remaining)}</b></span>
+                        <span className={`font-semibold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {isPositive ? '✓ Positive Margin Deal' : '⚠️ Negative Margin Warning'}
+                        </span>
                       </div>
                     </div>
-
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-zinc-500 border-t border-slate-200/30 dark:border-zinc-800 mt-3 pt-2">
-                      <span>Pending balance for traveler collection: <b className="text-orange-600 dark:text-orange-400 font-bold">{formatCurrency(remaining)}</b></span>
-                      <span className={`font-semibold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {isPositive ? '✓ Positive Margin Deal' : '⚠️ Negative Margin Warning'}
-                      </span>
+                  );
+                })()
+              ) : (
+                <div className="p-4 bg-slate-50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-sm">
+                  <div className="grid grid-cols-2 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
+                    <div>
+                      <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Gross Package Cost</span>
+                      <b className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{formatCurrency(totalAmount)}</b>
+                    </div>
+                    <div>
+                      <span className="block text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">Amount Paid</span>
+                      <b className="text-sm font-extrabold text-slate-700 dark:text-slate-300">{formatCurrency(form.paid)}</b>
                     </div>
                   </div>
-                );
-              })()}
+                  <div className="text-center text-[11px] text-slate-500 dark:text-zinc-400 border-t border-slate-200/30 dark:border-zinc-800 mt-3 pt-2">
+                    Remaining Balance to Collect: <b className="text-orange-600 dark:text-orange-400 font-extrabold">{formatCurrency(remaining)}</b>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

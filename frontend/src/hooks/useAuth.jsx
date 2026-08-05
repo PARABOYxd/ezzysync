@@ -19,10 +19,13 @@ export function AuthProvider({ children }) {
     authService
       .fetchMe()
       .then((data) => setUser(data.user))
-      .catch(() => {
-        localStorage.removeItem('hf_token');
-        localStorage.removeItem('hf_user');
-        setUser(null);
+      .catch((err) => {
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('hf_token');
+          localStorage.removeItem('hf_user');
+          setUser(null);
+        }
       })
       .finally(() => setLoading(false));
   }, []);

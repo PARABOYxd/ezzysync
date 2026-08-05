@@ -2,21 +2,87 @@ const PDFDocument = require('pdfkit');
 const axios = require('axios');
 const logger = require('../utils/logger').child({ module: 'invoice' });
 
+// In-memory cache for fonts to support Rupee symbol (₹) rendering
+let regularFontBuffer = null;
+let boldFontBuffer = null;
+let fontLoadingPromise = null;
+
+async function prefetchFonts() {
+  if (regularFontBuffer && boldFontBuffer) return;
+  try {
+    const [regRes, boldRes] = await Promise.all([
+      axios.get('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', {
+        responseType: 'arraybuffer',
+        timeout: 5000,
+      }),
+      axios.get('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf', {
+        responseType: 'arraybuffer',
+        timeout: 5000,
+      })
+    ]);
+    regularFontBuffer = Buffer.from(regRes.data);
+    boldFontBuffer = Buffer.from(boldRes.data);
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Could not pre-fetch Roboto fonts for Rupee symbol. Falling back to standard fonts.');
+  }
+}
+
 /**
- * Generates a professional PDF invoice in-memory and resolves with a Buffer.
- * Supports custom layouts (minimal, classic, modern), dynamic branding color,
- * editable terms, and togglable database fields.
+ * Formats date strings to the professional "05 August 2026" standard format.
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  } catch (err) {
+    return dateStr;
+  }
+}
+
+/**
+ * Generates a clean, logo-led PDF invoice in-memory and resolves with a Buffer.
+ * Redesigned for perfect spacing, dynamic field rendering, and rupee symbol support.
  */
 function generateInvoicePDF({ booking, settings, invoiceNumber }) {
   return new Promise(async (resolve, reject) => {
     try {
+      // Ensure fonts are loaded before starting PDF generation
+      if (!regularFontBuffer || !boldFontBuffer) {
+        if (!fontLoadingPromise) {
+          fontLoadingPromise = prefetchFonts();
+        }
+        await fontLoadingPromise;
+      }
+
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const chunks = [];
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Pre-fetch the company logo if defined
+      const PAGE_W = 595.28;
+      const PAGE_H = 841.89;
+      const MARGIN_L = 55;
+      const MARGIN_R = 540;
+      const CONTENT_W = MARGIN_R - MARGIN_L; // 485
+
+      // Register fonts if loaded
+      const fontRegular = regularFontBuffer ? 'Roboto-Regular' : 'Helvetica';
+      const fontBold = boldFontBuffer ? 'Roboto-Bold' : 'Helvetica-Bold';
+      
+      if (regularFontBuffer) {
+        doc.registerFont('Roboto-Regular', regularFontBuffer);
+      }
+      if (boldFontBuffer) {
+        doc.registerFont('Roboto-Bold', boldFontBuffer);
+      }
+
+      // Set default font
+      doc.font(fontRegular);
+
+      // ---- Pre-fetch logo ----
       let logoBuffer = null;
       if (settings.companyLogoUrl) {
         try {
@@ -30,191 +96,283 @@ function generateInvoicePDF({ booking, settings, invoiceNumber }) {
         }
       }
 
-      // Custom dynamic styles
-      const primaryColor = settings.invoiceAccentColor || '#0f766e';
-      const secondaryColor = '#4b5563'; // gray-600
-      const lightGray = '#f3f4f6';      // gray-100
-      const borderGray = '#e5e7eb';     // gray-200
-      const darkColor = '#111827';      // gray-900
+      // ---- Palette & Colors ----
+      const darkColor = '#0f172a';      // slate-900
+      const textColor = '#334155';      // slate-700
+      const mutedColor = '#64748b';     // slate-500
+      const borderGray = '#e2e8f0';     // slate-200
+      const accentColor = settings.invoiceAccentColor || '#0f766e'; // teal-700 fallback
 
-      // Layout specifics
-      const layout = settings.invoiceLayout || 'minimal';
-      const title = settings.invoiceTitle || 'INVOICE';
+      const companyName = settings.companyName || 'Company';
+      
+      // Use Rupee symbol only if Roboto font loaded successfully, otherwise fall back to Rs.
+      const currencySymbol = regularFontBuffer ? (settings.currencySymbol || '₹') : 'Rs.';
 
-      // ---- Layout Styles: Modern Accent Strip ----
-      if (layout === 'modern') {
-        // Draw a solid left color bar strip
-        doc.rect(0, 0, 15, 842).fill(primaryColor);
-      }
+      const fmt = (n) => `${currencySymbol} ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-      // Centered branding header placement
-      const contentWidth = 490;
-      const logoWidth = 80;
-      const logoHeight = 45;
-      const centeredLogoX = 55 + (contentWidth - logoWidth) / 2; // ~260
-
-      let nextY = 45;
-
+      // ====================================================================
+      // 1. WATERMARK (Faint logo + uppercase brand name background)
+      // ====================================================================
+      const wmCenterY = PAGE_H / 2 - 40;
       if (logoBuffer) {
+        doc.save();
+        doc.opacity(0.04);
+        const wmSize = 180;
         try {
-          doc.image(logoBuffer, centeredLogoX, nextY, { fit: [logoWidth, logoHeight] });
-          nextY += logoHeight + 8;
+          doc.image(logoBuffer, PAGE_W / 2 - wmSize / 2, wmCenterY - wmSize / 2, { fit: [wmSize, wmSize], align: 'center' });
         } catch (err) {
-          logger.warn({ err, tenantId: booking?.tenant_id }, 'Failed to draw logo image onto invoice PDF');
+          logger.warn({ err, tenantId: booking?.tenant_id }, 'Failed to draw watermark logo');
         }
+        doc.restore();
       }
 
-      // ---- Header / Brand Banner ----
+      doc.save();
+      doc.opacity(0.035);
       doc
-        .fillColor(primaryColor)
-        .fontSize(18)
-        .text(settings.companyName || 'EzzySync', 55, nextY, { width: contentWidth, align: 'center' });
+        .font(fontBold)
+        .fontSize(32)
+        .fillColor(darkColor)
+        .text(companyName.toUpperCase(), 0, wmCenterY + 100, { width: PAGE_W, align: 'center' });
+      if (settings.companyWebsite) {
+        doc
+          .font(fontRegular)
+          .fontSize(8)
+          .text(settings.companyWebsite.toUpperCase(), 0, wmCenterY + 140, {
+            width: PAGE_W,
+            align: 'center',
+            characterSpacing: 2,
+          });
+      }
+      doc.restore();
 
-      nextY += 20;
+      // ====================================================================
+      // 2. HEADER SECTION (Big INVOICE title, info left, logo right)
+      // ====================================================================
+      let y = 50;
 
-      doc
-        .fillColor(secondaryColor)
-        .fontSize(8.5)
-        .text(settings.address || '', 55, nextY, { width: contentWidth, align: 'center' });
+      // Title & Metadata (Left)
+      doc.font(fontBold).fontSize(26).fillColor(accentColor).text((settings.invoiceTitle || 'INVOICE').toUpperCase(), MARGIN_L, y);
+      
+      doc.font(fontBold).fontSize(10).fillColor(darkColor).text('INVOICE NO: ', MARGIN_L, y + 32);
+      doc.font(fontRegular).fillColor(textColor).text(invoiceNumber, MARGIN_L + 80, y + 32);
 
       if (settings.gstNumber && settings.invoiceShowGst) {
-        nextY += 12;
-        doc.text(`GSTIN: ${settings.gstNumber}`, 55, nextY, { width: contentWidth, align: 'center' });
+        doc.font(fontBold).fontSize(9).fillColor(darkColor).text('GSTIN: ', MARGIN_L, y + 46);
+        doc.font(fontRegular).fillColor(textColor).text(settings.gstNumber, MARGIN_L + 45, y + 46);
       }
 
-      nextY += 20;
-
-      // Header Separator Line
-      if (layout === 'classic') {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(primaryColor).lineWidth(1.5).stroke();
-        doc.moveTo(55, nextY + 4).lineTo(545, nextY + 4).strokeColor(borderGray).lineWidth(0.5).stroke();
-        nextY += 12;
-      } else {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(borderGray).lineWidth(1).stroke();
-        nextY += 12;
-      }
-
-      // ---- Customer & Invoice Metadata side-by-side ----
-      doc.fillColor(darkColor).fontSize(10).text('BILL TO', 55, nextY);
-      doc.fillColor(secondaryColor).fontSize(9)
-        .text(booking.customerName, 55, nextY + 14, { width: 220 })
-        .text(booking.email, 55, nextY + 26, { width: 220 })
-        .text(booking.phone, 55, nextY + 38, { width: 220 });
-
-      doc.fillColor(primaryColor).fontSize(12).text(title.toUpperCase(), 300, nextY, { width: 245, align: 'right' });
-      doc.fillColor(secondaryColor).fontSize(8.5)
-        .text(`Invoice Number:`, 300, nextY + 16, { width: 90, align: 'left' })
-        .text(invoiceNumber, 390, nextY + 16, { width: 155, align: 'right' })
-        
-        .text(`Date:`, 300, 28, { width: 90, align: 'left' }) // wait, nextY is dynamic, we must specify nextY + offset!
-        .text(new Date().toLocaleDateString('en-IN'), 390, nextY + 28, { width: 155, align: 'right' })
-        
-        .text(`Booking ID:`, 300, nextY + 40, { width: 90, align: 'left' })
-        .text(booking.bookingId, 390, nextY + 40, { width: 155, align: 'right' });
-
-      nextY += 58;
-
-      // ---- Trip Details section ----
-      doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(borderGray).lineWidth(0.5).stroke();
-      nextY += 10;
-
-      doc.fillColor(darkColor).fontSize(10).text('TRIP DETAILS', 55, nextY);
-      doc.fillColor(secondaryColor).fontSize(9)
-        .text(`Trip: ${booking.trip}`, 55, nextY + 14, { width: 220 })
-        .text(`Departure: ${booking.departure ? booking.departure.slice(0, 10) : ''}`, 55, nextY + 26, { width: 220 })
-        .text(booking.pickup ? `Pickup: ${booking.pickup}` : '-', 300, nextY + 14, { width: 245 })
-        .text(`Members: ${booking.members} Travelers`, 300, nextY + 26, { width: 245 });
-
-      nextY += 48;
-
-      // ---- Payment Table Layout ----
-      // Table Header Background for Modern/Classic layouts
-      if (layout === 'modern') {
-        doc.rect(55, nextY, 490, 18).fill(lightGray);
-      } else if (layout === 'classic') {
-        doc.rect(55, nextY, 490, 18).fill(primaryColor);
-      } else {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(borderGray).stroke();
-      }
-
-      nextY += 4;
-      // Header Text Colors
-      const headerTextColor = layout === 'classic' ? '#ffffff' : darkColor;
-      doc
-        .fillColor(headerTextColor)
-        .fontSize(9)
-        .text('DESCRIPTION', 60, nextY, { width: 340 })
-        .text('AMOUNT (INR)', 400, nextY, { width: 140, align: 'right' });
-
-      nextY += 14;
-      if (layout === 'classic') {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(primaryColor).lineWidth(1.2).stroke();
-      } else {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(borderGray).lineWidth(1).stroke();
-      }
-      nextY += 8;
-
-      // Table rows
-      const items = [
-        [`${booking.trip} — ${booking.members} × ₹${booking.pricePerPerson}`, Number(booking.totalAmount).toFixed(2)],
-        ['Amount Paid', Number(booking.paid || 0).toFixed(2)],
-        ['Remaining Balance', Number(booking.remaining || 0).toFixed(2)],
-      ];
-
-      items.forEach(([label, value], i) => {
-        const isRemaining = i === 2;
-        doc
-          .fillColor(isRemaining ? primaryColor : secondaryColor)
-          .fontSize(isRemaining ? 10 : 9)
-          .text(label, 60, nextY, { width: 340 })
-          .text(`Rs. ${value}`, 400, nextY, { width: 140, align: 'right' });
-        
-        nextY += 20;
-        
-        // Classic table grid borders
-        if (layout === 'classic') {
-          doc.moveTo(55, nextY - 5).lineTo(545, nextY - 5).strokeColor(borderGray).stroke();
+      // Logo or Corporate Name (Right)
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, MARGIN_R - 90, y, { fit: [90, 60], align: 'right' });
+        } catch (err) {
+          logger.warn({ err, tenantId: booking?.tenant_id }, 'Failed to draw header logo');
         }
+      } else {
+        doc.font(fontBold).fontSize(14).fillColor(darkColor).text(companyName, MARGIN_L, y, { width: CONTENT_W, align: 'right' });
+      }
+
+      y += 80;
+
+      // Divider Line
+      doc.moveTo(MARGIN_L, y).lineTo(MARGIN_R, y).strokeColor(borderGray).lineWidth(1.5).stroke();
+      y += 20;
+
+      // ====================================================================
+      // 3. ISSUED TO & DATE METADATA (Grid Alignments to Prevent Overlap & Uneven Gaps)
+      // ====================================================================
+      const infoY = y;
+      
+      // Issued To Customer info (Left Column - Spaced Uniformly)
+      doc.font(fontBold).fontSize(9.5).fillColor(accentColor).text('ISSUED TO:', MARGIN_L, infoY);
+      doc.font(fontBold).fontSize(10).fillColor(darkColor).text(booking.customerName || '-', MARGIN_L, infoY + 16, { width: 240 });
+      doc.font(fontRegular).fontSize(9).fillColor(textColor).text(booking.phone || '-', MARGIN_L, infoY + 30, { width: 240 });
+      doc.font(fontRegular).fontSize(9).fillColor(textColor).text(booking.email || '-', MARGIN_L, infoY + 44, { width: 240 });
+
+      // Invoice Date & Booking details (Right Column - Spaced Uniformly)
+      const rightColX = 320;
+      const rightColW = MARGIN_R - rightColX;
+
+      doc.font(fontBold).fontSize(9.5).fillColor(accentColor).text('INVOICE DETAILS:', rightColX, infoY, { width: rightColW, align: 'right' });
+      
+      const invoiceDateText = settings.invoiceDate || formatDate(new Date());
+      
+      doc.font(fontBold).fontSize(9).fillColor(darkColor).text('Date:', rightColX, infoY + 16);
+      doc.font(fontRegular).fontSize(9).fillColor(textColor).text(invoiceDateText, rightColX, infoY + 16, { width: rightColW, align: 'right' });
+
+      doc.font(fontBold).fontSize(9).fillColor(darkColor).text('Booking ID:', rightColX, infoY + 30);
+      doc.font(fontRegular).fontSize(9).fillColor(textColor).text(booking.bookingId || '-', rightColX, infoY + 30, { width: rightColW, align: 'right' });
+
+      y += 75;
+
+      // ====================================================================
+      // 4. ITEMS TABLE
+      // ====================================================================
+      const colTrip = MARGIN_L;
+      const colTripW = 230;
+      const colQty = 340;
+      const colQtyW = 45;
+      const colUnit = 400;
+      const colUnitW = 75;
+      const colTotal = 475;
+      const colTotalW = 65;
+
+      // Header labels
+      doc.font(fontBold).fontSize(9).fillColor(accentColor)
+        .text('TRIP DESCRIPTION', colTrip, y, { width: colTripW })
+        .text('QTY', colQty, y, { width: colQtyW, align: 'center' })
+        .text('RATE', colUnit, y, { width: colUnitW, align: 'left' })
+        .text('TOTAL', colTotal, y, { width: colTotalW, align: 'right' });
+
+      y += 15;
+      doc.moveTo(MARGIN_L, y).lineTo(MARGIN_R, y).strokeColor(accentColor).lineWidth(1.2).stroke();
+      y += 10;
+
+      // Items resolution
+      const items = Array.isArray(booking.items) && booking.items.length
+        ? booking.items
+        : [{
+          name: booking.trip,
+          qty: booking.members,
+          unit: booking.pricePerPerson,
+          total: booking.totalAmount,
+        }];
+
+      items.forEach((item) => {
+        const rowTotal = item.total != null ? item.total : Number(item.qty || 0) * Number(item.unit || 0);
+        doc
+          .font(fontRegular)
+          .fontSize(9)
+          .fillColor(textColor)
+          .text(item.name || '', colTrip, y, { width: colTripW })
+          .text(String(item.qty ?? ''), colQty, y, { width: colQtyW, align: 'center' })
+          .text(fmt(item.unit), colUnit, y, { width: colUnitW, align: 'left' })
+          .text(fmt(rowTotal), colTotal, y, { width: colTotalW, align: 'right' });
+        y += 20;
       });
 
-      if (layout === 'minimal') {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(borderGray).stroke();
-      } else if (layout === 'modern') {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(primaryColor).lineWidth(2).stroke();
-      } else {
-        doc.moveTo(55, nextY).lineTo(545, nextY).strokeColor(primaryColor).stroke();
+      y += 5;
+      doc.moveTo(MARGIN_L, y).lineTo(MARGIN_R, y).strokeColor(borderGray).lineWidth(1).stroke();
+      y += 12;
+
+      // ====================================================================
+      // 5. BILLING SUMMARY (Right-aligned table)
+      // ====================================================================
+      const sumLabelX = 350;
+      const sumLabelW = 110;
+      const sumValueX = 460;
+      const sumValueW = 80;
+
+      const subtotal = booking.totalAmount ?? items.reduce((s, it) => s + (it.total != null ? Number(it.total) : Number(it.qty || 0) * Number(it.unit || 0)), 0);
+      const paid = booking.paid || 0;
+      const due = booking.remaining != null ? booking.remaining : subtotal - paid;
+
+      // Subtotal Row
+      doc.font(fontRegular).fontSize(9.5).fillColor(textColor)
+        .text('Subtotal', sumLabelX, y, { width: sumLabelW, align: 'right' })
+        .text(fmt(subtotal), sumValueX, y, { width: sumValueW, align: 'right' });
+      y += 16;
+
+      // Paid Row
+      doc.font(fontRegular).fontSize(9.5).fillColor(textColor)
+        .text('Amount Paid', sumLabelX, y, { width: sumLabelW, align: 'right' })
+        .text(fmt(paid), sumValueX, y, { width: sumValueW, align: 'right' });
+      y += 16;
+      doc.moveTo(sumLabelX + 30, y).lineTo(MARGIN_R, y).strokeColor(borderGray).lineWidth(0.5).stroke();
+      y += 8;
+
+      // Due Row
+      const dueLabel = settings.invoiceDueLabel || 'Due Amount';
+      doc.font(fontBold).fontSize(10).fillColor(accentColor)
+        .text(dueLabel, sumLabelX, y, { width: sumLabelW, align: 'right' })
+        .text(fmt(due), sumValueX, y, { width: sumValueW, align: 'right' });
+      
+      y += 18;
+
+      // Payment Status Label
+      if (settings.invoiceShowPaymentStatus && booking.paymentStatus) {
+        doc.font(fontBold).fontSize(8).fillColor(mutedColor)
+          .text(`STATUS: ${String(booking.paymentStatus).toUpperCase()}`, sumLabelX, y, { width: sumLabelW + sumValueW, align: 'right' });
+        y += 18;
       }
 
-      // ---- Payment Status ----
-      if (settings.invoiceShowPaymentStatus) {
-        nextY += 12;
-        doc
-          .fillColor(primaryColor)
-          .fontSize(11)
-          .text(`Payment Status: ${booking.paymentStatus.toUpperCase()}`, 55, nextY);
+      y += 12;
+
+      // ====================================================================
+      // 6. DESCRIPTION SECTION
+      // ====================================================================
+      if (booking.pickup || booking.departure || booking.pickupDate) {
+        doc.font(fontBold).fontSize(9.5).fillColor(accentColor).text('DESCRIPTION', MARGIN_L, y);
+        y += 14;
+        doc.font(fontRegular).fontSize(8.5).fillColor(textColor);
+        if (booking.pickup) {
+          doc.text('Pickup/Drop Point : ', MARGIN_L, y, { continued: true });
+          doc.font(fontBold).fillColor(darkColor).text(booking.pickup);
+          y += 14;
+        }
+        const pickupDate = booking.pickupDate || booking.departure;
+        if (pickupDate) {
+          doc.font(fontRegular).fillColor(textColor).text('Departure/Pickup Date : ', MARGIN_L, y, { continued: true });
+          doc.font(fontBold).fillColor(darkColor).text(formatDate(pickupDate));
+          y += 14;
+        }
+        y += 10;
       }
 
-      // ---- Terms & Conditions Footer ----
-      nextY += 35;
-      doc.fillColor(darkColor).fontSize(9.5).text('TERMS & CONDITIONS', 55, nextY);
-      doc
-        .fillColor(secondaryColor)
-        .fontSize(8)
-        .text(
-          settings.invoiceTerms || 'Amounts once paid are subject to cancellation policies.',
-          55,
-          nextY + 12,
-          { width: 490, lineGap: 1.5 }
-        );
+      // ====================================================================
+      // 7. NOTE & CONDITIONS (Bullet lists with safe unicode bullets)
+      // ====================================================================
+      const noteLines = Array.isArray(settings.invoiceTerms)
+        ? settings.invoiceTerms
+        : (typeof settings.invoiceTerms === 'string' && settings.invoiceTerms.trim())
+          ? settings.invoiceTerms.split('\n').map((s) => s.trim()).filter(Boolean)
+          : ['Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.'];
 
-      // Centered bottom footer text
-      doc
-        .fillColor(secondaryColor)
-        .fontSize(8.5)
-        .text(settings.invoiceFooter || 'Thank you for choosing EzzySync!', 55, 760, {
-          width: 490,
-          align: 'center',
+      if (noteLines.length) {
+        doc.font(fontBold).fontSize(9.5).fillColor(accentColor).text('TERMS & CONDITIONS', MARGIN_L, y);
+        y += 14;
+        doc.font(fontRegular).fontSize(8).fillColor(textColor);
+        noteLines.forEach((line) => {
+          const bulletY = y;
+          doc.text('•', MARGIN_L, bulletY, { continued: false, width: 10 });
+          doc.text(line, MARGIN_L + 12, bulletY, { width: CONTENT_W - 12, lineGap: 1.5 });
+          y = doc.y + 4;
         });
+        y += 10;
+      }
+
+      // ====================================================================
+      // 8. PAYMENT TO DETAILS
+      // ====================================================================
+      const payTo = settings.paymentTo || {};
+      const payName = payTo.name || settings.paymentToName;
+      const payPhone = payTo.phone || settings.paymentToPhone;
+      const payEmail = payTo.email || settings.paymentToEmail;
+
+      if (payName || payPhone || payEmail) {
+        doc.font(fontBold).fontSize(9.5).fillColor(accentColor).text('PAYMENT DIRECTIONS:', MARGIN_L, y);
+        y += 14;
+        doc.font(fontRegular).fontSize(8.5).fillColor(textColor);
+        if (payName) { 
+          doc.text('Account Name : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payName);
+          y += 13; 
+        }
+        if (payPhone) { 
+          doc.text('Contact / UPI : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payPhone);
+          y += 13; 
+        }
+        if (payEmail) {
+          doc.font(fontRegular).fillColor(textColor).text('Payment Email : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payEmail);
+          y += 13;
+        }
+      }
+
+      // Footer message
+      doc
+        .font(fontBold)
+        .fontSize(10)
+        .fillColor(accentColor)
+        .text((settings.invoiceFooter || 'THANK YOU FOR BOOKING WITH US!').toUpperCase(), MARGIN_L, 760, { width: CONTENT_W, align: 'center' });
 
       doc.end();
     } catch (err) {
