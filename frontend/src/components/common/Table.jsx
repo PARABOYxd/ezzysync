@@ -3,7 +3,10 @@ import React from 'react';
 export function Table({ children, className = '', wrapperClassName = '' }) {
   return (
     <div className={`overflow-x-auto ${wrapperClassName}`}>
-      <table className={`w-full text-sm text-left ${className}`}>
+      {/* min-w-full (not w-full): lets the table grow WIDER than its container
+          when columns don't fit, so it scrolls horizontally on narrow screens
+          instead of squeezing columns and wrapping header/cell text. */}
+      <table className={`min-w-full text-sm text-left ${className}`}>
         {children}
       </table>
     </div>
@@ -34,7 +37,7 @@ export function Tr({ children, className = '', ...props }) {
 
 export function Th({ children, className = '', ...props }) {
   return (
-    <th className={`px-4 py-3 font-medium ${className}`} {...props}>
+    <th className={`px-4 py-3 font-medium whitespace-nowrap ${className}`} {...props}>
       {children}
     </th>
   );
@@ -42,7 +45,7 @@ export function Th({ children, className = '', ...props }) {
 
 export function Td({ children, className = '', ...props }) {
   return (
-    <td className={`px-4 py-3 ${className}`} {...props}>
+    <td className={`px-4 py-3 whitespace-nowrap ${className}`} {...props}>
       {children}
     </td>
   );
