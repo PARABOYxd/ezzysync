@@ -91,7 +91,7 @@ export default function QuotationPreview() {
       >
         <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px)] [background-size:24px_24px]" />
         <div className="relative max-w-3xl mx-auto flex flex-col items-center mt-4">
-          <p className="text-[11px] text-white/80 uppercase tracking-[0.2em] font-semibold mb-3">Personalized Travel Proposal</p>
+          <p className="text-[11px] text-white/80 uppercase tracking-[0.2em] font-semibold mb-3">{settings.companyName || 'Personalized Travel'} presents</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold text-white leading-tight max-w-xl px-2"
             style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}
@@ -123,17 +123,7 @@ export default function QuotationPreview() {
               <div className="text-sm text-slate-500 font-medium">Custom quote — contact us for pricing details.</div>
             )}
 
-            {!accepted && (
-              <button
-                type="button"
-                onClick={handleAccept}
-                disabled={accepting}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-60 shadow-md hover:opacity-90 shrink-0"
-                style={{ backgroundColor: brandColor }}
-              >
-                {accepting ? 'Confirming...' : 'Accept & Confirm This Trip'}
-              </button>
-            )}
+
           </div>
         </div>
 

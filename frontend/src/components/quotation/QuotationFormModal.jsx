@@ -352,20 +352,6 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
           />
         </div>
 
-        {/* Itinerary Builder Header */}
-        <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
-          <div>
-            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-              <ClipboardList size={15} className="text-brand-500" />
-              <span>Day-by-Day Itinerary Timeline ({form.itineraryDays.length} Days)</span>
-            </h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Rearrange, add or delete tour schedule nodes instantly</p>
-          </div>
-          <Button type="button" onClick={addDay} className="text-xs gap-1.5 px-4">
-            <Plus size={14} /> Add Day
-          </Button>
-        </div>
-
         {/* AI Auto-Planner Widget */}
         <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
           <button
@@ -426,6 +412,20 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
               </div>
             )
           )}
+        </div>
+
+        {/* Itinerary Builder Header */}
+        <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div>
+            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <ClipboardList size={15} className="text-brand-500" />
+              <span>Day-by-Day Itinerary Timeline ({form.itineraryDays.length} Days)</span>
+            </h4>
+            <p className="text-[10px] text-slate-400 mt-0.5">Rearrange, add or delete tour schedule nodes instantly</p>
+          </div>
+          <Button type="button" onClick={addDay} className="text-xs gap-1.5 px-4">
+            <Plus size={14} /> Add Day
+          </Button>
         </div>
 
         {/* Days Timeline Loop */}
