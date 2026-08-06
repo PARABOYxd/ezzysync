@@ -12,6 +12,7 @@ import * as userService from '../../services/userService';
 import * as quotationService from '../../services/quotationService';
 import * as hotelService from '../../services/hotelService';
 import * as batchService from '../../services/batchService';
+import * as expenseService from '../../services/expenseService';
 import { useToast } from '../../hooks/useToast.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
@@ -21,26 +22,23 @@ import {
   Tag, Sparkles, Check, ChevronRight, ChevronLeft, ArrowRight
 } from 'lucide-react';
 
-const TRAVEL_STATUSES = ['New', 'Confirming', 'Booked', 'Completed', 'Cancelled', 'Refunded', 'Postponed'];
+const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled'];
 const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'];
 
 const STATUS_HINTS = {
-  New: 'Fresh lead - initial inquiry received',
   Confirming: 'In discussions - awaiting final confirmation from customer',
   Booked: 'Confirmed booking - all details verified and payment received',
   Completed: 'Trip successfully completed',
   Cancelled: 'Booking cancelled by customer or agency',
-  Refunded: 'Payment refunded to customer',
-  Postponed: 'Trip postponed to a later date',
 };
 
 const emptyForm = {
   customerName: '', email: '', phone: '', emergencyContact: '', trip: '', departure: '',
-  pickup: '', members: 1, pricePerPerson: '', paid: 0, teamMember: '', travelStatus: 'New',
+  pickup: '', members: 1, pricePerPerson: '', paid: 0, teamMember: '', travelStatus: 'Confirming',
   paymentStatus: 'Pending', notes: '',
   vendorHotelCost: 0, vendorFlightCost: 0, vendorTransportCost: 0, vendorOtherCost: 0,
   hotelId: '', roomCategory: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '', sourceQuotationId: '',
-  batchId: '',
+  batchId: '', costTemplateId: '',
 };
 
 export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
@@ -69,6 +67,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
   const [quotations, setQuotations] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [batches, setBatches] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [showCosting, setShowCosting] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -89,8 +89,14 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
       batchService.getBatches().then((data) => {
         setBatches(data || []);
       }).catch(() => { });
+
+      if (user?.role === 'ADMIN') {
+        expenseService.listTemplates().then((data) => {
+          setTemplates(data || []);
+        }).catch(() => { });
+      }
     }
-  }, [open]);
+  }, [open, user]);
 
   const handleQuotationChange = (id) => {
     if (!id) {
@@ -105,10 +111,15 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
         customerName: q.customer_name || prev.customerName,
         email: q.email || prev.email,
         phone: q.phone || prev.phone,
-        trip: q.trip_name || prev.trip,
-        pricePerPerson: q.price_quote || prev.pricePerPerson,
+        trip: q.tripName || q.trip_name || prev.trip,
+        pricePerPerson: q.priceQuote || q.price_quote || prev.pricePerPerson,
+        vendorHotelCost: Number(q.hotelCostPerPax || 0) * Number(prev.members || 1),
+        vendorFlightCost: Number(q.flightCostPerPax || 0) * Number(prev.members || 1),
+        vendorTransportCost: Number(q.transportCostPerPax || 0) * Number(prev.members || 1),
+        vendorOtherCost: Number(q.otherCostPerPax || 0) * Number(prev.members || 1),
+        costTemplateId: q.costTemplateId || '',
       }));
-      toast.success('Itinerary details successfully pre-filled!');
+      toast.success('Itinerary details and costing successfully pre-filled!');
     }
   };
 
@@ -172,6 +183,18 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
         setTeamMemberCustom('');
       }
       setTeamMemberOther(false);
+
+      if (booking && (
+        Number(booking.vendorHotelCost) > 0 ||
+        Number(booking.vendorFlightCost) > 0 ||
+        Number(booking.vendorTransportCost) > 0 ||
+        Number(booking.vendorOtherCost) > 0 ||
+        booking.costTemplateId
+      )) {
+        setShowCosting(true);
+      } else {
+        setShowCosting(false);
+      }
     }
   }, [open, booking]);
 
@@ -201,8 +224,62 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
     if (key === 'phone' || key === 'emergencyContact') {
       val = val.replace(/[^0-9+\-\s()]/g, '');
     }
-    setForm({ ...form, [key]: val });
+    
+    setForm((prev) => {
+      const updated = { ...prev, [key]: val };
+      if (key === 'members' && prev.costTemplateId) {
+        const t = templates.find((x) => x.id === prev.costTemplateId);
+        if (t) {
+          const pax = Number(val || 1);
+          updated.vendorHotelCost = Number(t.hotel_cost_per_pax || 0) * pax;
+          updated.vendorFlightCost = Number(t.flight_cost_per_pax || 0) * pax;
+          updated.vendorTransportCost = Number(t.transport_cost_per_pax || 0) * pax;
+          updated.vendorOtherCost = Number(t.other_cost_per_pax || 0) * pax;
+        }
+      }
+      
+      // Auto-calculate Payment Status
+      if (key === 'paid' || key === 'pricePerPerson' || key === 'members') {
+        const membersCount = Number(key === 'members' ? val : updated.members || 1);
+        const priceVal = Number(key === 'pricePerPerson' ? val : updated.pricePerPerson || 0);
+        const paidVal = Number(key === 'paid' ? val : updated.paid || 0);
+        const calculatedTotal = priceVal * membersCount;
+
+        if (paidVal <= 0) {
+          updated.paymentStatus = 'Pending';
+        } else if (paidVal >= calculatedTotal) {
+          updated.paymentStatus = 'Paid';
+        } else {
+          updated.paymentStatus = 'Partial';
+        }
+      }
+      return updated;
+    });
+
     if (errors[key]) setErrors({ ...errors, [key]: '' });
+  };
+
+  const handleCostTemplateChange = (e) => {
+    const templateId = e.target.value;
+    if (!templateId) {
+      setForm((prev) => ({
+        ...prev,
+        costTemplateId: '',
+      }));
+      return;
+    }
+    const t = templates.find((x) => x.id === templateId);
+    if (t) {
+      setForm((prev) => ({
+        ...prev,
+        costTemplateId: templateId,
+        vendorHotelCost: Number(t.hotel_cost_per_pax || 0) * Number(prev.members || 1),
+        vendorFlightCost: Number(t.flight_cost_per_pax || 0) * Number(prev.members || 1),
+        vendorTransportCost: Number(t.transport_cost_per_pax || 0) * Number(prev.members || 1),
+        vendorOtherCost: Number(t.other_cost_per_pax || 0) * Number(prev.members || 1),
+      }));
+      toast.success(`Costing template "${t.template_name}" applied!`);
+    }
   };
 
   // A batch groups bookings that share one fixed departure - linking one
@@ -453,25 +530,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           {/* TAB 1: CUSTOMER INFO */}
           {activeTab === 'customer' && (
             <div className="animate-[fadeIn_0.2s_ease-out] space-y-5">
-              {!isEdit && quotations.length > 0 && (
-                <div className="bg-brand-50/50 p-4 rounded-xl border border-brand-100 flex flex-col gap-2">
-                  <label className="text-xs font-bold text-brand-800 flex items-center gap-1.5">
-                    <Sparkles size={13} className="text-brand-600" /> Link Approved Itinerary (Optional)
-                  </label>
-                  <select
-                    className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none focus:border-brand-500 font-medium text-slate-700"
-                    value={form.sourceQuotationId || ''}
-                    onChange={(e) => handleQuotationChange(e.target.value)}
-                  >
-                    <option value="">-- No Itinerary Link (Create Fresh Booking) --</option>
-                    {quotations.map((q) => (
-                      <option key={q.id || q.quotation_id} value={q.quotation_id}>
-                        {q.quotation_id} - {q.customer_name} ({q.trip_name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+
               <FormRow>
                 <Input
                   label="Customer Name"
@@ -516,37 +575,45 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   onChange={set('emergencyContact')}
                 />
               </FormRow>
+              
+              <div className="pt-4 border-t border-slate-100 mt-4">
+                <Textarea
+                  label="General Notes / History log"
+                  hint="Traveler special requests or conversation timeline notes"
+                  rows={2}
+                  placeholder="e.g. Requesting vegetarian meals, ground floor rooms, check callback after 2 days..."
+                  value={form.notes}
+                  onChange={set('notes')}
+                />
+              </div>
             </div>
           )}
 
           {/* TAB 2: TRIP DETAILS */}
           {activeTab === 'trip' && (
-            <div className="space-y-5 animate-[fadeIn_0.2s_ease-out]">
+            <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
+              {/* Tour Batch / Group Selector */}
               <FormRow>
-                <Select
-                  label="Tour Batch / Group (Optional)"
-                  icon={Users}
-                  hint="Linking a batch locks trip & departure date to match it"
-                  value={form.batchId || ''}
-                  onChange={handleBatchChange}
-                  options={[
-                    { value: '', label: '-- No Batch Linked --' },
-                    ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
-                  ]}
-                />
-                <Input
-                  label="Pickup Location (Optional)"
-                  icon={Navigation}
-                  hint="Specific pickup spot details"
-                  placeholder="e.g. IGI Airport Terminal 3"
-                  value={form.pickup}
-                  onChange={set('pickup')}
-                />
+                <div className="w-full">
+                  <Select
+                    label="Tour Batch / Group (Optional)"
+                    icon={Users}
+                    hint="Linking a batch locks trip & departure date to match it"
+                    value={form.batchId || ''}
+                    onChange={handleBatchChange}
+                    options={[
+                      { value: '', label: '-- No Batch Linked --' },
+                      ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
+                    ]}
+                  />
+                </div>
               </FormRow>
+
+              {/* Row 1: Trip Name & No of Travelers */}
               <FormRow>
                 <div className="w-full space-y-1.5">
                   <label className="block text-xs font-semibold text-slate-700">
-                    Trip / Destination Name {isBookedOrBeyond && <span className="text-red-500">*</span>}
+                    Trip Name {isBookedOrBeyond && <span className="text-red-500">*</span>}
                   </label>
                   <select
                     disabled={!!form.batchId}
@@ -577,7 +644,6 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                       disabled={!!form.batchId}
                       error={errors.trip}
                       placeholder="e.g. Himachal Valley Luxury Tour"
-                      hint="Target tour package name"
                       value={form.trip}
                       onChange={set('trip')}
                     />
@@ -589,6 +655,31 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                     <p className="text-[10px] text-slate-400">Locked to the linked batch's itinerary. Unlink the batch above to edit.</p>
                   )}
                 </div>
+
+                <Input
+                  label="No of Travelers"
+                  icon={Users}
+                  type="number"
+                  min={1}
+                  error={errors.members}
+                  required={isBookedOrBeyond}
+                  hint="Total count of passengers"
+                  placeholder="e.g. 4"
+                  value={form.members}
+                  onChange={set('members')}
+                />
+              </FormRow>
+
+              {/* Row 2: Pickup Location & Departure Date */}
+              <FormRow>
+                <Input
+                  label="Pickup Location"
+                  icon={Navigation}
+                  hint="Specific pickup spot details"
+                  placeholder="e.g. IGI Airport Terminal 3"
+                  value={form.pickup}
+                  onChange={set('pickup')}
+                />
                 <Input
                   label="Departure Date"
                   icon={Calendar}
@@ -602,64 +693,32 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 />
               </FormRow>
 
-              {/* Hotels Selection and Voucher Status */}
-              <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-100 space-y-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Home size={13} /> Hotel Voucher & Reservations
-                </h4>
-                <FormRow>
-                  <Select
-                    label="Select Hotel"
-                    icon={Home}
-                    value={form.hotelId || ''}
-                    onChange={(e) => {
-                      const hId = e.target.value;
-                      setForm({ ...form, hotelId: hId, roomCategory: '' });
-                    }}
-                    options={[
-                      { value: '', label: '-- No Hotel Linked --' },
-                      ...hotels.map((h) => ({ value: h.id, label: `${h.name} (${h.city})` }))
-                    ]}
-                  />
-                  <Select
-                    label="Room Category"
-                    icon={Home}
-                    value={form.roomCategory || ''}
-                    disabled={!form.hotelId}
-                    onChange={set('roomCategory')}
-                    options={[
-                      { value: '', label: '-- Select Room Category --' },
-                      ...(hotels.find((h) => h.id === form.hotelId)?.rooms_and_rates || []).map((r) => ({
-                        value: r.roomType,
-                        label: `${r.roomType} (₹${r.sellingPrice}/night)`
-                      }))
-                    ]}
-                  />
-                </FormRow>
-                {form.hotelId && (
-                  <FormRow>
-                    <Select
-                      label="Hotel Booking Status"
-                      icon={Check}
-                      value={form.hotelBookingStatus || 'Pending'}
-                      onChange={set('hotelBookingStatus')}
-                      options={[
-                        { value: 'Pending', label: '⏳ Pending Confirmation' },
-                        { value: 'Confirmed', label: '✅ Confirmed' },
-                        { value: 'Cancelled', label: '❌ Cancelled' },
-                      ]}
-                    />
-                    <Input
-                      label="Confirmation Voucher No"
-                      icon={Tag}
-                      placeholder="e.g. HTL-CONF-90812"
-                      value={form.hotelConfirmationNo || ''}
-                      onChange={set('hotelConfirmationNo')}
-                    />
-                  </FormRow>
-                )}
-              </div>
+              {/* Row 3: Sharing Type & Travel Status */}
+              <FormRow>
+                <Select
+                  label="Sharing Type"
+                  icon={Users}
+                  value={form.sharingType || 'Double'}
+                  onChange={set('sharingType')}
+                  options={[
+                    { value: 'Double', label: 'Double Sharing' },
+                    { value: 'Triple', label: 'Triple Sharing' },
+                    { value: 'Quad', label: 'Quad Sharing' },
+                    { value: 'Other', label: 'Other' },
+                  ]}
+                />
+                <Select
+                  label="Travel Status"
+                  required
+                  hint={STATUS_HINTS[form.travelStatus] || 'Current travel operations stage'}
+                  error={errors.travelStatus}
+                  value={form.travelStatus}
+                  onChange={set('travelStatus')}
+                  options={TRAVEL_STATUSES}
+                />
+              </FormRow>
 
+              {/* Row 4: Assigned Team Member */}
               <FormRow>
                 <div className="w-full">
                   <Select
@@ -696,29 +755,6 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                     />
                   )}
                 </div>
-              </FormRow>
-              <FormRow>
-                <Input
-                  label="Number of Travelers"
-                  icon={Users}
-                  type="number"
-                  min={1}
-                  error={errors.members}
-                  required={isBookedOrBeyond}
-                  hint="Total count of passengers"
-                  placeholder="e.g. 4"
-                  value={form.members}
-                  onChange={set('members')}
-                />
-                <Select
-                  label="Travel Status"
-                  required
-                  hint={STATUS_HINTS[form.travelStatus] || 'Current travel operations stage'}
-                  error={errors.travelStatus}
-                  value={form.travelStatus}
-                  onChange={set('travelStatus')}
-                  options={TRAVEL_STATUSES}
-                />
               </FormRow>
             </div>
           )}
@@ -759,14 +795,55 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 />
               </FormRow>
 
-              {/* B2B Supplier Cost Section - ONLY visible to ADMIN */}
+              {/* Toggle Button for Costing Section - Admin Only */}
               {user?.role === 'ADMIN' && (
-                <div className="bg-slate-50/50 dark:bg-zinc-950/30 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl space-y-4">
+                <div className="flex justify-start">
+                  <button
+                    type="button"
+                    onClick={() => setShowCosting(!showCosting)}
+                    className="text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100/70 border border-brand-100 rounded-xl px-4 py-2.5 flex items-center gap-1.5 shadow-sm transition active:scale-[0.98]"
+                  >
+                    <IndianRupee size={14} />
+                    {showCosting ? 'Hide Costing' : 'Add Costing (Internal)'}
+                  </button>
+                </div>
+              )}
+
+              {/* B2B Supplier Cost Section - ONLY visible to ADMIN when showCosting is true */}
+              {user?.role === 'ADMIN' && showCosting && (
+                <div className="bg-slate-50/50 dark:bg-zinc-950/30 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl space-y-4 animate-[fadeIn_0.15s_ease-out]">
                   <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800 pb-2">
                     <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">B2B Supplier Costs (P&L Ledger)</h4>
                     <span className="text-[10px] text-slate-400 dark:text-zinc-500">Values are subtracted from revenue to yield Net Profit</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  
+                  <div className="flex flex-col gap-1 w-full max-w-md">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Select Costing Template</label>
+                    <select
+                      value={form.costTemplateId || ''}
+                      onChange={handleCostTemplateChange}
+                      className="w-full bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                    >
+                      <option value="">-- Manual/No Template Selected --</option>
+                      {/* Priority matches for current trip name */}
+                      {templates
+                        .filter(t => form.trip && t.trip_name.toLowerCase() === form.trip.toLowerCase())
+                        .map(t => (
+                          <option key={t.id} value={t.id}>{t.trip_name} - {t.template_name} (Hotel: ₹{t.hotel_cost_per_pax}, Transport: ₹{t.transport_cost_per_pax})</option>
+                        ))
+                      }
+                      {/* Other templates as divider */}
+                      {templates.length > 0 && <option disabled>────────── Other Trip Templates ──────────</option>}
+                      {templates
+                        .filter(t => !form.trip || t.trip_name.toLowerCase() !== form.trip.toLowerCase())
+                        .map(t => (
+                          <option key={t.id} value={t.id}>{t.trip_name} - {t.template_name} (Hotel: ₹{t.hotel_cost_per_pax}, Transport: ₹{t.transport_cost_per_pax})</option>
+                        ))
+                      }
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
                     <Input label="Hotel Cost (₹)" icon={Home} type="number" min={0} hint="Supplier accommodation" placeholder="e.g. 12000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorHotelCost || ''} onChange={set('vendorHotelCost')} />
                     <Input label="Flight Cost (₹)" icon={Plane} type="number" min={0} hint="Supplier airfare charges" placeholder="e.g. 15000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorFlightCost || ''} onChange={set('vendorFlightCost')} />
                     <Input label="Transport Cost (₹)" icon={Car} type="number" min={0} hint="Supplier taxi/bus fees" placeholder="e.g. 5000" inputClassName="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800" value={form.vendorTransportCost || ''} onChange={set('vendorTransportCost')} />
@@ -775,8 +852,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 </div>
               )}
 
-              {/* Advanced Live Financial Statement */}
-              {user?.role === 'ADMIN' ? (
+              {/* Advanced Live Financial Statement / Margin Card */}
+              {user?.role === 'ADMIN' && showCosting && (
                 (() => {
                   const totalCost = Number(form.vendorHotelCost || 0) +
                     Number(form.vendorFlightCost || 0) +
@@ -816,7 +893,10 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                     </div>
                   );
                 })()
-              ) : (
+              )}
+
+              {/* Standard card visible to team members */}
+              {user?.role !== 'ADMIN' && (
                 <div className="p-4 bg-slate-50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-sm">
                   <div className="grid grid-cols-2 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
                     <div>
@@ -834,29 +914,6 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 </div>
               )}
             </div>
-          )}
-
-          {/* Notes field: Always visible below or under trip tab */}
-          {activeTab !== 'financials' && (
-            <Textarea
-              label="General Notes / History log"
-              hint="Traveler special requests or conversation timeline notes"
-              rows={2}
-              placeholder="e.g. Requesting vegetarian meals, ground floor rooms, check callback after 2 days..."
-              value={form.notes}
-              onChange={set('notes')}
-            />
-          )}
-
-          {activeTab === 'financials' && (
-            <Textarea
-              label="Final Summary Notes / Log Description"
-              hint="Comments regarding this payment state or package setup"
-              rows={2}
-              placeholder="e.g. Package discount approved by admin. Advance collection cleared..."
-              value={form.notes}
-              onChange={set('notes')}
-            />
           )}
 
           {/* Wizard Footer Controls */}

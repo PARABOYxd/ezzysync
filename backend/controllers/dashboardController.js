@@ -23,7 +23,8 @@ async function getBillingAnalytics(req, res, next) {
     } else if (req.query.member) {
       teamMemberName = req.query.member;
     }
-    const data = await bookingService.billingAnalytics(req.user.tenantId, teamMemberName);
+    const { startDate, endDate } = req.query;
+    const data = await bookingService.billingAnalytics(req.user.tenantId, teamMemberName, startDate, endDate);
     res.json(data);
   } catch (err) {
     next(err);

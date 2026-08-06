@@ -95,7 +95,19 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   ];
 
   return (
-    <Drawer open={open} onClose={onClose} title={`Booking Details · ${booking.bookingId}`} size="xl">
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={
+        <div className="flex flex-wrap items-center justify-between gap-x-4 w-full pr-8">
+          <span>Booking Details · {booking.bookingId}</span>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 px-3 py-1 rounded-xl">
+            Assigned: {booking.teamMember || 'Not assigned'}
+          </span>
+        </div>
+      }
+      size="xl"
+    >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-700">
         
         {/* Left Column: Clean details pane */}
@@ -115,21 +127,21 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
                 </Link>
               )}
             </h5>
-            <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Full Name</span>
-                <span className="font-bold text-slate-800 text-sm">{booking.customerName}</span>
+                <span className="font-bold text-slate-800">{booking.customerName || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Email</span>
-                <span className="font-medium text-slate-600 break-all">{booking.email}</span>
+                <span className="font-medium text-slate-600 break-all">{booking.email || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Phone</span>
                 <span className="font-semibold text-slate-600">{booking.phone}</span>
               </div>
               {booking.emergencyContact && (
-                <div className="col-span-2">
+                <div className="col-span-3">
                   <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Emergency Contact</span>
                   <span className="font-medium text-slate-600">{booking.emergencyContact}</span>
                 </div>
@@ -238,16 +250,6 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
             )}
           </div>
 
-          {/* Section 3.5: Assigned Team Member */}
-          <div className="space-y-2">
-            <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
-              <User size={12} />
-              <span>Assigned Team Member</span>
-            </h5>
-            <p className="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200/60 rounded-xl p-3">
-              {booking.teamMember || <span className="italic text-slate-400">Not assigned</span>}
-            </p>
-          </div>
 
           {/* Section 4: Notes */}
           {booking.notes && (

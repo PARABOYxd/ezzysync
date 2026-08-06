@@ -7,16 +7,17 @@ import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
-import { User, Mail, Phone, MapPin, Tag, UserCheck, AlertTriangle, Users } from 'lucide-react';
-import { isValidEmail, isValidPhone } from '../../utils/validators';
+import { Phone, MapPin, Tag, UserCheck, AlertTriangle, Users } from 'lucide-react';
+import { isValidPhone } from '../../utils/validators';
 import * as leadService from '../../services/leadService';
 import * as userService from '../../services/userService';
 import * as quotationService from '../../services/quotationService';
 import * as batchService from '../../services/batchService';
 import { useToast } from '../../hooks/useToast.jsx';
+import { useAuth } from '../../hooks/useAuth.jsx';
 
 const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp'];
-const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
+const LEAD_STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 
 const emptyForm = {
   customerName: '', email: '', phone: '', interest: '', source: 'Manual',
@@ -24,6 +25,8 @@ const emptyForm = {
 };
 
 export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead }) {
+  const { user } = useAuth();
+  const isTeamMember = user?.role === 'TEAM_MEMBER';
   const isEdit = !!lead;
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
@@ -38,7 +41,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
 
   useEffect(() => {
     if (open) {
-      setForm(lead ? { ...emptyForm, ...lead } : emptyForm);
+      setForm(lead ? { ...emptyForm, ...lead } : { ...emptyForm, assignedTo: isTeamMember ? user.name : '' });
       setErrors({});
       setDuplicateWarning(null);
       setInterestOther(false);
@@ -53,7 +56,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
       }).catch(() => { });
       batchService.getBatches().then((data) => setBatches(data || [])).catch(() => { });
     }
-  }, [open, lead]);
+  }, [open, lead, isTeamMember, user]);
 
   const set = (key) => (e) => {
     let val = e.target.value;
@@ -77,9 +80,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
 
   const validate = () => {
     const e = {};
-    if (!form.customerName) e.customerName = 'Customer name is required.';
     if (!isValidPhone(form.phone)) e.phone = 'A valid phone number is required.';
-    if (form.email && !isValidEmail(form.email)) e.email = 'Enter a valid email address.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -181,26 +182,9 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
     <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Lead' : 'Create New Lead'}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormRow>
-          <Input label="Customer Name" icon={User} required error={errors.customerName} placeholder="e.g. Rahul Kumar" value={form.customerName} onChange={set('customerName')} />
-          <Input label="Email Address (Optional)" icon={Mail} type="email" error={errors.email} placeholder="e.g. rahul@gmail.com" value={form.email} onChange={set('email')} />
-        </FormRow>
-        <FormRow>
           <Input label="Contact Number" icon={Phone} required error={errors.phone} hint="Include country code for WhatsApp updates" placeholder="e.g. +919876543210" value={form.phone} onChange={set('phone')} />
-          <Select
-            label="Tour Batch / Group (Optional)"
-            icon={Users}
-            hint="Linking a batch sets the trip interest automatically"
-            value={form.batchId || ''}
-            onChange={handleBatchChange}
-            options={[
-              { value: '', label: '-- No Batch Linked --' },
-              ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
-            ]}
-          />
-        </FormRow>
-        <FormRow>
           <div className="w-full space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">Trip / Destination Interest</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">Trip Name</label>
             <select
               className="w-full text-sm bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 dark:text-zinc-300 transition"
               value={interestOther ? '__other__' : (form.interest || '')}
@@ -215,7 +199,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
                 }
               }}
             >
-              <option value="">-- Select an itinerary or type manually --</option>
+              <option value="">-- Select an itinerary --</option>
               {itineraries.map((q) => {
                 const name = q.trip_name || q.tripName || '';
                 return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
@@ -235,17 +219,36 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
               <p className="text-[10px] text-slate-400">Locked to the linked batch's itinerary.</p>
             )}
           </div>
-          <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />
         </FormRow>
+
+        {/* Row 3: Lead Source & Tour Batch / Group (Optional) */}
         <FormRow>
+          {!isTeamMember && <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />}
           <Select
-            label="Assigned Team Member"
-            icon={UserCheck}
-            value={form.assignedTo}
-            onChange={set('assignedTo')}
-            options={[{ value: '', label: '-- Not Assigned --' }, ...teamMembers.map((m) => ({ value: m.name, label: `${m.name} (${m.role})` }))]}
+            label="Tour Batch / Group (Optional)"
+            icon={Users}
+            hint="Linking a batch sets the trip interest automatically"
+            value={form.batchId || ''}
+            onChange={handleBatchChange}
+            options={[
+              { value: '', label: '-- No Batch Linked --' },
+              ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
+            ]}
           />
         </FormRow>
+
+        {/* Row 4: Assigned Team Member */}
+        {!isTeamMember && (
+          <FormRow>
+            <Select
+              label="Assigned Team Member"
+              icon={UserCheck}
+              value={form.assignedTo}
+              onChange={set('assignedTo')}
+              options={[{ value: '', label: '-- Not Assigned --' }, ...teamMembers.map((m) => ({ value: m.name, label: `${m.name} (${m.role})` }))]}
+            />
+          </FormRow>
+        )}
         {isEdit && (
           <Select label="Pipeline Stage" value={form.stage} onChange={(e) => {
             if (e.target.value === 'Won') {
@@ -258,7 +261,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
             set('stage')(e);
           }} options={LEAD_STAGES} />
         )}
-        <Textarea label="Notes" rows={2} placeholder="Traveler preferences, budget range, conversation notes..." value={form.notes} onChange={set('notes')} />
+        <Textarea label="General Notes" rows={2} placeholder="Traveler preferences, budget range, conversation notes..." value={form.notes} onChange={set('notes')} />
 
         <div className="flex justify-between items-center pt-5 border-t border-slate-200 dark:border-zinc-800">
           <span className="text-xs text-slate-500 font-medium">Fields with * are mandatory</span>

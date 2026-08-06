@@ -1,4 +1,4 @@
-const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
+const LEAD_STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp'];
 
 /** Maps a Postgres `leads` row (snake_case) to the camelCase shape the frontend expects. */

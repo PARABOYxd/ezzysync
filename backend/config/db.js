@@ -522,22 +522,62 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_expenses_tenant ON expenses(tenant_id);`);
 
-  // Create trip cost templates table for automation
+  // Create trip cost templates table for automation (supporting multiple versions per trip)
   await query(`
     CREATE TABLE IF NOT EXISTS trip_cost_templates (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
       trip_name TEXT NOT NULL,
+      template_name TEXT NOT NULL DEFAULT 'Default',
       hotel_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
       flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
       transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
       other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE (tenant_id, trip_name)
+      UNIQUE (tenant_id, trip_name, template_name)
     );
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_trip_cost_templates_tenant ON trip_cost_templates(tenant_id);`);
+
+  // Migration: Alter existing trip_cost_templates to add template_name and drop single-unique constraint
+  try {
+    await query(`ALTER TABLE trip_cost_templates ADD COLUMN IF NOT EXISTS template_name TEXT NOT NULL DEFAULT 'Default';`);
+    await query(`ALTER TABLE trip_cost_templates DROP CONSTRAINT IF EXISTS trip_cost_templates_tenant_id_trip_name_key;`);
+    await query(`ALTER TABLE trip_cost_templates DROP CONSTRAINT IF EXISTS trip_cost_templates_tenant_trip_version_key;`);
+    await query(`ALTER TABLE trip_cost_templates ADD CONSTRAINT trip_cost_templates_tenant_trip_version_key UNIQUE (tenant_id, trip_name, template_name);`);
+  } catch (err) {
+    logger.warn({ err }, 'Note altering trip_cost_templates constraint');
+  }
+
+  // Migration: Add costing fields and sharing_type to bookings and quotations
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cost_template_id UUID REFERENCES trip_cost_templates(id) ON DELETE SET NULL;`);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS sharing_type TEXT DEFAULT 'Double';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding cost_template_id/sharing_type to bookings');
+  }
+
+  try {
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS hotel_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding costing columns to quotations');
+  }
+
+  try {
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS banner_url TEXT DEFAULT '';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding banner_url to quotations');
+  }
+
+  try {
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS related_quotations JSONB DEFAULT '[]'::jsonb;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding related_quotations to quotations');
+  }
 
   logger.info('Schema check complete.');
 }

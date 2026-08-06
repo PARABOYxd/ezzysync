@@ -26,7 +26,7 @@ async function createBooking(tenantId, data, createdBy) {
   const bookingId = `BK-${Date.now()}-${uuidv4().slice(0, 4).toUpperCase()}`;
   const now = new Date().toISOString();
   const paid = Number(data.paid || 0);
-  const travelStatus = data.travelStatus || 'Booked';
+  const travelStatus = data.travelStatus || 'Confirming';
   const paymentStatus = data.paymentStatus || (remaining <= 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending');
 
   const customerId = await customerService.upsertFromContact(tenantId, {
@@ -62,7 +62,7 @@ async function updateBooking(tenantId, bookingId, updates, updatedByUser) {
     throw err;
   }
 
-  if (updates.travelStatus && ['Completed', 'Refunded'].includes(updates.travelStatus)) {
+  if (updates.travelStatus && ['Completed'].includes(updates.travelStatus)) {
     if (existing.travelStatus !== 'Booked' && existing.travelStatus !== updates.travelStatus) {
       const err = new Error(`Cannot mark status as ${updates.travelStatus} unless the previous status was Booked.`);
       err.status = 400;
@@ -162,8 +162,6 @@ async function dashboardStats(tenantId, teamMemberName = null) {
     upcomingTrips: bookings.filter((b) => b.travelStatus === 'Booked' && b.departure >= today).length,
     completedTrips: bookings.filter((b) => b.travelStatus === 'Completed').length,
     cancelledTrips: bookings.filter((b) => b.travelStatus === 'Cancelled').length,
-    refundedTrips: bookings.filter((b) => b.travelStatus === 'Refunded').length,
-    postponedTrips: bookings.filter((b) => b.travelStatus === 'Postponed').length,
     todaysBookings: bookings.filter((b) => (b.bookingTimestamp || '').slice(0, 10) === today).length,
     totalRevenue,
     totalPaid,
@@ -248,10 +246,18 @@ async function getActiveBookingsByCustomer(tenantId, customerId) {
   return rows.map(rowToBooking);
 }
 
-async function billingAnalytics(tenantId, teamMemberName = null) {
+async function billingAnalytics(tenantId, teamMemberName = null, startDate = null, endDate = null) {
   let allBookings = await listBookings(tenantId, { includeDeleted: false });
   if (teamMemberName) {
     allBookings = allBookings.filter((b) => (b.teamMember || '') === teamMemberName);
+  }
+  if (startDate) {
+    const start = new Date(startDate);
+    allBookings = allBookings.filter((b) => new Date(b.createdAt) >= start);
+  }
+  if (endDate) {
+    const end = new Date(endDate);
+    allBookings = allBookings.filter((b) => new Date(b.createdAt) <= end);
   }
   
   const { query } = require('../config/db');
@@ -271,7 +277,7 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
   // Calculate travelers in each batch
   const batchTravelersCount = {};
   allBookings.forEach(b => {
-    if (b.batchId && b.travelStatus !== 'Cancelled' && b.travelStatus !== 'Postponed' && b.travelStatus !== 'Refunded') {
+    if (b.batchId && b.travelStatus !== 'Cancelled') {
       batchTravelersCount[b.batchId] = (batchTravelersCount[b.batchId] || 0) + (b.members || 0);
     }
   });
@@ -285,7 +291,19 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
   });
 
   // Also get leads to count leads worked on per team member
-  const leadsResult = await query(`SELECT assigned_to, COUNT(*) as lead_count FROM leads WHERE tenant_id = $1 AND deleted = FALSE GROUP BY assigned_to`, [tenantId]);
+  let leadsQuery = `SELECT assigned_to, COUNT(*) as lead_count FROM leads WHERE tenant_id = $1 AND deleted = FALSE`;
+  const leadsParams = [tenantId];
+  let paramIndex = 2;
+  if (startDate) {
+    leadsQuery += ` AND created_at >= $${paramIndex++}`;
+    leadsParams.push(startDate);
+  }
+  if (endDate) {
+    leadsQuery += ` AND created_at <= $${paramIndex++}`;
+    leadsParams.push(endDate);
+  }
+  leadsQuery += ` GROUP BY assigned_to`;
+  const leadsResult = await query(leadsQuery, leadsParams);
   
   const teamLeads = {};
   for (const row of leadsResult.rows) {
@@ -300,7 +318,7 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
 
   for (const b of allBookings) {
     // Only count confirmed/completed bookings for revenue
-    if (b.travelStatus === 'Cancelled' || b.travelStatus === 'Postponed' || b.travelStatus === 'Refunded') {
+    if (b.travelStatus === 'Cancelled') {
       continue;
     }
 
@@ -308,6 +326,9 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
     
     // Calculate dynamic vendor cost from expenses ledger
     let vendorCost = directBookingExpenses[b.id] || 0;
+    if (vendorCost === 0) {
+      vendorCost = Number(b.vendorHotelCost || 0) + Number(b.vendorFlightCost || 0) + Number(b.vendorTransportCost || 0) + Number(b.vendorOtherCost || 0);
+    }
     if (b.batchId && batchExpensesTotal[b.batchId]) {
       const totalTravelers = batchTravelersCount[b.batchId] || 0;
       if (totalTravelers > 0) {
@@ -338,7 +359,9 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
     // Team Wise
     const teamMember = b.teamMember || 'Unassigned';
     if (!teamStats[teamMember]) teamStats[teamMember] = { teamMember, leads: 0, bookingsClosed: 0, revenue: 0, profit: 0 };
-    teamStats[teamMember].bookingsClosed++;
+    if (b.travelStatus === 'Booked' || b.travelStatus === 'Completed') {
+      teamStats[teamMember].bookingsClosed++;
+    }
     teamStats[teamMember].revenue += revenue;
     teamStats[teamMember].profit += profit;
   }
@@ -352,9 +375,12 @@ async function billingAnalytics(tenantId, teamMemberName = null) {
   }
 
   const rawBookings = allBookings
-    .filter(b => b.travelStatus !== 'Cancelled' && b.travelStatus !== 'Postponed' && b.travelStatus !== 'Refunded')
+    .filter(b => b.travelStatus !== 'Cancelled')
     .map(b => {
       let vendorCost = directBookingExpenses[b.id] || 0;
+      if (vendorCost === 0) {
+        vendorCost = Number(b.vendorHotelCost || 0) + Number(b.vendorFlightCost || 0) + Number(b.vendorTransportCost || 0) + Number(b.vendorOtherCost || 0);
+      }
       if (b.batchId && batchExpensesTotal[b.batchId]) {
         const totalTravelers = batchTravelersCount[b.batchId] || 0;
         if (totalTravelers > 0) {
@@ -402,8 +428,18 @@ async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
       }
     }
 
-    if (!booking.trip) return;
-    const template = await expenseRepository.getTemplateByTripName(tenantId, booking.trip);
+    let template = null;
+    if (booking.costTemplateId) {
+      const { rows } = await query('SELECT * FROM trip_cost_templates WHERE tenant_id = $1 AND id = $2', [tenantId, booking.costTemplateId]);
+      template = rows[0];
+    }
+    if (!template && booking.trip) {
+      const { rows } = await query(
+        'SELECT * FROM trip_cost_templates WHERE tenant_id = $1 AND LOWER(trip_name) = LOWER($2) ORDER BY CASE WHEN template_name = \'Default\' THEN 0 ELSE 1 END LIMIT 1',
+        [tenantId, booking.trip]
+      );
+      template = rows[0];
+    }
     if (!template) return;
 
     const pax = Number(booking.members || 1);

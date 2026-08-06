@@ -6,8 +6,11 @@ import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
+import { useAuth } from '../../hooks/useAuth.jsx';
 
 export default function LeadTable({ leads, loading, onView, onEdit, onDelete, onConvert }) {
+  const { user } = useAuth();
+  const isTeamMember = user?.role === 'TEAM_MEMBER';
   const canEdit = usePermission('leads', 'update');
   const canDelete = usePermission('leads', 'delete');
 
@@ -30,30 +33,30 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
         <Thead>
           <Th>Customer</Th>
           <Th>Interest</Th>
-          <Th>Source</Th>
-          <Th>Assigned To</Th>
+          {!isTeamMember && <Th>Source</Th>}
+          {!isTeamMember && <Th>Assigned To</Th>}
           <Th>Follow-up</Th>
           <Th>Created</Th>
           <Th>Stage</Th>
           <Th className="text-right">Actions</Th>
         </Thead>
         <Tbody>
-          {loading && <SkeletonTableRows rows={6} cols={8} />}
+          {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 6 : 8} />}
           {!loading && leads.map((l) => (
             <Tr key={l.leadId}>
               <Td>
-                <p className="font-medium text-slate-700 dark:text-zinc-200">{l.customerName}</p>
+                <p className="font-medium text-slate-700 dark:text-zinc-200">{l.customerName || 'New Inquiry'}</p>
                 <button
                   onClick={() => (canEdit ? onEdit(l) : onView(l))}
                   className="text-xs text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                  title={canEdit ? `Edit ${l.customerName}'s lead` : `View ${l.customerName}'s lead`}
+                  title={canEdit ? `Edit ${l.customerName || 'New Inquiry'}'s lead` : `View ${l.customerName || 'New Inquiry'}'s lead`}
                 >
                   {l.phone || '-'}
                 </button>
               </Td>
               <Td className="text-slate-500 dark:text-zinc-400">{l.interest || '-'}</Td>
-              <Td className="text-slate-500 dark:text-zinc-400">{l.source}</Td>
-              <Td className="text-slate-500 dark:text-zinc-400">{l.assignedTo || '-'}</Td>
+              {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{l.source}</Td>}
+              {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{l.assignedTo || '-'}</Td>}
               <Td>{getFollowUpDisplay(l.nextFollowUpDate)}</Td>
               <Td className="text-slate-500 dark:text-zinc-400 text-xs">{formatRelativeDate(l.createdAt)}</Td>
               <Td><LeadStageBadge stage={l.stage} /></Td>

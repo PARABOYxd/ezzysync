@@ -29,13 +29,13 @@ export const PERMISSION_MODULES = [
 // Matches backend TEAM_MEMBER_DEFAULTS — used to seed the Add form and to
 // fill in gaps when editing a member whose stored permissions predate a module.
 export const DEFAULT_TEAM_MEMBER_PERMISSIONS = {
-  leads: { create: true, read: true, update: true, delete: false, viewAll: true },
-  bookings: { create: true, read: true, update: true, delete: false, editPhone: false, viewAll: true },
+  leads: { create: true, read: true, update: true, delete: false, viewAll: false },
+  bookings: { create: true, read: true, update: true, delete: false, editPhone: false, viewAll: false },
   quotations: { create: true, read: true, update: true, delete: true },
   invoices: { read: true, download: true, email: true },
   hotels: { create: true, read: true, update: true, delete: true },
   tourBatches: { create: true, read: true, update: true, delete: true },
-  followUps: { create: true, read: true, update: true, viewAll: true },
+  followUps: { create: true, read: true, update: true, viewAll: false },
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },

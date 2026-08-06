@@ -79,12 +79,12 @@ async function getTemplates(tenantId) {
   return rows;
 }
 
-async function upsertTemplate(tenantId, { trip_name, hotel_cost_per_pax, flight_cost_per_pax, transport_cost_per_pax, other_cost_per_pax }) {
+async function upsertTemplate(tenantId, { trip_name, template_name, hotel_cost_per_pax, flight_cost_per_pax, transport_cost_per_pax, other_cost_per_pax }) {
   const { rows } = await query(
     `INSERT INTO trip_cost_templates (
-      tenant_id, trip_name, hotel_cost_per_pax, flight_cost_per_pax, transport_cost_per_pax, other_cost_per_pax, updated_at
-     ) VALUES ($1, $2, $3, $4, $5, $6, now())
-     ON CONFLICT (tenant_id, trip_name) 
+      tenant_id, trip_name, template_name, hotel_cost_per_pax, flight_cost_per_pax, transport_cost_per_pax, other_cost_per_pax, updated_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+     ON CONFLICT (tenant_id, trip_name, template_name) 
      DO UPDATE SET 
       hotel_cost_per_pax = EXCLUDED.hotel_cost_per_pax,
       flight_cost_per_pax = EXCLUDED.flight_cost_per_pax,
@@ -95,6 +95,7 @@ async function upsertTemplate(tenantId, { trip_name, hotel_cost_per_pax, flight_
     [
       tenantId,
       trip_name,
+      template_name || 'Default',
       Number(hotel_cost_per_pax || 0),
       Number(flight_cost_per_pax || 0),
       Number(transport_cost_per_pax || 0),

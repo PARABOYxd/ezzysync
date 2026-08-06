@@ -1,11 +1,12 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export default function Modal({ open, onClose, title, children, size = 'md' }) {
   if (!open) return null;
   const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative bg-white dark:bg-zinc-900 rounded-2xl shadow-card w-full ${widths[size]} max-h-[90vh] overflow-y-auto no-scrollbar border dark:border-zinc-800`}>
@@ -17,6 +18,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         </div>
         <div className="p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

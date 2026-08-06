@@ -23,11 +23,11 @@ const aiRoutes = require('./routes/aiRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const followUpRoutes = require('./routes/followUpRoutes');
-const hotelRoutes = require('./routes/hotelRoutes');
-const batchRoutes = require('./routes/batchRoutes');
-const expenseRoutes = require('./routes/expenseRoutes');
 
 const testRoutes = require("./routes/testRoutes");
+const expenseRoutes = require('./routes/expenseRoutes');
+const batchRoutes = require('./routes/batchRoutes');
+const hotelRoutes = require('./routes/hotelRoutes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -42,23 +42,7 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const allowedBase = env.frontendUrl.replace(/\/+app\/?$/, '').replace(/\/$/, '');
-      const allowedBaseWithWww = allowedBase.replace('://', '://www.');
-      const allowedBaseWithoutWww = allowedBase.replace('://www.', '://');
-      
-      if (
-        origin === allowedBase || 
-        origin === allowedBaseWithWww || 
-        origin === allowedBaseWithoutWww || 
-        origin === env.frontendUrl
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: env.frontendUrl,
     credentials: true,
   })
 );
@@ -81,11 +65,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/follow-ups', followUpRoutes);
-app.use('/api/hotels', hotelRoutes);
-app.use('/api/batches', batchRoutes);
-app.use('/api/expenses', expenseRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/batches', batchRoutes);
+app.use('/api/hotels', hotelRoutes);
 app.use("/api/test", testRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -98,10 +82,12 @@ async function start() {
     process.exit(1);
   }
 
-  app.listen(env.port, () => {
-    logger.info({ port: env.port, env: env.nodeEnv }, 'EzzySync API started');
+  const server = app.listen(env.port, () => {
+    logger.info({ port: env.port, env: env.nodeEnv }, 'JourneyFlow API started');
     initScheduler();
   });
+  const websocketService = require('./services/websocketService');
+  websocketService.init(server);
 }
 
 process.on('unhandledRejection', (err) => {

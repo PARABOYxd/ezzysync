@@ -5,7 +5,7 @@ import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
 import TeamMemberSelect from '../common/TeamMemberSelect.jsx';
 
-const TRAVEL_STATUSES = ['Booked', 'Completed', 'Cancelled', 'Refunded', 'Postponed'];
+const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled'];
 
 function DateRangeField({ label, from, to, onFromChange, onToChange, onClear }) {
   const hasValue = from || to;
@@ -95,14 +95,6 @@ export default function BookingFilters({ filters, onChange, onExport }) {
           className="w-full sm:w-auto"
         />
 
-        <DateRangeField
-          label="Departure"
-          from={filters.departureFrom}
-          to={filters.departureTo}
-          onFromChange={set('departureFrom')}
-          onToChange={set('departureTo')}
-          onClear={() => onChange({ ...filters, departureFrom: '', departureTo: '' })}
-        />
         <DateRangeField
           label="Created"
           from={filters.createdFrom}

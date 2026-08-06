@@ -1,13 +1,10 @@
 import React from 'react';
 
 const TRAVEL_STYLES = {
-  New: 'badge-new',
   Confirming: 'badge-contacted',
   Booked: 'badge-followup',
   Completed: 'badge-confirmed',
   Cancelled: 'badge-lost',
-  Refunded: 'badge-quoted',
-  Postponed: 'badge-lost',
 };
 
 const PAYMENT_STYLES = {
@@ -41,7 +38,6 @@ export function QuotationStatusBadge({ status }) {
 const LEAD_STAGE_STYLES = {
   New: 'badge-new',
   Contacted: 'badge-contacted',
-  Qualified: 'badge-quoted',
   Negotiating: 'badge-followup',
   Won: 'badge-confirmed',
   Lost: 'badge-lost',

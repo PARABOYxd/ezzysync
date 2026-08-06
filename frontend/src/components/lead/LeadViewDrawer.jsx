@@ -8,6 +8,7 @@ import { LeadStageBadge } from '../common/StatusBadge.jsx';
 import * as leadService from '../../services/leadService';
 import { Phone, MessageSquare, Mail, Calendar, FileText, User, Info, MapPin, Tag, UserCheck } from 'lucide-react';
 import { useToast } from '../../hooks/useToast.jsx';
+import { useAuth } from '../../hooks/useAuth.jsx';
 
 const activityOptions = [
   { value: 'note', label: 'Note', icon: <FileText size={12} /> },
@@ -37,13 +38,16 @@ function getActivityBg(type) {
   }
 }
 
-export default function LeadViewDrawer({ open, onClose, lead, onRefresh }) {
+export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit }) {
+  const { user } = useAuth();
+  const isTeamMember = user?.role === 'TEAM_MEMBER';
   const toast = useToast();
   const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
   const [activityType, setActivityType] = useState('note');
   const [nextDate, setNextDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [leadDetails, setLeadDetails] = useState(null);
 
   const loadLogs = useCallback(async () => {
     if (!lead?.leadId) return;
@@ -56,10 +60,18 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh }) {
   }, [lead?.leadId]);
 
   useEffect(() => {
-    if (open && lead?.leadId) loadLogs();
+    if (open && lead?.leadId) {
+      leadService.getLead(lead.leadId)
+        .then((data) => setLeadDetails(data))
+        .catch(() => setLeadDetails(lead));
+      loadLogs();
+    } else {
+      setLeadDetails(null);
+    }
   }, [open, lead, loadLogs]);
 
   if (!lead) return null;
+  const currentLead = leadDetails || lead;
 
   const handleAddLog = async (e) => {
     e.preventDefault();
@@ -81,13 +93,27 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh }) {
   };
 
   return (
-    <Drawer open={open} onClose={onClose} title={`Lead Details · ${lead.leadId}`} size="xl">
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={
+        <div className="flex flex-wrap items-center justify-between gap-x-4 w-full pr-8">
+          <span>Lead Details · {currentLead.leadId}</span>
+          {!isTeamMember && (
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 px-3 py-1 rounded-xl">
+              Assigned: {currentLead.assignedTo || 'Not assigned'}
+            </span>
+          )}
+        </div>
+      }
+      size="xl"
+    >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-700">
         <div className="lg:col-span-5 space-y-6">
           <div className="flex items-center justify-between gap-2">
-            <LeadStageBadge stage={lead.stage} />
-            {lead.customerId && (
-              <Link to={`/customers/${lead.customerId}`} className="text-xs font-semibold text-brand-600 hover:underline">
+            <LeadStageBadge stage={currentLead.stage} />
+            {currentLead.customerId && (
+              <Link to={`/customers/${currentLead.customerId}`} className="text-xs font-semibold text-brand-600 hover:underline">
                 View Customer &rarr;
               </Link>
             )}
@@ -97,18 +123,28 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh }) {
             <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
               <User size={12} /><span>Customer Information</span>
             </h5>
-            <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Full Name</span>
-                <span className="font-bold text-slate-800 text-sm">{lead.customerName}</span>
+                <span className="font-bold text-slate-800">{currentLead.customerName || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Email</span>
-                <span className="font-medium text-slate-600 break-all">{lead.email || '-'}</span>
+                <span className="font-medium text-slate-600 break-all">{currentLead.email || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Phone</span>
-                <span className="font-semibold text-slate-600">{lead.phone}</span>
+                {onEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(currentLead)}
+                    className="text-brand-600 hover:underline cursor-pointer text-left"
+                  >
+                    {currentLead.phone}
+                  </button>
+                ) : (
+                  <span className="font-semibold text-slate-600">{currentLead.phone}</span>
+                )}
               </div>
             </div>
           </div>
@@ -117,36 +153,28 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh }) {
             <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
               <MapPin size={12} /><span>Lead Details</span>
             </h5>
-            <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 gap-y-3.5 text-xs">
+              <div>
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Trip Interest</span>
-                <span className="font-semibold text-slate-700">{lead.interest || <span className="text-slate-400 italic">Not specified</span>}</span>
+                <span className="font-semibold text-slate-700">{currentLead.interest || <span className="text-slate-400 italic">Not specified</span>}</span>
               </div>
-              <div>
-                <span className="block text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center gap-1"><Tag size={10} /> Source</span>
-                <span className="font-medium text-slate-600">{lead.source}</span>
-              </div>
-              <div>
-                <span className="block text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center gap-1"><UserCheck size={10} /> Assigned To</span>
-                <span className="font-medium text-slate-600">{lead.assignedTo || <span className="text-slate-400 italic">Not assigned</span>}</span>
-              </div>
-              {lead.convertedBookingId && (
+              {currentLead.convertedBookingId && (
                 <div className="col-span-2">
                   <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Converted Booking</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[10px] font-bold">
-                    ✓ {lead.convertedBookingId}
+                    ✓ {currentLead.convertedBookingId}
                   </span>
                 </div>
               )}
             </div>
           </div>
 
-          {lead.notes && (
+          {currentLead.notes && (
             <div className="space-y-2">
               <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
                 <FileText size={12} /><span>Notes</span>
               </h5>
-              <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200/60 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">{lead.notes}</p>
+              <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200/60 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">{currentLead.notes}</p>
             </div>
           )}
         </div>

@@ -9,13 +9,15 @@ import api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import {
   MapPin, Plus, Trash, ArrowUp, ArrowDown, X,
-  ClipboardList, Sparkles, Wand2, IndianRupee, CheckCircle2, XCircle, Navigation
+  ClipboardList, Sparkles, Wand2, IndianRupee, CheckCircle2, XCircle, Navigation,
+  Home, Plane, Car, Tag
 } from 'lucide-react';
 
 const emptyForm = {
   tripName: '', priceQuote: '',
   itineraryDays: [{ day: 1, title: '', description: '' }],
   inclusions: [], exclusions: [], highlights: [], pickupOptions: [],
+  hotelCostPerPax: 0, flightCostPerPax: 0, transportCostPerPax: 0, otherCostPerPax: 0, costTemplateId: '',
 };
 
 /** Add-a-line list editor used for both Inclusions and Exclusions. */
@@ -196,11 +198,54 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
     }
   };
 
+  const [templates, setTemplates] = useState([]);
+  const [showCosting, setShowCosting] = useState(false);
+
+  useEffect(() => {
+    if (open && user?.role === 'ADMIN') {
+      import('../../services/expenseService').then((expenseService) => {
+        expenseService.listTemplates().then((data) => {
+          setTemplates(data || []);
+        }).catch(() => { });
+      });
+    }
+  }, [open, user]);
+
+  const handleCostTemplateChange = (e) => {
+    const templateId = e.target.value;
+    if (!templateId) {
+      setForm((prev) => ({
+        ...prev,
+        costTemplateId: '',
+      }));
+      return;
+    }
+    const t = templates.find((x) => x.id === templateId);
+    if (t) {
+      setForm((prev) => ({
+        ...prev,
+        costTemplateId: templateId,
+        hotelCostPerPax: Number(t.hotel_cost_per_pax || 0),
+        flightCostPerPax: Number(t.flight_cost_per_pax || 0),
+        transportCostPerPax: Number(t.transport_cost_per_pax || 0),
+        otherCostPerPax: Number(t.other_cost_per_pax || 0),
+      }));
+      toast.success(`Costing template "${t.template_name}" rates pre-filled!`);
+    }
+  };
+
   useEffect(() => {
     if (open) {
       setForm(quotation ? { ...emptyForm, ...quotation } : emptyForm);
       setErrors({});
       setShowAiBuilder(false);
+      
+      // Auto-expand costing if existing quotation has saved cost values
+      if (quotation && (Number(quotation.hotelCostPerPax) > 0 || Number(quotation.flightCostPerPax) > 0 || Number(quotation.transportCostPerPax) > 0 || Number(quotation.otherCostPerPax) > 0)) {
+        setShowCosting(true);
+      } else {
+        setShowCosting(false);
+      }
     }
   }, [open, quotation]);
 
@@ -542,6 +587,57 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
             </div>
           </div>
         </div>
+
+        {/* Toggle Button for Costing Section - Admin Only */}
+        {user?.role === 'ADMIN' && (
+          <div className="flex justify-start pt-2 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowCosting(!showCosting)}
+              className="text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100/70 border border-brand-100 rounded-xl px-4 py-2.5 flex items-center gap-1.5 shadow-sm transition active:scale-[0.98]"
+            >
+              <IndianRupee size={14} />
+              {showCosting ? 'Hide Costing' : 'Add Costing (Internal)'}
+            </button>
+          </div>
+        )}
+
+        {/* Costing Section - Admin Only */}
+        {user?.role === 'ADMIN' && showCosting && (
+          <div className="bg-slate-50/50 p-4 border border-slate-100 rounded-2xl space-y-4 animate-[fadeIn_0.15s_ease-out]">
+            <div className="flex flex-col gap-1.5 w-full max-w-md">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Select Costing</label>
+              <select
+                value={form.costTemplateId || ''}
+                onChange={handleCostTemplateChange}
+                className="w-full bg-white text-slate-700 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none shadow-sm cursor-pointer"
+              >
+                <option value="">Select Costing</option>
+                {/* Priority matches for current trip name */}
+                {templates
+                  .filter(t => form.tripName && t.trip_name.toLowerCase() === form.tripName.toLowerCase())
+                  .map(t => (
+                    <option key={t.id} value={t.id}>{t.trip_name} - {t.template_name} (Hotel: ₹{t.hotel_cost_per_pax})</option>
+                  ))
+                }
+                {templates.length > 0 && <option disabled>────────── Other Trip Templates ──────────</option>}
+                {templates
+                  .filter(t => !form.tripName || t.trip_name.toLowerCase() !== form.tripName.toLowerCase())
+                  .map(t => (
+                    <option key={t.id} value={t.id}>{t.trip_name} - {t.template_name} (Hotel: ₹{t.hotel_cost_per_pax})</option>
+                  ))
+                }
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Input label="Hotel Cost / Pax (₹)" icon={Home} type="number" min={0} placeholder="e.g. 3000" value={form.hotelCostPerPax || ''} onChange={set('hotelCostPerPax')} />
+              <Input label="Flight Cost / Pax (₹)" icon={Plane} type="number" min={0} placeholder="e.g. 5000" value={form.flightCostPerPax || ''} onChange={set('flightCostPerPax')} />
+              <Input label="Transport Cost / Pax (₹)" icon={Car} type="number" min={0} placeholder="e.g. 15000" value={form.transportCostPerPax || ''} onChange={set('transportCostPerPax')} />
+              <Input label="Other Cost / Pax (₹)" icon={Tag} type="number" min={0} placeholder="e.g. 1000" value={form.otherCostPerPax || ''} onChange={set('otherCostPerPax')} />
+            </div>
+          </div>
+        )}
 
         {/* Footer Controls */}
         <div className="flex justify-between items-center pt-5 border-t border-slate-200">

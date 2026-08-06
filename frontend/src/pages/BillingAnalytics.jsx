@@ -27,6 +27,9 @@ export default function BillingAnalytics() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ bookings: [], teamWise: [] });
   const [selectedMembers, setSelectedMembers] = useState([]); // [] = All
+  const [dateRangePreset, setDateRangePreset] = useState('all'); // 'all', 'last30', 'thisMonth', 'custom'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   // Dashboard Filters
   const [filterYear, setFilterYear] = useState(() => String(new Date().getFullYear())); // Default to current year
@@ -38,12 +41,30 @@ export default function BillingAnalytics() {
 
   const isAdmin = user?.role !== 'TEAM_MEMBER';
 
+  const dateParams = useMemo(() => {
+    const params = {};
+    if (dateRangePreset === 'last30') {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      params.startDate = d.toISOString().split('T')[0];
+    } else if (dateRangePreset === 'thisMonth') {
+      const d = new Date();
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      params.startDate = start.toISOString().split('T')[0];
+    } else if (dateRangePreset === 'custom') {
+      if (customStartDate) params.startDate = customStartDate;
+      if (customEndDate) params.endDate = customEndDate;
+    }
+    return params;
+  }, [dateRangePreset, customStartDate, customEndDate]);
+
   useEffect(() => {
-    dashboardService.getBillingAnalytics()
+    setLoading(true);
+    dashboardService.getBillingAnalytics(dateParams)
       .then(setData)
       .catch(() => toast.error('Could not load billing analytics.'))
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [dateParams, toast]);
 
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
@@ -210,8 +231,30 @@ export default function BillingAnalytics() {
         </div>
 
         {/* Filters Matrix */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-2">
           
+          {/* Date Range Preset */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date Interval</span>
+            <div className="relative">
+              <select
+                value={dateRangePreset}
+                onChange={(e) => setDateRangePreset(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
+              >
+                <option value="all">All Time</option>
+                <option value="last30">Last 30 Days</option>
+                <option value="thisMonth">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           {/* Year Filter */}
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Year</span>
@@ -301,6 +344,30 @@ export default function BillingAnalytics() {
           </div>
 
         </div>
+
+        {/* Custom Date Range Picker */}
+        {dateRangePreset === 'custom' && (
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-zinc-800 animate-[fadeIn_0.2s_ease-out]">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Start Date</span>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">End Date</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* STAT CARDS */}

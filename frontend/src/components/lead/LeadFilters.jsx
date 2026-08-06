@@ -4,6 +4,7 @@ import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
 import TeamMemberSelect from '../common/TeamMemberSelect.jsx';
+import { useAuth } from '../../hooks/useAuth.jsx';
 
 const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
 
@@ -32,6 +33,8 @@ function DateRangeField({ label, from, to, onFromChange, onToChange, onClear }) 
 }
 
 export default function LeadFilters({ filters, onChange }) {
+  const { user } = useAuth();
+  const isTeamMember = user?.role === 'TEAM_MEMBER';
   const [localSearch, setLocalSearch] = useState(filters.search || '');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -79,11 +82,13 @@ export default function LeadFilters({ filters, onChange }) {
           onChange={set('stage')}
           options={[{ value: '', label: 'All Stages' }, ...LEAD_STAGES]}
         />
-        <TeamMemberSelect
-          value={filters.assignedTo}
-          onChange={(name) => onChange({ ...filters, assignedTo: name })}
-          className="w-full sm:w-auto"
-        />
+        {!isTeamMember && (
+          <TeamMemberSelect
+            value={filters.assignedTo}
+            onChange={(name) => onChange({ ...filters, assignedTo: name })}
+            className="w-full sm:w-auto"
+          />
+        )}
 
         <DateRangeField
           label="Created"

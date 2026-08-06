@@ -26,6 +26,11 @@ function rowToQuotation(row) {
     relatedQuotations: row.related_quotations || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    hotelCostPerPax: Number(row.hotel_cost_per_pax || 0),
+    flightCostPerPax: Number(row.flight_cost_per_pax || 0),
+    transportCostPerPax: Number(row.transport_cost_per_pax || 0),
+    otherCostPerPax: Number(row.other_cost_per_pax || 0),
+    costTemplateId: row.cost_template_id || null,
   };
 }
 
@@ -61,6 +66,11 @@ async function syncBookingForQuotation(tenantId, quote, actor) {
       pricePerPerson: quote.priceQuote,
       travelStatus: 'Booked',
       deleted: false,
+      vendorHotelCost: Number(quote.hotelCostPerPax || 0) * (existingBooking.members || 1),
+      vendorFlightCost: Number(quote.flightCostPerPax || 0) * (existingBooking.members || 1),
+      vendorTransportCost: Number(quote.transportCostPerPax || 0) * (existingBooking.members || 1),
+      vendorOtherCost: Number(quote.otherCostPerPax || 0) * (existingBooking.members || 1),
+      costTemplateId: quote.costTemplateId || null,
     });
     return { booking, possibleDuplicates: [] };
   } else {
@@ -87,6 +97,11 @@ async function syncBookingForQuotation(tenantId, quote, actor) {
       paymentStatus: 'Pending',
       notes: `Automatically generated from Accepted Quotation #: ${quote.quotationId}`,
       sourceQuotationId: quote.quotationId,
+      vendorHotelCost: Number(quote.hotelCostPerPax || 0),
+      vendorFlightCost: Number(quote.flightCostPerPax || 0),
+      vendorTransportCost: Number(quote.transportCostPerPax || 0),
+      vendorOtherCost: Number(quote.otherCostPerPax || 0),
+      costTemplateId: quote.costTemplateId || null,
     };
     const booking = await bookingService.createBooking(tenantId, bookingPayload, actor || 'System');
     return { booking, possibleDuplicates };

@@ -6,11 +6,11 @@ async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { stage, search, sort, createdFrom, createdTo } = req.query;
+    const { stage, search, sort } = req.query;
     const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : req.query.assignedTo;
 
     const result = await leadService.listLeadsPaged(req.user.tenantId, {
-      page, limit, stage, assignedTo, search, sort, createdFrom, createdTo,
+      page, limit, stage, assignedTo, search, sort,
     });
 
     res.json({
@@ -29,7 +29,7 @@ async function list(req, res, next) {
 
 async function pipeline(req, res, next) {
   try {
-    const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : undefined;
+    const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : null;
     const leads = await leadService.listLeadsForPipeline(req.user.tenantId, assignedTo);
     res.json({ leads });
   } catch (err) {
@@ -42,7 +42,7 @@ async function getOne(req, res, next) {
     const lead = await leadService.getLeadById(req.user.tenantId, req.params.id);
     if (!lead) return res.status(404).json({ message: 'Lead not found.' });
     if (shouldScopeToSelf(req.user, 'leads') && lead.assignedTo !== req.user.name) {
-      return res.status(404).json({ message: 'Lead not found.' });
+      return res.status(403).json({ message: 'Access denied.' });
     }
     res.json({ lead });
   } catch (err) {
@@ -56,9 +56,6 @@ async function create(req, res, next) {
     await auditService.logAction(req, 'CREATE_LEAD_ENTRY', { leadId: lead.leadId, customerName: lead.customerName });
     res.status(201).json({ lead });
   } catch (err) {
-    if (err.status === 409) {
-      return res.status(409).json({ message: err.message, existingLead: err.existingLead });
-    }
     next(err);
   }
 }
@@ -128,4 +125,31 @@ async function createFollowUp(req, res, next) {
   }
 }
 
-module.exports = { list, pipeline, getOne, create, update, updateStage, remove, convert, listFollowUps, createFollowUp };
+async function listPool(req, res, next) {
+  try {
+    const leads = await leadService.getLeadPool(req.user.tenantId);
+    res.json({ leads });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function claimLead(req, res, next) {
+  try {
+    const lead = await leadService.claimLead(req.user.tenantId, req.params.id, req.user.name || req.user.email);
+    await auditService.logAction(req, 'CLAIM_LEAD', { leadId: req.params.id });
+
+    const websocketService = require('../services/websocketService');
+    const poolLeads = await leadService.getLeadPool(req.user.tenantId);
+    websocketService.broadcastToTenant(req.user.tenantId, {
+      type: 'LEAD_POOL_UPDATED',
+      count: poolLeads.length
+    });
+
+    res.json({ lead });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, pipeline, getOne, create, update, updateStage, remove, convert, listFollowUps, createFollowUp, listPool, claimLead };

@@ -13,6 +13,7 @@ import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import { LeadStageBadge, FollowUpStatusBadge } from '../components/common/StatusBadge.jsx';
+import { useAuth } from '../hooks/useAuth.jsx';
 
 function getActivityIcon(type) {
   switch (type) {
@@ -25,9 +26,12 @@ function getActivityIcon(type) {
 }
 
 export default function FollowUps() {
+  const { user } = useAuth();
+  const isTeamMember = user?.role === 'TEAM_MEMBER';
   const [items, setItems] = useState([]);
   const [doneItems, setDoneItems] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [confirmingBookings, setConfirmingBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignedTo, setAssignedTo] = useState('');
   const [activeFollowUp, setActiveFollowUp] = useState(null);
@@ -41,7 +45,7 @@ export default function FollowUps() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const dueItems = await followUpService.getDueFollowUps({ overdue: true, dueToday: true, assignedTo });
+      const dueItems = await followUpService.getDueFollowUps({ assignedTo });
       setItems(dueItems);
 
       const completedItems = await followUpService.getCompletedFollowUps({ assignedTo });
@@ -73,6 +77,31 @@ export default function FollowUps() {
         return timeA - timeB; // Oldest first
       });
       setLeads(nurturing);
+
+      // Bookings checking for travelStatus === 'Confirming'
+      const bookingData = await bookingService.getBookings({ limit: 100 });
+      const activeBookings = (bookingData.bookings || []).filter(b => b.travelStatus === 'Confirming');
+      
+      const committedBookingIds = new Set(dueItems.filter(i => i.source_type === 'booking').map(i => String(i.source_id)));
+      
+      const hasFutureFollowUpBooking = (b) => {
+        if (!b.nextFollowUpDate) return false;
+        const date = new Date(b.nextFollowUpDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date >= today;
+      };
+      
+      const nurturingBookings = activeBookings.filter(b => 
+        !committedBookingIds.has(String(b.bookingId)) && 
+        !hasFutureFollowUpBooking(b)
+      );
+      nurturingBookings.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+        return timeA - timeB; // Oldest first
+      });
+      setConfirmingBookings(nurturingBookings);
     } catch (err) {
       toast.error('Could not load follow-up queues.');
     } finally {
@@ -98,27 +127,34 @@ export default function FollowUps() {
   };
 
   const getConsolidatedRows = () => {
-    const committedRows = items.map(item => ({
-      id: `committed-${item.id}`,
-      originalId: item.id,
-      type: 'committed',
-      customerName: item.customer_name,
-      sourceType: item.source_type,
-      sourceId: item.source_id,
-      note: item.note,
-      activityType: item.activity_type,
-      assignedTo: item.assigned_to,
-      dueDate: item.next_follow_up_date,
-      overdue: isOverdue(item.next_follow_up_date),
-      idleDays: null,
-      noAction: item.note === 'Nurturing check-in',
-      phone: item.customer_phone,
-      email: item.customer_email,
-      stage: null,
-      // A scheduled next-follow-up date always wins - it's a committed
-      // action, not a nurture queue item.
-      status: 'Scheduled',
-    }));
+    const committedRows = items.map(item => {
+      const dueDateObj = new Date(item.next_follow_up_date);
+      const todayObj = new Date();
+      todayObj.setHours(0, 0, 0, 0);
+      const isToday = dueDateObj.toDateString() === todayObj.toDateString();
+      const isPendingOverdue = dueDateObj < todayObj;
+
+      return {
+        id: `committed-${item.id}`,
+        originalId: item.id,
+        type: 'committed',
+        customerName: item.customer_name,
+        sourceType: item.source_type,
+        sourceId: item.source_id,
+        note: item.note,
+        activityType: item.activity_type,
+        assignedTo: item.assigned_to,
+        dueDate: item.next_follow_up_date,
+        overdue: isPendingOverdue,
+        isToday: isToday,
+        idleDays: null,
+        noAction: item.note === 'Nurturing check-in',
+        phone: item.customer_phone,
+        email: item.customer_email,
+        stage: null,
+        status: 'Scheduled',
+      };
+    });
 
     const nurturingRows = leads.map(lead => ({
       id: `nurture-${lead.leadId}`,
@@ -132,14 +168,34 @@ export default function FollowUps() {
       assignedTo: lead.assignedTo,
       dueDate: null,
       overdue: false,
+      isToday: false,
       idleDays: getIdleDays(lead),
       noAction: isNoActionLead(lead),
       phone: lead.phone,
       email: lead.email,
       stage: lead.stage,
-      // followUpCount includes the auto-logged "Lead created via..." entry,
-      // so >1 means a real follow-up action has been taken before.
       status: (lead.followUpCount || 0) > 1 ? 'Followup' : 'New',
+    }));
+
+    const confirmingRows = confirmingBookings.map(b => ({
+      id: `confirming-${b.bookingId}`,
+      originalId: b.bookingId,
+      type: 'nurture-booking',
+      customerName: b.customerName,
+      sourceType: 'booking',
+      sourceId: b.bookingId,
+      note: 'Confirming check-in',
+      activityType: 'call',
+      assignedTo: b.teamMember,
+      dueDate: null,
+      overdue: false,
+      isToday: false,
+      idleDays: getIdleDays(b),
+      noAction: true,
+      phone: b.phone,
+      email: b.email,
+      stage: b.travelStatus,
+      status: 'Confirming',
     }));
 
     const doneRows = doneItems.map(item => ({
@@ -154,6 +210,7 @@ export default function FollowUps() {
       assignedTo: item.assigned_to,
       dueDate: null,
       overdue: false,
+      isToday: false,
       idleDays: null,
       noAction: false,
       phone: item.customer_phone,
@@ -164,7 +221,7 @@ export default function FollowUps() {
     }));
 
     if (currentSegment === 'priority') {
-      return committedRows;
+      return committedRows.filter(r => r.overdue || r.isToday);
     }
     if (currentSegment === 'new') {
       return nurturingRows.filter(r => r.stage === 'New');
@@ -172,14 +229,14 @@ export default function FollowUps() {
     if (currentSegment === 'no-action') {
       const noActionCommitted = committedRows.filter(r => r.noAction);
       const noActionNurture = nurturingRows.filter(r => r.noAction);
-      return [...noActionCommitted, ...noActionNurture];
+      return [...noActionCommitted, ...noActionNurture, ...confirmingRows];
     }
     if (currentSegment === 'all') {
-      return [...committedRows, ...nurturingRows, ...doneRows];
+      return [...committedRows, ...nurturingRows, ...confirmingRows, ...doneRows];
     }
 
     // 'pending' - everyone who still needs a follow-up (the old default "All" tab)
-    return [...committedRows, ...nurturingRows];
+    return [...committedRows, ...nurturingRows, ...confirmingRows];
   };
 
   const rows = getConsolidatedRows();
@@ -192,9 +249,9 @@ export default function FollowUps() {
       setActiveFollowUp({
         id: null,
         customer_name: row.customerName,
-        note: 'Nurturing check-in',
+        note: row.type === 'nurture-booking' ? 'Confirming check-in' : 'Nurturing check-in',
         assigned_to: row.assignedTo,
-        source_type: 'lead',
+        source_type: row.sourceType,
         source_id: row.sourceId,
         customer_phone: row.phone,
         customer_email: row.email
@@ -209,7 +266,7 @@ export default function FollowUps() {
   const handleEditClick = async (row) => {
     setEditLoadingId(row.id);
     try {
-      if (row.sourceType === 'booking') {
+      if (row.sourceType === 'booking' || row.type === 'nurture-booking') {
         const booking = await bookingService.getBooking(row.sourceId);
         setEditingBooking(booking);
       } else {
@@ -227,9 +284,13 @@ export default function FollowUps() {
     <div className="space-y-6 select-none">
       {/* Top Controls: Filter & Segments */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="w-full max-w-xs">
-          <Input placeholder="Filter by assigned team member…" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
-        </div>
+        {!isTeamMember ? (
+          <div className="w-full max-w-xs">
+            <Input placeholder="Filter by assigned team member…" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40">
           {[
             { id: 'pending', label: 'Pending Leads' },
@@ -259,13 +320,13 @@ export default function FollowUps() {
           <Thead>
             <Th>Customer</Th>
             <Th>Note / Action</Th>
-            <Th>Assigned To</Th>
+            {!isTeamMember && <Th>Assigned To</Th>}
             <Th>Status</Th>
             <Th>Due</Th>
             <Th className="text-right">Actions</Th>
           </Thead>
           <Tbody>
-            {loading && <SkeletonTableRows rows={6} cols={6} />}
+            {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 5 : 6} />}
               {!loading && rows.map((row) => {
                 return (
                   <Tr key={row.id}>
@@ -290,7 +351,7 @@ export default function FollowUps() {
                         {getActivityIcon(row.activityType)} {row.note}
                       </span>
                     </Td>
-                    <Td className="text-slate-500 dark:text-zinc-400">{row.assignedTo || '-'}</Td>
+                    {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{row.assignedTo || '-'}</Td>}
                     <Td><FollowUpStatusBadge status={row.status} /></Td>
                     <Td>
                       {row.type === 'done' ? (
@@ -355,6 +416,14 @@ export default function FollowUps() {
                             <ExternalLink size={12} /> Open Lead
                           </button>
                         )}
+                        {row.type === 'nurture-booking' && (
+                          <button
+                            onClick={() => handleEditClick(row)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 ml-1 shrink-0"
+                          >
+                            <ExternalLink size={12} /> Open Booking
+                          </button>
+                        )}
                       </div>
                     </Td>
                   </Tr>
@@ -379,6 +448,10 @@ export default function FollowUps() {
         lead={viewingLead}
         onClose={() => setViewingLead(null)}
         onRefresh={load}
+        onEdit={(l) => {
+          setViewingLead(null);
+          setEditingLead(l);
+        }}
       />
 
       <LeadFormDrawer

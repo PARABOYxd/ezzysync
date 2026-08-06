@@ -151,6 +151,7 @@ export default function Expenses() {
     setTemplateForm({
       id: '',
       trip_name: '',
+      template_name: 'Default',
       hotel_cost_per_pax: '',
       flight_cost_per_pax: '',
       transport_cost_per_pax: '',
@@ -164,6 +165,7 @@ export default function Expenses() {
     setEditingTemplateId(t.id);
     setTemplateForm({
       trip_name: t.trip_name,
+      template_name: t.template_name || 'Default',
       hotel_cost_per_pax: t.hotel_cost_per_pax,
       flight_cost_per_pax: t.flight_cost_per_pax,
       transport_cost_per_pax: t.transport_cost_per_pax,
@@ -174,6 +176,7 @@ export default function Expenses() {
   const handleSaveTemplate = async (e) => {
     e.preventDefault();
     if (!templateForm.trip_name.trim()) return toast.error('Please enter a trip/destination name.');
+    if (!templateForm.template_name.trim()) return toast.error('Please enter a template/version name.');
     
     try {
       await expenseService.upsertTemplate(templateForm);
@@ -182,6 +185,7 @@ export default function Expenses() {
       setTemplateForm({
         id: '',
         trip_name: '',
+        template_name: 'Default',
         hotel_cost_per_pax: '',
         flight_cost_per_pax: '',
         transport_cost_per_pax: '',
@@ -412,37 +416,45 @@ export default function Expenses() {
                     placeholder="e.g. Chopta Tungnath"
                     value={templateForm.trip_name}
                     onChange={(e) => setTemplateForm({ ...templateForm, trip_name: e.target.value })}
-                    disabled={!!editingTemplateId}
                     className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-slate-500">Hotel Cost / Pax (₹)</label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={templateForm.hotel_cost_per_pax}
-                      onChange={(e) => setTemplateForm({ ...templateForm, hotel_cost_per_pax: e.target.value })}
-                      className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-slate-500">Flight Cost / Pax (₹)</label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={templateForm.flight_cost_per_pax}
-                      onChange={(e) => setTemplateForm({ ...templateForm, flight_cost_per_pax: e.target.value })}
-                      className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                    />
-                  </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-500">Template / Version Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Standard - Raju Travels"
+                    value={templateForm.template_name}
+                    onChange={(e) => setTemplateForm({ ...templateForm, template_name: e.target.value })}
+                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Transport Cost / Pax (₹)</label>
+                  <label className="text-[10px] font-semibold text-slate-500">Hotel / Pax (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={templateForm.hotel_cost_per_pax}
+                    onChange={(e) => setTemplateForm({ ...templateForm, hotel_cost_per_pax: e.target.value })}
+                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-500">Flight / Pax (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={templateForm.flight_cost_per_pax}
+                    onChange={(e) => setTemplateForm({ ...templateForm, flight_cost_per_pax: e.target.value })}
+                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-500">Transport / Pax (₹)</label>
                   <input
                     type="number"
                     placeholder="0"
@@ -452,7 +464,7 @@ export default function Expenses() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Other Cost / Pax (₹)</label>
+                  <label className="text-[10px] font-semibold text-slate-500">Other / Pax (₹)</label>
                   <input
                     type="number"
                     placeholder="0"
@@ -469,7 +481,7 @@ export default function Expenses() {
                     type="button"
                     onClick={() => {
                       setEditingTemplateId(null);
-                      setTemplateForm({ id: '', trip_name: '', hotel_cost_per_pax: '', flight_cost_per_pax: '', transport_cost_per_pax: '', other_cost_per_pax: '' });
+                      setTemplateForm({ id: '', trip_name: '', template_name: 'Default', hotel_cost_per_pax: '', flight_cost_per_pax: '', transport_cost_per_pax: '', other_cost_per_pax: '' });
                     }}
                     className="px-3 py-1.5 border border-slate-200 text-slate-600 dark:border-zinc-800 dark:text-slate-300 rounded-lg text-xs font-semibold"
                   >
@@ -491,7 +503,7 @@ export default function Expenses() {
               <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden">
                 <Table>
                   <Thead>
-                    <Th className="py-2 text-[10px]">Trip Name</Th>
+                    <Th className="py-2 text-[10px]">Trip Name / Version</Th>
                     <Th className="py-2 text-right text-[10px]">Hotel / Pax</Th>
                     <Th className="py-2 text-right text-[10px]">Flight / Pax</Th>
                     <Th className="py-2 text-right text-[10px]">Transport / Pax</Th>
@@ -506,7 +518,10 @@ export default function Expenses() {
                     ) : (
                       templates.map((t) => (
                         <Tr key={t.id}>
-                          <Td className="py-2 text-xs font-bold text-slate-800 dark:text-slate-200">{t.trip_name}</Td>
+                          <Td className="py-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <div>{t.trip_name}</div>
+                            <div className="text-[10px] text-slate-400 font-normal">{t.template_name || 'Default'}</div>
+                          </Td>
                           <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.hotel_cost_per_pax)}</Td>
                           <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.flight_cost_per_pax)}</Td>
                           <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.transport_cost_per_pax)}</Td>

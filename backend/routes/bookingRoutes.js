@@ -16,8 +16,8 @@ const bookingValidators = [
     // simply not sending travelStatus skipped every check below even though
     // the booking still ends up 'Booked'.
     const status = req.body.travelStatus || 'Booked';
-    if (['Booked', 'Completed', 'Refunded'].includes(status) && !value) {
-      throw new Error('Customer name is required when status is Booked, Completed, or Refunded.');
+    if (['Booked', 'Completed'].includes(status) && !value) {
+      throw new Error('Customer name is required when status is Booked or Completed.');
     }
     return true;
   }),
@@ -27,9 +27,9 @@ const bookingValidators = [
     // simply not sending travelStatus skipped every check below even though
     // the booking still ends up 'Booked'.
     const status = req.body.travelStatus || 'Booked';
-    if (['Booked', 'Completed', 'Refunded'].includes(status)) {
+    if (['Booked', 'Completed'].includes(status)) {
       if (!value || !/^\S+@\S+\.\S+$/.test(value)) {
-        throw new Error('A valid email is required when status is Booked, Completed, or Refunded.');
+        throw new Error('A valid email is required when status is Booked or Completed.');
       }
     }
     return true;
@@ -40,8 +40,8 @@ const bookingValidators = [
     // simply not sending travelStatus skipped every check below even though
     // the booking still ends up 'Booked'.
     const status = req.body.travelStatus || 'Booked';
-    if (['Booked', 'Completed', 'Refunded'].includes(status) && !value) {
-      throw new Error('Trip name is required when status is Booked, Completed, or Refunded.');
+    if (['Booked', 'Completed'].includes(status) && !value) {
+      throw new Error('Trip name is required when status is Booked or Completed.');
     }
     return true;
   }),
@@ -51,8 +51,8 @@ const bookingValidators = [
     // simply not sending travelStatus skipped every check below even though
     // the booking still ends up 'Booked'.
     const status = req.body.travelStatus || 'Booked';
-    if (['Booked', 'Completed', 'Refunded'].includes(status) && !value) {
-      throw new Error('Departure date is required when status is Booked, Completed, or Refunded.');
+    if (['Booked', 'Completed'].includes(status) && !value) {
+      throw new Error('Departure date is required when status is Booked or Completed.');
     }
     return true;
   }),
@@ -62,10 +62,10 @@ const bookingValidators = [
     // simply not sending travelStatus skipped every check below even though
     // the booking still ends up 'Booked'.
     const status = req.body.travelStatus || 'Booked';
-    if (['Booked', 'Completed', 'Refunded'].includes(status)) {
+    if (['Booked', 'Completed'].includes(status)) {
       const num = Number(value);
       if (isNaN(num) || num < 1) {
-        throw new Error('Members must be at least 1 when status is Booked, Completed, or Refunded.');
+        throw new Error('Members must be at least 1 when status is Booked or Completed.');
       }
     }
     return true;
@@ -76,10 +76,10 @@ const bookingValidators = [
     // simply not sending travelStatus skipped every check below even though
     // the booking still ends up 'Booked'.
     const status = req.body.travelStatus || 'Booked';
-    if (['Booked', 'Completed', 'Refunded'].includes(status)) {
+    if (['Booked', 'Completed'].includes(status)) {
       const num = Number(value);
       if (isNaN(num) || num < 0) {
-        throw new Error('Price per person must be a positive number when status is Booked, Completed, or Refunded.');
+        throw new Error('Price per person must be a positive number when status is Booked or Completed.');
       }
     }
     return true;
@@ -91,11 +91,43 @@ const bookingValidators = [
 // bookingValidators above, there's no travelStatus-based default to reason
 // about since an update can't remove an already-required field.
 const bookingUpdateValidators = [
-  body('customerName').optional().notEmpty().withMessage('Customer name cannot be empty.'),
+  body('customerName').custom((value, { req }) => {
+    const status = req.body.travelStatus;
+    if (['Booked', 'Completed'].includes(status) && !value) {
+      throw new Error('Customer name is required when status is Booked or Completed.');
+    }
+    return true;
+  }),
   body('phone').optional().matches(/^[0-9+\-\s()]{7,15}$/).withMessage('A valid phone number is required.'),
-  body('email').optional({ checkFalsy: true }).isEmail().withMessage('A valid email is required.'),
-  body('members').optional().isInt({ min: 1 }).withMessage('Members must be at least 1.'),
-  body('pricePerPerson').optional().isFloat({ min: 0 }).withMessage('Price per person must be a positive number.'),
+  body('email').custom((value, { req }) => {
+    const status = req.body.travelStatus;
+    if (['Booked', 'Completed'].includes(status)) {
+      if (!value || !/^\S+@\S+\.\S+$/.test(value)) {
+        throw new Error('A valid email is required when status is Booked or Completed.');
+      }
+    }
+    return true;
+  }),
+  body('members').custom((value, { req }) => {
+    const status = req.body.travelStatus;
+    if (['Booked', 'Completed'].includes(status)) {
+      const num = Number(value);
+      if (isNaN(num) || num < 1) {
+        throw new Error('Members must be at least 1 when status is Booked or Completed.');
+      }
+    }
+    return true;
+  }),
+  body('pricePerPerson').custom((value, { req }) => {
+    const status = req.body.travelStatus;
+    if (['Booked', 'Completed'].includes(status)) {
+      const num = Number(value);
+      if (isNaN(num) || num < 0) {
+        throw new Error('Price per person must be a positive number when status is Booked or Completed.');
+      }
+    }
+    return true;
+  }),
 ];
 
 router.get('/', requirePermission('bookings', 'read'), ctrl.list);

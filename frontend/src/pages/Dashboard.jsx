@@ -74,9 +74,7 @@ export default function Dashboard() {
         { label: 'Upcoming', value: data.stats.upcomingTrips, icon: PlaneTakeoff, tint: 'blue' },
         { label: 'Completed', value: data.stats.completedTrips, icon: CheckCircle2, tint: 'emerald' },
         { label: 'Cancelled', value: data.stats.cancelledTrips, icon: XCircle, tint: 'red' },
-        { label: 'Refunded', value: data.stats.refundedTrips, icon: RotateCcw, tint: 'amber' },
         { label: "Today's", value: data.stats.todaysBookings, icon: Sun, tint: 'slate' },
-        { label: 'Postponed', value: data.stats.postponedTrips, icon: CalendarClock, tint: 'slate' },
       ]
     : [];
 
@@ -221,9 +219,9 @@ export default function Dashboard() {
               : 'Live tracker showing total bookings, upcoming trips, completed itineraries, and cancellations.'}
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {loading
-            ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
+            ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
             : cards.map((c) => <StatCard key={c.label} {...c} />)}
         </div>
       </div>

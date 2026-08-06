@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, List, LayoutGrid, Phone, Mail, UserCheck } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -8,22 +8,26 @@ import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
 import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
+import LeadPoolDrawer from '../components/lead/LeadPoolDrawer.jsx';
 import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { usePermission } from '../hooks/usePermission.js';
+import { useAuth } from '../hooks/useAuth.jsx';
+import api from '../services/api';
 
-const STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
+const STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 
 const STAGE_HEADER_STYLES = {
   New: 'bg-blue-50/50 dark:bg-zinc-900 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-zinc-800',
   Contacted: 'bg-indigo-50/50 dark:bg-zinc-900 text-indigo-700 dark:text-indigo-400 border-indigo-100 dark:border-zinc-800',
-  Qualified: 'bg-amber-50/50 dark:bg-zinc-900 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-zinc-800',
   Negotiating: 'bg-[#FFF7ED] dark:bg-zinc-900 text-[#F97316] border-[#FFEDD5] dark:border-zinc-800',
   Won: 'bg-emerald-50/50 dark:bg-zinc-900 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-zinc-800',
   Lost: 'bg-red-50/50 dark:bg-zinc-900 text-red-700 dark:text-red-400 border-red-100 dark:border-zinc-800',
 };
 
 export default function Leads() {
+  const { user } = useAuth();
+  const isTeamMember = user?.role === 'TEAM_MEMBER';
   const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState(localStorage.getItem('leads_view_mode') || 'table');
   const [leads, setLeads] = useState([]);
@@ -40,6 +44,10 @@ export default function Leads() {
   const [convertingLead, setConvertingLead] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [poolCount, setPoolCount] = useState(0);
+  const [poolOpen, setPoolOpen] = useState(false);
+  const socketRef = useRef(null);
 
   const toast = useToast();
 
@@ -71,6 +79,44 @@ export default function Leads() {
   }, [filters, viewMode]);
 
   useEffect(load, [load]);
+
+  // WebSocket Connection
+  useEffect(() => {
+    // Initial fetch of unassigned leads
+    api.get('/leads/pool')
+      .then((res) => {
+        setPoolCount(res.data.leads?.length || 0);
+      })
+      .catch(() => {});
+
+    const apiVal = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    const wsUrl = apiVal.replace(/^http/, 'ws').replace(/\/api$/, '');
+    
+    const socket = new WebSocket(wsUrl);
+    socketRef.current = socket;
+
+    socket.onopen = () => {
+      if (user?.tenantId) {
+        socket.send(JSON.stringify({ type: 'join', tenantId: user.tenantId }));
+      }
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'LEAD_POOL_UPDATED') {
+          setPoolCount(data.count || 0);
+          load(); // Refresh the list
+        }
+      } catch (err) {
+        console.error('Error parsing WS message', err);
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [user, load]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -132,7 +178,17 @@ export default function Leads() {
             </span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative">
+          {/* Glowing Lead Pool Badge */}
+          <div
+            onClick={() => setPoolOpen(!poolOpen)}
+            className="animate-pulse bg-brand-50 border border-brand-200 text-brand-700 cursor-pointer hover:bg-brand-100 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1.5 transition"
+          >
+            <span className="h-2 w-2 rounded-full bg-brand-600 block"></span>
+            Lead Pool ({poolCount})
+          </div>
+          <LeadPoolDrawer isOpen={poolOpen} onClose={() => setPoolOpen(false)} onLeadClaimed={load} onPoolCountChange={setPoolCount} poolCount={poolCount} />
+
           {/* Segmented control for List / Pipeline */}
           <div className="flex items-center bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700">
             <button 
@@ -226,14 +282,14 @@ export default function Leads() {
             <div className="skeleton h-96 rounded-2xl" />
           ) : (
             <DragDropContext onDragEnd={handleDragEnd}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-start overflow-x-auto no-scrollbar pb-4">
+              <div className="flex flex-row overflow-x-auto gap-4 items-start pb-4 w-full no-scrollbar">
                 {STAGES.map((stage) => (
                   <Droppable droppableId={stage} key={stage}>
                     {(provided, snapshot) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`rounded-2xl border p-2 min-h-[480px] transition-colors ${STAGE_HEADER_STYLES[stage]} ${snapshot.isDraggingOver ? 'ring-2 ring-brand-400' : ''}`}
+                        className={`rounded-2xl border p-2 min-h-[480px] w-[240px] shrink-0 transition-colors ${STAGE_HEADER_STYLES[stage]} ${snapshot.isDraggingOver ? 'ring-2 ring-brand-400' : ''}`}
                       >
                         <div className="flex items-center justify-between px-2 py-1.5 mb-2">
                           <h4 className="text-xs font-bold uppercase tracking-wide">{stage}</h4>
@@ -255,7 +311,7 @@ export default function Leads() {
                                   <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400 dark:text-zinc-500">
                                     <span className="flex items-center gap-1"><Phone size={10} /> {lead.phone}</span>
                                   </div>
-                                  {lead.assignedTo && (
+                                  {!isTeamMember && lead.assignedTo && (
                                     <div className="flex items-center gap-1 mt-1.5 text-[10px] text-slate-500 dark:text-zinc-400">
                                       <UserCheck size={10} /> {lead.assignedTo}
                                     </div>
@@ -277,7 +333,17 @@ export default function Leads() {
       )}
 
       <LeadFormDrawer open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
-      <LeadViewDrawer open={!!viewingLead} lead={viewingLead} onClose={() => setViewingLead(null)} onRefresh={load} />
+      <LeadViewDrawer
+        open={!!viewingLead}
+        lead={viewingLead}
+        onClose={() => setViewingLead(null)}
+        onRefresh={load}
+        onEdit={(l) => {
+          setViewingLead(null);
+          setEditingLead(l);
+          setFormOpen(true);
+        }}
+      />
       <ConvertLeadDrawer 
         open={!!convertingLead} 
         lead={convertingLead} 

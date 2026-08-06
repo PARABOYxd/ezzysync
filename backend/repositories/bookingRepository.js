@@ -64,8 +64,8 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
        travel_status, payment_status, booking_timestamp, notes, created_by, updated_at, deleted,
        vendor_hotel_cost, vendor_flight_cost, vendor_transport_cost, vendor_other_cost, net_profit,
        source_quotation_id, customer_id, hotel_id, room_category, hotel_booking_status, hotel_confirmation_no,
-       batch_id
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,FALSE,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
+       batch_id, cost_template_id, sharing_type
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,FALSE,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)
      RETURNING *`,
     [
       tenantId, bookingId, data.customerName, data.email, data.phone, data.emergencyContact || '',
@@ -75,7 +75,7 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
       hotelCost, flightCost, transportCost, otherCost, netProfit,
       sourceQuotationId, customerId || null,
       data.hotelId || null, data.roomCategory || '', data.hotelBookingStatus || 'Pending', data.hotelConfirmationNo || '',
-      data.batchId || null
+      data.batchId || null, data.costTemplateId || null, data.sharingType || 'Double'
     ]
   );
   return rows[0];
@@ -97,7 +97,7 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
        vendor_hotel_cost = $19, vendor_flight_cost = $20, vendor_transport_cost = $21, vendor_other_cost = $22, net_profit = $23,
        customer_id = COALESCE($26, customer_id),
        hotel_id = $27, room_category = $28, hotel_booking_status = $29, hotel_confirmation_no = $30,
-       batch_id = $31
+       batch_id = $31, cost_template_id = $32, sharing_type = $33
      WHERE tenant_id = $24 AND booking_id = $25
      RETURNING *`,
     [
@@ -108,7 +108,7 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
       hotelCost, flightCost, transportCost, otherCost, netProfit,
       tenantId, bookingId, customerId || null,
       merged.hotelId || null, merged.roomCategory || '', merged.hotelBookingStatus || 'Pending', merged.hotelConfirmationNo || '',
-      merged.batchId || null
+      merged.batchId || null, merged.costTemplateId || null, merged.sharingType || 'Double'
     ]
   );
   return rows[0];

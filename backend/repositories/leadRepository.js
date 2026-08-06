@@ -46,7 +46,6 @@ async function updateLead(tenantId, leadId, merged, updatedAt, customerId) {
 async function listLeadsPaged(params) {
   const {
     tenantId, page = 1, limit = 10, search = '', stage = '', assignedTo = '', sort = 'newest', includeDeleted = false,
-    createdFrom = '', createdTo = '',
   } = params;
 
   const values = [tenantId];
@@ -64,17 +63,9 @@ async function listLeadsPaged(params) {
     values.push(`%${assignedTo}%`);
   }
   if (search) {
-    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR lead_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex} OR interest ILIKE $${paramIndex} OR source ILIKE $${paramIndex} OR assigned_to ILIKE $${paramIndex})`);
+    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR lead_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
     values.push(`%${search}%`);
     paramIndex++;
-  }
-  if (createdFrom) {
-    whereClauses.push(`created_at::date >= $${paramIndex++}::date`);
-    values.push(createdFrom);
-  }
-  if (createdTo) {
-    whereClauses.push(`created_at::date <= $${paramIndex++}::date`);
-    values.push(createdTo);
   }
 
   const whereSql = whereClauses.join(' AND ');
@@ -89,14 +80,8 @@ async function listLeadsPaged(params) {
   values.push(Number(offset));
   const offsetIndex = paramIndex++;
 
-  // follow_up_count powers the Follow-ups page's New/Followup status split -
-  // a lead created via createLead() always gets one auto-logged "Lead
-  // created via..." entry, so >1 means a real follow-up action has since
-  // been logged against it.
   const { rows } = await query(
-    `SELECT leads.*,
-       (SELECT COUNT(*)::int FROM follow_up_logs f WHERE f.lead_id = leads.id) AS follow_up_count
-     FROM leads WHERE ${whereSql} ${orderSql} LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    `SELECT * FROM leads WHERE ${whereSql} ${orderSql} LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     values
   );
 
@@ -105,16 +90,14 @@ async function listLeadsPaged(params) {
 
 /** All non-deleted leads grouped by stage, for the Kanban pipeline (Phase 3). */
 async function listLeadsForPipeline(tenantId, assignedTo) {
-  const values = [tenantId];
-  let whereSql = 'tenant_id = $1 AND deleted = FALSE';
+  let queryStr = `SELECT * FROM leads WHERE tenant_id = $1 AND deleted = FALSE`;
+  const params = [tenantId];
   if (assignedTo) {
-    values.push(assignedTo);
-    whereSql += ` AND assigned_to = $${values.length}`;
+    queryStr += ` AND assigned_to ILIKE $2`;
+    params.push(`%${assignedTo}%`);
   }
-  const { rows } = await query(
-    `SELECT * FROM leads WHERE ${whereSql} ORDER BY created_at DESC`,
-    values
-  );
+  queryStr += ` ORDER BY created_at DESC`;
+  const { rows } = await query(queryStr, params);
   return rows;
 }
 
@@ -162,6 +145,25 @@ async function insertFollowUp(tenantId, leadIdText, note, activityType, nextFoll
   return fRows[0];
 }
 
+async function listPool(tenantId) {
+  const { rows } = await query(
+    `SELECT * FROM leads WHERE tenant_id = $1 AND (assigned_to = '' OR assigned_to IS NULL) AND deleted = FALSE ORDER BY created_at DESC`,
+    [tenantId]
+  );
+  return rows;
+}
+
+async function claimLead(tenantId, leadIdText, username) {
+  const { rows } = await query(
+    `UPDATE leads
+     SET assigned_to = $1, updated_at = now()
+     WHERE tenant_id = $2 AND lead_id = $3 AND (assigned_to = '' OR assigned_to IS NULL)
+     RETURNING *`,
+    [username, tenantId, leadIdText]
+  );
+  return rows[0]; // returns undefined if someone else already claimed it
+}
+
 module.exports = {
   getLeadById,
   insertLead,
@@ -171,4 +173,6 @@ module.exports = {
   updateStage,
   listFollowUps,
   insertFollowUp,
+  listPool,
+  claimLead,
 };

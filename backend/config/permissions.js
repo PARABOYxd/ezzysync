@@ -15,13 +15,13 @@ const MODULES = {
 // Defaults chosen to match current real-world behavior, so this ships as a no-op
 // for existing tenants until an admin deliberately tightens something.
 const TEAM_MEMBER_DEFAULTS = {
-  leads: { create: true, read: true, update: true, delete: false, viewAll: true },
-  bookings: { create: true, read: true, update: true, delete: false, editPhone: false, viewAll: true },
+  leads: { create: true, read: true, update: true, delete: false, viewAll: false },
+  bookings: { create: true, read: true, update: true, delete: false, editPhone: false, viewAll: false },
   quotations: { create: true, read: true, update: true, delete: true },
   invoices: { read: true, download: true, email: true },
   hotels: { create: true, read: true, update: true, delete: true },
   tourBatches: { create: true, read: true, update: true, delete: true },
-  followUps: { create: true, read: true, update: true, viewAll: true },
+  followUps: { create: true, read: true, update: true, viewAll: false },
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },

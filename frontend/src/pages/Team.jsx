@@ -260,7 +260,6 @@ export default function Team() {
             <Thead>
               <Th>Name & Email</Th>
               <Th>Role</Th>
-              <Th>Performance</Th>
               <Th>Access Rights</Th>
               <Th className="text-right">Actions</Th>
             </Thead>
@@ -298,19 +297,6 @@ export default function Team() {
                           {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
                           {member.role}
                         </span>
-                      </Td>
-                      <Td>
-                        <div className="flex gap-4">
-                          <div className="flex flex-col items-center justify-center">
-                            <span className="text-base font-extrabold text-slate-700">{member.totalLeads || 0}</span>
-                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Assigned</span>
-                          </div>
-                          <div className="w-px h-8 bg-slate-200 mt-1"></div>
-                          <div className="flex flex-col items-center justify-center">
-                            <span className="text-base font-extrabold text-emerald-600">{member.wonLeads || 0}</span>
-                            <span className="text-[9px] uppercase font-bold text-emerald-500/80 tracking-wider">Booked</span>
-                          </div>
-                        </div>
                       </Td>
                       <Td>
                         {member.role === 'ADMIN' ? (

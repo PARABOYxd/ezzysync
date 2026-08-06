@@ -19,8 +19,9 @@ async function getQuotationByUuid(uuid) {
 async function insertQuotation(tenantId, quotationId, data, customerId) {
   const { rows } = await query(
     `INSERT INTO quotations (
-       tenant_id, quotation_id, customer_name, email, phone, trip_name, price_quote, valid_until, status, itinerary_days, customer_id, inclusions, exclusions, highlights, pickup_options, banner_url, related_quotations
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+       tenant_id, quotation_id, customer_name, email, phone, trip_name, price_quote, valid_until, status, itinerary_days, customer_id, inclusions, exclusions, highlights, pickup_options, banner_url, related_quotations,
+       hotel_cost_per_pax, flight_cost_per_pax, transport_cost_per_pax, other_cost_per_pax, cost_template_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
      RETURNING *`,
     [
       tenantId,
@@ -39,7 +40,12 @@ async function insertQuotation(tenantId, quotationId, data, customerId) {
       JSON.stringify(data.highlights || []),
       JSON.stringify(data.pickupOptions || []),
       data.bannerUrl || '',
-      JSON.stringify(data.relatedQuotations || [])
+      JSON.stringify(data.relatedQuotations || []),
+      Number(data.hotelCostPerPax || 0),
+      Number(data.flightCostPerPax || 0),
+      Number(data.transportCostPerPax || 0),
+      Number(data.otherCostPerPax || 0),
+      data.costTemplateId || null
     ]
   );
   return rows[0];
@@ -50,7 +56,9 @@ async function updateQuotation(tenantId, quotationId, merged) {
     `UPDATE quotations SET
        customer_name = $1, email = $2, phone = $3, trip_name = $4, price_quote = $5,
        valid_until = $6, status = $7, itinerary_days = $8, inclusions = $11, exclusions = $12,
-       highlights = $13, pickup_options = $14, banner_url = $15, related_quotations = $16, updated_at = now()
+       highlights = $13, pickup_options = $14, banner_url = $15, related_quotations = $16,
+       hotel_cost_per_pax = $17, flight_cost_per_pax = $18, transport_cost_per_pax = $19, other_cost_per_pax = $20, cost_template_id = $21,
+       updated_at = now()
      WHERE tenant_id = $9 AND quotation_id = $10
      RETURNING *`,
     [
@@ -69,7 +77,12 @@ async function updateQuotation(tenantId, quotationId, merged) {
       JSON.stringify(merged.highlights || []),
       JSON.stringify(merged.pickupOptions || []),
       merged.bannerUrl || '',
-      JSON.stringify(merged.relatedQuotations || [])
+      JSON.stringify(merged.relatedQuotations || []),
+      Number(merged.hotelCostPerPax || 0),
+      Number(merged.flightCostPerPax || 0),
+      Number(merged.transportCostPerPax || 0),
+      Number(merged.otherCostPerPax || 0),
+      merged.costTemplateId || null
     ]
   );
   return rows[0];

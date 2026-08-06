@@ -1,4 +1,4 @@
-const TRAVEL_STATUSES = ['New', 'Confirming', 'Booked', 'Completed', 'Cancelled', 'Refunded', 'Postponed'];
+const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled'];
 const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'];
 
 /** Maps a Postgres `bookings` row (snake_case) to the camelCase shape the frontend expects. */
@@ -20,7 +20,7 @@ function rowToBooking(row) {
     paid: Number(row.paid || 0),
     remaining: Number(row.remaining || 0),
     teamMember: row.team_member || '',
-    travelStatus: row.travel_status || 'New',
+    travelStatus: row.travel_status || 'Confirming',
     paymentStatus: row.payment_status || 'Pending',
     bookingTimestamp: row.booking_timestamp,
     notes: row.notes || '',
@@ -36,6 +36,8 @@ function rowToBooking(row) {
     sourceQuotationId: row.source_quotation_id || null,
     customerId: row.customer_id || null,
     batchId: row.batch_id || null,
+    costTemplateId: row.cost_template_id || null,
+    sharingType: row.sharing_type || 'Double',
   };
 }
 

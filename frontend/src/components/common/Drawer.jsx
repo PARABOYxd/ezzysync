@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export default function Drawer({ open, onClose, title, children, size = 'md' }) {
@@ -39,7 +40,7 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end items-stretch">
       {/* Scrim: 50% black background */}
       <div 
@@ -70,6 +71,7 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
