@@ -3,23 +3,8 @@ const env = require('../config/env');
 const userService = require('../services/userService');
 const otpService = require('../services/otpService');
 const emailService = require('../services/emailService');
-
-function signToken(user) {
-  return jwt.sign(
-    {
-      userId: user.userId,
-      tenantId: user.tenantId,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      permissions: user.permissions,
-      companyName: user.companyName,
-      planId: user.planId || 'FREE',
-    },
-    env.jwtSecret,
-    { expiresIn: env.jwtExpiresIn }
-  );
-}
+const tokenService = require('../services/tokenService');
+const refreshTokenRepository = require('../repositories/refreshTokenRepository');
 
 function publicUser(user) {
   return {
@@ -67,8 +52,8 @@ async function register(req, res, next) {
     }
 
     const user = await userService.createUser({ email, password, name, companyName });
-    const token = signToken(user);
-    res.status(201).json({ token, user: publicUser(user) });
+    const { token, refreshToken } = await tokenService.issueTokenPair(user);
+    res.status(201).json({ token, refreshToken, user: publicUser(user) });
   } catch (err) {
     next(err);
   }
@@ -125,8 +110,8 @@ async function login(req, res, next) {
     if (!valid) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
-    const token = signToken(user);
-    res.json({ token, user: publicUser(user) });
+    const { token, refreshToken } = await tokenService.issueTokenPair(user);
+    res.json({ token, refreshToken, user: publicUser(user) });
   } catch (err) {
     next(err);
   }
@@ -134,6 +119,44 @@ async function login(req, res, next) {
 
 async function me(req, res) {
   res.json({ user: req.user });
+}
+
+// Silent re-auth: trades a still-valid refresh token for a new access token
+// without asking the user to log in again. Rotates the refresh token too
+// (old one revoked, new one issued) so a replayed/leaked token is only
+// good for one refresh before it stops working.
+async function refresh(req, res) {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required.' });
+    }
+
+    const tokenHash = tokenService.hashRefreshToken(refreshToken);
+    const stored = await refreshTokenRepository.findValidRefreshToken(tokenHash);
+    if (!stored) {
+      return res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
+    }
+
+    const user = await userService.findUserById(stored.user_id);
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
+    }
+
+    await refreshTokenRepository.revokeRefreshToken(tokenHash);
+    const pair = await tokenService.issueTokenPair(user);
+    res.json(pair);
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
+  }
+}
+
+async function logout(req, res) {
+  const { refreshToken } = req.body;
+  if (refreshToken) {
+    await refreshTokenRepository.revokeRefreshToken(tokenService.hashRefreshToken(refreshToken));
+  }
+  res.json({ message: 'Logged out.' });
 }
 
 async function forgotPassword(req, res, next) {
@@ -174,4 +197,4 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, me, forgotPassword, resetPassword, sendRegistrationOTP, verifyRegistrationOTP };
+module.exports = { register, login, me, forgotPassword, resetPassword, sendRegistrationOTP, verifyRegistrationOTP, refresh, logout };

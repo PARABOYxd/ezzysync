@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const ctrl = require('../controllers/authController');
 const { validate } = require('../middleware/validate');
 const { requireAuth } = require('../middleware/authMiddleware');
-const { loginLimiter, otpRequestLimiter, otpVerifyLimiter, registerLimiter } = require('../middleware/rateLimiter');
+const { loginLimiter, otpRequestLimiter, otpVerifyLimiter, registerLimiter, refreshLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -36,6 +36,20 @@ router.post(
 );
 
 router.get('/me', requireAuth, ctrl.me);
+
+router.post(
+  '/refresh',
+  refreshLimiter,
+  [body('refreshToken').notEmpty().withMessage('Refresh token is required.')],
+  validate,
+  ctrl.refresh
+);
+
+// No requireAuth: a client calling logout with an already-expired access
+// token should still be able to revoke its refresh token. refreshToken is
+// optional so the frontend can call this defensively even if it somehow
+// has no refresh token stored (it just becomes a no-op).
+router.post('/logout', ctrl.logout);
 
 router.post(
   '/forgot-password',
