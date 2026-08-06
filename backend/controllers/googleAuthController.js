@@ -1,7 +1,7 @@
 const { google } = require('googleapis');
-const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const userService = require('../services/userService');
+const tokenService = require('../services/tokenService');
 
 // We create a custom OAuth2 client specifically for login using the loginRedirectUri
 function getLoginOAuth2Client() {
@@ -17,23 +17,6 @@ const SCOPES = [
   'email',
   'profile',
 ];
-
-function signToken(user) {
-  return jwt.sign(
-    {
-      userId: user.userId,
-      tenantId: user.tenantId,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      permissions: user.permissions,
-      companyName: user.companyName,
-      planId: user.planId || 'FREE',
-    },
-    env.jwtSecret,
-    { expiresIn: env.jwtExpiresIn }
-  );
-}
 
 exports.googleLoginRedirect = (req, res) => {
   const client = getLoginOAuth2Client();
@@ -77,11 +60,11 @@ exports.googleLoginCallback = async (req, res) => {
       googleId,
     });
 
-    // Sign JWT
-    const token = signToken(user);
+    // Sign JWT + issue a refresh token, same as the regular email/password login
+    const { token, refreshToken } = await tokenService.issueTokenPair(user);
 
-    // Redirect to frontend callback route with token
-    res.redirect(`${env.frontendUrl}/auth/google/callback?token=${token}`);
+    // Redirect to frontend callback route with both tokens
+    res.redirect(`${env.frontendUrl}/auth/google/callback?token=${token}&refreshToken=${refreshToken}`);
   } catch (err) {
     req.log.error({ err }, 'Google login callback failed');
     res.redirect(`${env.frontendUrl}/login?error=${encodeURIComponent(err.message || 'Google login failed')}`);

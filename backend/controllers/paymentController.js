@@ -1,25 +1,8 @@
 const crypto = require('crypto');
 const axios = require('axios');
-const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { query } = require('../config/db');
-
-function signToken(user) {
-  return jwt.sign(
-    {
-      userId: user.userId,
-      tenantId: user.tenantId,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      permissions: user.permissions,
-      companyName: user.companyName,
-      planId: user.planId || 'FREE',
-    },
-    env.jwtSecret,
-    { expiresIn: env.jwtExpiresIn }
-  );
-}
+const tokenService = require('../services/tokenService');
 
 async function createSubscriptionOrder(req, res, next) {
   try {
@@ -124,7 +107,7 @@ async function verifySubscription(req, res, next) {
       planId: userRow.plan_id || 'FREE',
     };
 
-    const token = signToken(updatedUser);
+    const token = tokenService.signAccessToken(updatedUser);
 
     req.log.info({ razorpay_order_id, razorpay_payment_id }, 'Tenant upgraded to Pro plan');
     res.json({

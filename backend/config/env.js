@@ -24,6 +24,7 @@ function loadEnv() {
 
     jwtSecret: process.env.JWT_SECRET,
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    refreshTokenExpiresInDays: Number(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS || 30),
     otpSecret: process.env.OTP_SECRET || process.env.JWT_SECRET,
 
     db: {

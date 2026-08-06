@@ -17,7 +17,11 @@ export default function NotificationBell() {
   useEffect(() => {
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+    window.addEventListener('followups:updated', load);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('followups:updated', load);
+    };
   }, []);
 
   useEffect(() => {

@@ -8,6 +8,56 @@ import Footer from "@/components/layout/Footer";
 // Real-world, trending travel agency tech articles with high SEO query match
 const blogPosts = [
   {
+    slug: "festive-season-bookings-travel-agents",
+    title: "How Travel Agents Can Maximize Bookings During the Festive Season",
+    excerpt: "The festive season brings a massive spike in travel inquiries. Learn how to stop juggling WhatsApp chats and start automating your pipeline to maximize revenue.",
+    date: "August 6, 2026",
+    readTime: "7 min read",
+    category: "Operations",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Festive CRM Board Mockup */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span className="text-[10px] font-bold text-orange-600">Festive Pipeline</span>
+          <span className="text-[8px] bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded font-bold">DIWALI RUSH</span>
+        </div>
+        <div className="flex gap-2 py-2 w-full h-full">
+          {/* Kanban Columns */}
+          <div className="flex-1 bg-white border border-slate-100 rounded shadow-sm p-1.5 flex flex-col gap-1.5">
+            <div className="text-[7px] font-bold text-slate-400">NEW LEADS (14)</div>
+            <div className="bg-slate-50 border border-slate-100 p-1 rounded">
+              <div className="w-full h-1 bg-slate-200 rounded mb-1"></div>
+              <div className="w-2/3 h-1 bg-slate-200 rounded"></div>
+            </div>
+            <div className="bg-slate-50 border border-slate-100 p-1 rounded">
+              <div className="w-4/5 h-1 bg-slate-200 rounded mb-1"></div>
+              <div className="w-1/2 h-1 bg-slate-200 rounded"></div>
+            </div>
+          </div>
+          <div className="flex-1 bg-white border border-slate-100 rounded shadow-sm p-1.5 flex flex-col gap-1.5">
+            <div className="text-[7px] font-bold text-brand-600">ITINERARY SENT (8)</div>
+            <div className="bg-brand-50 border border-brand-100 p-1 rounded shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+              <div className="flex justify-between items-center mb-1">
+                <div className="w-1/2 h-1 bg-brand-200 rounded"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></div>
+              </div>
+              <div className="w-1/3 h-1 bg-brand-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-orange-500 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">
+          <span className="text-[9px] font-bold">Automated Follow-ups</span>
+          <span className="text-[9px] font-bold">Active ✓</span>
+        </div>
+        
+        {/* Festive decoration (diya) */}
+        <div className="absolute top-1 right-2 w-4 h-4 text-orange-500 opacity-60">
+           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c0 0-4 4-4 10 0 2.21 1.79 4 4 4s4-1.79 4-4c0-6-4-10-4-10zm0 12c-1.1 0-2-.9-2-2 0-1.5 1.5-3.5 2-5 0 0 2 2 2 5 0 1.1-.9 2-2 2z"/><path d="M22 17.5c0-1.93-1.57-3.5-3.5-3.5H5.5C3.57 14 2 15.57 2 17.5 2 19.43 3.57 21 5.5 21h13c1.93 0 3.5-1.57 3.5-3.5zM12 20c-1.38 0-2.5-1.12-2.5-2.5S10.62 15 12 15s2.5 1.12 2.5 2.5S13.38 20 12 20z"/></svg>
+        </div>
+      </div>
+    )
+  },
+  {
     slug: "convert-instagram-leads-travel-agents",
     title: "How to Convert Instagram Leads into Confirmed Bookings: A 2026 Guide for Indian Travel Agents",
     excerpt: "Stop letting hot travel DMs go cold. Learn the 5-step conversion funnel to turn likes into booked trips using WhatsApp integrations and travel CRMs.",

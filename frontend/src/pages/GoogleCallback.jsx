@@ -11,13 +11,14 @@ export default function GoogleCallback() {
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const refreshToken = searchParams.get('refreshToken');
     if (!token) {
       toast.error('Google login failed. No token returned.');
       navigate('/login');
       return;
     }
 
-    loginWithToken(token)
+    loginWithToken(token, refreshToken)
       .then(() => {
         toast.success('Successfully logged in with Google!');
         navigate('/dashboard');

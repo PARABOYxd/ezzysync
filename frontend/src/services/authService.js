@@ -5,3 +5,5 @@ export const register = (payload) => api.post('/auth/register', payload).then((r
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email }).then((r) => r.data);
 export const resetPassword = (payload) => api.post('/auth/reset-password', payload).then((r) => r.data);
 export const fetchMe = () => api.get('/auth/me').then((r) => r.data);
+export const refresh = (refreshToken) => api.post('/auth/refresh', { refreshToken }).then((r) => r.data);
+export const logout = (refreshToken) => api.post('/auth/logout', { refreshToken }).then((r) => r.data);

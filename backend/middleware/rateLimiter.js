@@ -51,6 +51,17 @@ const otpVerifyLimiter = rateLimit({
   message: { message: 'Too many attempts. Please request a new code and try again.' },
 });
 
+// Token refresh (/auth/refresh). Looser than login since a legitimate
+// client silently refreshes every time its access token nears expiry, but
+// still bounds brute-forcing/replaying refresh tokens against one IP.
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many session refresh attempts. Please log in again.' },
+});
+
 // Registration itself (account creation abuse / scripted signups).
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -77,5 +88,6 @@ module.exports = {
   otpRequestLimiter,
   otpVerifyLimiter,
   registerLimiter,
-  publicLimiter, 
+  refreshLimiter,
+  publicLimiter,
 };

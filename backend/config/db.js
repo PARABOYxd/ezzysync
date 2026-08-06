@@ -92,6 +92,26 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);`);
 
+  // Long-lived refresh tokens so a client can silently mint a new access
+  // token instead of forcing re-login once the (short-lived) JWT expires.
+  // Only a hash of the token is stored - the raw value is never persisted,
+  // same reasoning as password hashing. Rotated (old row revoked, new row
+  // inserted) on every use so a leaked-and-replayed token stops working
+  // after one refresh instead of staying valid for its whole 30-day life.
+  await query(`
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      revoked_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);`);
+
   // Backfill existing tenants into users table as ADMINs if users table is empty
   const { rows } = await query(`SELECT id FROM users LIMIT 1`);
   if (rows.length === 0) {
