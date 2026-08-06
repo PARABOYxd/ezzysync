@@ -111,6 +111,9 @@ export default function CompleteFollowUpDrawer({ open, onClose, followUp, onComp
       }
 
       toast.success('Follow-up updated successfully.');
+      // NotificationBell holds its own independent copy of due follow-ups
+      // (polled every 60s) - nudge it to refresh now instead of waiting.
+      window.dispatchEvent(new Event('followups:updated'));
       onCompleted?.(followUp.id);
       onClose();
     } catch (err) {
