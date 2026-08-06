@@ -40,9 +40,28 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(helmet());
+const allowedOrigins = [
+  env.frontendUrl,
+  'https://ezzysync.com',
+  'https://www.ezzysync.com',
+  'http://localhost:5173',
+  'http://localhost:5001',
+];
+
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.some((o) => {
+        if (!o) return false;
+        return o.replace(/\/$/, '') === origin.replace(/\/$/, '');
+      });
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Not allowed by CORS: ${origin}`));
+      }
+    },
     credentials: true,
   })
 );
