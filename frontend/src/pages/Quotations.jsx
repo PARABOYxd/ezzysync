@@ -61,7 +61,7 @@ export default function Quotations() {
   }, [searchInput]);
 
   const copyPreviewLink = (uuid, qId) => {
-    const link = `${window.location.origin}/app/quote-preview/${uuid}`;
+    const link = `${window.location.origin}/quote-preview/${uuid}`;
     navigator.clipboard.writeText(link);
     setCopiedId(qId);
     toast.success('Preview link copied to clipboard!');

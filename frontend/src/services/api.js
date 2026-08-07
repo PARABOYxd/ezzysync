@@ -18,8 +18,8 @@ function clearAuth() {
 }
 
 function redirectToLogin() {
-  if (!window.location.pathname.startsWith('/app/login')) {
-    window.location.href = '/app/login';
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
   }
 }
 
