@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as settingsService from '../services/settingsService';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
@@ -64,7 +64,7 @@ export default function SettingsPage() {
     }
   };
 
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api');
+  const apiBaseUrl = API_BASE_URL;
   const embedSnippet = publicLeadKey
     ? `<form action="${apiBaseUrl}/public/leads/${publicLeadKey}" method="POST" onsubmit="event.preventDefault(); fetch(this.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(this)))}).then(()=>this.reset()&&alert('Thanks! We will be in touch shortly.'));">
   <input name="customerName" placeholder="Your Name" required />

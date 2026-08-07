@@ -6,6 +6,7 @@ import { useToast } from '../hooks/useToast.jsx';
 import Input from '../components/ui/Input.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
 import Button from '../components/ui/Button.jsx';
+import { API_BASE_URL } from '../services/api.js';
 
 export default function Register() {
   const { register } = useAuth();
@@ -50,8 +51,7 @@ export default function Register() {
     if (!validateStep1()) return;
     setLoading(true);
     try {
-      const VITE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      const resp = await fetch(`${VITE_API_URL}/auth/register/send-otp`, {
+      const resp = await fetch(`${API_BASE_URL}/auth/register/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email }),
@@ -72,8 +72,7 @@ export default function Register() {
     setResending(true);
     setOtpError('');
     try {
-      const VITE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      const resp = await fetch(`${VITE_API_URL}/auth/register/send-otp`, {
+      const resp = await fetch(`${API_BASE_URL}/auth/register/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email }),
@@ -246,7 +245,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/google`;
+                  window.location.href = `${API_BASE_URL}/auth/google`;
                 }}
                 className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold transition-all active:scale-[0.98] text-sm"
               >
