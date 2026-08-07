@@ -55,7 +55,7 @@ app.use(
       const isAllowed = allowedOrigins.some((o) => {
         if (!o) return false;
         return o.replace(/\/$/, '') === origin.replace(/\/$/, '');
-      });
+      }) || origin.endsWith('.ezzysync.com') || origin === 'https://ezzysync.com';
       if (isAllowed) {
         callback(null, true);
       } else {
