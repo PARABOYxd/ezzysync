@@ -13,7 +13,7 @@ import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { usePermission } from '../hooks/usePermission.js';
 import { useAuth } from '../hooks/useAuth.jsx';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 
 const STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 
@@ -89,7 +89,7 @@ export default function Leads() {
       })
       .catch(() => {});
 
-    const apiVal = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    const apiVal = API_BASE_URL;
     const wsUrl = apiVal.replace(/^http/, 'ws').replace(/\/api$/, '');
     
     const socket = new WebSocket(wsUrl);

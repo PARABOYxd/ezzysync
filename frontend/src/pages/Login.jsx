@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
+import { API_BASE_URL } from '../services/api.js';
 
 export default function Login() {
   const { login } = useAuth();
@@ -109,7 +110,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => {
-              window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/google`;
+              window.location.href = `${API_BASE_URL}/auth/google`;
             }}
             className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold transition-all active:scale-[0.98] text-sm"
           >
