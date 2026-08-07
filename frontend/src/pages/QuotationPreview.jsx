@@ -269,7 +269,7 @@ export default function QuotationPreview() {
               {quotation.relatedQuotations.map((rq, idx) => (
                 <a
                   key={idx}
-                  href={`/app/quote-preview/${rq.id}`}
+                  href={`/quote-preview/${rq.id}`}
                   className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:border-slate-300 transition group block text-left"
                 >
                   <div className="flex justify-between items-start mb-2">
