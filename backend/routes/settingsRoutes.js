@@ -20,4 +20,7 @@ router.post('/lead-capture-key/regenerate', (req, res, next) => {
   next();
 }, ctrl.regeneratePublicLeadKey);
 
+// WhatsApp own number setup request
+router.post('/whatsapp-request', ctrl.requestWhatsappSetup);
+
 module.exports = router;

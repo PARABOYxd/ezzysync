@@ -4,7 +4,7 @@ import api, { API_BASE_URL } from '../services/api';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
-import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram } from 'lucide-react';
+import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
@@ -21,7 +21,7 @@ const FIELDS = [
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('general'); // 'general', 'invoice', or 'walkthroughs'
+  const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState(null);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -32,6 +32,8 @@ export default function SettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [selectedLogoFile, setSelectedLogoFile] = useState(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
+  const [showAdvancedWA, setShowAdvancedWA] = useState(false);
+  const [waRequest, setWaRequest] = useState({ phone: '', companyName: '', submitted: false, submitting: false });
   const toast = useToast();
 
   const handleLogoUpload = (e) => {
@@ -321,92 +323,186 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'whatsapp' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 card space-y-6">
-              <div>
-                <h3 className="font-bold text-slate-800">WhatsApp API Credentials</h3>
-                <p className="text-xs text-slate-400">Connect your custom Meta WhatsApp Cloud API credentials to automate messages from your own business number.</p>
-              </div>
+        {activeTab === 'whatsapp' && (() => {
+          const hasOwnWA = !!(settings.whatsappPhoneNumberId && settings.whatsappAccessToken);
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <Input
-                  label="Phone Number ID"
-                  placeholder="e.g. 517969018813..."
-                  hint="Unique ID for your verified WhatsApp business phone number"
-                  value={settings.whatsappPhoneNumberId || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappPhoneNumberId: e.target.value })}
-                />
-                <Input
-                  label="Display Phone Number"
-                  placeholder="e.g. +91 98765 43210"
-                  hint="The phone number linked to your Meta API account"
-                  value={settings.whatsappNumber || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
-                />
-                <Input
-                  label="WABA ID (WhatsApp Business Account ID)"
-                  placeholder="e.g. 104825968132..."
-                  hint="Your WhatsApp Business Account Identifier"
-                  value={settings.whatsappWabaId || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappWabaId: e.target.value })}
-                />
-                <Input
-                  label="Business ID"
-                  placeholder="Meta Business Portfolio ID"
-                  hint="Your Facebook Business Manager ID"
-                  value={settings.whatsappBusinessId || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
-                />
-              </div>
+          const handleWaRequest = async () => {
+            if (!waRequest.phone || !waRequest.companyName) {
+              toast.error('Please fill in all fields.');
+              return;
+            }
+            setWaRequest(r => ({ ...r, submitting: true }));
+            try {
+              await api.post('/settings/whatsapp-request', {
+                phone: waRequest.phone,
+                companyName: waRequest.companyName,
+              });
+              setWaRequest(r => ({ ...r, submitted: true, submitting: false }));
+              toast.success('Request submitted! EzzySync team will contact you within 24 hours.');
+            } catch {
+              toast.error('Could not submit request. Please try again.');
+              setWaRequest(r => ({ ...r, submitting: false }));
+            }
+          };
 
-              <Input
-                label="Meta Access Token"
-                placeholder="EAAGOCSPX-..."
-                hint="Your system user access token with whatsapp_business_messaging permission"
-                value={settings.whatsappAccessToken || ''}
-                onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
-              />
+          return (
+            <div className="max-w-xl mx-auto space-y-5">
 
-              <Input
-                label="App Secret"
-                placeholder="Meta App Secret key"
-                hint="App Settings -> Basic -> App Secret (Used for webhooks)"
-                value={settings.whatsappAppSecret || ''}
-                onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
-              />
-            </div>
-
-            <div className="lg:col-span-5 space-y-4">
-              {/* Critical Warning Box */}
-              <div className="bg-red-50/70 border border-red-200/80 text-red-700 rounded-2xl p-4 text-xs space-y-2 shadow-sm">
-                <div className="flex items-center gap-2 font-extrabold text-red-800">
-                  <span className="text-lg">⚠️</span> CRITICAL WARNING
+              {/* Current Status Card */}
+              <div className="card p-6 space-y-5">
+                <div className="text-center space-y-2">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mx-auto shadow-lg">
+                    <MessageSquare size={30} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800">WhatsApp Connection</h3>
                 </div>
-                <p className="leading-relaxed">
-                  Once linked to this developer API, you <strong>CANNOT</strong> use this same phone number inside the regular mobile WhatsApp App or WhatsApp Business App.
-                </p>
-                <p className="font-bold text-red-900 leading-relaxed bg-white/80 p-2.5 rounded-xl border border-red-100">
-                  💡 Best Practice: We highly recommend buying a cheap secondary SIM card (new number) purely for CRM alerts.
-                </p>
+
+                {hasOwnWA ? (
+                  /* Own number connected */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                        <MessageSquare size={18} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">{settings.whatsappNumber || 'Your WhatsApp Number'}</p>
+                        <p className="text-xs text-slate-400">Your own WhatsApp Business API</p>
+                      </div>
+                      <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full shrink-0">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                        Active
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 text-center">Messages are sent from your own WhatsApp Business number.</p>
+                  </div>
+                ) : (
+                  /* Using EzzySync shared number */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
+                        <MessageSquare size={18} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">EzzySync Shared Number</p>
+                        <p className="text-xs text-slate-400">Messages sent via EzzySync's official WhatsApp</p>
+                      </div>
+                      <span className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full shrink-0">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                        Default
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 space-y-1">
+                      <p>✅ WhatsApp messages are already working via EzzySync's number</p>
+                      <p>📲 Want your own business number? Request below.</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Quick Setup Card */}
-              <div className="bg-gradient-to-br from-brand-50/50 to-emerald-50/30 border border-brand-100 rounded-2xl p-5 shadow-sm space-y-4">
-                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-brand-100/50 pb-2">
-                  <MessageSquare size={16} className="text-brand-600" />
-                  Quick Setup Guide
-                </h4>
-                <ol className="space-y-3.5 text-xs text-slate-600 list-decimal pl-4 leading-relaxed">
-                  <li>Register as a developer on <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-brand-600 font-bold underline">developers.facebook.com</a> and create a <strong>Business App</strong>.</li>
-                  <li>Add <strong>WhatsApp</strong> integration, verify your custom business number, and copy the <strong>Phone Number ID</strong>.</li>
-                  <li>Generate a <strong>Permanent Access Token</strong> under your Meta Business Settings for a System User with admin permissions.</li>
-                  <li>Paste the values in the form fields on the left and click <strong>Save Customizations</strong>.</li>
-                </ol>
+              {/* Request Own Number */}
+              {!hasOwnWA && (
+                <div className="card p-6 space-y-4">
+                  <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                    <span>📲</span> Request My Own WhatsApp Number
+                  </h4>
+                  <p className="text-xs text-slate-400">EzzySync team will set up a dedicated WhatsApp Business number for your agency. Customers will see your business name on messages.</p>
+
+                  {waRequest.submitted ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-semibold text-center">
+                      ✅ Request submitted! We'll contact you within 24 hours.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Input
+                        label="Your WhatsApp Number"
+                        placeholder="e.g. +91 98765 43210"
+                        hint="Number you want to use as WhatsApp Business"
+                        value={waRequest.phone}
+                        onChange={(e) => setWaRequest(r => ({ ...r, phone: e.target.value }))}
+                      />
+                      <Input
+                        label="Agency / Company Name"
+                        placeholder="e.g. Himalaya Travel Co."
+                        hint="Will appear as sender name on WhatsApp"
+                        value={waRequest.companyName}
+                        onChange={(e) => setWaRequest(r => ({ ...r, companyName: e.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleWaRequest}
+                        disabled={waRequest.submitting}
+                        className="w-full py-3 rounded-xl text-white font-bold text-sm bg-emerald-500 hover:bg-emerald-600 transition disabled:opacity-60"
+                      >
+                        {waRequest.submitting ? 'Submitting...' : 'Submit Request'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Advanced: Own credentials */}
+              <div className="card overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedWA(v => !v)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  <span>⚙️ Advanced — Configure My Own API Credentials</span>
+                  {showAdvancedWA ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {showAdvancedWA && (
+                  <div className="px-5 pb-6 pt-2 space-y-4 border-t border-slate-100">
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                      ⚠️ <strong>Warning:</strong> Once a number is linked to API, it cannot be used in regular WhatsApp app. Use a dedicated SIM.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Input
+                        label="Phone Number ID"
+                        placeholder="e.g. 517969018813..."
+                        value={settings.whatsappPhoneNumberId || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappPhoneNumberId: e.target.value })}
+                      />
+                      <Input
+                        label="Display Phone Number"
+                        placeholder="e.g. +91 98765 43210"
+                        value={settings.whatsappNumber || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                      />
+                      <Input
+                        label="WABA ID"
+                        placeholder="e.g. 104825968132..."
+                        value={settings.whatsappWabaId || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappWabaId: e.target.value })}
+                      />
+                      <Input
+                        label="Business ID"
+                        placeholder="Meta Business Portfolio ID"
+                        value={settings.whatsappBusinessId || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
+                      />
+                    </div>
+                    <Input
+                      label="Meta Access Token"
+                      placeholder="EAAGOCSPX-..."
+                      value={settings.whatsappAccessToken || ''}
+                      onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
+                    />
+                    <Input
+                      label="App Secret"
+                      placeholder="Meta App Secret key"
+                      value={settings.whatsappAppSecret || ''}
+                      onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
+                    />
+                    <Button type="submit" disabled={saving} className="w-full text-sm">
+                      {saving ? 'Saving...' : 'Save My API Credentials'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === 'instagram' && (() => {
           const isConnected = !!(settings.instagramAccessToken && settings.instagramAccountId);

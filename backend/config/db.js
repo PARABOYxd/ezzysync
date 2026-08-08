@@ -620,6 +620,19 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding related_quotations to quotations');
   }
 
+  // WhatsApp own number setup requests from agencies
+  await query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_setup_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      phone TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_requests_tenant ON whatsapp_setup_requests(tenant_id);`);
+
   logger.info('Schema check complete.');
 }
 
