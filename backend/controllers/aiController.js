@@ -258,6 +258,19 @@ async function downloadItinerary(req, res, next) {
       return res.status(400).json({ message: 'Trip name and itinerary text are required.' });
     }
 
+    const isPremium = req.user && req.user.planId !== 'FREE';
+    
+    let coverImageBuffer = null;
+    if (isPremium) {
+      try {
+        // Fetch a beautiful travel placeholder for the cover
+        const imgRes = await axios.get('https://picsum.photos/800/400?blur=1', { responseType: 'arraybuffer', timeout: 5000 });
+        coverImageBuffer = Buffer.from(imgRes.data, 'binary');
+      } catch (err) {
+        req.log.warn('Could not fetch premium cover image, falling back to no image');
+      }
+    }
+
     const pdfBuffer = await new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -266,38 +279,64 @@ async function downloadItinerary(req, res, next) {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        // Styling
-        const primaryColor = '#0f766e';
+        const primaryColor = isPremium ? '#042f2e' : '#0f766e'; // Darker teal for premium
+        const accentColor = '#0d9488';
         const darkColor = '#111827';
         const secondaryColor = '#4b5563';
-
-        // Title and Header metadata
-        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(22).text('EzzySync Travel Itinerary', 50, 50);
-        doc.fillColor(secondaryColor).font('Helvetica').fontSize(10).text(`Trip: ${tripName}`, 50, 78);
-        doc.fillColor(secondaryColor).fontSize(9).text(`Generated Date: ${new Date().toLocaleDateString('en-IN')}`, 50, 92);
         
-        doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#e5e7eb').lineWidth(1).stroke();
+        let startY = 50;
 
-        // Position flow pointer
+        if (isPremium && coverImageBuffer) {
+          // Full bleed cover image
+          doc.image(coverImageBuffer, 0, 0, { width: 595.28, height: 200 }); // A4 width is 595.28
+          
+          // White overlay for text readability
+          doc.rect(0, 0, 595.28, 200).fillColor('black', 0.4).fill();
+          
+          doc.fillColor('white').font('Helvetica-Bold').fontSize(28).text(tripName.toUpperCase(), 50, 80, { align: 'center', width: 495 });
+          doc.fillColor('white', 0.9).font('Helvetica').fontSize(12).text('Curated Premium Itinerary by EzzySync', 50, 130, { align: 'center', width: 495 });
+          
+          startY = 240;
+          doc.fillOpacity(1); // Reset opacity
+        } else {
+          // Standard Free Header
+          doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(22).text('EzzySync Travel Itinerary', 50, 50);
+          doc.fillColor(secondaryColor).font('Helvetica').fontSize(10).text(`Trip: ${tripName}`, 50, 78);
+          doc.fillColor(secondaryColor).fontSize(9).text(`Generated Date: ${new Date().toLocaleDateString('en-IN')}`, 50, 92);
+          doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#e5e7eb').lineWidth(1).stroke();
+          startY = 130;
+        }
+
         doc.x = 50;
-        doc.y = 130;
+        doc.y = startY;
 
         const lines = itineraryText.split('\n');
         for (const line of lines) {
-          // Clean emojis and strip bold markdown markers
           const cleanLine = line.replace(/\*\*/g, '').replace(/[^\x00-\x7F]/g, '').trim();
 
           if (line.startsWith('# ')) {
             doc.moveDown(1);
-            doc.font('Helvetica-Bold').fontSize(18).fillColor(primaryColor).text(cleanLine, { lineGap: 6 });
-            doc.moveDown(0.5);
+            if (isPremium) {
+              doc.rect(50, doc.y, 495, 30).fill(primaryColor);
+              doc.fillColor('white').font('Helvetica-Bold').fontSize(14).text(cleanLine.replace('# ', ''), 60, doc.y - 23);
+              doc.moveDown(0.5);
+            } else {
+              doc.font('Helvetica-Bold').fontSize(18).fillColor(primaryColor).text(cleanLine, { lineGap: 6 });
+              doc.moveDown(0.5);
+            }
           } else if (line.startsWith('## ')) {
-            doc.moveDown(0.8);
-            doc.font('Helvetica-Bold').fontSize(14).fillColor(darkColor).text(cleanLine, { lineGap: 5 });
-            doc.moveDown(0.4);
+            doc.moveDown(1);
+            if (isPremium) {
+              doc.font('Helvetica-Bold').fontSize(14).fillColor(accentColor).text(cleanLine.replace('## ', ''), { lineGap: 5 });
+              doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(accentColor).lineWidth(0.5).stroke();
+              doc.moveDown(0.5);
+            } else {
+              doc.font('Helvetica-Bold').fontSize(14).fillColor(darkColor).text(cleanLine, { lineGap: 5 });
+              doc.moveDown(0.4);
+            }
           } else if (line.startsWith('### ')) {
             doc.moveDown(0.6);
-            doc.font('Helvetica-Bold').fontSize(11).fillColor(secondaryColor).text(cleanLine, { lineGap: 4 });
+            doc.font('Helvetica-Bold').fontSize(11).fillColor(darkColor).text(cleanLine, { lineGap: 4 });
             doc.moveDown(0.3);
           } else if (line.startsWith('- ') || line.startsWith('* ')) {
             const bulletContent = cleanLine.replace(/^[-*]\s*/, '');
@@ -307,6 +346,14 @@ async function downloadItinerary(req, res, next) {
           } else {
             doc.font('Helvetica').fontSize(10).fillColor(secondaryColor).text(cleanLine, { lineGap: 4 });
           }
+        }
+
+        // Footer for premium
+        if (isPremium) {
+          const pages = doc.bufferedPageRange ? doc.bufferedPageRange().count : 1;
+          // Add a subtle footer to all pages (if using buffered pages, otherwise just at the end)
+          doc.moveDown(2);
+          doc.font('Helvetica-Oblique').fontSize(9).fillColor('#9ca3af').text('Powered by EzzySync AI | Premium Experience', { align: 'center' });
         }
 
         doc.end();

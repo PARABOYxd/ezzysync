@@ -337,9 +337,10 @@ export default function AITools() {
                     <button 
                       onClick={handleDownloadItinerary}
                       disabled={downloading}
-                      className="text-[10px] text-orange-600 dark:text-orange-400 font-bold hover:underline disabled:opacity-50"
+                      className="text-[10px] text-orange-600 dark:text-orange-400 font-bold hover:underline disabled:opacity-50 flex items-center gap-1"
                     >
-                      {downloading ? 'Downloading...' : 'Download PDF'}
+                      {user?.planId === 'FREE' && <Lock size={10} />}
+                      {downloading ? 'Downloading...' : user?.planId === 'FREE' ? 'Download Basic PDF' : 'Download Premium PDF'}
                     </button>
                   </div>
                 </div>
