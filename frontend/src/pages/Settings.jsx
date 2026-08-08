@@ -346,54 +346,52 @@ export default function SettingsPage() {
           };
 
           return (
-            <div className="max-w-xl mx-auto space-y-5">
+            <div className="max-w-2xl mx-auto space-y-6">
 
               {/* Current Status Card */}
-              <div className="card p-6 space-y-5">
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mx-auto shadow-lg">
-                    <MessageSquare size={30} className="text-white" />
+              <div className="card space-y-6 max-w-3xl">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <MessageSquare size={18} className="text-brand-600" />
+                      WhatsApp Connection
+                    </h3>
+                    <p className="text-xs text-slate-400">Manage how WhatsApp messages are sent from your CRM.</p>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800">WhatsApp Connection</h3>
                 </div>
 
                 {hasOwnWA ? (
                   /* Own number connected */
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
                         <MessageSquare size={18} />
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-slate-800">{settings.whatsappNumber || 'Your WhatsApp Number'}</p>
-                        <p className="text-xs text-slate-400">Your own WhatsApp Business API</p>
+                        <p className="text-xs text-slate-500">Your own WhatsApp Business API is connected.</p>
                       </div>
-                      <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-md shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                         Active
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 text-center">Messages are sent from your own WhatsApp Business number.</p>
                   </div>
                 ) : (
                   /* Using EzzySync shared number */
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-2xl p-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
                         <MessageSquare size={18} />
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-slate-800">EzzySync Shared Number</p>
-                        <p className="text-xs text-slate-400">Messages sent via EzzySync's official WhatsApp</p>
+                        <p className="text-xs text-slate-500">Messages sent via EzzySync's official WhatsApp</p>
                       </div>
-                      <span className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-                        Default
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1 rounded-md shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block"></span>
+                        Default Active
                       </span>
-                    </div>
-                    <div className="text-xs text-slate-500 space-y-1">
-                      <p>✅ WhatsApp messages are already working via EzzySync's number</p>
-                      <p>📲 Want your own business number? Request below.</p>
                     </div>
                   </div>
                 )}
@@ -401,62 +399,67 @@ export default function SettingsPage() {
 
               {/* Request Own Number */}
               {!hasOwnWA && (
-                <div className="card p-6 space-y-4">
-                  <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                    <span>📲</span> Request My Own WhatsApp Number
-                  </h4>
-                  <p className="text-xs text-slate-400">EzzySync team will set up a dedicated WhatsApp Business number for your agency. Customers will see your business name on messages.</p>
+                <div className="card space-y-6 max-w-3xl">
+                   <div className="border-b border-slate-100 pb-4">
+                    <h3 className="font-bold text-slate-800">Request Dedicated WhatsApp</h3>
+                    <p className="text-xs text-slate-400">EzzySync team will set up a dedicated WhatsApp Business number for your agency.</p>
+                  </div>
 
                   {waRequest.submitted ? (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-semibold text-center">
-                      ✅ Request submitted! We'll contact you within 24 hours.
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-semibold flex items-center justify-center gap-2">
+                      <FileCheck size={18} /> Request submitted! We'll contact you within 24 hours.
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                       <Input
                         label="Your WhatsApp Number"
                         placeholder="e.g. +91 98765 43210"
-                        hint="Number you want to use as WhatsApp Business"
+                        hint="Number you want to use"
                         value={waRequest.phone}
                         onChange={(e) => setWaRequest(r => ({ ...r, phone: e.target.value }))}
                       />
                       <Input
                         label="Agency / Company Name"
                         placeholder="e.g. Himalaya Travel Co."
-                        hint="Will appear as sender name on WhatsApp"
+                        hint="Will appear as sender name"
                         value={waRequest.companyName}
                         onChange={(e) => setWaRequest(r => ({ ...r, companyName: e.target.value }))}
                       />
-                      <button
-                        type="button"
-                        onClick={handleWaRequest}
-                        disabled={waRequest.submitting}
-                        className="w-full py-3 rounded-xl text-white font-bold text-sm bg-emerald-500 hover:bg-emerald-600 transition disabled:opacity-60"
-                      >
-                        {waRequest.submitting ? 'Submitting...' : 'Submit Request'}
-                      </button>
+                      <div className="sm:col-span-2 pt-2">
+                        <Button
+                          type="button"
+                          onClick={handleWaRequest}
+                          disabled={waRequest.submitting}
+                          className="w-full sm:w-auto text-sm px-6"
+                        >
+                          {waRequest.submitting ? 'Submitting...' : 'Submit Request'}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Advanced: Own credentials */}
-              <div className="card overflow-hidden">
+              <div className="card overflow-hidden !p-0">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedWA(v => !v)}
-                  className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+                  className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
                 >
-                  <span>⚙️ Advanced — Configure My Own API Credentials</span>
-                  {showAdvancedWA ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <span className="flex items-center gap-2">
+                    <Settings size={16} className="text-slate-400" />
+                    Advanced: Configure API Credentials Manually
+                  </span>
+                  {showAdvancedWA ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                 </button>
 
                 {showAdvancedWA && (
-                  <div className="px-5 pb-6 pt-2 space-y-4 border-t border-slate-100">
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-                      ⚠️ <strong>Warning:</strong> Once a number is linked to API, it cannot be used in regular WhatsApp app. Use a dedicated SIM.
+                  <div className="px-6 pb-6 pt-2 space-y-5 border-t border-slate-100">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                      <strong>Note:</strong> Once a number is linked to API, it cannot be used in the regular WhatsApp app. Use a dedicated SIM.
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                       <Input
                         label="Phone Number ID"
                         placeholder="e.g. 517969018813..."
@@ -481,22 +484,28 @@ export default function SettingsPage() {
                         value={settings.whatsappBusinessId || ''}
                         onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
                       />
+                      <div className="sm:col-span-2">
+                        <Input
+                          label="Meta Access Token"
+                          placeholder="EAAGOCSPX-..."
+                          value={settings.whatsappAccessToken || ''}
+                          onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input
+                          label="App Secret"
+                          placeholder="Meta App Secret key"
+                          value={settings.whatsappAppSecret || ''}
+                          onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <Input
-                      label="Meta Access Token"
-                      placeholder="EAAGOCSPX-..."
-                      value={settings.whatsappAccessToken || ''}
-                      onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
-                    />
-                    <Input
-                      label="App Secret"
-                      placeholder="Meta App Secret key"
-                      value={settings.whatsappAppSecret || ''}
-                      onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
-                    />
-                    <Button type="submit" disabled={saving} className="w-full text-sm">
-                      {saving ? 'Saving...' : 'Save My API Credentials'}
-                    </Button>
+                    <div className="pt-2">
+                      <Button type="submit" disabled={saving} className="w-full sm:w-auto text-sm px-6">
+                        {saving ? 'Saving...' : 'Save API Credentials'}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -542,80 +551,79 @@ export default function SettingsPage() {
           };
 
           return (
-            <div className="max-w-xl mx-auto">
-              <div className="card space-y-8 p-8">
+            <div className="max-w-2xl mx-auto">
+              <div className="card space-y-6 max-w-3xl">
                 {/* Header */}
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto shadow-lg">
-                    <Instagram size={30} className="text-white" />
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <Instagram size={18} className="text-pink-600" />
+                      Instagram Connection
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Receive and reply to Instagram DMs directly from your CRM.
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800">Instagram Connection</h3>
-                  <p className="text-sm text-slate-400">
-                    Connect your Instagram Business account to receive and reply to DMs directly from your CRM.
-                  </p>
+                  {!isConnected && (
+                    <Button type="button" onClick={handleConnect} className="text-sm px-4 bg-slate-900 hover:bg-slate-800 text-white border-none">
+                      <Instagram size={16} className="mr-2" /> Connect Account
+                    </Button>
+                  )}
                 </div>
 
                 {isConnected ? (
                   /* ── Connected State ── */
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-lg shrink-0">
                         {(settings.instagramUsername || 'IG')[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-slate-800 truncate">
                           @{settings.instagramUsername || 'Connected Account'}
                         </p>
-                        <p className="text-xs text-slate-400 truncate">ID: {settings.instagramAccountId}</p>
+                        <p className="text-xs text-slate-500 truncate">ID: {settings.instagramAccountId}</p>
                       </div>
-                      <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-md shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                         Connected
                       </span>
                     </div>
 
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
-                      <p className="font-bold">✅ Instagram DMs are active</p>
-                      <p>New messages from Instagram will automatically appear as leads in your CRM pipeline.</p>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-600 space-y-2">
+                      <p className="font-semibold text-slate-800 flex items-center gap-2">
+                        <Sparkles size={16} className="text-brand-600" /> Instagram DMs are active
+                      </p>
+                      <p className="text-xs">New messages from Instagram will automatically appear as leads in your CRM pipeline. You can chat with them directly.</p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleDisconnect}
-                      className="w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 text-sm font-semibold hover:bg-rose-50 transition"
-                    >
-                      Disconnect Instagram
-                    </button>
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleDisconnect}
+                        className="text-sm text-rose-600 hover:bg-rose-50 hover:border-rose-100"
+                      >
+                        Disconnect Instagram
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   /* ── Not Connected State ── */
-                  <div className="space-y-5">
-                    <div className="space-y-3 text-sm text-slate-500">
+                  <div className="space-y-6">
+                    <div className="grid sm:grid-cols-3 gap-4">
                       {[
-                        { icon: '💬', text: 'Receive Instagram DMs as CRM leads automatically' },
-                        { icon: '↩️', text: 'Reply to customers without leaving EzzySync' },
-                        { icon: '🔒', text: 'Secure OAuth login — no passwords shared' },
+                        { icon: <MessageSquare size={20}/>, title: 'Sync DMs', text: 'Receive Instagram DMs as CRM leads automatically.' },
+                        { icon: <RefreshCw size={20}/>, title: 'Reply Fast', text: 'Reply to customers without leaving EzzySync.' },
+                        { icon: <FileCheck size={20}/>, title: 'Secure', text: 'Secure OAuth login — no passwords shared with us.' },
                       ].map((item) => (
-                        <div key={item.text} className="flex items-start gap-3">
-                          <span className="text-base">{item.icon}</span>
-                          <span>{item.text}</span>
+                        <div key={item.title} className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2 text-center">
+                          <div className="text-brand-600 flex justify-center mb-1">{item.icon}</div>
+                          <p className="text-sm font-bold text-slate-700">{item.title}</p>
+                          <p className="text-xs text-slate-500 leading-relaxed">{item.text}</p>
                         </div>
                       ))}
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={handleConnect}
-                      className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-100 transition-all"
-                      style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}
-                    >
-                      <Instagram size={20} />
-                      Connect with Instagram
-                    </button>
-
-                    <p className="text-center text-xs text-slate-400">
-                      You'll be redirected to Facebook to authorise EzzySync. No passwords are stored.
-                    </p>
                   </div>
                 )}
               </div>
