@@ -149,7 +149,7 @@ CRITICAL FORMATTING RULES:
 - Output must be exactly in this format. Do NOT use markdown bold/italics. Do not output anything else.
 - Keep each day's description strictly to 80-120 words maximum. Be concise and brochure-like.
 
-Day 1 — [Title of Day]
+Day 1 — [Title of Day] [[Specific 2-word location for Image Search, e.g. Udaipur Palace]]
 
 [1-2 sentences of vivid, concise description of the day's main vibe or activities]
 
@@ -308,13 +308,15 @@ async function downloadItinerary(req, res, next) {
 
     if (isPremium) {
       try {
-        coverImageBuffer = await fetchUnsplashImage(tripName + ' travel landmark', true);
+        coverImageBuffer = await fetchUnsplashImage(tripName + ' landscape travel', true);
         
-        // Try to parse days to pre-fetch images concurrently
+        // Parse days to extract image search keywords
         const dayBlocks = itineraryText.split(/(?=Day \d+\s*—\s*)/i).filter(b => b.trim().startsWith('Day '));
         const imagePromises = dayBlocks.map(block => {
-          const titleMatch = block.match(/Day \d+\s*—\s*([^\n]+)/i);
-          const keyword = titleMatch ? titleMatch[1].trim() + ' travel' : tripName;
+          // Extract keyword from brackets e.g. [Udaipur City Palace]
+          const keywordMatch = block.match(/\[([^\]]+)\]/);
+          const titleMatch = block.match(/Day \d+\s*—\s*([^\n\[]+)/i);
+          const keyword = keywordMatch ? keywordMatch[1].trim() + ' travel' : (titleMatch ? titleMatch[1].trim() + ' travel' : tripName);
           return fetchUnsplashImage(keyword, false);
         });
         dayImages = await Promise.all(imagePromises);
@@ -331,32 +333,31 @@ async function downloadItinerary(req, res, next) {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        const primaryColor = isPremium ? '#042f2e' : '#0f766e'; 
-        const darkColor = '#111827';
-        const secondaryColor = '#4b5563';
+        // Warm aesthetic colors (Pinterest style)
+        const primaryColor = isPremium ? '#d97757' : '#0f766e'; // Warm peach/orange
+        const darkColor = '#2d3748';
+        const secondaryColor = '#718096';
+        const blockBgColor = '#fffaf0'; // Soft warm tint
         
         if (isPremium) {
           if (coverImageBuffer) {
-            doc.image(coverImageBuffer, 0, 0, { width: 595.28, height: 250 }); 
-            doc.rect(0, 0, 595.28, 250).fillColor('black', 0.4).fill();
+            doc.image(coverImageBuffer, 0, 0, { width: 595.28, height: 220 }); 
+            doc.rect(0, 0, 595.28, 220).fillColor('black', 0.3).fill();
           } else {
-            doc.rect(0, 0, 595.28, 250).fillColor(primaryColor).fill();
+            doc.rect(0, 0, 595.28, 220).fillColor(primaryColor).fill();
           }
-          doc.fillColor('white').font('Helvetica-Bold').fontSize(32).text(tripName.toUpperCase(), 50, 100, { align: 'center', width: 495 });
-          doc.fillColor('white', 0.9).font('Helvetica').fontSize(14).text('Curated Premium Itinerary by EzzySync', 50, 150, { align: 'center', width: 495 });
+          
+          doc.fillColor('white').font('Helvetica-Bold').fontSize(36).text('Trip Itinerary', 50, 70, { align: 'center', width: 495 });
+          doc.fillColor('white', 0.9).font('Helvetica').fontSize(14).text(tripName.toUpperCase(), 50, 120, { align: 'center', width: 495 });
+          doc.moveTo(250, 145).lineTo(345, 145).strokeColor('white').lineWidth(1).stroke();
           
           doc.fillOpacity(1); 
-          doc.y = 280;
+          doc.y = 250;
 
-          // Process each day block for side-by-side layout
           const dayBlocks = itineraryText.split(/(?=Day \d+\s*—\s*)/i).filter(b => b.trim().startsWith('Day '));
           
           dayBlocks.forEach((block, index) => {
-            const isImageLeft = index % 2 === 0;
-            const yStart = doc.y;
-
-            // Check if we need a new page
-            if (yStart > 600) {
+            if (doc.y > 600) {
               doc.addPage();
               doc.y = 50;
             }
@@ -364,56 +365,70 @@ async function downloadItinerary(req, res, next) {
             const currentY = doc.y;
             const imgBuffer = dayImages[index];
 
-            // Setup columns
-            const textX = isImageLeft ? 260 : 50;
-            const imgX = isImageLeft ? 50 : 355;
-            const textWidth = 285;
-            const imgSize = 190;
+            // Setup Timeline Layout
+            // Left block (Day Label)
+            doc.rect(50, currentY, 35, 160).fill(primaryColor);
+            
+            // Draw rotated text manually (pdfkit workaround for rotation)
+            doc.save();
+            doc.rotate(-90, { origin: [67, currentY + 120] });
+            doc.font('Helvetica-Bold').fontSize(14).fillColor('white').text(`DAY ${index + 1}`, 67, currentY + 120, { align: 'center', width: 100 });
+            doc.restore();
 
+            // Right Image
+            const imgSize = 130;
             if (imgBuffer) {
-              doc.image(imgBuffer, imgX, currentY, { width: imgSize, height: imgSize, fit: [imgSize, imgSize] });
+              doc.image(imgBuffer, 415, currentY, { width: imgSize, height: 160, fit: [imgSize, 160] });
+            } else {
+              doc.rect(415, currentY, imgSize, 160).fill('#e2e8f0'); // Placeholder box
             }
 
-            doc.x = textX;
-            doc.y = currentY;
-
-            const lines = block.split('\n');
+            // Middle Text
+            doc.x = 100;
+            doc.y = currentY + 5;
+            const textWidth = 300;
+            
+            // Remove the bracket keyword from the block
+            const cleanBlock = block.replace(/\[[^\]]+\]/g, '');
+            const lines = cleanBlock.split('\n');
             let isHighlights = false;
 
             for (let i = 0; i < lines.length; i++) {
+              if (doc.y > currentY + 155) break; // Don't overflow the 160px height block (brochure style strictness)
+              
               const line = lines[i].trim();
-              if (!line) { doc.moveDown(0.3); continue; }
+              if (!line) { doc.moveDown(0.2); continue; }
 
               if (line.match(/^Day \d+\s*—\s*/i)) {
-                doc.font('Helvetica-Bold').fontSize(16).fillColor(primaryColor).text(line, textX, doc.y, { width: textWidth });
+                const title = line.replace(/^Day \d+\s*—\s*/i, '');
+                doc.font('Helvetica-Bold').fontSize(12).fillColor(darkColor).text(title, 100, doc.y, { width: textWidth });
                 doc.moveDown(0.3);
               } else if (line.toLowerCase().startsWith('highlights:')) {
-                doc.moveDown(0.3);
-                doc.font('Helvetica-Bold').fontSize(11).fillColor(darkColor).text('Highlights:', textX, doc.y, { width: textWidth });
                 doc.moveDown(0.2);
+                doc.font('Helvetica-Bold').fontSize(9).fillColor(primaryColor).text('Highlights:', 100, doc.y, { width: textWidth });
+                doc.moveDown(0.1);
                 isHighlights = true;
               } else if (isHighlights && (line.startsWith('•') || line.startsWith('-'))) {
-                doc.font('Helvetica').fontSize(10).fillColor(secondaryColor).text(line, textX + 10, doc.y, { width: textWidth - 10, lineGap: 2 });
+                doc.font('Helvetica').fontSize(9).fillColor(secondaryColor).text(line, 105, doc.y, { width: textWidth - 5, lineGap: 1 });
               } else if (line.toLowerCase().startsWith('meals:') || line.toLowerCase().startsWith('stay:')) {
-                isHighlights = false; // end highlights
+                isHighlights = false; 
                 doc.moveDown(0.2);
                 const split = line.split(':');
-                doc.font('Helvetica-Bold').fontSize(10).fillColor(darkColor).text(split[0] + ':', textX, doc.y, { width: textWidth, continued: true });
+                doc.font('Helvetica-Bold').fontSize(9).fillColor(darkColor).text(split[0] + ':', 100, doc.y, { width: textWidth, continued: true });
                 doc.font('Helvetica').fillColor(secondaryColor).text(split.slice(1).join(':'));
               } else {
                 isHighlights = false;
-                doc.font('Helvetica').fontSize(10).fillColor(secondaryColor).text(line, textX, doc.y, { width: textWidth, lineGap: 3 });
+                doc.font('Helvetica').fontSize(9).fillColor(secondaryColor).text(line, 100, doc.y, { width: textWidth, lineGap: 2 });
               }
             }
 
-            // Move below the tallest column (text or image)
-            const newY = Math.max(doc.y, currentY + imgSize);
-            doc.y = newY + 40; 
+            // Move to next block
+            doc.y = currentY + 180; 
           });
 
           const pages = doc.bufferedPageRange ? doc.bufferedPageRange().count : 1;
           doc.moveDown(2);
-          doc.font('Helvetica-Oblique').fontSize(9).fillColor('#9ca3af').text('Powered by EzzySync AI | Premium Experience', 50, doc.y, { align: 'center', width: 495 });
+          doc.font('Helvetica-Oblique').fontSize(9).fillColor('#a0aec0').text('Powered by EzzySync AI | Premium Experience', 50, doc.y, { align: 'center', width: 495 });
 
         } else {
           // Standard Free Header
