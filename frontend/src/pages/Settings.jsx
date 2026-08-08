@@ -517,7 +517,7 @@ export default function SettingsPage() {
           const isConnected = !!(settings.instagramAccessToken && settings.instagramAccountId);
 
           const handleConnect = () => {
-            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') || '';
+            const token = localStorage.getItem('hf_token') || '';
             const popup = window.open(
               `${API_BASE_URL}/instagram/auth?token=${encodeURIComponent(token)}`,
               'instagram_oauth',
