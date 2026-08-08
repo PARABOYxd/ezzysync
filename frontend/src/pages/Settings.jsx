@@ -408,54 +408,125 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'instagram' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 card space-y-6">
-              <div>
-                <h3 className="font-bold text-slate-800">Instagram API Credentials</h3>
-                <p className="text-xs text-slate-400">Connect your custom Instagram Professional Account to manage customer chats directly from your CRM dashboard.</p>
+        {activeTab === 'instagram' && (() => {
+          const isConnected = !!(settings.instagramAccessToken && settings.instagramAccountId);
+
+          const handleConnect = () => {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') || '';
+            const popup = window.open(
+              `${API_BASE_URL}/instagram/auth?token=${encodeURIComponent(token)}`,
+              'instagram_oauth',
+              'width=600,height=700,scrollbars=yes,resizable=yes'
+            );
+            const listener = (e) => {
+              if (e.data?.instagramOAuth === 'success') {
+                window.removeEventListener('message', listener);
+                toast.success('Instagram connected successfully! 🎉');
+                settingsService.getSettings().then(setSettings).catch(() => {});
+              } else if (e.data?.instagramOAuth === 'denied') {
+                window.removeEventListener('message', listener);
+                toast.error('Instagram connection was cancelled.');
+              } else if (e.data?.instagramOAuth === 'error') {
+                window.removeEventListener('message', listener);
+                toast.error('Something went wrong. Please try again.');
+              }
+            };
+            window.addEventListener('message', listener);
+          };
+
+          const handleDisconnect = async () => {
+            if (!window.confirm('Disconnect Instagram from EzzySync?')) return;
+            try {
+              await api.post('/instagram/disconnect');
+              setSettings({ ...settings, instagramAccessToken: '', instagramAccountId: '', instagramUsername: '' });
+              toast.success('Instagram disconnected.');
+            } catch {
+              toast.error('Could not disconnect. Please try again.');
+            }
+          };
+
+          return (
+            <div className="max-w-xl mx-auto">
+              <div className="card space-y-8 p-8">
+                {/* Header */}
+                <div className="text-center space-y-2">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto shadow-lg">
+                    <Instagram size={30} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800">Instagram Connection</h3>
+                  <p className="text-sm text-slate-400">
+                    Connect your Instagram Business account to receive and reply to DMs directly from your CRM.
+                  </p>
+                </div>
+
+                {isConnected ? (
+                  /* ── Connected State ── */
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                        {(settings.instagramUsername || 'IG')[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 truncate">
+                          @{settings.instagramUsername || 'Connected Account'}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">ID: {settings.instagramAccountId}</p>
+                      </div>
+                      <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full shrink-0">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                        Connected
+                      </span>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
+                      <p className="font-bold">✅ Instagram DMs are active</p>
+                      <p>New messages from Instagram will automatically appear as leads in your CRM pipeline.</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDisconnect}
+                      className="w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 text-sm font-semibold hover:bg-rose-50 transition"
+                    >
+                      Disconnect Instagram
+                    </button>
+                  </div>
+                ) : (
+                  /* ── Not Connected State ── */
+                  <div className="space-y-5">
+                    <div className="space-y-3 text-sm text-slate-500">
+                      {[
+                        { icon: '💬', text: 'Receive Instagram DMs as CRM leads automatically' },
+                        { icon: '↩️', text: 'Reply to customers without leaving EzzySync' },
+                        { icon: '🔒', text: 'Secure OAuth login — no passwords shared' },
+                      ].map((item) => (
+                        <div key={item.text} className="flex items-start gap-3">
+                          <span className="text-base">{item.icon}</span>
+                          <span>{item.text}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleConnect}
+                      className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-100 transition-all"
+                      style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}
+                    >
+                      <Instagram size={20} />
+                      Connect with Instagram
+                    </button>
+
+                    <p className="text-center text-xs text-slate-400">
+                      You'll be redirected to Facebook to authorise EzzySync. No passwords are stored.
+                    </p>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <Input
-                  label="Instagram Username"
-                  placeholder="e.g. travelgo_holidays"
-                  hint="Your Instagram Professional Account handle"
-                  value={settings.instagramUsername || ''}
-                  onChange={(e) => setSettings({ ...settings, instagramUsername: e.target.value })}
-                />
-                <Input
-                  label="Instagram Account ID"
-                  placeholder="e.g. 178414053..."
-                  hint="Unique ID of your Instagram Professional Account"
-                  value={settings.instagramAccountId || ''}
-                  onChange={(e) => setSettings({ ...settings, instagramAccountId: e.target.value })}
-                />
-              </div>
-
-              <Input
-                label="Meta Access Token"
-                placeholder="EAAGOCSPX-..."
-                hint="Meta system user token with instagram_manage_messages permission"
-                value={settings.instagramAccessToken || ''}
-                onChange={(e) => setSettings({ ...settings, instagramAccessToken: e.target.value })}
-              />
             </div>
+          );
+        })()}
 
-            <div className="lg:col-span-5 bg-gradient-to-br from-pink-50/50 to-orange-50/30 border border-pink-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Instagram size={16} className="text-pink-600" />
-                Quick Setup Guide
-              </h4>
-              <ol className="space-y-3 text-xs text-slate-600 list-decimal pl-4">
-                <li>Link your Instagram Professional Account to your Facebook page.</li>
-                <li>In your Meta Developer App, add <strong>Instagram Graph API</strong> support.</li>
-                <li>Copy your Instagram Account ID from your Facebook page settings.</li>
-                <li>Paste details here and click <strong>Save Customizations</strong>.</li>
-              </ol>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'invoice' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -747,7 +818,7 @@ export default function SettingsPage() {
 
 
         {/* Global Save Button */}
-        {activeTab !== 'walkthroughs' && activeTab !== 'leadCapture' && (
+        {activeTab !== 'walkthroughs' && activeTab !== 'leadCapture' && activeTab !== 'instagram' && (
           <div className="flex justify-end pt-2 max-w-3xl">
             <Button type="submit" disabled={saving} className="w-full sm:w-auto px-8 text-sm">
               {saving ? 'Saving Changes…' : 'Save Customizations'}
