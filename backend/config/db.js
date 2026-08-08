@@ -513,6 +513,27 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding auto_send_invoice to settings');
   }
 
+  // WhatsApp & Instagram API credentials in settings
+  try {
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_waba_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_business_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_app_secret TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_username TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_account_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_access_token TEXT DEFAULT '';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding WhatsApp/Instagram columns to settings');
+  }
+
+  // Instagram sender ID on leads for DM-sourced lead deduplication
+  try {
+    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS instagram_sender_id TEXT DEFAULT NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding instagram_sender_id to leads');
+  }
+
   // Optional trip highlights (short bullet list) and per-pickup-point
   // pricing (each entry is its own absolute total price, not an add-on).
   try {
