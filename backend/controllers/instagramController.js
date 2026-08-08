@@ -5,7 +5,9 @@ const env = require('../config/env');
 const VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || 'ezzysync_ig_webhook_2024';
 const FB_APP_ID = process.env.FACEBOOK_APP_ID || '';
 const FB_APP_SECRET = process.env.FACEBOOK_APP_SECRET || '';
-const BACKEND_URL = process.env.BACKEND_URL || 'https://ezzysync-production.up.railway.app';
+const BACKEND_URL = process.env.NODE_ENV === 'development' 
+  ? `http://localhost:${process.env.PORT || 5001}` 
+  : (process.env.BACKEND_URL || 'https://ezzysync-production.up.railway.app');
 const FRONTEND_URL = env.frontendUrl || 'http://localhost:5173';
 
 // ─── OAuth: Step 1 ─────────────────────────────────────────────────────────
