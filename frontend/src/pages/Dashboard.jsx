@@ -8,7 +8,6 @@ import StatCard from '../components/dashboard/StatCard.jsx';
 import RecentBookingsTable from '../components/dashboard/RecentBookingsTable.jsx';
 import UpcomingDepartures from '../components/dashboard/UpcomingDepartures.jsx';
 import { SkeletonCard } from '../components/common/Skeleton.jsx';
-import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import * as dashboardService from '../services/dashboardService';
 import { getUsers } from '../services/userService';
 import { formatCurrency } from '../utils/formatters';
@@ -19,7 +18,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [addOpen, setAddOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const toast = useToast();
@@ -95,9 +93,6 @@ export default function Dashboard() {
               Here's your personal performance summary — your bookings, revenue and upcoming trips.
             </p>
           </div>
-          <button className="btn-primary ml-auto shrink-0" onClick={() => setAddOpen(true)}>
-            <Plus size={16} /> Add Booking
-          </button>
         </div>
       )}
 
@@ -163,9 +158,6 @@ export default function Dashboard() {
                 )}
               </div>
             )}
-            <button className="btn-primary ml-auto shrink-0" onClick={() => setAddOpen(true)}>
-              <Plus size={16} /> Quick Add
-            </button>
           </div>
 
         </div>
@@ -245,8 +237,6 @@ export default function Dashboard() {
             : <UpcomingDepartures departures={data?.upcomingDepartures || []} />}
         </div>
       </div>
-
-      <BookingFormDrawer open={addOpen} onClose={() => setAddOpen(false)} onSaved={() => load(selectedMember)} />
     </div>
   );
 }
