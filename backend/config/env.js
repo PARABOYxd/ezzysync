@@ -57,6 +57,7 @@ function loadEnv() {
     },
     tokenEncryptionKey: process.env.TOKEN_ENCRYPTION_KEY,
     geminiApiKey: process.env.GEMINI_API_KEY,
+    unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY || '',
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId123',
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'mockSecretKey123',
 
