@@ -29,10 +29,33 @@ export default function SettingsPage() {
   const [loadingWalkthroughs, setLoadingWalkthroughs] = useState(false);
   const [publicLeadKey, setPublicLeadKey] = useState(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [selectedLogoFile, setSelectedLogoFile] = useState(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const toast = useToast();
 
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size too large. Maximum allowed size is 5MB.');
+      return;
+    }
+    
+    setSelectedLogoFile(file);
+    setLogoPreviewUrl(URL.createObjectURL(file));
+  };
+
   useEffect(() => {
-    settingsService.getSettings().then(setSettings).catch(() => toast.error('Could not load settings.'));
+    settingsService.getSettings()
+      .then((data) => {
+        setSettings(data);
+        if (data && data.companyLogoUrl) {
+          setLogoPreviewUrl(data.companyLogoUrl);
+        }
+      })
+      .catch(() => toast.error('Could not load settings.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,8 +126,31 @@ export default function SettingsPage() {
     }
     setSaving(true);
     try {
-      const updated = await settingsService.updateSettings(settings);
+      let finalLogoUrl = settings.companyLogoUrl;
+      
+      if (selectedLogoFile) {
+        setUploadingLogo(true);
+        const formData = new FormData();
+        formData.append('file', selectedLogoFile);
+        try {
+          const resp = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          finalLogoUrl = resp.data.url;
+          setSelectedLogoFile(null);
+        } catch (uploadErr) {
+          toast.error(uploadErr.response?.data?.message || 'Failed to upload logo.');
+          setSaving(false);
+          setUploadingLogo(false);
+          return;
+        }
+        setUploadingLogo(false);
+      }
+
+      const payload = { ...settings, companyLogoUrl: finalLogoUrl };
+      const updated = await settingsService.updateSettings(payload);
       setSettings(updated);
+      setLogoPreviewUrl(updated.companyLogoUrl || '');
       toast.success('Settings saved successfully.');
     } catch {
       toast.error('Could not save settings.');
@@ -194,27 +240,74 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-              {FIELDS.map(({ key, label, placeholder, hint, required }) => (
-                <Input
-                  key={key}
-                  label={label}
-                  required={required}
-                  error={errors[key]}
-                  hint={hint}
-                  placeholder={placeholder}
-                  value={settings[key] || ''}
-                  onChange={(e) => {
-                    let val = e.target.value;
-                    if (key === 'whatsappNumber') {
-                      val = val.replace(/[^0-9+\-\s()]/g, '');
-                    } else if (key === 'gstNumber') {
-                      val = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                    }
-                    setSettings({ ...settings, [key]: val });
-                    if (errors[key]) setErrors({ ...errors, [key]: '' });
-                  }}
-                />
-              ))}
+              {FIELDS.map(({ key, label, placeholder, hint, required }) => {
+                if (key === 'companyLogoUrl') {
+                  return (
+                    <div key={key} className="flex flex-col gap-1.5 sm:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <span>{label}</span>
+                        {required && <span className="text-rose-500 font-bold">*</span>}
+                      </label>
+                      <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-200 dark:border-zinc-800">
+                        {logoPreviewUrl ? (
+                          <div className="relative group shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white">
+                            <img src={logoPreviewUrl} alt="Logo" className="w-full h-full object-contain" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSettings({ ...settings, companyLogoUrl: '' });
+                                setSelectedLogoFile(null);
+                                setLogoPreviewUrl('');
+                              }}
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 dark:border-zinc-700 flex items-center justify-center text-slate-400 text-xs shrink-0 bg-white dark:bg-zinc-900">
+                            No Logo
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                          <label className={`btn btn-xs ${uploadingLogo ? 'loading btn-disabled' : 'btn-outline btn-primary'} cursor-pointer text-[10px] w-fit px-2.5 py-1 rounded border border-brand-500 text-brand-600 hover:bg-brand-50 transition`}>
+                            {uploadingLogo ? 'Uploading...' : 'Upload Image'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingLogo}
+                              onChange={handleLogoUpload}
+                            />
+                          </label>
+                          <p className="text-[10px] text-slate-400">{hint}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <Input
+                    key={key}
+                    label={label}
+                    required={required}
+                    error={errors[key]}
+                    hint={hint}
+                    placeholder={placeholder}
+                    value={settings[key] || ''}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (key === 'whatsappNumber') {
+                        val = val.replace(/[^0-9+\-\s()]/g, '');
+                      } else if (key === 'gstNumber') {
+                        val = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                      }
+                      setSettings({ ...settings, [key]: val });
+                      if (errors[key]) setErrors({ ...errors, [key]: '' });
+                    }}
+                  />
+                );
+              })}
             </div>
 
             <Textarea

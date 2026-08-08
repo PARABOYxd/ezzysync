@@ -8,34 +8,35 @@ import StatCard from '../components/dashboard/StatCard.jsx';
 import RecentBookingsTable from '../components/dashboard/RecentBookingsTable.jsx';
 import UpcomingDepartures from '../components/dashboard/UpcomingDepartures.jsx';
 import { SkeletonCard } from '../components/common/Skeleton.jsx';
+import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import * as dashboardService from '../services/dashboardService';
 import { getUsers } from '../services/userService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 
-// Native smooth SVG Bezier wave chart
-function BookingVolumeChart({ bookings }) {
+function BookingVolumeChart({ monthWise }) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const data = Array.from({ length: 6 }).map((_, i) => {
+  
+  const chartData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
+    const year = d.getFullYear();
+    const monthKey = `${year}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const monthName = months[d.getMonth()];
-    const count = (bookings || []).filter(b => {
-      const ts = b.bookingTimestamp || b.createdAt;
-      if (!ts) return false;
-      const bDate = new Date(ts);
-      return bDate.getMonth() === d.getMonth() && bDate.getFullYear() === d.getFullYear();
-    }).length;
-    return { name: monthName, value: count || Math.floor(Math.random() * 4) + 1 };
+    
+    const matched = (monthWise || []).find(item => item.month === monthKey);
+    const count = matched ? matched.count : 0;
+    
+    return { name: monthName, value: count };
   });
 
-  const width = 500;
-  const height = 150;
-  const padding = 20;
-  const maxValue = Math.max(...data.map(d => d.value), 5);
-  const points = data.map((d, i) => {
-    const x = padding + (i * (width - padding * 2)) / (data.length - 1);
+  const width = 800;
+  const height = 250;
+  const padding = 35;
+  const maxValue = Math.max(...chartData.map(d => d.value), 5);
+  const points = chartData.map((d, i) => {
+    const x = padding + (i * (width - padding * 2)) / (chartData.length - 1);
     const y = height - padding - (d.value * (height - padding * 2)) / maxValue;
     return { x, y, ...d };
   });
@@ -52,32 +53,43 @@ function BookingVolumeChart({ bookings }) {
   const fillPath = `${linePath} L ${points[points.length-1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
 
   return (
-    <div className="bg-[#FBFCFD] dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Booking Volume</h4>
-          <p className="text-[10px] text-slate-400">Monthly bookings over last 6 months</p>
-        </div>
+    <div className="bg-[#FBFCFD] dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-6 rounded-2xl shadow-sm flex flex-col justify-start gap-4 min-h-[350px]">
+      <div>
+        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Booking Volume</h4>
+        <p className="text-[10px] text-slate-400">Total bookings per month</p>
       </div>
-      <div className="relative w-full h-[150px]">
+      <div className="relative w-full flex-1 flex items-center mt-2">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#F97316" stopOpacity="0.25" />
               <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
             </linearGradient>
+            <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+              <feDropShadow dx="0" dy="6" stdDeviation="4" floodColor="#F97316" floodOpacity="0.25" />
+            </filter>
           </defs>
-          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#f1f5f9" strokeDasharray="3 3" />
-          <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#f1f5f9" strokeDasharray="3 3" />
+          {/* Horizontal Gridlines & Y-Axis Labels */}
+          {Array.from({ length: 4 }).map((_, idx) => {
+            const ratio = idx / 3;
+            const y = height - padding - ratio * (height - padding * 2);
+            const val = Math.round(ratio * maxValue);
+            return (
+              <g key={idx} className="opacity-50">
+                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#e2e8f0" strokeDasharray="3 3" strokeWidth="1" />
+                <text x={padding - 8} y={y + 4} textAnchor="end" className="text-[12px] font-extrabold fill-slate-400 dark:fill-zinc-500">{val}</text>
+              </g>
+            );
+          })}
           <path d={fillPath} fill="url(#gradient)" />
-          <path d={linePath} fill="none" stroke="#F97316" strokeWidth="3" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke="#F97316" strokeWidth="3" strokeLinecap="round" filter="url(#shadow)" />
           {points.map((p, i) => (
             <g key={i}>
-              <circle cx={p.x} cy={p.y} r="4" fill="white" stroke="#F97316" strokeWidth="2.5" />
-              <text x={p.x} y={p.y - 10} textAnchor="middle" className="text-[9px] font-bold fill-slate-700 dark:fill-zinc-300">
+              <circle cx={p.x} cy={p.y} r="6" fill="white" stroke="#F97316" strokeWidth="3.5" />
+              <text x={p.x} y={p.y - 12} textAnchor="middle" className="text-[11px] font-bold fill-slate-700 dark:fill-zinc-300">
                 {p.value}
               </text>
-              <text x={p.x} y={height - 2} textAnchor="middle" className="text-[9px] font-medium fill-slate-400 dark:fill-zinc-500">
+              <text x={p.x} y={height + 5} textAnchor="middle" className="text-[16px] font-extrabold fill-slate-500 dark:fill-zinc-400">
                 {p.name}
               </text>
             </g>
@@ -88,70 +100,80 @@ function BookingVolumeChart({ bookings }) {
   );
 }
 
-// Native circular SVG Donut Chart
-function RevenueSourceChart({ amount, bookings }) {
-  const totalAmount = amount || 1;
-  const packagesVal = Math.round(totalAmount * 0.6);
-  const flightsVal = Math.round(totalAmount * 0.25);
-  const hotelsVal = Math.round(totalAmount * 0.15);
+function RevenueSourceChart({ bookings, amount }) {
+  let totalFlights = 0;
+  let totalHotels = 0;
+  let totalTransport = 0;
+  let totalOthers = 0;
 
+  (bookings || []).forEach(b => {
+    totalFlights += Number(b.vendorFlightCost || 0);
+    totalHotels += Number(b.vendorHotelCost || 0);
+    totalTransport += Number(b.vendorTransportCost || 0);
+    totalOthers += Number(b.vendorOtherCost || 0);
+  });
+
+  const totalCost = totalFlights + totalHotels + totalTransport + totalOthers || 1;
+  const flightShare = totalFlights / totalCost;
+  const hotelShare = totalHotels / totalCost;
+  const otherShare = 1 - (flightShare + hotelShare);
+
+  const totalAmount = amount || 1;
   const data = [
-    { name: 'Packages', value: packagesVal, color: '#F97316' },
-    { name: 'Flights', value: flightsVal, color: '#3B82F6' },
-    { name: 'Hotels', value: hotelsVal, color: '#10B981' }
+    { name: 'Hotel Cost', value: Math.round(totalAmount * hotelShare), color: '#10B981' },
+    { name: 'Flight Cost', value: Math.round(totalAmount * flightShare), color: '#3B82F6' },
+    { name: 'Other Costs', value: Math.round(totalAmount * Math.max(0, otherShare)), color: '#F97316' }
   ];
 
-  const radius = 35;
-  const strokeWidth = 10;
+  const radius = 45;
+  const strokeWidth = 14;
   const circumference = 2 * Math.PI * radius;
   let accumulatedPercent = 0;
 
   return (
-    <div className="bg-[#FBFCFD] dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm">
+    <div className="bg-[#FBFCFD] dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-6 rounded-2xl shadow-sm flex flex-col justify-start gap-4 min-h-[350px]">
       <div>
-        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Revenue Source</h4>
-        <p className="text-[10px] text-slate-400">Sales break-down by category</p>
+        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Revenue & Cost Source</h4>
+        <p className="text-[10px] text-slate-400">Total B2B Vendor breakdown</p>
       </div>
-      <div className="flex items-center gap-5 mt-5 justify-center">
-        <div className="relative w-24 h-24 shrink-0">
-          <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-            <circle cx="50" cy="50" r={radius} fill="none" stroke="#f8fafc" strokeWidth={strokeWidth} />
+      <div className="flex-1 flex items-center justify-center gap-6 mt-2">
+        <div className="relative w-40 h-40 shrink-0">
+          <svg viewBox="0 0 120 120" className="w-full h-full transform -rotate-90 origin-center" style={{ transformOrigin: 'center' }}>
+            <circle cx="60" cy="60" r={radius} fill="none" stroke="#f8fafc" strokeWidth={strokeWidth} />
             {data.map((item, index) => {
-              const percent = item.value / totalAmount;
-              const strokeDashoffset = circumference - (percent * circumference);
-              const rotation = accumulatedPercent * 360;
+              const percent = (item.value || 0) / totalAmount;
+              const strokeDashoffset = -accumulatedPercent * circumference;
               accumulatedPercent += percent;
               return (
                 <circle
                   key={index}
-                  cx="50"
-                  cy="50"
+                  cx="60"
+                  cy="60"
                   r={radius}
                   fill="none"
                   stroke={item.color}
                   strokeWidth={strokeWidth}
-                  strokeDasharray={circumference}
+                  strokeDasharray={`${percent * circumference} ${circumference}`}
                   strokeDashoffset={strokeDashoffset}
-                  transform={`rotate(${rotation} 50 50)`}
                   strokeLinecap="round"
                 />
               );
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Revenue</span>
-            <span className="text-[10px] font-black text-slate-800 dark:text-zinc-100">
+            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Gross</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-zinc-100">
               {formatCurrency(totalAmount)}
             </span>
           </div>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           {data.map((item, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[10px]">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+            <div key={i} className="flex items-center gap-2.5 text-xs">
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
               <div className="min-w-0">
-                <p className="font-bold text-slate-700 dark:text-zinc-300">{item.name}</p>
-                <p className="text-[9px] text-slate-400 font-medium">{formatCurrency(item.value)}</p>
+                <p className="font-bold text-slate-700 dark:text-zinc-300 text-[12px]">{item.name}</p>
+                <p className="text-[11px] text-slate-400 font-medium">{formatCurrency(item.value)}</p>
               </div>
             </div>
           ))}
@@ -161,29 +183,37 @@ function RevenueSourceChart({ amount, bookings }) {
   );
 }
 
-// Popular Tours List Widget
-function PopularToursList() {
-  const tours = [
-    { name: 'Tokyo Highlights & Mt Fuji', rating: '4.9', count: 18, price: '₹75,000', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=100&auto=format&fit=crop&q=60' },
-    { name: 'Amalfi Coast Sail & Sunset', rating: '4.8', count: 12, price: '₹1,20,000', image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=100&auto=format&fit=crop&q=60' },
-  ];
+function PopularToursList({ tripWise }) {
+  let tours = [];
+  if (tripWise && tripWise.length > 0) {
+    tours = tripWise.slice(0, 3).map(item => ({
+      name: item.trip,
+      count: item.count,
+      revenue: item.revenue,
+      profit: item.profit
+    }));
+  }
+
   return (
-    <div className="bg-[#FBFCFD] dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm">
+    <div className="bg-[#FBFCFD] dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-6 rounded-2xl shadow-sm flex flex-col justify-start gap-4 min-h-[350px]">
       <div>
-        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Popular Tours</h4>
-        <p className="text-[10px] text-slate-400">Top destinations booked this month</p>
+        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Popular Trips</h4>
+        <p className="text-[10px] text-slate-400">Top performant destinations booked</p>
       </div>
-      <div className="space-y-2 mt-4">
-        {tours.map((t, idx) => (
-          <div key={idx} className="flex items-center gap-2.5 bg-slate-50/50 dark:bg-zinc-800/25 p-2 rounded-xl border border-slate-100 dark:border-zinc-800">
-            <img src={t.image} alt={t.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-slate-800 dark:text-zinc-200 truncate">{t.name}</p>
-              <p className="text-[9px] text-slate-400 font-medium">⭐ {t.rating} ({t.count} bookings)</p>
+      <div className="flex-1 flex flex-col justify-center mt-2 space-y-3">
+        {tours.length > 0 ? (
+          tours.map((t, idx) => (
+            <div key={idx} className="flex items-center gap-3 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">{t.name}</p>
+                <p className="text-[10px] text-slate-400 font-medium">{t.count} booking{t.count !== 1 ? 's' : ''} &middot; Profit: {formatCurrency(t.profit)}</p>
+              </div>
+              <span className="text-[11px] font-bold text-brand-600 shrink-0">{formatCurrency(t.revenue)}</span>
             </div>
-            <span className="text-[10px] font-bold text-brand-600 shrink-0">{t.price}</span>
-          </div>
-        ))}
+          ))
+        ) : (
+          <div className="text-center text-xs text-slate-400 py-10">No bookings generated yet.</div>
+        )}
       </div>
     </div>
   );
@@ -192,9 +222,11 @@ function PopularToursList() {
 export default function Dashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -203,9 +235,15 @@ export default function Dashboard() {
 
   const load = (member) => {
     setLoading(true);
-    dashboardService
-      .getDashboard(member !== undefined ? member : selectedMember)
-      .then(setData)
+    const targetMember = member !== undefined ? member : selectedMember;
+    Promise.all([
+      dashboardService.getDashboard(targetMember),
+      dashboardService.getBillingAnalytics({ member: targetMember })
+    ])
+      .then(([dbData, analyticData]) => {
+        setData(dbData);
+        setAnalyticsData(analyticData);
+      })
       .catch(() => toast.error('Could not load dashboard data.'))
       .finally(() => setLoading(false));
   };
@@ -395,21 +433,25 @@ export default function Dashboard() {
 
       {/* Recent & Upcoming */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card">
+        <div className="lg:col-span-2 card flex flex-col h-[400px]">
           <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
             {isFiltered ? `${selectedMember}'s Recent Bookings` : !isAdmin ? 'My Recent Bookings' : 'Recent Bookings'}
           </h3>
-          {loading
-            ? <div className="skeleton h-40 rounded-xl mt-3" />
-            : <RecentBookingsTable bookings={data?.recentBookings || []} />}
+          <div className="overflow-y-auto flex-1 pr-1">
+            {loading
+              ? <div className="skeleton h-40 rounded-xl mt-3" />
+              : <RecentBookingsTable bookings={data?.recentBookings || []} />}
+          </div>
         </div>
-        <div className="card">
+        <div className="card flex flex-col h-[400px]">
           <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
             {isFiltered ? `${selectedMember}'s Upcoming` : !isAdmin ? 'My Upcoming Departures' : 'Upcoming Departures'}
           </h3>
-          {loading
-            ? <div className="skeleton h-40 rounded-xl mt-3" />
-            : <UpcomingDepartures departures={data?.upcomingDepartures || []} />}
+          <div className="overflow-y-auto flex-1 pr-1">
+            {loading
+              ? <div className="skeleton h-40 rounded-xl mt-3" />
+              : <UpcomingDepartures departures={data?.upcomingDepartures || []} />}
+          </div>
         </div>
       </div>
 
@@ -425,9 +467,9 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <BookingVolumeChart bookings={data?.recentBookings || []} />
-          <RevenueSourceChart amount={data?.stats.totalRevenue} bookings={data?.recentBookings || []} />
-          <PopularToursList />
+          <BookingVolumeChart monthWise={analyticsData?.monthWise || []} />
+          <RevenueSourceChart amount={data?.stats.totalRevenue} bookings={analyticsData?.bookings || []} />
+          <PopularToursList tripWise={analyticsData?.tripWise || []} />
         </div>
       </div>
 

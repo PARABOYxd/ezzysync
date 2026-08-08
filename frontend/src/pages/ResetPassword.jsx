@@ -12,6 +12,23 @@ export default function ResetPassword() {
   const location = useLocation();
   const [form, setForm] = useState({ email: location.state?.email || '', otp: '', newPassword: '' });
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  const handleResendOTP = async () => {
+    if (!form.email) {
+      toast.error('Please enter your email address first.');
+      return;
+    }
+    setResending(true);
+    try {
+      await authService.forgotPassword(form.email);
+      toast.success('A new verification code (OTP) has been sent to your email.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend OTP.');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (ev) => {
     ev.preventDefault();
@@ -48,17 +65,30 @@ export default function ResetPassword() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-          <Input
-            label="OTP"
-            icon={KeyRound}
-            required
-            maxLength={6}
-            inputClassName="tracking-widest"
-            hint="6-digit code sent to your email"
-            placeholder="e.g. 123456"
-            value={form.otp}
-            onChange={(e) => setForm({ ...form, otp: e.target.value })}
-          />
+          <div className="space-y-1">
+            <Input
+              label="OTP"
+              icon={KeyRound}
+              required
+              maxLength={6}
+              inputClassName="tracking-widest"
+              hint="6-digit code sent to your email"
+              placeholder="e.g. 123456"
+              value={form.otp}
+              onChange={(e) => setForm({ ...form, otp: e.target.value })}
+            />
+            <div className="flex justify-between items-center px-1 text-[11px]">
+              <span className="text-slate-400">Didn't receive the code?</span>
+              <button
+                type="button"
+                disabled={resending}
+                onClick={handleResendOTP}
+                className="text-brand-600 font-bold hover:underline focus:outline-none disabled:opacity-50"
+              >
+                {resending ? 'Resending...' : 'Resend OTP'}
+              </button>
+            </div>
+          </div>
           <Input
             label="New Password"
             icon={Lock}
