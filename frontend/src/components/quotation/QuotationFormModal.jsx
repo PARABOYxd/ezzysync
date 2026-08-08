@@ -327,31 +327,6 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
   return (
     <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Itinerary' : 'Create Itinerary'}>
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Trip Name + Price Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Input
-            className="sm:col-span-2"
-            label="Trip / Itinerary Name"
-            icon={MapPin}
-            required
-            error={errors.tripName}
-            hint="This name appears on the client preview link"
-            placeholder="e.g. 5N/6D Kerala Backwaters Luxury Tour"
-            value={form.tripName}
-            onChange={set('tripName')}
-          />
-          <Input
-            label="Package Price (₹)"
-            icon={IndianRupee}
-            type="number"
-            min={0}
-            placeholder="e.g. 45000"
-            hint="Total price shown on itinerary preview"
-            value={form.priceQuote}
-            onChange={set('priceQuote')}
-          />
-        </div>
-
         {/* AI Auto-Planner Widget */}
         <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
           <button
@@ -412,6 +387,31 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
               </div>
             )
           )}
+        </div>
+
+        {/* Trip Name + Price Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Input
+            className="sm:col-span-2"
+            label="Trip / Itinerary Name"
+            icon={MapPin}
+            required
+            error={errors.tripName}
+            hint="This name appears on the client preview link"
+            placeholder="e.g. 5N/6D Kerala Backwaters Luxury Tour"
+            value={form.tripName}
+            onChange={set('tripName')}
+          />
+          <Input
+            label="Package Price (₹)"
+            icon={IndianRupee}
+            type="number"
+            min={0}
+            placeholder="e.g. 45000"
+            hint="Total price shown on itinerary preview"
+            value={form.priceQuote}
+            onChange={set('priceQuote')}
+          />
         </div>
 
         {/* Itinerary Builder Header */}
