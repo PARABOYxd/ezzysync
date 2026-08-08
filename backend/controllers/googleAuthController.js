@@ -4,11 +4,11 @@ const userService = require('../services/userService');
 const tokenService = require('../services/tokenService');
 
 // We create a custom OAuth2 client specifically for login using the loginRedirectUri
-function getLoginOAuth2Client() {
+function getLoginOAuth2Client(redirectUri) {
   return new google.auth.OAuth2(
     env.google.clientId,
     env.google.clientSecret,
-    env.google.loginRedirectUri
+    redirectUri || env.google.loginRedirectUri
   );
 }
 
@@ -19,7 +19,10 @@ const SCOPES = [
 ];
 
 exports.googleLoginRedirect = (req, res) => {
-  const client = getLoginOAuth2Client();
+  const host = req.get('host');
+  const protocol = req.protocol;
+  const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+  const client = getLoginOAuth2Client(redirectUri);
   const url = client.generateAuthUrl({
     access_type: 'online',
     scope: SCOPES,
@@ -35,7 +38,10 @@ exports.googleLoginCallback = async (req, res) => {
       return res.redirect(`${env.frontendUrl}/login?error=Google authentication failed.`);
     }
 
-    const client = getLoginOAuth2Client();
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    const client = getLoginOAuth2Client(redirectUri);
     const { tokens } = await client.getToken(code);
     client.setCredentials(tokens);
 
