@@ -146,20 +146,17 @@ Format:
       prompt = `You are a professional travel planner. Generate a highly detailed, premium day-by-day travel itinerary for the trip: "${tripName}" spanning ${days} days. 
 Special requests/preferences/travel style: "${notes || 'none'}".
 CRITICAL FORMATTING RULES:
-- Output must be exactly in this format. Do NOT use markdown bold/italics. Do not output anything else.
-- Keep each day's description strictly to 80-120 words maximum. Be concise and brochure-like.
+- Output must be exactly in this format. Do NOT use markdown bold/italics or paragraphs.
+- Output ONLY a strict time-based schedule for each day.
+- Guess logical times for activities if not specified.
+- The destination keyword in brackets must be 2 words maximum (e.g., [Uluwatu Temple]).
 
-Day 1 — [Title of Day] [[Specific 2-word location for Image Search, e.g. Udaipur Palace]]
-
-[1-2 sentences of vivid, concise description of the day's main vibe or activities]
-
-Highlights:
-• [Highlight 1]
-• [Highlight 2]
-• [Highlight 3]
-
-Meals: [e.g. Breakfast, Dinner]
-Stay: [e.g. Premium Hotel]
+Day 1 [ImageSearchKeyword]
+- 08:00 AM - 09:00 AM: Breakfast at the villa
+- 09:30 AM - 12:00 PM: Explore the ancient temples
+- 12:30 PM - 02:00 PM: Lunch at a local cafe
+- 02:30 PM - 05:00 PM: Relaxing at the beach
+- 07:00 PM - 09:00 PM: Dinner under the stars
 `;
     }
 
@@ -303,23 +300,14 @@ async function downloadItinerary(req, res, next) {
 
     const isPremium = req.user && req.user.planId !== 'FREE';
     
-    let coverImageBuffer = null;
-    let dayImages = [];
+    let coverImages = [];
 
     if (isPremium) {
       try {
-        coverImageBuffer = await fetchUnsplashImage(tripName + ' landscape travel', true);
-        
-        // Parse days to extract image search keywords
-        const dayBlocks = itineraryText.split(/(?=Day \d+\s*—\s*)/i).filter(b => b.trim().startsWith('Day '));
-        const imagePromises = dayBlocks.map(block => {
-          // Extract keyword from brackets e.g. [Udaipur City Palace]
-          const keywordMatch = block.match(/\[([^\]]+)\]/);
-          const titleMatch = block.match(/Day \d+\s*—\s*([^\n\[]+)/i);
-          const keyword = keywordMatch ? keywordMatch[1].trim() + ' travel' : (titleMatch ? titleMatch[1].trim() + ' travel' : tripName);
-          return fetchUnsplashImage(keyword, false);
-        });
-        dayImages = await Promise.all(imagePromises);
+        // Fetch 2 images for the top right header based on the trip name
+        const p1 = fetchUnsplashImage(tripName + ' landscape travel', true);
+        const p2 = fetchUnsplashImage(tripName + ' nature travel', true);
+        coverImages = await Promise.all([p1, p2]);
       } catch (err) {
         req.log.warn('Could not fetch premium cover images');
       }
@@ -333,101 +321,95 @@ async function downloadItinerary(req, res, next) {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        // Warm aesthetic colors (Pinterest style)
-        const primaryColor = isPremium ? '#d97757' : '#0f766e'; // Warm peach/orange
-        const darkColor = '#2d3748';
-        const secondaryColor = '#718096';
-        const blockBgColor = '#fffaf0'; // Soft warm tint
+        const primaryColor = isPremium ? '#437370' : '#0f766e'; // Dark teal from Template 1
+        const darkColor = '#111827';
+        const secondaryColor = '#4b5563';
         
         if (isPremium) {
-          if (coverImageBuffer) {
-            doc.image(coverImageBuffer, 0, 0, { width: 595.28, height: 220 }); 
-            doc.rect(0, 0, 595.28, 220).fillColor('black', 0.3).fill();
-          } else {
-            doc.rect(0, 0, 595.28, 220).fillColor(primaryColor).fill();
+          // Template 1 Header
+          doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(45).text('TRAVEL', 50, 70);
+          doc.text('ITINERARY', 50, 115);
+
+          // Top right overlapping images
+          if (coverImages[0]) {
+            doc.save();
+            doc.roundedRect(300, 50, 130, 110, 15).clip();
+            doc.image(coverImages[0], 300, 50, { width: 130, height: 110, fit: [130, 110] });
+            doc.restore();
+          }
+          if (coverImages[1]) {
+            doc.save();
+            doc.roundedRect(400, 120, 130, 110, 15).clip();
+            doc.image(coverImages[1], 400, 120, { width: 130, height: 110, fit: [130, 110] });
+            doc.restore();
           }
           
-          doc.fillColor('white').font('Helvetica-Bold').fontSize(36).text('Trip Itinerary', 50, 70, { align: 'center', width: 495 });
-          doc.fillColor('white', 0.9).font('Helvetica').fontSize(14).text(tripName.toUpperCase(), 50, 120, { align: 'center', width: 495 });
-          doc.moveTo(250, 145).lineTo(345, 145).strokeColor('white').lineWidth(1).stroke();
-          
-          doc.fillOpacity(1); 
-          doc.y = 250;
+          doc.y = 260;
 
-          const dayBlocks = itineraryText.split(/(?=Day \d+\s*—\s*)/i).filter(b => b.trim().startsWith('Day '));
+          // Parse Timeline blocks
+          const dayBlocks = itineraryText.split(/(?=Day \d+)/i).filter(b => b.trim().startsWith('Day '));
           
           dayBlocks.forEach((block, index) => {
-            if (doc.y > 600) {
+            // Extract schedule items
+            const items = [];
+            const itemRegex = /-\s*(\d{2}:\d{2}\s*[AP]M\s*-\s*\d{2}:\d{2}\s*[AP]M):\s*(.+)/gi;
+            let match;
+            while ((match = itemRegex.exec(block)) !== null) {
+              items.push({ time: match[1], activity: match[2] });
+            }
+
+            // Fallback parsing if the strict format wasn't followed
+            if (items.length === 0) {
+              const lines = block.split('\n');
+              for (const line of lines) {
+                if (line.trim().startsWith('-')) {
+                  items.push({ time: 'Scheduled Activity', activity: line.replace(/^- /, '').trim() });
+                }
+              }
+            }
+            if (items.length === 0) {
+              items.push({ time: 'All Day', activity: 'Explore and enjoy the destination at your leisure.' });
+            }
+
+            const rowsNeeded = Math.ceil(items.length / 2);
+            const blockHeight = 40 + (rowsNeeded * 45);
+            
+            if (doc.y + blockHeight > 780) {
               doc.addPage();
               doc.y = 50;
             }
 
             const currentY = doc.y;
-            const imgBuffer = dayImages[index];
 
-            // Setup Timeline Layout
-            // Left block (Day Label)
-            doc.rect(50, currentY, 35, 160).fill(primaryColor);
+            // Draw Rounded Block
+            doc.roundedRect(70, currentY, 470, blockHeight, 15).fill(primaryColor);
             
-            // Draw rotated text manually (pdfkit workaround for rotation)
-            doc.save();
-            doc.rotate(-90, { origin: [67, currentY + 120] });
-            doc.font('Helvetica-Bold').fontSize(14).fillColor('white').text(`DAY ${index + 1}`, 67, currentY + 120, { align: 'center', width: 100 });
-            doc.restore();
+            // Draw Circle Badge (D-1)
+            doc.circle(70, currentY + 40, 28).fill('white');
+            doc.lineWidth(3).strokeColor(primaryColor).circle(70, currentY + 40, 28).stroke();
+            doc.font('Helvetica-Bold').fontSize(20).fillColor(primaryColor).text(`D-${index + 1}`, 45, currentY + 33, { align: 'center', width: 50 });
 
-            // Right Image
-            const imgSize = 130;
-            if (imgBuffer) {
-              doc.image(imgBuffer, 415, currentY, { width: imgSize, height: 160, fit: [imgSize, 160] });
-            } else {
-              doc.rect(415, currentY, imgSize, 160).fill('#e2e8f0'); // Placeholder box
-            }
+            // Draw Schedule Items in 2 Columns
+            let col1X = 110;
+            let col2X = 330;
+            let startY = currentY + 20;
 
-            // Middle Text
-            doc.x = 100;
-            doc.y = currentY + 5;
-            const textWidth = 300;
-            
-            // Remove the bracket keyword from the block
-            const cleanBlock = block.replace(/\[[^\]]+\]/g, '');
-            const lines = cleanBlock.split('\n');
-            let isHighlights = false;
+            items.forEach((item, i) => {
+              const isCol1 = i % 2 === 0;
+              const rowIdx = Math.floor(i / 2);
+              const xPos = isCol1 ? col1X : col2X;
+              const yPos = startY + (rowIdx * 45);
 
-            for (let i = 0; i < lines.length; i++) {
-              if (doc.y > currentY + 155) break; // Don't overflow the 160px height block (brochure style strictness)
-              
-              const line = lines[i].trim();
-              if (!line) { doc.moveDown(0.2); continue; }
+              doc.font('Helvetica-Bold').fontSize(11).fillColor('white').text(item.time, xPos, yPos);
+              doc.font('Helvetica').fontSize(9).fillColor('#e2e8f0').text(item.activity, xPos, yPos + 15, { width: 200, height: 25, lineBreak: true });
+            });
 
-              if (line.match(/^Day \d+\s*—\s*/i)) {
-                const title = line.replace(/^Day \d+\s*—\s*/i, '');
-                doc.font('Helvetica-Bold').fontSize(12).fillColor(darkColor).text(title, 100, doc.y, { width: textWidth });
-                doc.moveDown(0.3);
-              } else if (line.toLowerCase().startsWith('highlights:')) {
-                doc.moveDown(0.2);
-                doc.font('Helvetica-Bold').fontSize(9).fillColor(primaryColor).text('Highlights:', 100, doc.y, { width: textWidth });
-                doc.moveDown(0.1);
-                isHighlights = true;
-              } else if (isHighlights && (line.startsWith('•') || line.startsWith('-'))) {
-                doc.font('Helvetica').fontSize(9).fillColor(secondaryColor).text(line, 105, doc.y, { width: textWidth - 5, lineGap: 1 });
-              } else if (line.toLowerCase().startsWith('meals:') || line.toLowerCase().startsWith('stay:')) {
-                isHighlights = false; 
-                doc.moveDown(0.2);
-                const split = line.split(':');
-                doc.font('Helvetica-Bold').fontSize(9).fillColor(darkColor).text(split[0] + ':', 100, doc.y, { width: textWidth, continued: true });
-                doc.font('Helvetica').fillColor(secondaryColor).text(split.slice(1).join(':'));
-              } else {
-                isHighlights = false;
-                doc.font('Helvetica').fontSize(9).fillColor(secondaryColor).text(line, 100, doc.y, { width: textWidth, lineGap: 2 });
-              }
-            }
-
-            // Move to next block
-            doc.y = currentY + 180; 
+            // Move to next day
+            doc.y = currentY + blockHeight + 30; 
           });
 
           const pages = doc.bufferedPageRange ? doc.bufferedPageRange().count : 1;
-          doc.moveDown(2);
+          doc.moveDown(1);
           doc.font('Helvetica-Oblique').fontSize(9).fillColor('#a0aec0').text('Powered by EzzySync AI | Premium Experience', 50, doc.y, { align: 'center', width: 495 });
 
         } else {
