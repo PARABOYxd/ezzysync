@@ -604,6 +604,7 @@ async function ensureSchema() {
     await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
     await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
     await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS cost_template_id UUID REFERENCES trip_cost_templates(id) ON DELETE SET NULL;`);
   } catch (err) {
     logger.warn({ err }, 'Note adding costing columns to quotations');
   }
