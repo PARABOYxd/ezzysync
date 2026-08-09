@@ -121,7 +121,7 @@ async function convertToBooking(tenantId, leadId, bookingExtras, actor) {
     members: bookingExtras?.members || 1,
     pricePerPerson: bookingExtras?.pricePerPerson || 0,
     teamMember: lead.assignedTo,
-    travelStatus: 'New',
+    travelStatus: 'Booked',
     notes: `Converted from Lead #${leadId}.` + (lead.notes ? `\n${lead.notes}` : ''),
     ...bookingExtras,
   }, actor || 'System');
