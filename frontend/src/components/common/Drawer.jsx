@@ -16,26 +16,30 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
   const widthClass = sizeClasses[size] || sizeClasses.md;
 
   useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape' && open) onClose?.();
-    };
-    window.addEventListener('keydown', handleEsc);
-    
     if (open) {
       document.body.style.overflow = 'hidden';
-      // Reset scroll position to top after browser focus events complete
+      // Reset scroll position to top after browser focus events complete, only when opening
       setTimeout(() => {
         const scrollBody = drawerRef.current?.querySelector('.overflow-y-auto');
         if (scrollBody) {
           scrollBody.scrollTop = 0;
         }
       }, 50);
+    } else {
+      document.body.style.overflow = 'unset';
     }
     
     return () => {
-      window.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = 'unset';
     };
+  }, [open]);
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && open) onClose?.();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
   }, [open, onClose]);
 
   if (!open) return null;
