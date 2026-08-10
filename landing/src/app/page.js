@@ -12,7 +12,11 @@ import FAQ from "../components/sections/FAQ";
 import Footer from "../components/layout/Footer";
 
 export default function Home() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  let rawCrmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("https://")) {
+    rawCrmUrl = `https://${rawCrmUrl}`;
+  }
+  const crmUrl = rawCrmUrl;
 
   const pageJsonLd = [
     {
