@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const env = require('./config/env');
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
@@ -23,11 +24,13 @@ const aiRoutes = require('./routes/aiRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const followUpRoutes = require('./routes/followUpRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const testRoutes = require("./routes/testRoutes");
 const expenseRoutes = require('./routes/expenseRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const hotelRoutes = require('./routes/hotelRoutes');
+const instagramRoutes = require('./routes/instagramRoutes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -81,6 +84,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/customers', customerRoutes);
@@ -90,7 +94,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/hotels', hotelRoutes);
+app.use('/api/instagram', instagramRoutes);
 app.use("/api/test", testRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
 app.use(errorHandler);
 

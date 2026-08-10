@@ -7,7 +7,7 @@ import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
-import { Phone, MapPin, Tag, UserCheck, AlertTriangle, Users } from 'lucide-react';
+import { Phone, MapPin, Tag, UserCheck, AlertTriangle, Users, Mail } from 'lucide-react';
 import { isValidPhone } from '../../utils/validators';
 import * as leadService from '../../services/leadService';
 import * as userService from '../../services/userService';
@@ -182,7 +182,11 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
     <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Lead' : 'Create New Lead'}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormRow>
+          <Input label="Customer Name (Optional)" icon={UserCheck} placeholder="e.g. Rahul Kumar" value={form.customerName} onChange={set('customerName')} />
           <Input label="Contact Number" icon={Phone} required error={errors.phone} hint="Include country code for WhatsApp updates" placeholder="e.g. +919876543210" value={form.phone} onChange={set('phone')} />
+        </FormRow>
+
+        <FormRow>
           <div className="w-full space-y-1.5">
             <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">Trip Name</label>
             <select
@@ -199,7 +203,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
                 }
               }}
             >
-              <option value="">-- Select an itinerary --</option>
+              <option value="">Select an itinerary</option>
               {itineraries.map((q) => {
                 const name = q.trip_name || q.tripName || '';
                 return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
@@ -219,22 +223,22 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
               <p className="text-[10px] text-slate-400">Locked to the linked batch's itinerary.</p>
             )}
           </div>
-        </FormRow>
-
-        {/* Row 3: Lead Source & Tour Batch / Group (Optional) */}
-        <FormRow>
-          {!isTeamMember && <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />}
           <Select
-            label="Tour Batch / Group (Optional)"
+            label="Tour Batches"
             icon={Users}
             hint="Linking a batch sets the trip interest automatically"
             value={form.batchId || ''}
             onChange={handleBatchChange}
             options={[
-              { value: '', label: '-- No Batch Linked --' },
+              { value: '', label: 'Select batch' },
               ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
             ]}
           />
+        </FormRow>
+
+        {/* Row 3: Lead Source */}
+        <FormRow>
+          {!isTeamMember && <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />}
         </FormRow>
 
         {/* Row 4: Assigned Team Member */}

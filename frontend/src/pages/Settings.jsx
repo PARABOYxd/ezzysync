@@ -4,7 +4,7 @@ import api, { API_BASE_URL } from '../services/api';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
-import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram } from 'lucide-react';
+import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
@@ -21,7 +21,7 @@ const FIELDS = [
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('general'); // 'general', 'invoice', or 'walkthroughs'
+  const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState(null);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -29,10 +29,35 @@ export default function SettingsPage() {
   const [loadingWalkthroughs, setLoadingWalkthroughs] = useState(false);
   const [publicLeadKey, setPublicLeadKey] = useState(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [selectedLogoFile, setSelectedLogoFile] = useState(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
+  const [showAdvancedWA, setShowAdvancedWA] = useState(false);
+  const [waRequest, setWaRequest] = useState({ phone: '', companyName: '', submitted: false, submitting: false });
   const toast = useToast();
 
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size too large. Maximum allowed size is 5MB.');
+      return;
+    }
+    
+    setSelectedLogoFile(file);
+    setLogoPreviewUrl(URL.createObjectURL(file));
+  };
+
   useEffect(() => {
-    settingsService.getSettings().then(setSettings).catch(() => toast.error('Could not load settings.'));
+    settingsService.getSettings()
+      .then((data) => {
+        setSettings(data);
+        if (data && data.companyLogoUrl) {
+          setLogoPreviewUrl(data.companyLogoUrl);
+        }
+      })
+      .catch(() => toast.error('Could not load settings.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,8 +128,31 @@ export default function SettingsPage() {
     }
     setSaving(true);
     try {
-      const updated = await settingsService.updateSettings(settings);
+      let finalLogoUrl = settings.companyLogoUrl;
+      
+      if (selectedLogoFile) {
+        setUploadingLogo(true);
+        const formData = new FormData();
+        formData.append('file', selectedLogoFile);
+        try {
+          const resp = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          finalLogoUrl = resp.data.url;
+          setSelectedLogoFile(null);
+        } catch (uploadErr) {
+          toast.error(uploadErr.response?.data?.message || 'Failed to upload logo.');
+          setSaving(false);
+          setUploadingLogo(false);
+          return;
+        }
+        setUploadingLogo(false);
+      }
+
+      const payload = { ...settings, companyLogoUrl: finalLogoUrl };
+      const updated = await settingsService.updateSettings(payload);
       setSettings(updated);
+      setLogoPreviewUrl(updated.companyLogoUrl || '');
       toast.success('Settings saved successfully.');
     } catch {
       toast.error('Could not save settings.');
@@ -194,27 +242,74 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-              {FIELDS.map(({ key, label, placeholder, hint, required }) => (
-                <Input
-                  key={key}
-                  label={label}
-                  required={required}
-                  error={errors[key]}
-                  hint={hint}
-                  placeholder={placeholder}
-                  value={settings[key] || ''}
-                  onChange={(e) => {
-                    let val = e.target.value;
-                    if (key === 'whatsappNumber') {
-                      val = val.replace(/[^0-9+\-\s()]/g, '');
-                    } else if (key === 'gstNumber') {
-                      val = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                    }
-                    setSettings({ ...settings, [key]: val });
-                    if (errors[key]) setErrors({ ...errors, [key]: '' });
-                  }}
-                />
-              ))}
+              {FIELDS.map(({ key, label, placeholder, hint, required }) => {
+                if (key === 'companyLogoUrl') {
+                  return (
+                    <div key={key} className="flex flex-col gap-1.5 sm:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <span>{label}</span>
+                        {required && <span className="text-rose-500 font-bold">*</span>}
+                      </label>
+                      <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-200 dark:border-zinc-800">
+                        {logoPreviewUrl ? (
+                          <div className="relative group shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white">
+                            <img src={logoPreviewUrl} alt="Logo" className="w-full h-full object-contain" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSettings({ ...settings, companyLogoUrl: '' });
+                                setSelectedLogoFile(null);
+                                setLogoPreviewUrl('');
+                              }}
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 dark:border-zinc-700 flex items-center justify-center text-slate-400 text-xs shrink-0 bg-white dark:bg-zinc-900">
+                            No Logo
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                          <label className={`btn btn-xs ${uploadingLogo ? 'loading btn-disabled' : 'btn-outline btn-primary'} cursor-pointer text-[10px] w-fit px-2.5 py-1 rounded border border-brand-500 text-brand-600 hover:bg-brand-50 transition`}>
+                            {uploadingLogo ? 'Uploading...' : 'Upload Image'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingLogo}
+                              onChange={handleLogoUpload}
+                            />
+                          </label>
+                          <p className="text-[10px] text-slate-400">{hint}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <Input
+                    key={key}
+                    label={label}
+                    required={required}
+                    error={errors[key]}
+                    hint={hint}
+                    placeholder={placeholder}
+                    value={settings[key] || ''}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (key === 'whatsappNumber') {
+                        val = val.replace(/[^0-9+\-\s()]/g, '');
+                      } else if (key === 'gstNumber') {
+                        val = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                      }
+                      setSettings({ ...settings, [key]: val });
+                      if (errors[key]) setErrors({ ...errors, [key]: '' });
+                    }}
+                  />
+                );
+              })}
             </div>
 
             <Textarea
@@ -228,141 +323,314 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'whatsapp' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 card space-y-6">
-              <div>
-                <h3 className="font-bold text-slate-800">WhatsApp API Credentials</h3>
-                <p className="text-xs text-slate-400">Connect your custom Meta WhatsApp Cloud API credentials to automate messages from your own business number.</p>
-              </div>
+        {activeTab === 'whatsapp' && (() => {
+          const hasOwnWA = !!(settings.whatsappPhoneNumberId && settings.whatsappAccessToken);
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <Input
-                  label="Phone Number ID"
-                  placeholder="e.g. 517969018813..."
-                  hint="Unique ID for your verified WhatsApp business phone number"
-                  value={settings.whatsappPhoneNumberId || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappPhoneNumberId: e.target.value })}
-                />
-                <Input
-                  label="Display Phone Number"
-                  placeholder="e.g. +91 98765 43210"
-                  hint="The phone number linked to your Meta API account"
-                  value={settings.whatsappNumber || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
-                />
-                <Input
-                  label="WABA ID (WhatsApp Business Account ID)"
-                  placeholder="e.g. 104825968132..."
-                  hint="Your WhatsApp Business Account Identifier"
-                  value={settings.whatsappWabaId || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappWabaId: e.target.value })}
-                />
-                <Input
-                  label="Business ID"
-                  placeholder="Meta Business Portfolio ID"
-                  hint="Your Facebook Business Manager ID"
-                  value={settings.whatsappBusinessId || ''}
-                  onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
-                />
-              </div>
+          const handleWaRequest = async () => {
+            if (!waRequest.phone || !waRequest.companyName) {
+              toast.error('Please fill in all fields.');
+              return;
+            }
+            setWaRequest(r => ({ ...r, submitting: true }));
+            try {
+              await api.post('/settings/whatsapp-request', {
+                phone: waRequest.phone,
+                companyName: waRequest.companyName,
+              });
+              setWaRequest(r => ({ ...r, submitted: true, submitting: false }));
+              toast.success('Request submitted! EzzySync team will contact you within 24 hours.');
+            } catch {
+              toast.error('Could not submit request. Please try again.');
+              setWaRequest(r => ({ ...r, submitting: false }));
+            }
+          };
 
-              <Input
-                label="Meta Access Token"
-                placeholder="EAAGOCSPX-..."
-                hint="Your system user access token with whatsapp_business_messaging permission"
-                value={settings.whatsappAccessToken || ''}
-                onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
-              />
+          return (
+            <div className="max-w-2xl mx-auto space-y-6">
 
-              <Input
-                label="App Secret"
-                placeholder="Meta App Secret key"
-                hint="App Settings -> Basic -> App Secret (Used for webhooks)"
-                value={settings.whatsappAppSecret || ''}
-                onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
-              />
-            </div>
-
-            <div className="lg:col-span-5 space-y-4">
-              {/* Critical Warning Box */}
-              <div className="bg-red-50/70 border border-red-200/80 text-red-700 rounded-2xl p-4 text-xs space-y-2 shadow-sm">
-                <div className="flex items-center gap-2 font-extrabold text-red-800">
-                  <span className="text-lg">⚠️</span> CRITICAL WARNING
+              {/* Current Status Card */}
+              <div className="card space-y-6 max-w-3xl">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <MessageSquare size={18} className="text-brand-600" />
+                      WhatsApp Connection
+                    </h3>
+                    <p className="text-xs text-slate-400">Manage how WhatsApp messages are sent from your CRM.</p>
+                  </div>
                 </div>
-                <p className="leading-relaxed">
-                  Once linked to this developer API, you <strong>CANNOT</strong> use this same phone number inside the regular mobile WhatsApp App or WhatsApp Business App.
-                </p>
-                <p className="font-bold text-red-900 leading-relaxed bg-white/80 p-2.5 rounded-xl border border-red-100">
-                  💡 Best Practice: We highly recommend buying a cheap secondary SIM card (new number) purely for CRM alerts.
-                </p>
+
+                {hasOwnWA ? (
+                  /* Own number connected */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                        <MessageSquare size={18} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">{settings.whatsappNumber || 'Your WhatsApp Number'}</p>
+                        <p className="text-xs text-slate-500">Your own WhatsApp Business API is connected.</p>
+                      </div>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-md shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Using EzzySync shared number */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
+                        <MessageSquare size={18} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">EzzySync Shared Number</p>
+                        <p className="text-xs text-slate-500">Messages sent via EzzySync's official WhatsApp</p>
+                      </div>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1 rounded-md shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block"></span>
+                        Default Active
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Quick Setup Card */}
-              <div className="bg-gradient-to-br from-brand-50/50 to-emerald-50/30 border border-brand-100 rounded-2xl p-5 shadow-sm space-y-4">
-                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-brand-100/50 pb-2">
-                  <MessageSquare size={16} className="text-brand-600" />
-                  Quick Setup Guide
-                </h4>
-                <ol className="space-y-3.5 text-xs text-slate-600 list-decimal pl-4 leading-relaxed">
-                  <li>Register as a developer on <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-brand-600 font-bold underline">developers.facebook.com</a> and create a <strong>Business App</strong>.</li>
-                  <li>Add <strong>WhatsApp</strong> integration, verify your custom business number, and copy the <strong>Phone Number ID</strong>.</li>
-                  <li>Generate a <strong>Permanent Access Token</strong> under your Meta Business Settings for a System User with admin permissions.</li>
-                  <li>Paste the values in the form fields on the left and click <strong>Save Customizations</strong>.</li>
-                </ol>
+              {/* Request Own Number */}
+              {!hasOwnWA && (
+                <div className="card space-y-6 max-w-3xl">
+                   <div className="border-b border-slate-100 pb-4">
+                    <h3 className="font-bold text-slate-800">Request Dedicated WhatsApp</h3>
+                    <p className="text-xs text-slate-400">EzzySync team will set up a dedicated WhatsApp Business number for your agency.</p>
+                  </div>
+
+                  {waRequest.submitted ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-semibold flex items-center justify-center gap-2">
+                      <FileCheck size={18} /> Request submitted! We'll contact you within 24 hours.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                      <Input
+                        label="Your WhatsApp Number"
+                        placeholder="e.g. +91 98765 43210"
+                        hint="Number you want to use"
+                        value={waRequest.phone}
+                        onChange={(e) => setWaRequest(r => ({ ...r, phone: e.target.value }))}
+                      />
+                      <Input
+                        label="Agency / Company Name"
+                        placeholder="e.g. Himalaya Travel Co."
+                        hint="Will appear as sender name"
+                        value={waRequest.companyName}
+                        onChange={(e) => setWaRequest(r => ({ ...r, companyName: e.target.value }))}
+                      />
+                      <div className="sm:col-span-2 pt-2">
+                        <Button
+                          type="button"
+                          onClick={handleWaRequest}
+                          disabled={waRequest.submitting}
+                          className="w-full sm:w-auto text-sm px-6"
+                        >
+                          {waRequest.submitting ? 'Submitting...' : 'Submit Request'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Advanced: Own credentials */}
+              <div className="card overflow-hidden !p-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedWA(v => !v)}
+                  className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <Settings size={16} className="text-slate-400" />
+                    Advanced: Configure API Credentials Manually
+                  </span>
+                  {showAdvancedWA ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                </button>
+
+                {showAdvancedWA && (
+                  <div className="px-6 pb-6 pt-2 space-y-5 border-t border-slate-100">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                      <strong>Note:</strong> Once a number is linked to API, it cannot be used in the regular WhatsApp app. Use a dedicated SIM.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                      <Input
+                        label="Phone Number ID"
+                        placeholder="e.g. 517969018813..."
+                        value={settings.whatsappPhoneNumberId || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappPhoneNumberId: e.target.value })}
+                      />
+                      <Input
+                        label="Display Phone Number"
+                        placeholder="e.g. +91 98765 43210"
+                        value={settings.whatsappNumber || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                      />
+                      <Input
+                        label="WABA ID"
+                        placeholder="e.g. 104825968132..."
+                        value={settings.whatsappWabaId || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappWabaId: e.target.value })}
+                      />
+                      <Input
+                        label="Business ID"
+                        placeholder="Meta Business Portfolio ID"
+                        value={settings.whatsappBusinessId || ''}
+                        onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
+                      />
+                      <div className="sm:col-span-2">
+                        <Input
+                          label="Meta Access Token"
+                          placeholder="EAAGOCSPX-..."
+                          value={settings.whatsappAccessToken || ''}
+                          onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input
+                          label="App Secret"
+                          placeholder="Meta App Secret key"
+                          value={settings.whatsappAppSecret || ''}
+                          onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2">
+                      <Button type="submit" disabled={saving} className="w-full sm:w-auto text-sm px-6">
+                        {saving ? 'Saving...' : 'Save API Credentials'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
-        {activeTab === 'instagram' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 card space-y-6">
-              <div>
-                <h3 className="font-bold text-slate-800">Instagram API Credentials</h3>
-                <p className="text-xs text-slate-400">Connect your custom Instagram Professional Account to manage customer chats directly from your CRM dashboard.</p>
+        {activeTab === 'instagram' && (() => {
+          const isConnected = !!(settings.instagramAccessToken && settings.instagramAccountId);
+
+          const handleConnect = () => {
+            const token = localStorage.getItem('hf_token') || '';
+            const popup = window.open(
+              `${API_BASE_URL}/instagram/auth?token=${encodeURIComponent(token)}`,
+              'instagram_oauth',
+              'width=600,height=700,scrollbars=yes,resizable=yes'
+            );
+            const listener = (e) => {
+              if (e.data?.instagramOAuth === 'success') {
+                window.removeEventListener('message', listener);
+                toast.success('Instagram connected successfully! 🎉');
+                settingsService.getSettings().then(setSettings).catch(() => {});
+              } else if (e.data?.instagramOAuth === 'denied') {
+                window.removeEventListener('message', listener);
+                toast.error('Instagram connection was cancelled.');
+              } else if (e.data?.instagramOAuth === 'error') {
+                window.removeEventListener('message', listener);
+                toast.error('Something went wrong. Please try again.');
+              }
+            };
+            window.addEventListener('message', listener);
+          };
+
+          const handleDisconnect = async () => {
+            if (!window.confirm('Disconnect Instagram from EzzySync?')) return;
+            try {
+              await api.post('/instagram/disconnect');
+              setSettings({ ...settings, instagramAccessToken: '', instagramAccountId: '', instagramUsername: '' });
+              toast.success('Instagram disconnected.');
+            } catch {
+              toast.error('Could not disconnect. Please try again.');
+            }
+          };
+
+          return (
+            <div className="max-w-2xl mx-auto">
+              <div className="card space-y-6 max-w-3xl">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <Instagram size={18} className="text-pink-600" />
+                      Instagram Connection
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Receive and reply to Instagram DMs directly from your CRM.
+                    </p>
+                  </div>
+                  {!isConnected && (
+                    <Button type="button" onClick={handleConnect} className="text-sm px-4 bg-slate-900 hover:bg-slate-800 text-white border-none">
+                      <Instagram size={16} className="mr-2" /> Connect Account
+                    </Button>
+                  )}
+                </div>
+
+                {isConnected ? (
+                  /* ── Connected State ── */
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-lg shrink-0">
+                        {(settings.instagramUsername || 'IG')[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 truncate">
+                          @{settings.instagramUsername || 'Connected Account'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">ID: {settings.instagramAccountId}</p>
+                      </div>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-md shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                        Connected
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-600 space-y-2">
+                      <p className="font-semibold text-slate-800 flex items-center gap-2">
+                        <Sparkles size={16} className="text-brand-600" /> Instagram DMs are active
+                      </p>
+                      <p className="text-xs">New messages from Instagram will automatically appear as leads in your CRM pipeline. You can chat with them directly.</p>
+                    </div>
+
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleDisconnect}
+                        className="text-sm text-rose-600 hover:bg-rose-50 hover:border-rose-100"
+                      >
+                        Disconnect Instagram
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Not Connected State ── */
+                  <div className="space-y-6">
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      {[
+                        { icon: <MessageSquare size={20}/>, title: 'Sync DMs', text: 'Receive Instagram DMs as CRM leads automatically.' },
+                        { icon: <RefreshCw size={20}/>, title: 'Reply Fast', text: 'Reply to customers without leaving EzzySync.' },
+                        { icon: <FileCheck size={20}/>, title: 'Secure', text: 'Secure OAuth login — no passwords shared with us.' },
+                      ].map((item) => (
+                        <div key={item.title} className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2 text-center">
+                          <div className="text-brand-600 flex justify-center mb-1">{item.icon}</div>
+                          <p className="text-sm font-bold text-slate-700">{item.title}</p>
+                          <p className="text-xs text-slate-500 leading-relaxed">{item.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <Input
-                  label="Instagram Username"
-                  placeholder="e.g. travelgo_holidays"
-                  hint="Your Instagram Professional Account handle"
-                  value={settings.instagramUsername || ''}
-                  onChange={(e) => setSettings({ ...settings, instagramUsername: e.target.value })}
-                />
-                <Input
-                  label="Instagram Account ID"
-                  placeholder="e.g. 178414053..."
-                  hint="Unique ID of your Instagram Professional Account"
-                  value={settings.instagramAccountId || ''}
-                  onChange={(e) => setSettings({ ...settings, instagramAccountId: e.target.value })}
-                />
-              </div>
-
-              <Input
-                label="Meta Access Token"
-                placeholder="EAAGOCSPX-..."
-                hint="Meta system user token with instagram_manage_messages permission"
-                value={settings.instagramAccessToken || ''}
-                onChange={(e) => setSettings({ ...settings, instagramAccessToken: e.target.value })}
-              />
             </div>
+          );
+        })()}
 
-            <div className="lg:col-span-5 bg-gradient-to-br from-pink-50/50 to-orange-50/30 border border-pink-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Instagram size={16} className="text-pink-600" />
-                Quick Setup Guide
-              </h4>
-              <ol className="space-y-3 text-xs text-slate-600 list-decimal pl-4">
-                <li>Link your Instagram Professional Account to your Facebook page.</li>
-                <li>In your Meta Developer App, add <strong>Instagram Graph API</strong> support.</li>
-                <li>Copy your Instagram Account ID from your Facebook page settings.</li>
-                <li>Paste details here and click <strong>Save Customizations</strong>.</li>
-              </ol>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'invoice' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -654,7 +922,7 @@ export default function SettingsPage() {
 
 
         {/* Global Save Button */}
-        {activeTab !== 'walkthroughs' && activeTab !== 'leadCapture' && (
+        {activeTab !== 'walkthroughs' && activeTab !== 'leadCapture' && activeTab !== 'instagram' && (
           <div className="flex justify-end pt-2 max-w-3xl">
             <Button type="submit" disabled={saving} className="w-full sm:w-auto px-8 text-sm">
               {saving ? 'Saving Changes…' : 'Save Customizations'}

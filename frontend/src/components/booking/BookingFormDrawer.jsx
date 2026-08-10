@@ -224,7 +224,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
     if (key === 'phone' || key === 'emergencyContact') {
       val = val.replace(/[^0-9+\-\s()]/g, '');
     }
-    
+
     setForm((prev) => {
       const updated = { ...prev, [key]: val };
       if (key === 'members' && prev.costTemplateId) {
@@ -237,7 +237,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           updated.vendorOtherCost = Number(t.other_cost_per_pax || 0) * pax;
         }
       }
-      
+
       // Auto-calculate Payment Status
       if (key === 'paid' || key === 'pricePerPerson' || key === 'members') {
         const membersCount = Number(key === 'members' ? val : updated.members || 1);
@@ -489,8 +489,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
             type="button"
             onClick={() => setActiveTab('customer')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'customer'
-                ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
-                : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
+              : 'text-slate-500 hover:text-slate-700'
               }`}
           >
             <User size={14} className={activeTab === 'customer' ? 'text-brand-500' : 'text-slate-400'} />
@@ -502,8 +502,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
             type="button"
             onClick={() => setActiveTab('trip')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'trip'
-                ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
-                : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
+              : 'text-slate-500 hover:text-slate-700'
               }`}
           >
             <MapPin size={14} className={activeTab === 'trip' ? 'text-brand-500' : 'text-slate-400'} />
@@ -515,8 +515,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
             type="button"
             onClick={() => setActiveTab('financials')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'financials'
-                ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
-                : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-white text-brand-600 shadow-sm border border-slate-200/50'
+              : 'text-slate-500 hover:text-slate-700'
               }`}
           >
             <IndianRupee size={14} className={activeTab === 'financials' ? 'text-brand-500' : 'text-slate-400'} />
@@ -575,7 +575,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   onChange={set('emergencyContact')}
                 />
               </FormRow>
-              
+
               <div className="pt-4 border-t border-slate-100 mt-4">
                 <Textarea
                   label="General Notes / History log"
@@ -596,13 +596,13 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
               <FormRow>
                 <div className="w-full">
                   <Select
-                    label="Tour Batch / Group (Optional)"
+                    label="Tour Batches"
                     icon={Users}
                     hint="Linking a batch locks trip & departure date to match it"
                     value={form.batchId || ''}
                     onChange={handleBatchChange}
                     options={[
-                      { value: '', label: '-- No Batch Linked --' },
+                      { value: '', label: 'Select batch' },
                       ...batches.map((b) => ({ value: b.id, label: `${b.name} (${b.confirmedSeats}/${b.totalCapacity} filled)` }))
                     ]}
                   />
@@ -631,7 +631,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                       }
                     }}
                   >
-                    <option value="">-- Select an itinerary --</option>
+                    <option value="">Select an itinerary</option>
                     {quotations.map((q) => {
                       const name = q.trip_name || q.tripName || '';
                       return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
@@ -816,7 +816,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                     <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">B2B Supplier Costs (P&L Ledger)</h4>
                     <span className="text-[10px] text-slate-400 dark:text-zinc-500">Values are subtracted from revenue to yield Net Profit</span>
                   </div>
-                  
+
                   <div className="flex flex-col gap-1 w-full max-w-md">
                     <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Select Costing Template</label>
                     <select
@@ -864,8 +864,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
                   return (
                     <div className={`p-4 rounded-2xl border transition-all duration-300 ${isPositive
-                        ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30'
-                        : 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40 shadow-rose-50/30'
+                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 shadow-emerald-50/30'
+                      : 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40 shadow-rose-50/30'
                       } shadow-md`}>
                       <div className="grid grid-cols-3 text-center divide-x divide-slate-200/50 dark:divide-zinc-800">
                         <div>

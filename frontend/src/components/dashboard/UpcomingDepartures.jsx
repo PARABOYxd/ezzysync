@@ -9,38 +9,55 @@ export default function UpcomingDepartures({ departures }) {
     return <EmptyState title="No upcoming departures" message="Upcoming trips will appear here." />;
   }
   return (
-    <ul className="divide-y divide-slate-50">
+    <div className="grid grid-cols-1 gap-2.5 mt-1.5">
       {departures.map((d) => {
         const isBatch = d.type === 'batch';
         const key = isBatch ? `batch-${d.batch.batchId}` : `booking-${d.booking.bookingId}`;
+        const imageUrl = (isBatch ? d.batch?.bannerUrl : d.booking?.bannerUrl) || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWCnZIAMEWJEcSm9t5zlxrrW526rXBpZYl5QOjMHHhf51_d878RkgnsbGq&s=10';
+        
         return (
-          <li key={key} className="py-3 flex items-center justify-between gap-3">
-            {isBatch ? (
-              <div className="min-w-0">
-                <Link
-                  to={`/tour-batches?open=${d.batch.batchId}`}
-                  className="text-sm font-medium text-slate-700 hover:text-brand-600 flex items-center gap-1.5 truncate"
-                  title="Open this Group Tour batch"
-                >
-                  <Layers size={13} className="text-brand-500 shrink-0" />
-                  <span className="truncate">{d.batch.name}</span>
-                </Link>
-                <p className="text-xs text-slate-400 truncate">
-                  {d.batch.confirmedSeats} member{d.batch.confirmedSeats !== 1 ? 's' : ''} &middot; {d.batch.confirmedSeats}/{d.batch.totalCapacity} seats filled
-                </p>
-              </div>
-            ) : (
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-700 truncate">{d.booking.trip}</p>
-                <p className="text-xs text-slate-400 truncate">{d.booking.customerName} &middot; {d.booking.members} members</p>
-              </div>
-            )}
-            <span className="text-xs font-medium text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full shrink-0">
+          <Link
+            key={key}
+            to={isBatch ? `/tour-batches?open=${d.batch.batchId}` : `/bookings?search=${encodeURIComponent(d.booking.customerName)}`}
+            className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-800/10 hover:border-slate-200 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer transition text-left"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <img 
+                src={imageUrl} 
+                alt="Banner" 
+                className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-100 dark:border-zinc-800 shrink-0 shadow-sm"
+                onError={(e) => {
+                  e.target.src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWCnZIAMEWJEcSm9t5zlxrrW526rXBpZYl5QOjMHHhf51_d878RkgnsbGq&s=10';
+                }}
+              />
+              {isBatch ? (
+                <div className="min-w-0 flex-1">
+                  <span className="text-[13px] font-bold text-slate-800 dark:text-zinc-100 truncate block">
+                    {d.batch.name}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[11px] text-slate-400 dark:text-zinc-500">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded-[4px] text-[10px]">GROUP</span>
+                    <span>{d.batch.confirmedSeats}/{d.batch.totalCapacity} seats</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-bold text-slate-800 dark:text-zinc-100 truncate">{d.booking.trip}</p>
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 text-[11px] text-slate-400 dark:text-zinc-500">
+                    <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded-[4px] text-[10px]">PERSONAL</span>
+                    <span className="font-bold text-slate-700 dark:text-zinc-300 truncate max-w-[100px]">{d.booking.customerName}</span>
+                    <span>&middot;</span>
+                    <span>{d.booking.members} member{Number(d.booking.members) !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <span className="text-[11px] font-extrabold text-brand-600 bg-brand-50 dark:bg-brand-950/20 px-2.5 py-1 rounded shrink-0">
               {formatDate(d.departure)}
             </span>
-          </li>
+          </Link>
         );
       })}
-    </ul>
+    </div>
   );
 }

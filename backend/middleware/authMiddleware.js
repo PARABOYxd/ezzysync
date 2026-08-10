@@ -16,7 +16,12 @@ const { normalizePermissions } = require('../config/permissions');
  */
 async function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  let token = header.startsWith('Bearer ') ? header.slice(7) : null;
+
+  // Fallback to query param for window.open() popup OAuth flows
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'Authentication required.' });

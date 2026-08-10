@@ -45,12 +45,19 @@ function loadEnv() {
       verifyToken: process.env.WHATSAPP_VERIFY_TOKEN,
     },
 
+    facebook: {
+      appId: process.env.FACEBOOK_APP_ID || '',
+      appSecret: process.env.FACEBOOK_APP_SECRET || '',
+    },
+    backendUrl: process.env.BACKEND_URL || 'https://ezzysync-production.up.railway.app',
+
     rateLimit: {
       windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
       max: Number(process.env.RATE_LIMIT_MAX || 200),
     },
     tokenEncryptionKey: process.env.TOKEN_ENCRYPTION_KEY,
     geminiApiKey: process.env.GEMINI_API_KEY,
+    unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY || '',
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId123',
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'mockSecretKey123',
 
@@ -64,6 +71,15 @@ function loadEnv() {
     smtpSecure: process.env.SMTP_SECURE || 'false',
     smtpUser: process.env.SMTP_USER || '',
     smtpPass: process.env.SMTP_PASS || '',
+    
+    // Cloudflare R2 configuration
+    r2: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+      endpoint: process.env.R2_ENDPOINT || '',
+      bucketName: process.env.R2_BUCKET_NAME || '',
+      publicUrl: process.env.R2_PUBLIC_URL || '',
+    },
   };
 }
 

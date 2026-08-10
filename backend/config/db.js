@@ -513,6 +513,27 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding auto_send_invoice to settings');
   }
 
+  // WhatsApp & Instagram API credentials in settings
+  try {
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_waba_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_business_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_app_secret TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_username TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_account_id TEXT DEFAULT '';`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_access_token TEXT DEFAULT '';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding WhatsApp/Instagram columns to settings');
+  }
+
+  // Instagram sender ID on leads for DM-sourced lead deduplication
+  try {
+    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS instagram_sender_id TEXT DEFAULT NULL;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding instagram_sender_id to leads');
+  }
+
   // Optional trip highlights (short bullet list) and per-pickup-point
   // pricing (each entry is its own absolute total price, not an add-on).
   try {
@@ -583,6 +604,7 @@ async function ensureSchema() {
     await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
     await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
     await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS cost_template_id UUID REFERENCES trip_cost_templates(id) ON DELETE SET NULL;`);
   } catch (err) {
     logger.warn({ err }, 'Note adding costing columns to quotations');
   }
@@ -598,6 +620,19 @@ async function ensureSchema() {
   } catch (err) {
     logger.warn({ err }, 'Note adding related_quotations to quotations');
   }
+
+  // WhatsApp own number setup requests from agencies
+  await query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_setup_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      phone TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_requests_tenant ON whatsapp_setup_requests(tenant_id);`);
 
   logger.info('Schema check complete.');
 }

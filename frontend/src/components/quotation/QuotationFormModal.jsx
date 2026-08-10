@@ -161,6 +161,22 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
   const [aiTheme, setAiTheme] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiBuilder, setShowAiBuilder] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [selectedBannerFile, setSelectedBannerFile] = useState(null);
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
+
+  const handleBannerUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size too large. Maximum allowed size is 5MB.');
+      return;
+    }
+    
+    setSelectedBannerFile(file);
+    setBannerPreviewUrl(URL.createObjectURL(file));
+  };
 
   const handleAiItineraryGenerate = async () => {
     if (!form.tripName) {
@@ -239,6 +255,8 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
       setForm(quotation ? { ...emptyForm, ...quotation } : emptyForm);
       setErrors({});
       setShowAiBuilder(false);
+      setBannerPreviewUrl(quotation?.bannerUrl || '');
+      setSelectedBannerFile(null);
       
       // Auto-expand costing if existing quotation has saved cost values
       if (quotation && (Number(quotation.hotelCostPerPax) > 0 || Number(quotation.flightCostPerPax) > 0 || Number(quotation.transportCostPerPax) > 0 || Number(quotation.otherCostPerPax) > 0)) {
@@ -304,8 +322,30 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
 
     setSaving(true);
     try {
+      let finalBannerUrl = form.bannerUrl;
+
+      if (selectedBannerFile) {
+        setUploadingBanner(true);
+        const formData = new FormData();
+        formData.append('file', selectedBannerFile);
+        try {
+          const resp = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          finalBannerUrl = resp.data.url;
+          setSelectedBannerFile(null);
+        } catch (uploadErr) {
+          toast.error(uploadErr.response?.data?.message || 'Failed to upload banner.');
+          setSaving(false);
+          setUploadingBanner(false);
+          return;
+        }
+        setUploadingBanner(false);
+      }
+
       const payload = {
         ...form,
+        bannerUrl: finalBannerUrl,
         priceQuote: Number(form.priceQuote || 0),
       };
       if (isEdit) {
@@ -541,13 +581,46 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
 
         {/* Advanced Settings: Banner & Related Trips */}
         <div className="pt-4 border-t border-slate-200 space-y-4">
-          <Input
-            label="Banner Image URL (Optional)"
-            placeholder="e.g. https://example.com/banner.jpg"
-            hint="This image will be used as the background banner for the public itinerary link."
-            value={form.bannerUrl || ''}
-            onChange={set('bannerUrl')}
-          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+              <span>Banner Image (Optional)</span>
+            </label>
+            <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-200 dark:border-zinc-800">
+              {bannerPreviewUrl ? (
+                <div className="relative group shrink-0 w-24 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white">
+                  <img src={bannerPreviewUrl} alt="Banner" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm({ ...form, bannerUrl: '' });
+                      setSelectedBannerFile(null);
+                      setBannerPreviewUrl('');
+                    }}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="w-24 h-16 rounded-lg border-2 border-dashed border-slate-300 dark:border-zinc-700 flex items-center justify-center text-slate-400 text-xs shrink-0 bg-white dark:bg-zinc-900">
+                  No Image
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <label className={`btn btn-xs ${uploadingBanner ? 'loading btn-disabled' : 'btn-outline btn-primary'} cursor-pointer text-[10px] w-fit px-2.5 py-1 rounded border border-brand-500 text-brand-600 hover:bg-brand-50 transition`}>
+                  {uploadingBanner ? 'Uploading...' : 'Upload Banner'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingBanner}
+                    onChange={handleBannerUpload}
+                  />
+                </label>
+                <p className="text-[10px] text-slate-400">This image will be used as the background banner for the public itinerary link.</p>
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-slate-800">Related Trips / Other Itineraries to Show (Optional)</label>
