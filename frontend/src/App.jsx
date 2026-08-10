@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 import RequirePermission from './components/common/RequirePermission.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
@@ -33,14 +34,15 @@ import Expenses from './pages/Expenses.jsx';
 
 export default function App() {
   return (
-    <Routes>
-      {/* The only unauthenticated entry point into the app */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/auth/google/callback" element={<GoogleCallback />} />
-      <Route path="/quote-preview/:uuid" element={<QuotationPreview />} />
+    <>
+      <Routes>
+        {/* The only unauthenticated entry point into the app */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        <Route path="/quote-preview/:uuid" element={<QuotationPreview />} />
 
       {/* Everything below requires a valid session - no page is reachable without auth */}
       <Route
@@ -68,8 +70,10 @@ export default function App() {
         <Route path="/expenses" element={<RequirePermission module="billing" action="write"><Expenses /></RequirePermission>} />
       </Route>
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Analytics />
+    </>
   );
 }
