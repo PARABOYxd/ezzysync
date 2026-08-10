@@ -12,8 +12,16 @@ import FAQ from "../components/sections/FAQ";
 import Footer from "../components/layout/Footer";
 
 export default function Home() {
-  const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || (isLocal ? "http://localhost:5173" : "https://app.ezzysync.com");
+  let defaultCrmUrl = "https://app.ezzysync.com";
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      defaultCrmUrl = "http://localhost:5173";
+    } else if (hostname.includes("dev.ezzysync.com")) {
+      defaultCrmUrl = "https://dev.ezzysync.com";
+    }
+  }
+  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || defaultCrmUrl;
 
   const pageJsonLd = [
     {

@@ -1,7 +1,15 @@
 import axios from 'axios';
 
-const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-export const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:5001/api' : 'https://ezzysync-production.up.railway.app/api');
+let defaultApiUrl = "https://ezzysync-production.up.railway.app/api";
+if (typeof window !== "undefined") {
+  const hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    defaultApiUrl = "http://localhost:5001/api";
+  } else if (hostname.includes("dev.ezzysync.com")) {
+    defaultApiUrl = "https://ezzysync.onrender.com/api";
+  }
+}
+export const API_BASE_URL = import.meta.env.VITE_API_URL || defaultApiUrl;
 
 const api = axios.create({ baseURL: API_BASE_URL });
 
