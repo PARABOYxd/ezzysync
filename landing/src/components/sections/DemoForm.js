@@ -33,7 +33,11 @@ export default function DemoForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+      let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+      if (rawApiUrl && !rawApiUrl.startsWith("http://") && !rawApiUrl.startsWith("https://")) {
+        rawApiUrl = `https://${rawApiUrl}`;
+      }
+      const apiUrl = rawApiUrl;
       const response = await fetch(`${apiUrl}/api/public/walkthrough`, {
         method: "POST",
         headers: {
