@@ -33,7 +33,8 @@ export default function DemoForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+      const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isLocal ? "http://localhost:5001" : "https://ezzysync-production.up.railway.app");
       const response = await fetch(`${apiUrl}/api/public/walkthrough`, {
         method: "POST",
         headers: {
