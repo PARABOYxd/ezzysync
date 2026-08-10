@@ -33,16 +33,7 @@ export default function DemoForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      let defaultApiUrl = "https://ezzysync-production.up.railway.app";
-      if (typeof window !== "undefined") {
-        const hostname = window.location.hostname;
-        if (hostname === "localhost" || hostname === "127.0.0.1") {
-          defaultApiUrl = "http://localhost:5001";
-        } else if (hostname.includes("dev.ezzysync.com")) {
-          defaultApiUrl = "https://ezzysync.onrender.com";
-        }
-      }
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || defaultApiUrl;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
       const response = await fetch(`${apiUrl}/api/public/walkthrough`, {
         method: "POST",
         headers: {

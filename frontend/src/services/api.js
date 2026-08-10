@@ -1,15 +1,6 @@
 import axios from 'axios';
 
-let defaultApiUrl = "https://ezzysync-production.up.railway.app/api";
-if (typeof window !== "undefined") {
-  const hostname = window.location.hostname;
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    defaultApiUrl = "http://localhost:5001/api";
-  } else if (hostname.includes("dev.ezzysync.com")) {
-    defaultApiUrl = "https://ezzysync.onrender.com/api";
-  }
-}
-export const API_BASE_URL = import.meta.env.VITE_API_URL || defaultApiUrl;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const api = axios.create({ baseURL: API_BASE_URL });
 
