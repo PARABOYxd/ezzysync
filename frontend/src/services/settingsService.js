@@ -5,3 +5,6 @@ export const updateSettings = (payload) => api.put('/settings', payload).then((r
 
 export const getPublicLeadKey = () => api.get('/settings/lead-capture-key').then((r) => r.data.publicLeadKey);
 export const regeneratePublicLeadKey = () => api.post('/settings/lead-capture-key/regenerate').then((r) => r.data.publicLeadKey);
+
+export const requestWhatsappSetup = (payload) =>
+  api.post('/settings/whatsapp-request', payload).then((r) => r.data);

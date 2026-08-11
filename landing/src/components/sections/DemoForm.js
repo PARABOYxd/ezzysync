@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Shield, CheckCircle2 } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
+import { submitWalkthroughRequest } from "@/lib/api";
+import { validateDemoForm } from "@/lib/validation";
 
 export default function DemoForm() {
   const [demoRequested, setDemoRequested] = useState(false);
@@ -12,17 +14,7 @@ export default function DemoForm() {
   const [submitError, setSubmitError] = useState("");
 
   const validate = () => {
-    const errs = {};
-    if (!demoData.name.trim()) errs.name = "Name is required.";
-    if (!demoData.agency.trim()) errs.agency = "Agency name is required.";
-    if (!demoData.email.trim()) {
-      errs.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(demoData.email)) {
-      errs.email = "Enter a valid email address.";
-    }
-    if (demoData.phone && !/^[0-9+\-\s()]{7,15}$/.test(demoData.phone)) {
-      errs.phone = "Enter a valid phone number (7-15 digits).";
-    }
+    const errs = validateDemoForm(demoData);
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -33,28 +25,12 @@ export default function DemoForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
-      if (rawApiUrl && !rawApiUrl.startsWith("http://") && !rawApiUrl.startsWith("https://")) {
-        rawApiUrl = `https://${rawApiUrl}`;
-      }
-      const apiUrl = rawApiUrl;
-      const response = await fetch(`${apiUrl}/api/public/walkthrough`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: demoData.name,
-          agencyName: demoData.agency,
-          email: demoData.email,
-          phone: demoData.phone,
-        }),
+      await submitWalkthroughRequest({
+        name: demoData.name,
+        agencyName: demoData.agency,
+        email: demoData.email,
+        phone: demoData.phone,
       });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || "Failed to submit request.");
-      }
 
       setDemoRequested(true);
       setDemoData({ name: "", email: "", agency: "", phone: "" });

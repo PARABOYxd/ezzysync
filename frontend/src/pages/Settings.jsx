@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import * as settingsService from '../services/settingsService';
-import api, { API_BASE_URL } from '../services/api';
+import { API_BASE_URL } from '../services/api';
+import * as publicService from '../services/publicService';
+import * as instagramService from '../services/instagramService';
+import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
@@ -64,8 +67,8 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeTab === 'walkthroughs') {
       setLoadingWalkthroughs(true);
-      api.get('/public/walkthrough')
-        .then((res) => setWalkthroughRequests(res.data.requests || []))
+      publicService.listWalkthroughRequests()
+        .then(setWalkthroughRequests)
         .catch(() => toast.error('Could not load landing walkthrough requests.'))
         .finally(() => setLoadingWalkthroughs(false));
     }
@@ -132,13 +135,8 @@ export default function SettingsPage() {
       
       if (selectedLogoFile) {
         setUploadingLogo(true);
-        const formData = new FormData();
-        formData.append('file', selectedLogoFile);
         try {
-          const resp = await api.post('/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          finalLogoUrl = resp.data.url;
+          finalLogoUrl = await uploadFile(selectedLogoFile);
           setSelectedLogoFile(null);
         } catch (uploadErr) {
           toast.error(uploadErr.response?.data?.message || 'Failed to upload logo.');
@@ -333,7 +331,7 @@ export default function SettingsPage() {
             }
             setWaRequest(r => ({ ...r, submitting: true }));
             try {
-              await api.post('/settings/whatsapp-request', {
+              await settingsService.requestWhatsappSetup({
                 phone: waRequest.phone,
                 companyName: waRequest.companyName,
               });
@@ -542,7 +540,7 @@ export default function SettingsPage() {
           const handleDisconnect = async () => {
             if (!window.confirm('Disconnect Instagram from EzzySync?')) return;
             try {
-              await api.post('/instagram/disconnect');
+              await instagramService.disconnect();
               setSettings({ ...settings, instagramAccessToken: '', instagramAccountId: '', instagramUsername: '' });
               toast.success('Instagram disconnected.');
             } catch {

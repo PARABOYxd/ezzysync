@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Bot, FileCheck, ArrowRight, Star, ShieldAlert, Lock } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
-import api from '../services/api';
+import * as aiService from '../services/aiService';
+import * as paymentService from '../services/paymentService';
 import * as bookingService from '../services/bookingService';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
@@ -36,8 +37,7 @@ export default function AITools() {
         return;
       }
 
-      const res = await api.post('/payments/create-subscription-order');
-      const order = res.data;
+      const order = await paymentService.createSubscriptionOrder();
 
       const options = {
         key: order.key_id,
@@ -48,14 +48,14 @@ export default function AITools() {
         order_id: order.id,
         handler: async function (response) {
           try {
-            const verifyRes = await api.post('/payments/verify-subscription', {
+            const verifyRes = await paymentService.verifySubscription({
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
             });
 
-            if (verifyRes.data.success) {
-              await loginWithToken(verifyRes.data.token);
+            if (verifyRes.success) {
+              await loginWithToken(verifyRes.token);
               toast.success('Congratulations! Your plan has been upgraded to PRO. AI Tools are now fully unlocked!');
             }
           } catch (err) {
@@ -120,12 +120,12 @@ export default function AITools() {
     setItineraryLoading(true);
     setGeneratedItinerary('');
     try {
-      const response = await api.post('/ai/generate-itinerary', {
+      const response = await aiService.generateItinerary({
         tripName,
         days: Number(days),
         notes: itineraryNotes,
       });
-      setGeneratedItinerary(response.data.itinerary);
+      setGeneratedItinerary(response.itinerary);
       toast.success('Itinerary generated successfully!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to generate itinerary.');
@@ -138,13 +138,11 @@ export default function AITools() {
     if (!generatedItinerary || !tripName) return;
     setDownloading(true);
     try {
-      const response = await api.post('/ai/download-itinerary', {
+      const blob = await aiService.downloadItinerary({
         tripName,
         itineraryText: generatedItinerary,
-      }, {
-        responseType: 'blob',
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       const safeName = tripName.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -181,16 +179,16 @@ export default function AITools() {
     setCustomerMessage('');
 
     try {
-      const response = await api.post('/ai/whatsapp-reply', {
+      const response = await aiService.whatsappReply({
         phone,
         message: msgToSend,
       });
 
       const aiMsg = {
         sender: 'ai',
-        text: response.data.reply,
+        text: response.reply,
         timestamp: new Date().toLocaleTimeString(),
-        booking: response.data.matchedBooking,
+        booking: response.matchedBooking,
       };
       setChatLog((prev) => [...prev, aiMsg]);
     } catch (err) {

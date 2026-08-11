@@ -16,3 +16,7 @@ export const parseTicket = (payload, isFile = false) => {
 export const getFollowUps = (bookingId) => api.get(`/bookings/${bookingId}/follow-ups`).then((r) => r.data.followUps);
 export const addFollowUp = (bookingId, payload) => api.post(`/bookings/${bookingId}/follow-ups`, payload).then((r) => r.data.followUp);
 
+
+/** Flat booking array for pickers/dropdowns. Tolerates both the wrapped
+ * ({ bookings: [...] }) and bare-array response shapes. */
+export const getBookingList = () => api.get('/bookings').then((r) => r.data.bookings || r.data || []);

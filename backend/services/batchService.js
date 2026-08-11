@@ -3,7 +3,6 @@ const bookingRepository = require('../repositories/bookingRepository');
 const { BATCH_STATUSES, rowToBatch } = require('../models/batchSchema');
 const { rowToBooking } = require('../models/bookingSchema');
 const { rowToLead } = require('../models/leadSchema');
-const db = require('../config/db');
 
 async function getBatchByBatchId(tenantId, batchId) {
   const row = await batchRepository.getBatchByBatchId(tenantId, batchId);
@@ -20,8 +19,8 @@ async function createBatch(tenantId, data, createdBy) {
     throw new Error('Invalid batch status.');
   }
 
-  const { rows } = await db.query(`SELECT nextval('tour_batches_seq') AS seq`);
-  const batchId = `TB-${rows[0].seq}`;
+  const seq = await batchRepository.nextBatchSeq();
+  const batchId = `TB-${seq}`;
 
   const row = await batchRepository.insertBatch(tenantId, batchId, data, createdBy);
   return rowToBatch(row);

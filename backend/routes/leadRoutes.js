@@ -1,16 +1,12 @@
 const express = require('express');
-const { body } = require('express-validator');
 const ctrl = require('../controllers/leadController');
+const { leadValidators } = require('../validators/leadValidators');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validate');
 const { requirePermission } = require('../middleware/permissionMiddleware');
 
 const router = express.Router();
 router.use(requireAuth);
-
-const leadValidators = [
-  body('phone').matches(/^[0-9+\-\s()]{7,15}$/).withMessage('A valid phone number is required.'),
-];
 
 router.get('/', requirePermission('leads', 'read'), ctrl.list);
 router.get('/pool', requirePermission('leads', 'read'), ctrl.listPool);

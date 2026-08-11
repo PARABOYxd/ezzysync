@@ -42,15 +42,11 @@ export const metadata = {
     description: "EzzySync is the best travel CRM for travel agents — automate client updates via WhatsApp, generate itineraries with AI, and manage billing statements in one platform. Start free.",
     images: ["/images/og-image.png"], // TODO: Create and place 1200x630 OG image in public/images/og-image.png
   },
-  icons: {
-    icon: [
-      { url: '/favicon.ico', type: 'image/x-icon' },
-    ],
-    shortcut: ['/favicon.ico'],
-    apple: [
-      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
-    ],
-  },
+  // Icons are intentionally NOT declared here. The app/ file conventions
+  // (favicon.ico, icon.png, apple-icon.png) emit the correct <link> tags on
+  // their own with accurate type/sizes attributes. Declaring them here too
+  // produced three competing rel="icon" tags, which left search engines
+  // guessing at which icon to use.
 };
 
 export default function RootLayout({ children }) {

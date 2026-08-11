@@ -121,7 +121,13 @@ async function unassignLeadFromBatch(tenantId, leadIdText) {
   return rows[0];
 }
 
+async function nextBatchSeq() {
+  const { rows } = await query(`SELECT nextval('tour_batches_seq') AS seq`);
+  return rows[0].seq;
+}
+
 module.exports = {
+  nextBatchSeq,
   insertBatch,
   listBatches,
   getBatchByBatchId,
