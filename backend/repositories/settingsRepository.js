@@ -43,8 +43,46 @@ async function getTenantIdByPublicLeadKey(publicLeadKey) {
   return rows[0]?.id;
 }
 
+async function insertWhatsappSetupRequest(tenantId, phone, companyName) {
+  await query(
+    `INSERT INTO whatsapp_setup_requests (tenant_id, phone, company_name) VALUES ($1, $2, $3)`,
+    [tenantId, phone, companyName]
+  );
+}
+
+async function upsertInstagramCredentials(tenantId, { accessToken, accountId, username }) {
+  await query(
+    `INSERT INTO settings (tenant_id, instagram_access_token, instagram_account_id, instagram_username)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (tenant_id) DO UPDATE SET
+       instagram_access_token = EXCLUDED.instagram_access_token,
+       instagram_account_id   = EXCLUDED.instagram_account_id,
+       instagram_username     = EXCLUDED.instagram_username`,
+    [tenantId, accessToken, accountId, username]
+  );
+}
+
+async function clearInstagramCredentials(tenantId) {
+  await query(
+    `UPDATE settings SET instagram_access_token='', instagram_account_id='', instagram_username='' WHERE tenant_id=$1`,
+    [tenantId]
+  );
+}
+
+async function getTenantIdByInstagramAccountId(instagramAccountId) {
+  const { rows } = await query(
+    `SELECT tenant_id FROM settings WHERE instagram_account_id=$1 LIMIT 1`,
+    [instagramAccountId]
+  );
+  return rows[0]?.tenant_id;
+}
+
 module.exports = {
   ensureRow,
+  insertWhatsappSetupRequest,
+  upsertInstagramCredentials,
+  clearInstagramCredentials,
+  getTenantIdByInstagramAccountId,
   getSettings,
   updateSettings,
   getPublicLeadKey,

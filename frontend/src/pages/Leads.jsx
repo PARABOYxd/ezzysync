@@ -13,7 +13,7 @@ import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { usePermission } from '../hooks/usePermission.js';
 import { useAuth } from '../hooks/useAuth.jsx';
-import api, { API_BASE_URL } from '../services/api';
+import { API_BASE_URL } from '../services/api';
 
 const STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 
@@ -83,9 +83,9 @@ export default function Leads() {
   // WebSocket Connection
   useEffect(() => {
     // Initial fetch of unassigned leads
-    api.get('/leads/pool')
-      .then((res) => {
-        setPoolCount(res.data.leads?.length || 0);
+    leadService.getLeadPool()
+      .then((leads) => {
+        setPoolCount(leads.length);
       })
       .catch(() => {});
 

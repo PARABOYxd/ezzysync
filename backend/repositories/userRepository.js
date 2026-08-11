@@ -11,7 +11,9 @@ async function findUserByEmail(email) {
   return rows[0];
 }
 
-async function findUserById(userId) {
+/** Strict lookup by user id, with no ADMIN-by-tenant-id fallback. Callers that
+ * want the legacy-token fallback should use findUserById instead. */
+async function findUserWithTenantById(userId) {
   const { rows } = await query(
     `SELECT u.*, t.company_name, t.plan_id
      FROM users u
@@ -19,7 +21,12 @@ async function findUserById(userId) {
      WHERE u.id = $1`,
     [userId]
   );
-  if (rows[0]) return rows[0];
+  return rows[0];
+}
+
+async function findUserById(userId) {
+  const direct = await findUserWithTenantById(userId);
+  if (direct) return direct;
 
   // Fallback for old tokens
   const fallback = await query(
@@ -160,6 +167,7 @@ async function insertGoogleUser(tenantId, email, name, role, googleId) {
 module.exports = {
   findUserByEmail,
   findUserById,
+  findUserWithTenantById,
   insertTenant,
   insertUser,
   updateUserOTP,

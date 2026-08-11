@@ -11,3 +11,7 @@ export const convertLeadToBooking = (id, payload) => api.post(`/leads/${id}/conv
 
 export const getLeadFollowUps = (id) => api.get(`/leads/${id}/follow-ups`).then((r) => r.data.followUps);
 export const addLeadFollowUp = (id, payload) => api.post(`/leads/${id}/follow-ups`, payload).then((r) => r.data.followUp);
+
+/** Unassigned leads available for anyone on the team to claim. */
+export const getLeadPool = () => api.get('/leads/pool').then((r) => r.data.leads || []);
+export const claimLead = (id) => api.post(`/leads/${id}/claim`).then((r) => r.data);

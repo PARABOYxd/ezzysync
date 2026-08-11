@@ -121,9 +121,42 @@ async function getTemplateByTripName(tenantId, trip_name) {
   return rows[0];
 }
 
+/** Flat expense rows with no booking/batch joins - used by the analytics
+ * aggregation in bookingService, which only needs link_type/booking_id/
+ * batch_id/amount and would pay for the joins in listExpenses for nothing. */
+async function listExpenseRowsByTenant(tenantId) {
+  const { rows } = await query(
+    'SELECT * FROM expenses WHERE tenant_id = $1',
+    [tenantId]
+  );
+  return rows;
+}
+
+async function getTemplateById(tenantId, id) {
+  const { rows } = await query(
+    'SELECT * FROM trip_cost_templates WHERE tenant_id = $1 AND id = $2',
+    [tenantId, id]
+  );
+  return rows[0];
+}
+
+/** Unlike getTemplateByTripName, this prefers the template literally named
+ * 'Default' and always returns at most one row - the auto-generated booking
+ * expense flow needs a single deterministic pick. */
+async function getPreferredTemplateByTripName(tenantId, tripName) {
+  const { rows } = await query(
+    'SELECT * FROM trip_cost_templates WHERE tenant_id = $1 AND LOWER(trip_name) = LOWER($2) ORDER BY CASE WHEN template_name = \'Default\' THEN 0 ELSE 1 END LIMIT 1',
+    [tenantId, tripName]
+  );
+  return rows[0];
+}
+
 module.exports = {
   createExpense,
   listExpenses,
+  listExpenseRowsByTenant,
+  getTemplateById,
+  getPreferredTemplateByTripName,
   getExpenseById,
   updateExpense,
   deleteExpense,

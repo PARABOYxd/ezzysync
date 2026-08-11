@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
-import api from '../services/api';
+import * as userService from '../services/userService';
 import Input from '../components/ui/Input.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search } from 'lucide-react';
@@ -84,9 +84,9 @@ export default function Team() {
 
   const fetchMembers = () => {
     setLoading(true);
-    api.get('/users')
-      .then((res) => {
-        setMembers(res.data.users || []);
+    userService.getUsers()
+      .then((users) => {
+        setMembers(users);
       })
       .catch(() => {
         toast.error('Could not load team members.');
@@ -152,7 +152,7 @@ export default function Team() {
     if (!validateAddForm()) return;
 
     try {
-      await api.post('/users', addForm);
+      await userService.createUser(addForm);
       toast.success('Team member created successfully.');
       setShowAddModal(false);
       // Reset form
@@ -183,7 +183,7 @@ export default function Team() {
       if (editForm.password) {
         payload.password = editForm.password;
       }
-      await api.put(`/users/${editForm.userId}`, payload);
+      await userService.updateUser(editForm.userId, payload);
       toast.success('Team member updated successfully.');
       setShowEditModal(false);
       setFormErrors({});
@@ -196,7 +196,7 @@ export default function Team() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this team member?')) return;
     try {
-      await api.delete(`/users/${id}`);
+      await userService.deleteUser(id);
       toast.success('Team member deleted.');
       fetchMembers();
     } catch (err) {

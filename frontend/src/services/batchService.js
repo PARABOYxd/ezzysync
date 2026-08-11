@@ -26,3 +26,8 @@ export const linkLead = (batchId, leadId) =>
 
 export const unlinkLead = (batchId, leadId) =>
   api.post(`/batches/${batchId}/unlink-lead`, { leadId }).then((r) => r.data.lead);
+
+/** Flat batch array for pickers/dropdowns. Tolerates both the wrapped
+ * ({ batches: [...] }) and bare-array response shapes. */
+export const getBatchList = () =>
+  api.get('/batches').then((r) => r.data.batches || r.data || []);

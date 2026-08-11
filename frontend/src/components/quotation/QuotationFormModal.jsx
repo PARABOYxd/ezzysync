@@ -5,7 +5,8 @@ import Textarea from '../ui/Textarea.jsx';
 import Button from '../ui/Button.jsx';
 import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
-import api from '../../services/api';
+import * as aiService from '../../services/aiService';
+import { uploadFile } from '../../services/uploadService';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import {
   MapPin, Plus, Trash, ArrowUp, ArrowDown, X,
@@ -189,17 +190,17 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
     }
     setAiLoading(true);
     try {
-      const response = await api.post('/ai/generate-itinerary', {
+      const response = await aiService.generateItinerary({
         tripName: form.tripName,
         days: Number(aiDays),
         notes: aiTheme,
         format: 'json',
       });
-      
-      if (response.data?.itinerary && Array.isArray(response.data.itinerary)) {
+
+      if (response?.itinerary && Array.isArray(response.itinerary)) {
         setForm((prev) => ({
           ...prev,
-          itineraryDays: response.data.itinerary,
+          itineraryDays: response.itinerary,
         }));
         toast.success(`✨ AI generated and autofilled a ${aiDays}-day itinerary successfully!`);
         setShowAiBuilder(false);
@@ -326,13 +327,8 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
 
       if (selectedBannerFile) {
         setUploadingBanner(true);
-        const formData = new FormData();
-        formData.append('file', selectedBannerFile);
         try {
-          const resp = await api.post('/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          finalBannerUrl = resp.data.url;
+          finalBannerUrl = await uploadFile(selectedBannerFile);
           setSelectedBannerFile(null);
         } catch (uploadErr) {
           toast.error(uploadErr.response?.data?.message || 'Failed to upload banner.');
