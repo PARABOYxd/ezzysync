@@ -1,6 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 const bookingRepository = require('../repositories/bookingRepository');
 const batchRepository = require('../repositories/batchRepository');
+const expenseRepository = require('../repositories/expenseRepository');
+const leadRepository = require('../repositories/leadRepository');
 const customerService = require('./customerService');
 const { rowToBooking } = require('../models/bookingSchema');
 const { rowToBatch } = require('../models/batchSchema');
@@ -260,11 +262,8 @@ async function billingAnalytics(tenantId, teamMemberName = null, startDate = nul
     allBookings = allBookings.filter((b) => new Date(b.createdAt) <= end);
   }
   
-  const { query } = require('../config/db');
-  
   // 1. Fetch all expenses for calculations
-  const expensesResult = await query(`SELECT * FROM expenses WHERE tenant_id = $1`, [tenantId]);
-  const expenses = expensesResult.rows;
+  const expenses = await expenseRepository.listExpenseRowsByTenant(tenantId);
 
   // Group batch expenses
   const batchExpensesTotal = {};
@@ -291,22 +290,10 @@ async function billingAnalytics(tenantId, teamMemberName = null, startDate = nul
   });
 
   // Also get leads to count leads worked on per team member
-  let leadsQuery = `SELECT assigned_to, COUNT(*) as lead_count FROM leads WHERE tenant_id = $1 AND deleted = FALSE`;
-  const leadsParams = [tenantId];
-  let paramIndex = 2;
-  if (startDate) {
-    leadsQuery += ` AND created_at >= $${paramIndex++}`;
-    leadsParams.push(startDate);
-  }
-  if (endDate) {
-    leadsQuery += ` AND created_at <= $${paramIndex++}`;
-    leadsParams.push(endDate);
-  }
-  leadsQuery += ` GROUP BY assigned_to`;
-  const leadsResult = await query(leadsQuery, leadsParams);
-  
+  const leadCountRows = await leadRepository.countLeadsByAssignee(tenantId, { startDate, endDate });
+
   const teamLeads = {};
-  for (const row of leadsResult.rows) {
+  for (const row of leadCountRows) {
     if (row.assigned_to) {
       teamLeads[row.assigned_to] = Number(row.lead_count);
     }
@@ -411,7 +398,6 @@ async function billingAnalytics(tenantId, teamMemberName = null, startDate = nul
 
 async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
   try {
-    const expenseRepository = require('../repositories/expenseRepository');
     const existingExpenses = await expenseRepository.listExpenses(tenantId);
     
     // Filter expenses linked to this booking
@@ -430,15 +416,10 @@ async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
 
     let template = null;
     if (booking.costTemplateId) {
-      const { rows } = await query('SELECT * FROM trip_cost_templates WHERE tenant_id = $1 AND id = $2', [tenantId, booking.costTemplateId]);
-      template = rows[0];
+      template = await expenseRepository.getTemplateById(tenantId, booking.costTemplateId);
     }
     if (!template && booking.trip) {
-      const { rows } = await query(
-        'SELECT * FROM trip_cost_templates WHERE tenant_id = $1 AND LOWER(trip_name) = LOWER($2) ORDER BY CASE WHEN template_name = \'Default\' THEN 0 ELSE 1 END LIMIT 1',
-        [tenantId, booking.trip]
-      );
-      template = rows[0];
+      template = await expenseRepository.getPreferredTemplateByTripName(tenantId, booking.trip);
     }
     if (!template) return;
 

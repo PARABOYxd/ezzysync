@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../services/api';
+import * as leadService from '../../services/leadService';
 import { useToast } from '../../hooks/useToast.jsx';
 
 export default function LeadPoolDrawer({ isOpen, onClose, onLeadClaimed, onPoolCountChange, poolCount }) {
@@ -10,8 +10,7 @@ export default function LeadPoolDrawer({ isOpen, onClose, onLeadClaimed, onPoolC
   const fetchPool = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/leads/pool');
-      const list = response.data.leads || [];
+      const list = await leadService.getLeadPool();
       setLeads(list);
       if (onPoolCountChange) {
         onPoolCountChange(list.length);
@@ -31,7 +30,7 @@ export default function LeadPoolDrawer({ isOpen, onClose, onLeadClaimed, onPoolC
 
   const handleClaim = async (leadId) => {
     try {
-      await api.post(`/leads/${leadId}/claim`);
+      await leadService.claimLead(leadId);
       toast.success('Lead claimed successfully!');
       fetchPool();
       if (onLeadClaimed) {

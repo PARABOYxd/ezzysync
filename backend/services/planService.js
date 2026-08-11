@@ -1,5 +1,4 @@
 const planRepository = require('../repositories/planRepository');
-const { query } = require('../config/db');
 
 async function getTenantPlanLimits(tenantId) {
   const plan = await planRepository.getTenantPlan(tenantId);
@@ -45,11 +44,8 @@ async function checkUsageLimit(tenantId, resource) {
     if (limit === -1) return true; // unlimited
     
     // Count active bookings (excluding deleted ones)
-    const { rows } = await query(
-      'SELECT COUNT(*)::int as count FROM bookings WHERE tenant_id = $1 AND deleted = FALSE',
-      [tenantId]
-    );
-    return rows[0].count < limit;
+    const count = await planRepository.countActiveBookings(tenantId);
+    return count < limit;
   }
   
   if (resource === 'teamMembers') {
@@ -59,11 +55,8 @@ async function checkUsageLimit(tenantId, resource) {
     // Count total users for this tenant (excluding admins, or just team members)
     // Typically, the admin themselves count, or just extra team members.
     // Let's count users where role = 'TEAM_MEMBER'
-    const { rows } = await query(
-      "SELECT COUNT(*)::int as count FROM users WHERE tenant_id = $1 AND role = 'TEAM_MEMBER'",
-      [tenantId]
-    );
-    return rows[0].count < limit;
+    const count = await planRepository.countTeamMembers(tenantId);
+    return count < limit;
   }
   
   return true;

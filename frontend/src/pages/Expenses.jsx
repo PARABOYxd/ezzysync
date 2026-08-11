@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Wallet, Plus, Trash2, Edit2, CheckCircle, Clock, Link as LinkIcon, RefreshCw, X, Settings, Layers } from 'lucide-react';
 import * as expenseService from '../services/expenseService';
-import api from '../services/api';
+import * as bookingService from '../services/bookingService';
+import * as batchService from '../services/batchService';
 import { useToast } from '../hooks/useToast.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 
@@ -52,8 +53,8 @@ export default function Expenses() {
     try {
       const [expList, bookList, batchList] = await Promise.all([
         expenseService.listExpenses(),
-        api.get('/bookings').then((r) => r.data.bookings || r.data || []),
-        api.get('/batches').then((r) => r.data.batches || r.data || []),
+        bookingService.getBookingList(),
+        batchService.getBatchList(),
       ]);
       setExpenses(expList);
       setBookings(bookList);

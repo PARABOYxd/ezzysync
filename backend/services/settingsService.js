@@ -36,4 +36,14 @@ async function regeneratePublicLeadKey(tenantId) {
   return settingsRepository.regeneratePublicLeadKey(tenantId);
 }
 
-module.exports = { getSettings, updateSettings, getPublicLeadKey, regeneratePublicLeadKey };
+async function requestWhatsappSetup(tenantId, { phone, companyName }) {
+  await settingsRepository.insertWhatsappSetupRequest(tenantId, phone, companyName);
+}
+
+module.exports = {
+  getSettings,
+  updateSettings,
+  getPublicLeadKey,
+  regeneratePublicLeadKey,
+  requestWhatsappSetup,
+};

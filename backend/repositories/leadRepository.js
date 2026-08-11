@@ -164,7 +164,52 @@ async function claimLead(tenantId, leadIdText, username) {
   return rows[0]; // returns undefined if someone else already claimed it
 }
 
+/** Lead counts grouped by assignee, for the team-performance section of the
+ * billing analytics report. startDate/endDate filter on created_at and are
+ * both optional. */
+async function countLeadsByAssignee(tenantId, { startDate, endDate } = {}) {
+  let sql = `SELECT assigned_to, COUNT(*) as lead_count FROM leads WHERE tenant_id = $1 AND deleted = FALSE`;
+  const params = [tenantId];
+  let paramIndex = 2;
+  if (startDate) {
+    sql += ` AND created_at >= $${paramIndex++}`;
+    params.push(startDate);
+  }
+  if (endDate) {
+    sql += ` AND created_at <= $${paramIndex++}`;
+    params.push(endDate);
+  }
+  sql += ` GROUP BY assigned_to`;
+  const { rows } = await query(sql, params);
+  return rows;
+}
+
+async function nextLeadSeq() {
+  const { rows } = await query(`SELECT nextval('leads_seq') AS seq`);
+  return rows[0].seq;
+}
+
+async function getLeadByInstagramSenderId(tenantId, igSenderId) {
+  const { rows } = await query(
+    `SELECT id FROM leads WHERE tenant_id=$1 AND instagram_sender_id=$2 LIMIT 1`,
+    [tenantId, igSenderId]
+  );
+  return rows[0];
+}
+
+async function insertInstagramLead(tenantId, leadId, customerName, phone, notes, igSenderId) {
+  await query(
+    `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, source, stage, notes, instagram_sender_id, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,'Instagram DM','New',$5,$6,NOW(),NOW())`,
+    [tenantId, leadId, customerName, phone, notes, igSenderId]
+  );
+}
+
 module.exports = {
+  countLeadsByAssignee,
+  nextLeadSeq,
+  getLeadByInstagramSenderId,
+  insertInstagramLead,
   getLeadById,
   insertLead,
   updateLead,
