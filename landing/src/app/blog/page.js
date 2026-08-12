@@ -183,6 +183,37 @@ const blogPosts = [
         </div>
       </div>
     )
+  },
+  {
+    slug: "agentic-ai-travel-agency-operations",
+    title: "Beyond Chatbots: How Agentic AI is Automating Travel Agency Operations in 2026",
+    excerpt: "Basic chatbots are dead. Learn how autonomous AI agents are taking over travel itinerary creation, price monitoring, and multi-step customer follow-ups.",
+    date: "August 12, 2026",
+    readTime: "6 min read",
+    category: "Technology",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Agentic AI Operations Board */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span className="text-[10px] font-bold text-indigo-600">Agentic AI Engine</span>
+          <span className="text-[8px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded font-bold">AUTONOMOUS</span>
+        </div>
+        <div className="space-y-1.5 py-2">
+          <div className="bg-white border border-slate-100 p-2 rounded shadow-sm flex items-center justify-between">
+            <span className="text-[9px] text-slate-700 font-medium">Drafting Bali Itinerary</span>
+            <span className="text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1 rounded">✓ Ready</span>
+          </div>
+          <div className="bg-white border border-slate-100 p-2 rounded shadow-sm flex items-center justify-between">
+            <span className="text-[9px] text-slate-700 font-medium">Comparing flight margins</span>
+            <span className="text-[8px] text-amber-600 font-bold bg-amber-50 px-1 rounded animate-pulse">Running...</span>
+          </div>
+        </div>
+        <div className="bg-indigo-600 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">
+          <span className="text-[9px] font-bold">24/7 Virtual Operations Agent</span>
+          <span className="text-[9px] font-bold">Active ✓</span>
+        </div>
+      </div>
+    )
   }
 ];
 
