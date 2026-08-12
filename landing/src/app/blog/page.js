@@ -218,7 +218,11 @@ const blogPosts = [
 ];
 
 export default function BlogDashboard() {
-  const crmUrl = "https://www.ezzysync.com/app";
+  let rawCrmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("https://")) {
+    rawCrmUrl = `https://${rawCrmUrl}`;
+  }
+  const crmUrl = rawCrmUrl;
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">

@@ -6,6 +6,12 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import authors from "@/data/authors.json";
 
+let rawCrmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("https://")) {
+  rawCrmUrl = `https://${rawCrmUrl}`;
+}
+const globalCrmUrl = rawCrmUrl;
+
 const articlesData = {
   "whatsapp-marketing-for-travel-agents": {
     title: "Why Travel Agents Lose Untracked Bookings in Scattered WhatsApp Chats",
@@ -268,7 +274,7 @@ const articlesData = {
         <div className="my-10 p-6 rounded-2xl border border-orange-200 bg-orange-50/50 dark:bg-zinc-900 text-center">
           <h3 className="text-lg font-bold text-slate-900 dark:text-zinc-100 mb-2">Start Turning Instagram DMs into Bookings</h3>
           <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm mb-4">Centralize your lead capture, generate custom quotes, and coordinate follow-up alerts in one single screen.</p>
-          <a href="https://www.ezzysync.com/app" className="btn-primary inline-block text-xs font-bold px-6 py-2.5">Try EzzySync for Free</a>
+          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5">Try EzzySync for Free</a>
         </div>
       </>
     )
@@ -497,7 +503,7 @@ const articlesData = {
         <div className="my-10 p-6 rounded-2xl border border-indigo-200 bg-indigo-50/50 text-center">
           <h3 className="text-lg font-bold text-slate-900 mb-2">Automate Your Travel Agency Today</h3>
           <p className="text-slate-600 text-xs sm:text-sm mb-4">Leverage our B2B travel CRM to auto-generate day-wise quotes, track secure invoicing, and coordinate client leads.</p>
-          <a href="https://www.ezzysync.com/app" className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Start Free Trial</a>
+          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Start Free Trial</a>
         </div>
       </>
     )
@@ -507,7 +513,7 @@ const articlesData = {
 export default function BlogPostPage({ params }) {
   const { slug } = React.use(params);
   const article = articlesData[slug];
-  const crmUrl = "https://www.ezzysync.com/app";
+  const crmUrl = globalCrmUrl;
   const author = authors["rishab-jain"];
 
   React.useEffect(() => {
