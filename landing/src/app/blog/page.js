@@ -229,38 +229,19 @@ export default function BlogDashboard() {
           {/* Subtle Grid Backdrop */}
           <div className="absolute inset-0 bg-grid-pattern opacity-4 pointer-events-none"></div>
           {/* Blur Glows */}
-          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-brand-500/10 filter blur-[90px] pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-brand-500/10 filter blur-[90px] pointer-events-none"></div>
           
-          <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Column (Banner text) */}
-            <div className="lg:col-span-7 space-y-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
-                Travel Agency Insights
-              </span>
-              <h1 className="font-bold text-[clamp(2.25rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.03em] text-slate-950">
-                Mastering CRM Security & Booking Automation
-              </h1>
-              <p className="text-slate-500 text-sm sm:text-base leading-relaxed max-w-[55ch]">
-                Explore high-impact guides, operations blueprints, and tutorials built to scale travel networks, auto-schedule itineraries, and secure financial data logs.
-              </p>
-            </div>
-            
-            {/* Right Column (Banner Real Photo Mockup) */}
-            <div className="lg:col-span-5 flex justify-center lg:justify-end">
-              <div className="w-full max-w-[420px] bg-white border border-slate-200 rounded-2xl p-2 shadow-xl relative">
-                {/* Browser Mockup Header */}
-                <div className="flex items-center gap-1.5 px-2 pb-2 border-b border-slate-100">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
-                </div>
-                {/* Displaying our premium workspace photo */}
-                <div className="aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-100 relative mt-2">
-                  <img src="/blog_banner.jpg" alt="Travel booking dashboard on laptop screen" className="w-full h-full object-cover" />
-                </div>
-              </div>
-            </div>
+          <div className="max-w-[700px] mx-auto px-5 sm:px-6 relative z-10 text-center space-y-6 flex flex-col items-center justify-center">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
+              Travel Agency Insights
+            </span>
+            <h1 className="font-bold text-[clamp(2.25rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.03em] text-slate-950">
+              Mastering CRM Security &amp; Booking Automation
+            </h1>
+            <p className="text-slate-500 text-sm sm:text-base leading-relaxed max-w-[55ch] mx-auto">
+              Explore high-impact guides, operations blueprints, and tutorials built to scale travel networks, auto-schedule itineraries, and secure financial data logs.
+            </p>
           </div>
         </section>
 

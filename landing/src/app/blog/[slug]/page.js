@@ -378,7 +378,7 @@ const articlesData = {
     date: "August 12, 2026",
     readTime: "6 min read",
     category: "Technology",
-    image: "/blog_banner.jpg",
+    image: "/blog_automation.jpg",
     content: (
       <>
         {/* Schema markup */}
