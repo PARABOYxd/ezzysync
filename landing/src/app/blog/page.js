@@ -8,6 +8,44 @@ import Footer from "@/components/layout/Footer";
 // Real-world, trending travel agency tech articles with high SEO query match
 const blogPosts = [
   {
+    slug: "automate-travel-agency-follow-ups",
+    title: "How to Automate Travel Agency Follow-Ups and Boost Conversions by 40%",
+    excerpt: "Struggling to follow up with clients on time? Discover how automating your WhatsApp and email follow-up sequence recovers lost revenue and closes deals faster.",
+    date: "August 18, 2026",
+    readTime: "6 min read",
+    category: "Automation",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Automated Follow-Up Queue Mockup */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span className="text-[10px] font-bold text-brand-600">Smart Follow-Up Queue</span>
+          <span className="text-[8px] bg-brand-50 text-brand-600 border border-brand-100 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+        </div>
+        <div className="space-y-1.5 py-2 w-full">
+          {/* Queue Items */}
+          <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+              <span className="text-[9px] font-medium text-slate-700">Aarav Mehta (Bali)</span>
+            </div>
+            <span className="text-[8px] text-brand-600 font-bold bg-brand-50 px-1 py-0.5 rounded">Day 1 Auto-Sent</span>
+          </div>
+          <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+              <span className="text-[9px] font-medium text-slate-700">Sanya Sen (Dubai)</span>
+            </div>
+            <span className="text-[8px] text-orange-600 font-bold bg-orange-50 px-1 py-0.5 rounded">Sending in 5m</span>
+          </div>
+        </div>
+        <div className="bg-emerald-500 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">
+          <span className="text-[9px] font-bold">Conversion Increase</span>
+          <span className="text-[9px] font-bold">+42.5% YoY</span>
+        </div>
+      </div>
+    )
+  },
+  {
     slug: "festive-season-bookings-travel-agents",
     title: "How Travel Agents Can Maximize Bookings During the Festive Season",
     excerpt: "The festive season brings a massive spike in travel inquiries. Learn how to stop juggling WhatsApp chats and start automating your pipeline to maximize revenue.",
