@@ -27,14 +27,36 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText) {
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
 
-  if (!phoneNumberId || !accessToken) {
-    const err = new Error('WhatsApp API is not configured. Please set your credentials in WhatsApp Settings.');
-    err.status = 500;
-    throw err;
+  const text = customText || buildMessageText(booking, settings);
+
+  // If using local dummy placeholder credentials, mock the send successfully and print it to the terminal.
+  if (
+    !phoneNumberId || 
+    !accessToken || 
+    phoneNumberId === 'your_phone_number_id' || 
+    accessToken === 'your_permanent_or_temp_access_token'
+  ) {
+    // eslint-disable-next-line no-console
+    console.log(`\n--- [LOCAL MOCK WHATSAPP MESSAGE SENT] ---`);
+    // eslint-disable-next-line no-console
+    console.log(`To: ${booking.phone}`);
+    // eslint-disable-next-line no-console
+    console.log(`Body:\n${text}`);
+    if (mediaLink) {
+      // eslint-disable-next-line no-console
+      console.log(`Attachment: ${mediaLink}`);
+    }
+    // eslint-disable-next-line no-console
+    console.log(`------------------------------------------\n`);
+
+    return {
+      messaging_product: 'whatsapp',
+      contacts: [{ input: booking.phone, wa_id: booking.phone.replace(/[^\d]/g, '') }],
+      messages: [{ id: `wamid.mock_${Math.random().toString(36).substr(2, 9)}` }]
+    };
   }
 
   const url = `https://graph.facebook.com/${env.whatsapp.apiVersion}/${phoneNumberId}/messages`;
-  const text = customText || buildMessageText(booking, settings);
 
   const payload = mediaLink
     ? {
