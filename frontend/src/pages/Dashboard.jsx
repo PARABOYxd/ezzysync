@@ -200,7 +200,7 @@ function PopularToursList({ tripWise }) {
         <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Popular Trips</h4>
         <p className="text-[10px] text-slate-400">Top performant destinations booked</p>
       </div>
-      <div className="flex-1 flex flex-col justify-center mt-2 space-y-3">
+      <div className="flex-1 flex flex-col justify-start mt-2 space-y-3">
         {tours.length > 0 ? (
           tours.map((t, idx) => (
             <div key={idx} className="flex items-center gap-3 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
@@ -270,25 +270,6 @@ export default function Dashboard() {
     load(null);
   };
 
-  const financeCards = data
-    ? [
-        { label: 'Gross Sales (Revenue)', value: formatCurrency(data.stats.totalRevenue), icon: Landmark, tint: 'brand' },
-        { label: 'Collected Cash', value: formatCurrency(data.stats.totalPaid), icon: Coins, tint: 'emerald' },
-        { label: 'B2B Supplier Cost', value: formatCurrency(data.stats.totalCost), icon: IndianRupee, tint: 'amber' },
-        { label: 'Net Projected Profit', value: formatCurrency(data.stats.totalProfit), icon: TrendingUp, tint: 'blue' },
-      ]
-    : [];
-
-  const cards = data
-    ? [
-        { label: 'Total', value: data.stats.totalBookings, icon: ClipboardList, tint: 'slate' },
-        { label: 'Upcoming', value: data.stats.upcomingTrips, icon: PlaneTakeoff, tint: 'blue' },
-        { label: 'Completed', value: data.stats.completedTrips, icon: CheckCircle2, tint: 'emerald' },
-        { label: 'Cancelled', value: data.stats.cancelledTrips, icon: XCircle, tint: 'red' },
-        { label: "Today's", value: data.stats.todaysBookings, icon: Sun, tint: 'slate' },
-      ]
-    : [];
-
   return (
     <div className="space-y-6">
 
@@ -343,35 +324,7 @@ export default function Dashboard() {
             </ol>
           </div>
 
-          {/* Filter row: Team Member dropdown + Quick Add */}
-          <div className="flex items-center gap-3">
-            {teamMembers.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <select
-                    value={selectedMember || ''}
-                    onChange={(e) => e.target.value ? handleMemberChange(e.target.value) : clearFilter()}
-                    className="pl-8 pr-8 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 appearance-none cursor-pointer focus:outline-none focus:border-brand-500 transition-colors min-w-[160px]"
-                  >
-                    <option value="">All Team Members</option>
-                    {teamMembers.map((m) => (
-                      <option key={m.userId || m.name} value={m.name}>{m.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                </div>
-                {isFiltered && (
-                  <button
-                    onClick={clearFilter}
-                    className="flex items-center gap-1 px-2.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs font-medium hover:bg-rose-100 transition-colors"
-                  >
-                    <X size={12} /> Clear
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+
 
         </div>
       )}
@@ -389,45 +342,94 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Finance / P&L Cards */}
-      <div className="space-y-2">
-        <div>
-          <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            {!isAdmin ? 'My Revenue & Performance' : isFiltered ? `${selectedMember}'s Finance` : 'Finance Ledger (P&L Tracking)'}
-          </h4>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            {!isAdmin
-              ? 'Your personal revenue, collections, supplier costs, and net profit.'
-              : isFiltered
-              ? `Revenue, collections and profit for ${selectedMember}.`
-              : 'Track total booking value, collections, supplier expenses, and net profit margins.'}
-          </p>
+      {/* ── ENTERPRISE-GRADE KPI METRIC GRID ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Card 1: Total Booked */}
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+              Total Booked
+            </span>
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400">
+              <ClipboardList size={16} />
+            </div>
+          </div>
+          <div className="mt-2 space-y-1">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {loading ? '...' : data?.stats.totalBookings}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Active ledger</span>
+              <span>&middot;</span>
+              <span>All-time bookings</span>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-            : financeCards.map((c) => <StatCard key={c.label} {...c} />)}
-        </div>
-      </div>
 
-      {/* Booking Status Cards */}
-      <div className="space-y-2">
-        <div>
-          <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            {!isAdmin ? 'My Bookings Status' : isFiltered ? `${selectedMember}'s Trips` : 'Operations & Trips Status'}
-          </h4>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            {!isAdmin
-              ? 'Summary of all bookings assigned to you.'
-              : isFiltered
-              ? `All trip statuses for ${selectedMember}.`
-              : 'Live tracker showing total bookings, upcoming trips, completed itineraries, and cancellations.'}
-          </p>
+        {/* Card 2: 30 Days Revenue */}
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+              30 Days Revenue
+            </span>
+            <div className="p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400">
+              <Sparkles size={16} />
+            </div>
+          </div>
+          <div className="mt-2 space-y-1">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {loading ? '...' : formatCurrency(data?.stats.revenue30Days || 0)}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+100%</span>
+              <span>&middot;</span>
+              <span>Last 30 days sales</span>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {loading
-            ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
-            : cards.map((c) => <StatCard key={c.label} {...c} />)}
+
+        {/* Card 3: Total Revenue */}
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+              Total Revenue
+            </span>
+            <div className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400">
+              <Landmark size={16} />
+            </div>
+          </div>
+          <div className="mt-2 space-y-1">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {loading ? '...' : formatCurrency(data?.stats.totalRevenue || 0)}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+              <span className="text-slate-600 dark:text-zinc-400 font-semibold">Gross sales</span>
+              <span>&middot;</span>
+              <span>Overall booked volume</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Upcoming Departures */}
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+              Upcoming Departures
+            </span>
+            <div className="p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400">
+              <PlaneTakeoff size={16} />
+            </div>
+          </div>
+          <div className="mt-2 space-y-1">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {loading ? '...' : data?.stats.upcomingTrips}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+              <span className="text-amber-600 dark:text-amber-400 font-semibold">Active schedule</span>
+              <span>&middot;</span>
+              <span>Confirmed departures</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -447,7 +449,7 @@ export default function Dashboard() {
           <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
             {isFiltered ? `${selectedMember}'s Upcoming` : !isAdmin ? 'My Upcoming Departures' : 'Upcoming Departures'}
           </h3>
-          <div className="overflow-y-auto flex-1 pr-1">
+          <div className="flex-1 flex flex-col justify-between pr-1">
             {loading
               ? <div className="skeleton h-40 rounded-xl mt-3" />
               : <UpcomingDepartures departures={data?.upcomingDepartures || []} />}

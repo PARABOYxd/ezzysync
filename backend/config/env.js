@@ -49,7 +49,9 @@ function loadEnv() {
       appId: process.env.FACEBOOK_APP_ID || '',
       appSecret: process.env.FACEBOOK_APP_SECRET || '',
     },
-    backendUrl: process.env.BACKEND_URL || 'https://ezzysync-production.up.railway.app',
+    backendUrl: (process.env.BACKEND_URL && process.env.BACKEND_URL.trim() !== '')
+      ? process.env.BACKEND_URL
+      : (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'https://ezzysync-production.up.railway.app'),
 
     rateLimit: {
       windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),

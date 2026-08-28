@@ -13,6 +13,106 @@ if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("http
 const globalCrmUrl = rawCrmUrl;
 
 const articlesData = {
+  "automate-travel-agency-follow-ups": {
+    title: "How to Automate Travel Agency Follow-Ups and Boost Conversions by 40%",
+    metaTitle: "Automate Travel Agency Follow-Ups: Boost Sales by 40%",
+    metaDescription: "Learn how to build a high-converting automated follow-up system for travel agencies. Convert more inquiries using WhatsApp & CRM templates.",
+    date: "August 18, 2026",
+    readTime: "6 min read",
+    category: "Automation",
+    image: "/blog_automation.jpg",
+    content: (
+      <>
+        {/* Schema markup */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "Why is follow-up automation crucial for travel agents?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Travel agents deal with multiple platforms (WhatsApp, email, DMs). Follow-up automation ensures no lead is forgotten, sending timely reminders that keep the client engaged and increase the chance of booking by 40%."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What is the best follow-up sequence for travel bookings?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "A standard sequence includes a Day 1 check-in (feedback on itinerary), a Day 3 urgency builder (flight rate locks or slot availability), and a Day 5 final reminder. This covers the typical decision-making timeline for leisure trips."
+                  }
+                }
+              ]
+            })
+          }}
+        />
+
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          For travel agencies, every inquiry represents a potential high-margin booking. But here is the hard truth: <strong>more than 60% of travel inquiries never close simply because the agency forgot to follow up.</strong>
+        </p>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          Between drafting itineraries, checking hotel availability, and handling active travelers, agents get overwhelmed. Following up manually via spreadsheets or scattered WhatsApp chats is exhausting and prone to error.
+        </p>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">The "Leaking Funnel" in Travel Sales</h2>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          When a lead goes cold, it is rarely because they did not like your price. It is usually because they got busy, and another agency remained top-of-mind. Travel decisions, especially for holidays, take time. 
+        </p>
+        <ul className="list-disc pl-6 space-y-2 text-slate-600 mb-6 text-[15px]">
+          <li><strong>Day 0 (Inquiry):</strong> Excitement is high.</li>
+          <li><strong>Day 1-2 (Decision Phase):</strong> Customer is comparing options or discussing with family.</li>
+          <li><strong>Day 3+ (Distraction Phase):</strong> Work, chores, and daily life kick in. The trip gets pushed to the back burner.</li>
+        </ul>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">The 3-Step Automated Follow-Up Blueprint</h2>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          By utilizing a travel CRM like <strong>EzzySync</strong>, you can automate this entire cycle. Here is the exact follow-up sequence that boosts booking conversions by up to 40%:
+        </p>
+
+        <div className="space-y-6 my-8">
+          <div className="bg-slate-50 dark:bg-zinc-900 p-5 rounded-xl border border-slate-100 dark:border-zinc-800">
+            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-2">Step 1: Day 1 - The Itinerary Feedback</h3>
+            <p className="text-slate-600 text-sm mb-3">Sent 24 hours after sharing the itinerary. It aims to collect feedback and adjust preferences.</p>
+            <div className="bg-white dark:bg-zinc-950 p-3 rounded border border-slate-200/60 font-mono text-xs text-slate-700 dark:text-zinc-300">
+              "Hi [Name]! Hope you are doing well. 😊 Did you get a chance to look over the Bali itinerary I sent yesterday? Let me know if we need to swap any hotel categories or adjust the activities!"
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-zinc-900 p-5 rounded-xl border border-slate-100 dark:border-zinc-800">
+            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-2">Step 2: Day 3 - The Urgency Builder</h3>
+            <p className="text-slate-600 text-sm mb-3">Sent 48 hours after Step 1. It builds soft urgency by highlighting flight/hotel rate expirations.</p>
+            <div className="bg-white dark:bg-zinc-950 p-3 rounded border border-slate-200/60 font-mono text-xs text-slate-700 dark:text-zinc-300">
+              "Hey [Name]! Just a quick update: the promotional flight rates for [Destination] are changing tonight. Would you like me to hold the slots for you today so we don't lose this price?"
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-zinc-900 p-5 rounded-xl border border-slate-100 dark:border-zinc-800">
+            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-2">Step 3: Day 5 - The Final Courtesy</h3>
+            <p className="text-slate-600 text-sm mb-3">Sent 48 hours after Step 2. A polite closing message that leaves the door open for future trips.</p>
+            <div className="bg-white dark:bg-zinc-950 p-3 rounded border border-slate-200/60 font-mono text-xs text-slate-700 dark:text-zinc-300">
+              "Hi [Name]! Since I didn't hear back, I will go ahead and release the temporary hotel block. Feel free to ping me whenever you decide to plan this trip, and we can start fresh! Have a great week."
+            </div>
+          </div>
+        </div>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">Why Automation beats Manual Reminders</h2>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          Trying to track these timings for 50 leads at once is impossible. A travel CRM handles the queue for you. EzzySync logs every client’s status, schedules the follow-ups automatically, and allows you to send the WhatsApp template in a single click, saving hours of manual drafting.
+        </p>
+
+        <div className="my-10 p-6 rounded-2xl border border-orange-200 bg-orange-50/50 dark:bg-zinc-900 text-center">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-zinc-100 mb-2">Start Automating Your Booking Pipeline</h3>
+          <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm mb-4">Never let another lead go cold. Centralize your follow-ups and scale your travel business.</p>
+          <a href="https://www.ezzysync.com/app" className="btn-primary inline-block text-xs font-bold px-6 py-2.5">Try EzzySync for Free</a>
+        </div>
+      </>
+    )
+  },
   "whatsapp-marketing-for-travel-agents": {
     title: "Why Travel Agents Lose Untracked Bookings in Scattered WhatsApp Chats",
     date: "July 28, 2026",

@@ -138,16 +138,21 @@ async function dashboardStats(tenantId, teamMemberName = null) {
   if (teamMemberName) {
     bookings = bookings.filter((b) => (b.teamMember || '') === teamMemberName);
   }
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
 
   let totalRevenue = 0;
   let totalPaid = 0;
   let totalCost = 0;
   let totalProfit = 0;
+  let revenue30Days = 0;
 
   bookings.forEach((b) => {
     if (b.travelStatus !== 'Cancelled') {
-      totalRevenue += Number(b.totalAmount || 0);
+      const rev = Number(b.totalAmount || 0);
+      totalRevenue += rev;
       totalPaid += Number(b.paid || 0);
       const cost =
         Number(b.vendorHotelCost || 0) +
@@ -156,6 +161,11 @@ async function dashboardStats(tenantId, teamMemberName = null) {
         Number(b.vendorOtherCost || 0);
       totalCost += cost;
       totalProfit += Number(b.netProfit || 0);
+
+      const createdDate = b.bookingTimestamp ? new Date(b.bookingTimestamp).toISOString().slice(0, 10) : '';
+      if (createdDate >= thirtyDaysAgoStr) {
+        revenue30Days += rev;
+      }
     }
   });
 
@@ -166,6 +176,7 @@ async function dashboardStats(tenantId, teamMemberName = null) {
     cancelledTrips: bookings.filter((b) => b.travelStatus === 'Cancelled').length,
     todaysBookings: bookings.filter((b) => (b.bookingTimestamp || '').slice(0, 10) === today).length,
     totalRevenue,
+    revenue30Days,
     totalPaid,
     totalCost,
     totalProfit,

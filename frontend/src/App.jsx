@@ -12,6 +12,8 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import GoogleCallback from './pages/GoogleCallback.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Bookings from './pages/Bookings.jsx';
+import UpcomingTrips from './pages/UpcomingTrips.jsx';
+import WhatsAppChat from './pages/WhatsAppChat.jsx';
 import Leads from './pages/Leads.jsx';
 import FollowUps from './pages/FollowUps.jsx';
 import Invoices from './pages/Invoices.jsx';
@@ -56,6 +58,8 @@ export default function App() {
         <Route path="/leads" element={<RequirePermission module="leads"><Leads /></RequirePermission>} />
         <Route path="/follow-ups" element={<RequirePermission module="followUps"><FollowUps /></RequirePermission>} />
         <Route path="/bookings" element={<RequirePermission module="bookings"><Bookings /></RequirePermission>} />
+        <Route path="/upcoming-trips" element={<RequirePermission module="bookings"><UpcomingTrips /></RequirePermission>} />
+        <Route path="/whatsapp-chat" element={<RequirePermission module="bookings"><WhatsAppChat /></RequirePermission>} />
         <Route path="/tour-batches" element={<RequirePermission module="tourBatches"><TourBatches /></RequirePermission>} />
         <Route path="/invoices" element={<RequirePermission module="invoices"><Invoices /></RequirePermission>} />
         <Route path="/quotations" element={<RequirePermission module="quotations"><Quotations /></RequirePermission>} />

@@ -26,7 +26,6 @@ const customerRoutes = require('./routes/customerRoutes');
 const followUpRoutes = require('./routes/followUpRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
-const testRoutes = require("./routes/testRoutes");
 const expenseRoutes = require('./routes/expenseRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const hotelRoutes = require('./routes/hotelRoutes');
@@ -42,7 +41,12 @@ const app = express();
 // below key on — without this every user would share one IP-based bucket.
 app.set('trust proxy', 1);
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+  })
+);
 const allowedOrigins = [
   env.frontendUrl,
   'https://ezzysync.com',
@@ -95,7 +99,6 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/instagram', instagramRoutes);
-app.use("/api/test", testRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -126,3 +129,4 @@ process.on('uncaughtException', (err) => {
 });
 
 start();
+// Reload trigger comment to force environment updates from .env v7

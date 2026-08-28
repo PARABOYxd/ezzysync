@@ -134,62 +134,64 @@ async function listBookingsPaged(params) {
   const values = [tenantId];
   let paramIndex = 2;
 
-  let whereClauses = ['tenant_id = $1'];
+  let whereClauses = ['b.tenant_id = $1'];
 
   if (!includeDeleted) {
-    whereClauses.push('deleted = FALSE');
+    whereClauses.push('b.deleted = FALSE');
   }
 
   if (status) {
-    whereClauses.push(`travel_status = $${paramIndex++}`);
+    whereClauses.push(`b.travel_status = $${paramIndex++}`);
     values.push(status);
   }
 
   if (trip) {
-    whereClauses.push(`trip ILIKE $${paramIndex++}`);
+    whereClauses.push(`b.trip ILIKE $${paramIndex++}`);
     values.push(`%${trip}%`);
   }
 
   if (teamMember) {
-    whereClauses.push(`team_member ILIKE $${paramIndex++}`);
+    whereClauses.push(`b.team_member ILIKE $${paramIndex++}`);
     values.push(`%${teamMember}%`);
   }
 
   if (departureFrom) {
-    whereClauses.push(`departure >= $${paramIndex++}`);
+    whereClauses.push(`b.departure >= $${paramIndex++}`);
     values.push(departureFrom);
   }
 
   if (departureTo) {
-    whereClauses.push(`departure <= $${paramIndex++}`);
+    whereClauses.push(`b.departure <= $${paramIndex++}`);
     values.push(departureTo);
   }
 
   if (createdFrom) {
-    whereClauses.push(`booking_timestamp::date >= $${paramIndex++}::date`);
+    whereClauses.push(`b.booking_timestamp::date >= $${paramIndex++}::date`);
     values.push(createdFrom);
   }
 
   if (createdTo) {
-    whereClauses.push(`booking_timestamp::date <= $${paramIndex++}::date`);
+    whereClauses.push(`b.booking_timestamp::date <= $${paramIndex++}::date`);
     values.push(createdTo);
   }
 
   if (search) {
-    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR booking_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex} OR trip ILIKE $${paramIndex} OR team_member ILIKE $${paramIndex} OR travel_status ILIKE $${paramIndex})`);
+    whereClauses.push(`(b.customer_name ILIKE $${paramIndex} OR b.booking_id ILIKE $${paramIndex} OR b.email ILIKE $${paramIndex} OR b.phone ILIKE $${paramIndex} OR b.trip ILIKE $${paramIndex} OR b.team_member ILIKE $${paramIndex} OR b.travel_status ILIKE $${paramIndex})`);
     values.push(`%${search}%`);
     paramIndex++;
   }
 
   const whereSql = whereClauses.join(' AND ');
 
-  let orderSql = 'ORDER BY booking_timestamp DESC';
+  let orderSql = 'ORDER BY b.booking_timestamp DESC';
   if (sort === 'oldest') {
-    orderSql = 'ORDER BY booking_timestamp ASC';
+    orderSql = 'ORDER BY b.booking_timestamp ASC';
+  } else if (sort === 'departure_asc') {
+    orderSql = 'ORDER BY b.departure ASC';
   }
 
   // Exact total matching count query
-  const countRes = await query(`SELECT COUNT(*)::int as count FROM bookings WHERE ${whereSql}`, values);
+  const countRes = await query(`SELECT COUNT(*)::int as count FROM bookings b WHERE ${whereSql}`, values);
   const totalCount = countRes.rows[0]?.count || 0;
 
   // Pagination calculation
@@ -201,8 +203,9 @@ async function listBookingsPaged(params) {
   const offsetIndex = paramIndex++;
 
   const selectSql = `
-    SELECT * 
-    FROM bookings 
+    SELECT b.*, tb.name AS batch_name, tb.batch_id AS batch_custom_id
+    FROM bookings b
+    LEFT JOIN tour_batches tb ON b.batch_id = tb.id
     WHERE ${whereSql} 
     ${orderSql} 
     LIMIT $${limitIndex} OFFSET $${offsetIndex}

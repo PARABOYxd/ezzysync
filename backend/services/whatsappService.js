@@ -23,7 +23,7 @@ function buildMessageText(booking, settings) {
  * `mediaLink` below expects a publicly reachable URL to the invoice PDF
  * (e.g. one you've stored via a cloud bucket or a signed URL endpoint).
  */
-async function sendWhatsAppMessage(booking, settings, mediaLink, customText) {
+async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null) {
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
 
@@ -34,29 +34,105 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText) {
   }
 
   const url = `https://graph.facebook.com/${env.whatsapp.apiVersion}/${phoneNumberId}/messages`;
-  const text = customText || buildMessageText(booking, settings);
+  
+  let text = customText || '';
+  if (!customText && booking && booking.bookingId !== 'CHAT') {
+    text = buildMessageText(booking, settings);
+  }
 
-  const payload = mediaLink
-    ? {
+  let payload;
+  if (mediaLink) {
+    if (mediaType === 'image') {
+      payload = {
         messaging_product: 'whatsapp',
-        to: booking.phone.replace(/[^\d+]/g, ''),
-        type: 'document',
-        document: { link: mediaLink, filename: `Invoice-${booking.bookingId}.pdf`, caption: text },
-      }
-    : {
-        messaging_product: 'whatsapp',
-        to: booking.phone.replace(/[^\d+]/g, ''),
-        type: 'text',
-        text: { body: text },
+        to: booking.phone.replace(/\D/g, ''),
+        type: 'image',
+        image: { link: mediaLink },
       };
+      if (text) {
+        payload.image.caption = text;
+      }
+    } else {
+      const nameOfFile = filename || `Document-${Date.now()}.pdf`;
+      payload = {
+        messaging_product: 'whatsapp',
+        to: booking.phone.replace(/\D/g, ''),
+        type: 'document',
+        document: { link: mediaLink, filename: nameOfFile },
+      };
+      if (text) {
+        payload.document.caption = text;
+      }
+    }
+  } else {
+    payload = {
+      messaging_product: 'whatsapp',
+      to: booking.phone.replace(/\D/g, ''),
+      type: 'text',
+      text: { body: text },
+    };
+  }
 
-  const res = await axios.post(url, payload, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  return res.data;
+  try {
+    const res = await axios.post(url, payload, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return res.data;
+  } catch (err) {
+    if (err.response) {
+      const errorMsg = err.response.data?.error?.message || err.message;
+      // Map 401 to 400 to prevent the frontend interceptor from thinking CRM session expired
+      const status = err.response.status === 401 ? 400 : (err.response.status || 502);
+      const metaErr = new Error(`Meta WhatsApp API: ${errorMsg}`);
+      metaErr.status = status;
+      throw metaErr;
+    }
+    throw err;
+  }
 }
 
-module.exports = { sendWhatsAppMessage, buildMessageText };
+/**
+ * Downloads media from Meta's Graph API, saves it using r2Service (R2 or local fallback),
+ * and returns the public download URL.
+ */
+async function downloadMetaMedia(mediaId, settings) {
+  const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
+  const logger = require('../utils/logger');
+  if (!accessToken) {
+    logger.warn('[whatsappService] Cannot download media: Access Token not configured.');
+    return null;
+  }
+
+  try {
+    // 1. Get direct media URL from Meta Graph API
+    const urlRes = await axios.get(`https://graph.facebook.com/${env.whatsapp.apiVersion}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const downloadUrl = urlRes.data.url;
+    const mimeType = urlRes.data.mime_type;
+
+    // 2. Download the file binary payload
+    const fileRes = await axios.get(downloadUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      responseType: 'arraybuffer',
+    });
+    const buffer = Buffer.from(fileRes.data);
+
+    // 3. Save file using r2Service
+    const r2Service = require('./r2Service');
+    const isImage = mimeType.startsWith('image/');
+    const ext = isImage ? '.webp' : '.pdf'; // Default to webp for images (due to optimization) and pdf for docs
+    const filename = `inbound-${mediaId}${ext}`;
+
+    const publicUrl = await r2Service.uploadFile(buffer, filename, mimeType);
+    return publicUrl;
+  } catch (err) {
+    logger.error({ err, mediaId }, '[whatsappService] Failed to download Meta media file');
+    return null;
+  }
+}
+
+module.exports = { sendWhatsAppMessage, buildMessageText, downloadMetaMedia };
