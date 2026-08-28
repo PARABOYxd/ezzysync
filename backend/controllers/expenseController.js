@@ -14,7 +14,7 @@ async function createExpense(req, res, next) {
 
 async function listExpenses(req, res, next) {
   try {
-    const list = await expenseRepository.listExpenses(req.user.tenantId);
+    const list = await expenseRepository.listExpenses(req.user.tenantId, req.query);
     res.json(list);
   } catch (err) {
     next(err);
