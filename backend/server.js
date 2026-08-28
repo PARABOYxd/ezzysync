@@ -129,4 +129,4 @@ process.on('uncaughtException', (err) => {
 });
 
 start();
-// Reload trigger comment to force environment updates from .env v6
+// Reload trigger comment to force environment updates from .env v7

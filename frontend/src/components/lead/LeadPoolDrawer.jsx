@@ -80,12 +80,17 @@ export default function LeadPoolDrawer({ isOpen, onClose, onLeadClaimed, onPoolC
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-slate-700 dark:text-zinc-200 text-xs truncate">
-                    {lead.interest || 'New Inquiry'}
+                    {lead.customerName || 'New Inquiry'}
                   </div>
+                  {lead.interest && (
+                    <div className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium truncate mt-0.5">
+                      {lead.interest}
+                    </div>
+                  )}
                   <div className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium mt-0.5">
                     {lead.phone}
                   </div>
-                  <div className="text-[9px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                  <div className="text-[9px] text-slate-400 dark:text-zinc-500 mt-0.5 font-mono">
                     {lead.createdAt ? new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
                 </div>
