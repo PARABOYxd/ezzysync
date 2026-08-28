@@ -223,6 +223,34 @@ async function receiveWebhook(req, res) {
 
           logger.info({ dbMessageId: saved.message.id, chatId: saved.chat.id }, '[WhatsApp Webhook] Inbound message saved successfully');
 
+          // Auto-capture Lead if it doesn't exist in CRM
+          try {
+            const cleanPhone = from.replace(/\D/g, '');
+            const existingLead = await query(
+              `SELECT lead_id FROM leads WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) AND deleted = FALSE LIMIT 1`,
+              [tenantId, cleanPhone, `%${cleanPhone}`]
+            );
+
+            if (existingLead.rows.length === 0) {
+              const leadService = require('../services/leadService');
+              await leadService.createLead(
+                tenantId,
+                {
+                  customerName: contactName || 'WhatsApp Contact',
+                  phone: cleanPhone,
+                  interest: text || 'Inquiry via WhatsApp',
+                  source: 'WhatsApp',
+                  stage: 'New',
+                  notes: `Auto-captured from first WhatsApp message: "${text}"`,
+                },
+                'WhatsApp Bot'
+              );
+              logger.info({ tenantId, phone: cleanPhone }, '[WhatsApp Webhook] Auto-created new Lead for inbound message');
+            }
+          } catch (leadErr) {
+            logger.error({ err: leadErr }, '[WhatsApp Webhook] Failed to auto-create Lead from inbound message');
+          }
+
           // Broadcast to tenant's WebSocket clients
           broadcastToTenant(tenantId, {
             type: 'WHATSAPP_MESSAGE_RECEIVED',
