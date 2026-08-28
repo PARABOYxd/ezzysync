@@ -5,6 +5,7 @@ import * as bookingService from '../services/bookingService';
 import * as batchService from '../services/batchService';
 import { useToast } from '../hooks/useToast.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
+import Drawer from '../components/common/Drawer.jsx';
 
 const CATEGORIES = ['Hotel', 'Flight', 'Transport', 'Other'];
 
@@ -382,194 +383,189 @@ export default function Expenses() {
         </Table>
       </div>
 
-      {/* 🚀 Cost Templates Config Modal */}
-      {templatesModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl w-full max-w-[680px] relative max-h-[85vh] overflow-y-auto animate-[fadeIn_0.15s_ease-out] space-y-6">
-            <button
-              onClick={() => { setTemplatesModalOpen(false); fetchData(); }}
-              className="absolute right-4 top-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
-            >
-              <X size={18} />
-            </button>
+      {/* 🚀 Cost Templates Config Drawer */}
+      <Drawer
+        open={templatesModalOpen}
+        onClose={() => { setTemplatesModalOpen(false); fetchData(); }}
+        title="Default Trip Costing Templates"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div>
+            <p className="text-[12px] text-slate-500 mt-0.5">
+              Define the default per-pax costing structure for each destination trip. Expenses will be auto-generated when bookings are marked as 'Booked'.
+            </p>
+          </div>
 
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg flex items-center gap-1.5">
-                <Layers size={18} className="text-brand-500" /> Default Trip Costing Templates
-              </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Define the default per-pax costing structure for each destination trip. Expenses will be auto-generated when bookings are marked as 'Booked'.
-              </p>
+          {/* Template Entry / Edit Form */}
+          <form onSubmit={handleSaveTemplate} className="bg-slate-50 dark:bg-zinc-900/60 p-4 border border-slate-200/60 dark:border-zinc-800 rounded-xl space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              {editingTemplateId ? 'Edit Selected Template' : 'Add New Trip Template'}
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-500">Trip / Destination Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Chopta Tungnath"
+                  value={templateForm.trip_name}
+                  onChange={(e) => setTemplateForm({ ...templateForm, trip_name: e.target.value })}
+                  className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-500">Template / Version Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Standard - Raju Travels"
+                  value={templateForm.template_name}
+                  onChange={(e) => setTemplateForm({ ...templateForm, template_name: e.target.value })}
+                  className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                />
+              </div>
             </div>
 
-            {/* Template Entry / Edit Form */}
-            <form onSubmit={handleSaveTemplate} className="bg-slate-50 dark:bg-zinc-900/60 p-4 border border-slate-200/60 dark:border-zinc-800 rounded-xl space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                {editingTemplateId ? 'Edit Selected Template' : 'Add New Trip Template'}
-              </h4>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Trip / Destination Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Chopta Tungnath"
-                    value={templateForm.trip_name}
-                    onChange={(e) => setTemplateForm({ ...templateForm, trip_name: e.target.value })}
-                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Template / Version Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Standard - Raju Travels"
-                    value={templateForm.template_name}
-                    onChange={(e) => setTemplateForm({ ...templateForm, template_name: e.target.value })}
-                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                  />
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-500">Hotel / Pax (₹)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={templateForm.hotel_cost_per_pax}
+                  onChange={(e) => setTemplateForm({ ...templateForm, hotel_cost_per_pax: e.target.value })}
+                  className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                />
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Hotel / Pax (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={templateForm.hotel_cost_per_pax}
-                    onChange={(e) => setTemplateForm({ ...templateForm, hotel_cost_per_pax: e.target.value })}
-                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Flight / Pax (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={templateForm.flight_cost_per_pax}
-                    onChange={(e) => setTemplateForm({ ...templateForm, flight_cost_per_pax: e.target.value })}
-                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Transport / Pax (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={templateForm.transport_cost_per_pax}
-                    onChange={(e) => setTemplateForm({ ...templateForm, transport_cost_per_pax: e.target.value })}
-                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Other / Pax (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={templateForm.other_cost_per_pax}
-                    onChange={(e) => setTemplateForm({ ...templateForm, other_cost_per_pax: e.target.value })}
-                    className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
-                  />
-                </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-500">Flight / Pax (₹)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={templateForm.flight_cost_per_pax}
+                  onChange={(e) => setTemplateForm({ ...templateForm, flight_cost_per_pax: e.target.value })}
+                  className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                />
               </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-500">Transport / Pax (₹)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={templateForm.transport_cost_per_pax}
+                  onChange={(e) => setTemplateForm({ ...templateForm, transport_cost_per_pax: e.target.value })}
+                  className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold text-slate-500">Other / Pax (₹)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={templateForm.other_cost_per_pax}
+                  onChange={(e) => setTemplateForm({ ...templateForm, other_cost_per_pax: e.target.value })}
+                  className="bg-white dark:bg-zinc-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none"
+                />
+              </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                {editingTemplateId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingTemplateId(null);
-                      setTemplateForm({ id: '', trip_name: '', template_name: 'Default', hotel_cost_per_pax: '', flight_cost_per_pax: '', transport_cost_per_pax: '', other_cost_per_pax: '' });
-                    }}
-                    className="px-3 py-1.5 border border-slate-200 text-slate-600 dark:border-zinc-800 dark:text-slate-300 rounded-lg text-xs font-semibold"
-                  >
-                    Cancel
-                  </button>
-                )}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              {editingTemplateId && (
                 <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold shadow-sm"
+                  type="button"
+                  onClick={() => {
+                    setEditingTemplateId(null);
+                    setTemplateForm({ id: '', trip_name: '', template_name: 'Default', hotel_cost_per_pax: '', flight_cost_per_pax: '', transport_cost_per_pax: '', other_cost_per_pax: '' });
+                  }}
+                  className="px-3 py-1.5 border border-slate-200 text-slate-600 dark:border-zinc-800 dark:text-slate-300 rounded-lg text-xs font-semibold"
                 >
-                  {editingTemplateId ? 'Update Template' : 'Add Template'}
+                  Cancel
                 </button>
-              </div>
-            </form>
-
-            {/* Configured Templates List */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Configured Templates</h4>
-              <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-                <Table>
-                  <Thead>
-                    <Th className="py-2 text-[10px]">Trip Name / Version</Th>
-                    <Th className="py-2 text-right text-[10px]">Hotel / Pax</Th>
-                    <Th className="py-2 text-right text-[10px]">Flight / Pax</Th>
-                    <Th className="py-2 text-right text-[10px]">Transport / Pax</Th>
-                    <Th className="py-2 text-right text-[10px]">Other / Pax</Th>
-                    <Th className="py-2 text-right text-[10px]">Actions</Th>
-                  </Thead>
-                  <Tbody>
-                    {templatesLoading ? (
-                      <Tr><Td colSpan={6} className="text-center py-6 text-xs text-slate-400 font-semibold">Loading templates...</Td></Tr>
-                    ) : templates.length === 0 ? (
-                      <Tr><Td colSpan={6} className="text-center py-6 text-xs text-slate-400 italic">No cost templates added yet.</Td></Tr>
-                    ) : (
-                      templates.map((t) => (
-                        <Tr key={t.id}>
-                          <Td className="py-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <div>{t.trip_name}</div>
-                            <div className="text-[10px] text-slate-400 font-normal">{t.template_name || 'Default'}</div>
-                          </Td>
-                          <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.hotel_cost_per_pax)}</Td>
-                          <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.flight_cost_per_pax)}</Td>
-                          <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.transport_cost_per_pax)}</Td>
-                          <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(t.other_cost_per_pax)}</Td>
-                          <Td className="py-2 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button onClick={() => handleEditTemplate(t)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-slate-500 hover:text-brand-600 transition"><Edit2 size={12} /></button>
-                              <button onClick={() => handleDeleteTemplate(t.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-950/10 rounded text-slate-400 hover:text-red-500 transition"><Trash2 size={12} /></button>
-                            </div>
-                          </Td>
-                        </Tr>
-                      ))
-                    )}
-                  </Tbody>
-                </Table>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
+              )}
               <button
-                type="button"
-                onClick={() => { setTemplatesModalOpen(false); fetchData(); }}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm"
+                type="submit"
+                className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold shadow-sm"
               >
-                Close &amp; Sync
+                {editingTemplateId ? 'Update Template' : 'Add Template'}
               </button>
             </div>
+          </form>
+
+          {/* Configured Templates List */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Configured Templates</h4>
+            <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+              <Table>
+                <Thead>
+                  <Th className="py-2 text-[10px]">Trip Name / Version</Th>
+                  <Th className="py-2 text-right text-[10px]">Hotel / Pax</Th>
+                  <Th className="py-2 text-right text-[10px]">Flight / Pax</Th>
+                  <Th className="py-2 text-right text-[10px]">Transport / Pax</Th>
+                  <Th className="py-2 text-right text-[10px]">Other / Pax</Th>
+                  <Th className="py-2 text-right text-[10px]">Actions</Th>
+                </Thead>
+                <Tbody>
+                  {templatesLoading ? (
+                    <Tr><Td colSpan={6} className="text-center py-6 text-xs text-slate-400 font-semibold">Loading templates...</Td></Tr>
+                  ) : templates.length === 0 ? (
+                    <Tr><Td colSpan={6} className="text-center py-6 text-xs text-slate-400 italic">No cost templates added yet.</Td></Tr>
+                  ) : (
+                    templates.map((t) => (
+                      <Tr key={t.id}>
+                        <Td className="py-2 text-xs font-bold text-slate-800 dark:text-zinc-200">
+                          {t.trip_name}
+                          <span className="block text-[9px] font-normal text-slate-400 mt-0.5">{t.template_name}</span>
+                        </Td>
+                        <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-zinc-400">₹{t.hotel_cost_per_pax || 0}</Td>
+                        <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-zinc-400">₹{t.flight_cost_per_pax || 0}</Td>
+                        <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-zinc-400">₹{t.transport_cost_per_pax || 0}</Td>
+                        <Td className="py-2 text-right text-xs font-semibold text-slate-600 dark:text-zinc-400">₹{t.other_cost_per_pax || 0}</Td>
+                        <Td className="py-2 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleEditTemplate(t)}
+                              className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-slate-500 hover:text-brand-600 transition"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTemplate(t.id)}
+                              className="p-1 hover:bg-red-50 dark:hover:bg-red-950/10 rounded text-slate-400 hover:text-red-500 transition"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </Td>
+                      </Tr>
+                    ))
+                  )}
+                </Tbody>
+              </Table>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => { setTemplatesModalOpen(false); fetchData(); }}
+              className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm"
+            >
+              Close &amp; Sync
+            </button>
           </div>
         </div>
-      )}
+      </Drawer>
 
-      {/* Log/Edit Expense Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl w-full max-w-[460px] relative animate-[fadeIn_0.15s_ease-out]">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute right-4 top-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
-            >
-              <X size={18} />
-            </button>
-
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg mb-4">
-              {editingExpense ? 'Edit Expense Deal' : 'Log New Expense'}
-            </h3>
-
-            <form onSubmit={handleSave} className="space-y-4">
+      {/* Log/Edit Expense Drawer */}
+      <Drawer
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingExpense ? 'Edit Expense Deal' : 'Log New Expense'}
+        size="md"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
               {/* Title */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Expense Title *</label>
@@ -709,9 +705,7 @@ export default function Expenses() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Drawer>
 
     </div>
   );
