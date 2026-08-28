@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Search, Send, User, Check, CheckCheck, MessageSquare, ShieldAlert, Phone, Clock, Paperclip, FileText, Image, X } from 'lucide-react';
+import { Search, Send, User, Check, CheckCheck, MessageSquare, ShieldAlert, Phone, Clock, Paperclip, FileText, Image, X, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import api, { API_BASE_URL } from '../services/api';
@@ -248,13 +248,15 @@ export default function WhatsAppChat() {
   return (
     <div className="flex h-[calc(100vh-80px)] rounded-2xl overflow-hidden border border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
       {/* Sidebar: Chats List */}
-      <div className="w-80 md:w-96 flex flex-col border-r border-slate-100 dark:border-zinc-800 bg-[#FBFCFD] dark:bg-zinc-900/50">
-        <div className="p-4 border-b border-slate-100 dark:border-zinc-800">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-2">
+      <div className={`w-full md:w-80 lg:w-96 flex-col border-r border-slate-100 dark:border-zinc-800 bg-[#FBFCFD] dark:bg-zinc-900/50 ${
+        activeChat ? 'hidden md:flex' : 'flex'
+      }`}>
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-zinc-800">
+          <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-2">
             <MessageSquare className="text-emerald-500" size={20} />
             WhatsApp Chat
           </h2>
-          <div className="relative mt-3">
+          <div className="relative mt-2.5 sm:mt-3">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
               type="text"
@@ -291,13 +293,13 @@ export default function WhatsAppChat() {
                 <div
                   key={c.id}
                   onClick={() => handleSelectChat(c)}
-                  className={`flex gap-3 items-center p-3.5 cursor-pointer select-none transition ${
+                  className={`flex gap-3 items-center p-3 sm:p-3.5 cursor-pointer select-none transition ${
                     isActive
                       ? 'bg-slate-100/70 dark:bg-zinc-800/70 border-l-4 border-emerald-500 rounded-r-lg'
                       : 'hover:bg-slate-50 dark:hover:bg-zinc-850/40'
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-500/15 shadow-sm">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 border border-emerald-500/15 shadow-sm">
                     {c.customer_name ? c.customer_name.slice(0, 2).toUpperCase() : <User size={18} />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -326,7 +328,9 @@ export default function WhatsAppChat() {
       </div>
 
       {/* Right Pane: Messages Window */}
-      <div className="flex-1 flex flex-col bg-[#efeae2] dark:bg-zinc-950 relative">
+      <div className={`flex-1 flex-col bg-[#efeae2] dark:bg-zinc-950 relative ${
+        activeChat ? 'flex' : 'hidden md:flex'
+      }`}>
         {/* WhatsApp Pattern Overlay */}
         <div 
           className="absolute inset-0 opacity-[0.04] dark:opacity-[0.02] pointer-events-none"
@@ -338,13 +342,22 @@ export default function WhatsAppChat() {
 
         {activeChat ? (
           <>
-            {/* Active Header */}
-            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs z-10">
+            {/* Active Header with Mobile Back Button */}
+            <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-5 py-3 border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs z-10">
+              <button
+                type="button"
+                onClick={() => setActiveChat(null)}
+                className="md:hidden p-1.5 -ml-1 rounded-lg text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+                title="Back to chats"
+              >
+                <ArrowLeft size={18} />
+              </button>
+
               <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/15">
                 {activeChat.customer_name ? activeChat.customer_name.slice(0, 2).toUpperCase() : <User size={16} />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800 dark:text-zinc-100 text-xs">
+                <p className="font-semibold text-slate-800 dark:text-zinc-100 text-xs truncate">
                   {activeChat.customer_name || 'Active Chat'}
                 </p>
                 <p className="text-[10px] text-slate-400 dark:text-zinc-500 flex items-center gap-1 mt-0.5">
@@ -354,7 +367,7 @@ export default function WhatsAppChat() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-3 relative z-10 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 md:p-6 space-y-3 relative z-10 flex flex-col">
               {loadingMessages ? (
                 <div className="flex-1 flex items-center justify-center">
                   <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -365,7 +378,7 @@ export default function WhatsAppChat() {
                   return (
                     <div
                       key={m.id}
-                      className={`max-w-[70%] rounded-xl px-3.5 py-2.5 shadow-sm text-xs relative flex flex-col gap-1 ${
+                      className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] rounded-xl px-3 sm:px-3.5 py-2 sm:py-2.5 shadow-sm text-xs relative flex flex-col gap-1 ${
                         isOutbound
                           ? 'bg-[#E1F3D4] dark:bg-emerald-950 text-slate-800 dark:text-emerald-100 self-end rounded-tr-none'
                           : 'bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 self-start rounded-tl-none border border-slate-100 dark:border-zinc-800'
