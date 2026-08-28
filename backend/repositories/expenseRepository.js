@@ -21,16 +21,39 @@ async function createExpense(tenantId, { title, amount, category, link_type, boo
   return rows[0];
 }
 
-async function listExpenses(tenantId) {
-  const { rows } = await query(
-    `SELECT e.*, b.booking_id as booking_code, b.customer_name as booking_customer, t.batch_id as batch_code, t.name as batch_name 
-     FROM expenses e
-     LEFT JOIN bookings b ON e.booking_id = b.id
-     LEFT JOIN tour_batches t ON e.batch_id = t.id
-     WHERE e.tenant_id = $1 
-     ORDER BY e.created_at DESC`,
-    [tenantId]
-  );
+async function listExpenses(tenantId, filters = {}) {
+  const { search = '', category = 'all', link_type = 'all' } = filters;
+  const values = [tenantId];
+  let paramIndex = 2;
+  let whereClauses = ['e.tenant_id = $1'];
+
+  if (category && category !== 'all') {
+    whereClauses.push(`e.category = $${paramIndex++}`);
+    values.push(category);
+  }
+
+  if (link_type && link_type !== 'all') {
+    whereClauses.push(`e.link_type = $${paramIndex++}`);
+    values.push(link_type);
+  }
+
+  if (search && search.trim() !== '') {
+    whereClauses.push(`(e.title ILIKE $${paramIndex} OR e.vendor_name ILIKE $${paramIndex})`);
+    values.push(`%${search.trim()}%`);
+    paramIndex++;
+  }
+
+  const whereSql = whereClauses.join(' AND ');
+  const sql = `
+    SELECT e.*, b.booking_id as booking_code, b.customer_name as booking_customer, t.batch_id as batch_code, t.name as batch_name 
+    FROM expenses e
+    LEFT JOIN bookings b ON e.booking_id = b.id
+    LEFT JOIN tour_batches t ON e.batch_id = t.id
+    WHERE ${whereSql}
+    ORDER BY e.created_at DESC
+  `;
+
+  const { rows } = await query(sql, values);
   return rows;
 }
 

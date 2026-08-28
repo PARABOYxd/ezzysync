@@ -18,6 +18,7 @@ export default function Expenses() {
 
   // Filter States
   const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterLinkType, setFilterLinkType] = useState('all');
 
@@ -52,14 +53,12 @@ export default function Expenses() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [expList, bookList, batchList] = await Promise.all([
-        expenseService.listExpenses(),
-        bookingService.getBookingList(),
-        batchService.getBatchList(),
-      ]);
+      const expList = await expenseService.listExpenses({
+        search,
+        category: filterCategory,
+        link_type: filterLinkType,
+      });
       setExpenses(expList);
-      setBookings(bookList);
-      setBatches(batchList);
     } catch (err) {
       toast.error('Failed to load expenses data.');
     } finally {
@@ -79,9 +78,35 @@ export default function Expenses() {
     }
   };
 
+  // 1. Debounce search input typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(localSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localSearch]);
+
+  // 2. Fetch metadata (bookings/batches) once on mount
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const [bookList, batchList] = await Promise.all([
+          bookingService.getBookingList(),
+          batchService.getBatchList(),
+        ]);
+        setBookings(bookList);
+        setBatches(batchList);
+      } catch (err) {
+        toast.error('Failed to load bookings or batches metadata.');
+      }
+    };
+    loadMetadata();
+  }, []);
+
+  // 3. Re-fetch expenses when any filter changes
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [search, filterCategory, filterLinkType]);
 
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
@@ -211,16 +236,8 @@ export default function Expenses() {
     }
   };
 
-  // Filter Pipeline
-  const filteredExpenses = useMemo(() => {
-    return expenses.filter((e) => {
-      const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase()) || 
-                            (e.vendor_name || '').toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = filterCategory === 'all' || e.category === filterCategory;
-      const matchesLinkType = filterLinkType === 'all' || e.link_type === filterLinkType;
-      return matchesSearch && matchesCategory && matchesLinkType;
-    });
-  }, [expenses, search, filterCategory, filterLinkType]);
+  // Filter Pipeline (backend-filtered)
+  const filteredExpenses = expenses;
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto pb-20">
@@ -259,8 +276,8 @@ export default function Expenses() {
         <input
           type="text"
           placeholder="Search by title, vendor..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)}
           className="w-full md:flex-1 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none shadow-sm"
         />
 
