@@ -189,9 +189,39 @@ async function sendInvoiceEmail({
   });
 }
 
+async function sendWhatsappSetupNotification({ phone, companyName, tenantId, userEmail }) {
+  const subject = `🚀 New WhatsApp Dedicated Setup Request: ${companyName}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #1e293b; max-width: 600px;">
+      <h2 style="color: #0f766e; margin-bottom: 8px;">New Dedicated WhatsApp Request Received!</h2>
+      <p style="font-size: 14px; color: #64748b; margin-top: 0;">An agency has requested dedicated WhatsApp Business setup assistance.</p>
+      
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 8px 0;"><strong>🏢 Agency / Company:</strong> ${companyName}</p>
+        <p style="margin: 8px 0;"><strong>📱 WhatsApp Number:</strong> <a href="https://wa.me/${phone.replace(/[^0-9]/g, '')}">${phone}</a></p>
+        <p style="margin: 8px 0;"><strong>👤 User Email:</strong> ${userEmail || 'N/A'}</p>
+        <p style="margin: 8px 0;"><strong>🆔 Tenant ID:</strong> ${tenantId || 'N/A'}</p>
+      </div>
+
+      <p style="font-size: 13px; color: #64748b;">Please contact the agency to help them configure their dedicated Meta WhatsApp Business API.</p>
+    </div>
+  `;
+
+  const to = 'ezzysync@gmail.com';
+  try {
+    const sentViaSmtp = await sendMailViaSMTP({ to, subject, html });
+    if (!sentViaSmtp) {
+      await sendMailViaResend({ to, subject, html });
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Failed to send WhatsApp setup request email');
+  }
+}
+
 module.exports = {
   sendMail,
   sendOTPEmail,
   sendRegistrationOTPEmail,
   sendInvoiceEmail,
+  sendWhatsappSetupNotification,
 };

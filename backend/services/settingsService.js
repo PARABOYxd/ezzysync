@@ -36,8 +36,27 @@ async function regeneratePublicLeadKey(tenantId) {
   return settingsRepository.regeneratePublicLeadKey(tenantId);
 }
 
+const emailService = require('./emailService');
+const { query } = require('../config/db');
+const logger = require('../utils/logger').child({ module: 'settingsService' });
+
 async function requestWhatsappSetup(tenantId, { phone, companyName }) {
   await settingsRepository.insertWhatsappSetupRequest(tenantId, phone, companyName);
+
+  let userEmail = '';
+  try {
+    const userRes = await query('SELECT email FROM users WHERE tenant_id = $1 LIMIT 1', [tenantId]);
+    userEmail = userRes.rows[0]?.email || '';
+  } catch (e) {}
+
+  emailService.sendWhatsappSetupNotification({
+    phone,
+    companyName,
+    tenantId,
+    userEmail
+  }).catch((err) => {
+    logger.warn({ err }, 'Could not dispatch WhatsApp request email');
+  });
 }
 
 module.exports = {

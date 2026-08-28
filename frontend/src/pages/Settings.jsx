@@ -37,6 +37,8 @@ export default function SettingsPage() {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [showAdvancedWA, setShowAdvancedWA] = useState(false);
   const [waRequest, setWaRequest] = useState({ phone: '', companyName: '', submitted: false, submitting: false });
+  const [connectingWA, setConnectingWA] = useState(false);
+  const [disconnectingWA, setDisconnectingWA] = useState(false);
   const toast = useToast();
 
   const handleLogoUpload = (e) => {
@@ -61,6 +63,60 @@ export default function SettingsPage() {
         }
       })
       .catch(() => toast.error('Could not load settings.'));
+
+    // Check if returning from Meta OAuth redirect in popup or page
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+    const code = urlParams.get('code') || hashParams.get('code');
+    const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+
+    if (code || accessToken) {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'META_AUTH_SUCCESS',
+          code,
+          accessToken
+        }, window.location.origin);
+        window.close();
+      } else {
+        settingsService.connectWhatsappEmbedded({ code, accessToken })
+          .then((res) => {
+            setSettings(res.settings);
+            toast.success('WhatsApp Business connected successfully!');
+            window.history.replaceState({}, document.title, window.location.pathname);
+          })
+          .catch(() => toast.error('Failed to link WhatsApp account.'));
+      }
+    }
+
+    // Listen to Meta response (both popup and SDK messages)
+    const handleMetaMessage = async (event) => {
+      if (event.origin !== window.location.origin && !event.origin.includes('facebook.com')) return;
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data.type === 'META_AUTH_SUCCESS' || (data.type === 'WA_EMBEDDED_SIGNUP' && data.event === 'FINISH')) {
+          const { code, accessToken, phone_number_id, waba_id } = data.data || data;
+          setConnectingWA(true);
+          try {
+            const res = await settingsService.connectWhatsappEmbedded({
+              code,
+              accessToken,
+              phoneNumberId: phone_number_id,
+              wabaId: waba_id
+            });
+            setSettings(res.settings);
+            toast.success('WhatsApp Business connected successfully via Meta!');
+          } catch (err) {
+            toast.error('Failed to link WhatsApp account.');
+          } finally {
+            setConnectingWA(false);
+          }
+        }
+      } catch (err) {}
+    };
+
+    window.addEventListener('message', handleMetaMessage);
+    return () => window.removeEventListener('message', handleMetaMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -324,6 +380,52 @@ export default function SettingsPage() {
         {activeTab === 'whatsapp' && (() => {
           const hasOwnWA = !!(settings.whatsappPhoneNumberId && settings.whatsappAccessToken);
 
+          const handleLaunchEmbeddedSignup = () => {
+            const effectiveAppId = (import.meta.env.VITE_FACEBOOK_APP_ID || settings.whatsappBusinessId || '1065519269552814').trim();
+
+            setConnectingWA(true);
+            const width = 640;
+            const height = 750;
+            const left = window.screen.width / 2 - width / 2;
+            const top = window.screen.height / 2 - height / 2;
+            
+            const redirectUri = `${window.location.origin}/settings`;
+            const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${encodeURIComponent(effectiveAppId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code,token&scope=whatsapp_business_management,whatsapp_business_messaging`;
+
+            const popup = window.open(
+              metaAuthUrl,
+              'MetaWhatsAppLogin',
+              `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=yes`
+            );
+
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+              toast.error('Popup blocked by browser. Please allow popups for this site.');
+              setConnectingWA(false);
+              return;
+            }
+
+            const interval = setInterval(() => {
+              if (popup.closed) {
+                clearInterval(interval);
+                setConnectingWA(false);
+              }
+            }, 1000);
+          };
+
+          const handleDisconnectWA = async () => {
+            if (!window.confirm('Are you sure you want to disconnect this WhatsApp number? Messages will revert to EzzySync Shared Number.')) return;
+            setDisconnectingWA(true);
+            try {
+              const res = await settingsService.disconnectWhatsapp();
+              setSettings(res.settings);
+              toast.success('WhatsApp disconnected. Reverted to shared number.');
+            } catch {
+              toast.error('Failed to disconnect WhatsApp.');
+            } finally {
+              setDisconnectingWA(false);
+            }
+          };
+
           const handleWaRequest = async () => {
             if (!waRequest.phone || !waRequest.companyName) {
               toast.error('Please fill in all fields.');
@@ -344,35 +446,89 @@ export default function SettingsPage() {
           };
 
           return (
-            <div className="max-w-2xl mx-auto space-y-6">
+            <div className="max-w-3xl mx-auto space-y-6">
+
+              {/* 🚀 1-Click Automated Meta Connect Banner (When Not Connected) */}
+              {!hasOwnWA && (
+                <div className="card space-y-5 border-2 border-brand-500/30 bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 shadow-xl shadow-brand-500/5">
+                  <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1877F2] to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                        1-Click Automated WhatsApp Connect
+                        <span className="text-[10px] font-extrabold uppercase bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-200">Instant</span>
+                      </h3>
+                      <p className="text-xs text-slate-500">Connect your agency's WhatsApp Business number directly via Meta login.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/80 border border-blue-100 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-5">
+                    <div className="space-y-1.5 text-left">
+                      <h4 className="font-bold text-slate-800 text-sm">Automate Inbound Leads & Live Chat</h4>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        Incoming messages from customers will automatically create Leads in your CRM without any manual configuration.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={connectingWA}
+                      onClick={handleLaunchEmbeddedSignup}
+                      className="shrink-0 flex items-center justify-center gap-2.5 px-6 py-3 bg-[#1877F2] hover:bg-[#166fe5] active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/25 transition cursor-pointer"
+                    >
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      {connectingWA ? 'Connecting with Meta...' : 'Connect with Facebook'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Current Status Card */}
-              <div className="card space-y-6 max-w-3xl">
+              <div className="card space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                   <div>
                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
                       <MessageSquare size={18} className="text-brand-600" />
-                      WhatsApp Connection
+                      Active Connection
                     </h3>
-                    <p className="text-xs text-slate-400">Manage how WhatsApp messages are sent from your CRM.</p>
+                    <p className="text-xs text-slate-400">Current routing for messages and lead capture.</p>
                   </div>
                 </div>
 
                 {hasOwnWA ? (
                   /* Own number connected */
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                        <MessageSquare size={18} />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+                          <MessageSquare size={22} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-base text-slate-900">{settings.whatsappNumber || 'Custom Business WhatsApp'}</p>
+                          <p className="text-xs text-emerald-800 font-mono mt-0.5">
+                            Phone ID: {settings.whatsappPhoneNumberId}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-800">{settings.whatsappNumber || 'Your WhatsApp Number'}</p>
-                        <p className="text-xs text-slate-500">Your own WhatsApp Business API is connected.</p>
+
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/80 px-3 py-1.5 rounded-lg shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Connected & Live
+                        </span>
+                        <button
+                          type="button"
+                          disabled={disconnectingWA}
+                          onClick={handleDisconnectWA}
+                          className="px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition"
+                        >
+                          {disconnectingWA ? 'Disconnecting...' : 'Disconnect'}
+                        </button>
                       </div>
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-md shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                        Active
-                      </span>
                     </div>
                   </div>
                 ) : (
@@ -384,7 +540,7 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-slate-800">EzzySync Shared Number</p>
-                        <p className="text-xs text-slate-500">Messages sent via EzzySync's official WhatsApp</p>
+                        <p className="text-xs text-slate-500">Messages sent via EzzySync's official WhatsApp pool</p>
                       </div>
                       <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1 rounded-md shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block"></span>
@@ -397,10 +553,10 @@ export default function SettingsPage() {
 
               {/* Request Own Number */}
               {!hasOwnWA && (
-                <div className="card space-y-6 max-w-3xl">
+                <div className="card space-y-6">
                    <div className="border-b border-slate-100 pb-4">
-                    <h3 className="font-bold text-slate-800">Request Dedicated WhatsApp</h3>
-                    <p className="text-xs text-slate-400">EzzySync team will set up a dedicated WhatsApp Business number for your agency.</p>
+                    <h3 className="font-bold text-slate-800">Request Dedicated Setup</h3>
+                    <p className="text-xs text-slate-400">Want our team to set up and verify a dedicated WhatsApp Business number for your agency?</p>
                   </div>
 
                   {waRequest.submitted ? (

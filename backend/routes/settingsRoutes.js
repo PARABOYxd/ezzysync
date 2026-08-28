@@ -23,4 +23,8 @@ router.post('/lead-capture-key/regenerate', (req, res, next) => {
 // WhatsApp own number setup request
 router.post('/whatsapp-request', ctrl.requestWhatsappSetup);
 
+// WhatsApp 1-Click Embedded Signup & Disconnect
+router.post('/whatsapp/embedded-signup', ctrl.connectWhatsappEmbedded);
+router.post('/whatsapp/disconnect', ctrl.disconnectWhatsapp);
+
 module.exports = router;

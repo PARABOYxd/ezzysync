@@ -8,3 +8,9 @@ export const regeneratePublicLeadKey = () => api.post('/settings/lead-capture-ke
 
 export const requestWhatsappSetup = (payload) =>
   api.post('/settings/whatsapp-request', payload).then((r) => r.data);
+
+export const connectWhatsappEmbedded = (payload) =>
+  api.post('/settings/whatsapp/embedded-signup', payload).then((r) => r.data);
+
+export const disconnectWhatsapp = () =>
+  api.post('/settings/whatsapp/disconnect').then((r) => r.data);
