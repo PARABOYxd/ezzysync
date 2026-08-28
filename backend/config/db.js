@@ -634,6 +634,52 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_wa_requests_tenant ON whatsapp_setup_requests(tenant_id);`);
 
+  // WhatsApp Chats table
+  await query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_chats (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      phone TEXT NOT NULL,
+      customer_name TEXT DEFAULT '',
+      last_message TEXT DEFAULT '',
+      last_message_timestamp TIMESTAMPTZ DEFAULT now(),
+      unread_count INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE (tenant_id, phone)
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_chats_tenant ON whatsapp_chats(tenant_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_chats_phone ON whatsapp_chats(phone);`);
+
+  // WhatsApp Messages table
+  await query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_messages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      chat_id UUID NOT NULL REFERENCES whatsapp_chats(id) ON DELETE CASCADE,
+      direction TEXT NOT NULL,
+      message_text TEXT NOT NULL,
+      message_type TEXT NOT NULL DEFAULT 'text',
+      media_url TEXT DEFAULT NULL,
+      message_id TEXT UNIQUE,
+      status TEXT DEFAULT 'sent',
+      message_timestamp TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_chat ON whatsapp_messages(chat_id);`);
+
+  try {
+    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS message_type TEXT NOT NULL DEFAULT 'text';`);
+    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS media_url TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS message_id TEXT UNIQUE;`);
+    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'sent';`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding status/message_id/media columns to whatsapp_messages');
+  }
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_msg_id ON whatsapp_messages(message_id);`);
+
   logger.info('Schema check complete.');
 }
 

@@ -44,7 +44,7 @@ function refreshAccessToken() {
   if (!refreshPromise) {
     const storedRefreshToken = localStorage.getItem('hf_refresh_token');
     refreshPromise = (storedRefreshToken
-      ? axios.post(`${baseURL}/auth/refresh`, { refreshToken: storedRefreshToken })
+      ? axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken: storedRefreshToken })
       : Promise.reject(new Error('No refresh token available')))
       .then(({ data }) => {
         localStorage.setItem('hf_token', data.token);

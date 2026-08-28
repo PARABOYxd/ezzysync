@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 export default function Sidebar({ open, onClose }) {
@@ -22,6 +22,8 @@ export default function Sidebar({ open, onClose }) {
 
   const salesLinks = [
     { to: '/bookings', label: 'Bookings', icon: CalendarCheck, module: 'bookings' },
+    { to: '/upcoming-trips', label: 'Upcoming Booked Trip', icon: Compass, module: 'bookings' },
+    { to: '/whatsapp-chat', label: 'WhatsApp Live Chat', icon: MessageSquare, module: 'bookings' },
     { to: '/tour-batches', label: 'Group Tours', icon: Layers, module: 'tourBatches' },
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map, module: 'quotations' },
     { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles, module: 'aiTools', action: 'use' },

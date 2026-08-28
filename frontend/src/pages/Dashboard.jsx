@@ -200,7 +200,7 @@ function PopularToursList({ tripWise }) {
         <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Popular Trips</h4>
         <p className="text-[10px] text-slate-400">Top performant destinations booked</p>
       </div>
-      <div className="flex-1 flex flex-col justify-center mt-2 space-y-3">
+      <div className="flex-1 flex flex-col justify-start mt-2 space-y-3">
         {tours.length > 0 ? (
           tours.map((t, idx) => (
             <div key={idx} className="flex items-center gap-3 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
@@ -447,7 +447,7 @@ export default function Dashboard() {
           <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
             {isFiltered ? `${selectedMember}'s Upcoming` : !isAdmin ? 'My Upcoming Departures' : 'Upcoming Departures'}
           </h3>
-          <div className="overflow-y-auto flex-1 pr-1">
+          <div className="flex-1 flex flex-col justify-between pr-1">
             {loading
               ? <div className="skeleton h-40 rounded-xl mt-3" />
               : <UpcomingDepartures departures={data?.upcomingDepartures || []} />}

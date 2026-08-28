@@ -36,6 +36,8 @@ function rowToBooking(row) {
     sourceQuotationId: row.source_quotation_id || null,
     customerId: row.customer_id || null,
     batchId: row.batch_id || null,
+    batchName: row.batch_name || null,
+    batchCustomId: row.batch_custom_id || null,
     costTemplateId: row.cost_template_id || null,
     sharingType: row.sharing_type || 'Double',
   };
