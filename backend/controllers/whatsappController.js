@@ -312,22 +312,36 @@ async function receiveWebhook(req, res) {
               await new Promise((resolve) => setTimeout(resolve, 5000));
 
               // ── Debounce guard: check if a newer message arrived from this
-              // sender during the delay. If yes, skip — the newer message
-              // handler will reply to the full conversation instead. ────────────
+              // sender during the 5-second delay. Use integer id comparison
+              // (more reliable than timestamp which can collide in same second).
               const newerMsg = await query(
-                `SELECT id FROM whatsapp_messages
+                `SELECT id, message_text FROM whatsapp_messages
                  WHERE tenant_id = $1
                    AND chat_id = $2
                    AND direction = 'inbound'
-                   AND id != $3
-                   AND message_timestamp > $4
+                   AND id > $3
+                 ORDER BY id DESC
                  LIMIT 1`,
-                [tenantId, saved.chat.id, saved.message.id, saved.message.message_timestamp]
+                [tenantId, saved.chat.id, saved.message.id]
               );
               if (newerMsg.rows.length > 0) {
-                logger.info({ tenantId, from }, '[WhatsApp Webhook] Newer message detected during delay — skipping reply for this message');
+                // A newer message exists — only the LAST message handler should reply.
+                // Let all earlier ones skip; the last one will have no newer msg and will reply.
+                logger.info({ tenantId, from, newerMsgId: newerMsg.rows[0].id }, '[WhatsApp Webhook] Newer message detected — skipping, last message will reply');
                 return res.sendStatus(200);
               }
+
+              // This IS the latest message — fetch the most recent inbound text
+              // (combines all messages the customer sent in this burst)
+              const recentInbound = await query(
+                `SELECT message_text FROM whatsapp_messages
+                 WHERE tenant_id = $1 AND chat_id = $2 AND direction = 'inbound'
+                 ORDER BY id DESC LIMIT 3`,
+                [tenantId, saved.chat.id]
+              );
+              const latestText = recentInbound.rows.length > 0
+                ? recentInbound.rows.map(r => r.message_text).reverse().join(' ')
+                : text;
 
               logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');
 
@@ -341,7 +355,7 @@ async function receiveWebhook(req, res) {
               try {
                 const aiReplyResult = await aiService.generateWhatsappReply(
                   tenantId,
-                  { phone: from, message: text },
+                  { phone: from, message: latestText },
                   { onHistoryError: (err) => logger.warn({ err }, 'Error fetching follow-up history for live webhook context') }
                 );
 

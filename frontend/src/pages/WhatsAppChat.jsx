@@ -87,23 +87,33 @@ export default function WhatsAppChat() {
               const filtered = prevChats.filter((c) => c.phone !== updatedChat.phone);
               return [updatedChat, ...filtered];
             });
-            // Append to active message thread if open
-            setActiveChat((currentActive) => {
-              if (currentActive && currentActive.phone === updatedChat.phone) {
-                setMessages((prevMsgs) => {
-                  // Prevent duplicate messages in state (using DB ID or Meta message_id)
-                  const exists = prevMsgs.some(
-                    (m) => m.id === newMsg.id || (m.message_id && m.message_id === newMsg.message_id)
-                  );
-                  if (exists) return prevMsgs;
-                  return [...prevMsgs, newMsg];
-                });
-                // Reset unread count for current active chat on backend
-                whatsappChatService.markChatAsRead(currentActive.id).catch(() => {});
-                return updatedChat;
-              }
-              return currentActive;
-            });
+            // Append to active message thread if open and message exists
+            if (newMsg) {
+              setActiveChat((currentActive) => {
+                if (currentActive && currentActive.phone === updatedChat.phone) {
+                  setMessages((prevMsgs) => {
+                    // Prevent duplicate messages in state (using DB ID or Meta message_id)
+                    const exists = prevMsgs.some(
+                      (m) => m.id === newMsg.id || (m.message_id && m.message_id === newMsg.message_id)
+                    );
+                    if (exists) return prevMsgs;
+                    return [...prevMsgs, newMsg];
+                  });
+                  // Reset unread count for current active chat on backend
+                  whatsappChatService.markChatAsRead(currentActive.id).catch(() => {});
+                  return updatedChat;
+                }
+                return currentActive;
+              });
+            } else {
+              // Chat-only update (e.g. managed_by changed) — just refresh the active chat
+              setActiveChat((currentActive) => {
+                if (currentActive && currentActive.phone === updatedChat.phone) {
+                  return updatedChat;
+                }
+                return currentActive;
+              });
+            }
           } else if (data.type === 'WHATSAPP_STATUS_UPDATED') {
             const { messageId, status } = data;
             setMessages((prevMsgs) =>
