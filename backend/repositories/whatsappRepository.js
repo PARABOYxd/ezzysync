@@ -55,7 +55,7 @@ function normalizePhone(phone = '') {
  * Save an incoming or outgoing message.
  * Handles creating or updating the chat header in a single database transaction/block.
  */
-async function saveMessage(tenantId, phone, direction, text, customerName = '', incrementUnread = 0, messageId = null, status = 'sent', timestamp = null, messageType = 'text', mediaUrl = null) {
+async function saveMessage(tenantId, phone, direction, text, customerName = '', incrementUnread = 0, messageId = null, status = 'sent', timestamp = null, messageType = 'text', mediaUrl = null, defaultChatMode = 'ai') {
   const cleanPhone = normalizePhone(phone);
   
   // Try to find the chat header first
@@ -69,12 +69,12 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
   const msgTimestamp = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
 
   if (chatRows.rows.length === 0) {
-    // Create new chat header
+    // Create new chat header using the admin-configured default mode
     const insertRes = await query(
       `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, managed_by)
-       VALUES ($1, $2, $3, $4, $5, $6, 'ai')
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread]
+      [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread, defaultChatMode]
     );
     chat = insertRes.rows[0];
   } else {

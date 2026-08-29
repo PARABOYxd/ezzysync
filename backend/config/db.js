@@ -524,6 +524,7 @@ async function ensureSchema() {
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_account_id TEXT DEFAULT '';`);
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_access_token TEXT DEFAULT '';`);
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_ai_auto_reply BOOLEAN DEFAULT FALSE;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_default_chat_mode TEXT DEFAULT 'ai';`);
     await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS managed_by TEXT DEFAULT 'ai';`);
   } catch (err) {
     logger.warn({ err }, 'Note adding WhatsApp/Instagram/AI columns to settings and chats');

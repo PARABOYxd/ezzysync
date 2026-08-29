@@ -225,6 +225,10 @@ async function receiveWebhook(req, res) {
           logger.info({ tenantId, from, text, contactName, messageId, msgTimestamp, messageType, mediaUrl }, '[WhatsApp Webhook] Saving inbound message');
 
           // Save the inbound message to DB (increment unread count by 1)
+          // Fetch settings first to get admin-configured default chat mode
+          const inboundSettings = await settingsService.getSettings(tenantId);
+          const defaultChatMode = inboundSettings?.whatsappDefaultChatMode || 'ai';
+
           const saved = await whatsappRepo.saveMessage(
             tenantId,
             from,
@@ -236,7 +240,8 @@ async function receiveWebhook(req, res) {
             'read',
             msgTimestamp,
             messageType,
-            mediaUrl
+            mediaUrl,
+            defaultChatMode
           );
 
           logger.info({ dbMessageId: saved.message.id, chatId: saved.chat.id }, '[WhatsApp Webhook] Inbound message saved successfully');

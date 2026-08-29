@@ -2,7 +2,7 @@ const DEFAULT_KEYS = [
   'companyName', 'companyLogoUrl', 'invoiceFooter', 'emailSenderName', 'whatsappNumber', 'gstNumber', 'address',
   'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms', 'autoSendInvoice',
   'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
-  'instagramUsername', 'instagramAccountId', 'instagramAccessToken', 'whatsappAiAutoReply'
+  'instagramUsername', 'instagramAccountId', 'instagramAccessToken', 'whatsappAiAutoReply', 'whatsappDefaultChatMode'
 ];
 
 /** camelCase key -> Postgres column name in the `settings` table */
@@ -29,7 +29,8 @@ const COLUMN_MAP = {
   instagramUsername: 'instagram_username',
   instagramAccountId: 'instagram_account_id',
   instagramAccessToken: 'instagram_access_token',
-  whatsappAiAutoReply: 'whatsapp_ai_auto_reply'
+  whatsappAiAutoReply: 'whatsapp_ai_auto_reply',
+  whatsappDefaultChatMode: 'whatsapp_default_chat_mode'
 };
 
 function rowToSettings(row) {
@@ -40,6 +41,8 @@ function rowToSettings(row) {
       obj[k] = val !== undefined ? !!val : true;
     } else if (k === 'autoSendInvoice' || k === 'whatsappAiAutoReply') {
       obj[k] = !!val;
+    } else if (k === 'whatsappDefaultChatMode') {
+      obj[k] = val || 'ai';
     } else if (k === 'invoiceAccentColor') {
       obj[k] = val || '#0f766e';
     } else if (k === 'invoiceLayout') {

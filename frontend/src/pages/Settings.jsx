@@ -550,6 +550,45 @@ export default function SettingsPage() {
                         </div>
                       </label>
                     </div>
+
+                    {/* Default Chat Mode for new incoming chats */}
+                    {!!settings.whatsappAiAutoReply && (
+                      <div className="pt-1">
+                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                          <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            🆕 Default mode for new incoming chats
+                          </p>
+                          <p className="text-[11px] text-slate-500 leading-relaxed -mt-1">
+                            When a new customer messages for the first time, should the chat start in AI or Human mode?
+                          </p>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setSettings({ ...settings, whatsappDefaultChatMode: 'ai' })}
+                              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold transition ${
+                                (settings.whatsappDefaultChatMode || 'ai') === 'ai'
+                                  ? 'bg-indigo-600 border-indigo-700 text-white shadow-sm'
+                                  : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${(settings.whatsappDefaultChatMode || 'ai') === 'ai' ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                              🤖 AI Auto-Reply
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSettings({ ...settings, whatsappDefaultChatMode: 'human' })}
+                              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold transition ${
+                                settings.whatsappDefaultChatMode === 'human'
+                                  ? 'bg-slate-700 border-slate-800 text-white shadow-sm'
+                                  : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
+                              }`}
+                            >
+                              👤 Human (Manual)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (                  /* Using EzzySync shared number */
                   <div className="space-y-4">
