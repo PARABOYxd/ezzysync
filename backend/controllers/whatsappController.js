@@ -213,7 +213,7 @@ async function receiveWebhook(req, res) {
           );
           if (dupCheck.rows.length > 0) {
             logger.info({ messageId, tenantId }, '[WhatsApp Webhook] Duplicate message ID — skipping to avoid double reply');
-            return res.sendStatus(200);
+            return; // 200 already sent at top of handler
           }
 
 
@@ -328,7 +328,7 @@ async function receiveWebhook(req, res) {
                 // A newer message exists — only the LAST message handler should reply.
                 // Let all earlier ones skip; the last one will have no newer msg and will reply.
                 logger.info({ tenantId, from, newerMsgId: newerMsg.rows[0].id }, '[WhatsApp Webhook] Newer message detected — skipping, last message will reply');
-                return res.sendStatus(200);
+                return; // 200 already sent at top of handler
               }
 
               // This IS the latest message — fetch the most recent inbound text
