@@ -289,7 +289,7 @@ async function receiveWebhook(req, res) {
             const settings = await settingsService.getSettings(tenantId);
             const chatManagedBy = saved.chat.managed_by || 'human';
 
-            if (settings.whatsapp_ai_auto_reply === true && chatManagedBy === 'ai') {
+            if (settings.whatsappAiAutoReply === true && chatManagedBy === 'ai') {
               logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');
 
               const aiReplyResult = await aiService.generateWhatsappReply(
