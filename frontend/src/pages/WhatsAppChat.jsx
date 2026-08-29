@@ -398,30 +398,51 @@ export default function WhatsAppChat() {
                 </p>
               </div>
 
-              {/* AI/Human Management Switch */}
+              {/* AI/Human Management Switch — prominent status badge */}
               <button
                 type="button"
                 onClick={toggleManagementMode}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition shadow-xs border shrink-0 ${
-                  activeChat.managed_by === 'ai'
-                    ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/60'
-                    : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-700/50 text-slate-600 dark:text-zinc-400 hover:bg-slate-100/75 dark:hover:bg-zinc-800/80'
-                }`}
                 title="Click to toggle AI Assistant for this chat"
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 border shrink-0 shadow-sm ${
+                  activeChat.managed_by === 'ai'
+                    ? 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700 shadow-indigo-300/40 shadow-md'
+                    : 'bg-slate-100 dark:bg-zinc-800 border-slate-300 dark:border-zinc-600 text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                }`}
               >
                 {activeChat.managed_by === 'ai' ? (
                   <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse inline-block"></span>
-                    🤖 AI Assistant
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                    </span>
+                    🤖 AI Active — Click to switch to Human
                   </>
                 ) : (
                   <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-zinc-500 inline-block"></span>
-                    👤 Human Managed
+                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-zinc-500 inline-block" />
+                    👤 Human — Click to enable AI
                   </>
                 )}
               </button>
             </div>
+
+            {/* AI mode info banner below header */}
+            {activeChat.managed_by === 'ai' && (
+              <div className="mx-4 mt-0 mb-1 px-3.5 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/40 flex items-center gap-2">
+                <span className="text-indigo-500 text-sm">🤖</span>
+                <p className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 leading-snug">
+                  <span className="font-bold">AI Auto-Reply is ON</span> — The AI assistant will automatically respond to incoming messages from this customer.
+                </p>
+              </div>
+            )}
+            {activeChat.managed_by !== 'ai' && (
+              <div className="mx-4 mt-0 mb-1 px-3.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 flex items-center gap-2">
+                <span className="text-amber-500 text-sm">👤</span>
+                <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 leading-snug">
+                  <span className="font-bold">AI Auto-Reply is OFF</span> — You are handling this chat manually. Click <em>"Click to enable AI"</em> above to let AI respond.
+                </p>
+              </div>
+            )}
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 md:p-6 space-y-3 relative z-10 flex flex-col">
