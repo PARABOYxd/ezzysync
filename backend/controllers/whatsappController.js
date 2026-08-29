@@ -206,6 +206,17 @@ async function receiveWebhook(req, res) {
           let mediaUrl = null;
           let text = '';
 
+          // Duplicate guard — skip if we already processed this message ID
+          const dupCheck = await query(
+            `SELECT id FROM whatsapp_messages WHERE message_id = $1 AND tenant_id = $2 LIMIT 1`,
+            [messageId, tenantId]
+          );
+          if (dupCheck.rows.length > 0) {
+            logger.info({ messageId, tenantId }, '[WhatsApp Webhook] Duplicate message ID — skipping to avoid double reply');
+            return res.sendStatus(200);
+          }
+
+
           if (message.type === 'text') {
             text = message.text ? message.text.body : '';
           } else if (message.type === 'image') {
@@ -315,7 +326,21 @@ async function receiveWebhook(req, res) {
                   const replyText = aiReplyResult.reply.trim();
 
                   if (replyText === '[FALLBACK_HUMAN_NEEDED]') {
-                    logger.info({ tenantId, from }, '[WhatsApp Webhook] AI fallback triggered. Handoff to human.');
+                    logger.info({ tenantId, from }, '[WhatsApp Webhook] AI fallback triggered. Sending handoff message then switching to human.');
+
+                    // Send a polite handoff message to the customer before switching
+                    try {
+                      const handoffMsg = `🙏 Thank you for reaching out! Our travel expert will connect with you shortly to assist you better. Please hold on!`;
+                      const mockBooking = { phone: from, bookingId: 'CHAT' };
+                      await whatsappService.sendWhatsAppMessage(mockBooking, settings, null, handoffMsg);
+                      // Save handoff message to DB
+                      await whatsappRepo.saveMessage(
+                        tenantId, from, 'outbound', handoffMsg,
+                        saved.chat.customer_name || from, 0, null
+                      );
+                    } catch (handoffErr) {
+                      logger.warn({ err: handoffErr }, '[WhatsApp Webhook] Failed to send handoff message');
+                    }
 
                     // Update chat managed_by to 'human'
                     await query(
@@ -330,6 +355,13 @@ async function receiveWebhook(req, res) {
                       customerName: saved.chat.customer_name || from,
                       phone: from
                     });
+                    // Reload chats to reflect managed_by change
+                    broadcastToTenant(tenantId, {
+                      type: 'WHATSAPP_MESSAGE_RECEIVED',
+                      chat: { ...saved.chat, managed_by: 'human' },
+                      message: null
+                    });
+
                   } else {
                     logger.info({ tenantId, from, replyText }, '[WhatsApp Webhook] Sending automated AI response');
 
