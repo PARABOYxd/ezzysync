@@ -151,7 +151,7 @@ function findLeadByPhone(leads, phone) {
   });
 }
 
-function buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, phone, message }) {
+function buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, chatHistory, phone, message }) {
   let context = '';
   
   if (booking) {
@@ -188,10 +188,20 @@ ${followUpHistory}\n\n`;
 ${itineraries.map((it, idx) => {
   return `${idx + 1}. Trip: ${it.trip_name || it.name}
    - Price: ₹${it.price_quote || it.price_per_person || 'Contact sales'}
+   - Shareable Itinerary Link: ${it.previewUrl || 'none'}
    - Days Details: ${JSON.stringify(it.itinerary_days || [])}`;
 }).join('\n')}\n\n`;
   } else {
     context += `No active itineraries or tour packages are currently listed.\n\n`;
+  }
+
+  let historyContext = '';
+  if (chatHistory && chatHistory.length > 0) {
+    historyContext = `RECENT CHAT HISTORY (ordered oldest to newest):
+${chatHistory.map((m) => {
+  const sender = m.direction === 'inbound' ? 'Customer' : 'Bot';
+  return `[${sender}]: ${m.message_text}`;
+}).join('\n')}\n\n`;
   }
 
   return `You are a helpful travel assistant chat bot for our travel agency.
@@ -200,7 +210,8 @@ We received a WhatsApp message from a customer.
 DATABASE CONTEXT:
 ${context}
 
-Customer's Message: "${message}"
+${historyContext}
+Customer's Current Message: "${message}"
 
 Write a short, friendly, and helpful WhatsApp response answering their query.
 
@@ -209,7 +220,9 @@ STRICT INSTRUCTIONS AND RULES:
 2. Customization / Modifications Handoff: If the customer asks to customize, edit, or modify an itinerary/plan (e.g. "I want to customize it", "add a day", "Change the hotels", "Change the itinerary"), OR if they ask for a trip details not in our list, OR if they ask to speak to a person, you MUST reply ONLY with the exact code: [FALLBACK_HUMAN_NEEDED].
 3. Answer Missing Handoff: If you cannot find the answer to the customer's question from the provided database context (e.g., they ask about a policy we don't list, or ask about another trip not in context), you MUST reply ONLY with the exact code: [FALLBACK_HUMAN_NEEDED].
 4. No Hallucinations: Do not assume, invent, or make up any prices, trip dates, trip details, itineraries, or pickup locations. If the data is not in the context, output [FALLBACK_HUMAN_NEEDED].
-5. Format for WhatsApp: Keep normal replies concise (1-4 sentences), use *bold* for emphasis, emojis where appropriate, and line breaks. Do not mention [FALLBACK_HUMAN_NEEDED] in normal replies.`;
+5. Format for WhatsApp: Keep normal replies concise (1-4 sentences), use *bold* for emphasis, emojis where appropriate, and line breaks. Do not mention [FALLBACK_HUMAN_NEEDED] in normal replies.
+6. Shareable Itinerary Links: If the customer asks for the itinerary details, trip plan, itinerary PDF/link, or schedule for a specific trip, and a "Shareable Itinerary Link" is available for that trip in the database context, you MUST include that link in your response (e.g., "You can view the full itinerary here: [Link]"). If no link is available for that trip but the trip details are in context, describe the days briefly and offer to connect them with a human helper.
+7. Greeting and Personalization: Address the customer by name if known (e.g. "Pinky", "Payal"). If the RECENT CHAT HISTORY shows you have already greeted the customer in recent messages, DO NOT repeat the greeting (e.g., do not say "Hi Pinky!" or "Hello Pinky!" again). Just answer their question directly, keeping the flow natural like a continuous chat.`;
 }
 
 /**
@@ -229,7 +242,7 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
 
   // 3. Check itineraries/quotations
   const quotationsRes = await query(
-    `SELECT trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
+    `SELECT uuid, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
     [tenantId]
   );
   const batchesRes = await query(
@@ -238,9 +251,35 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
   );
 
   const itineraries = [
-    ...quotationsRes.rows,
-    ...batchesRes.rows.map((b) => ({ ...b, trip_name: b.trip_name || b.name }))
+    ...quotationsRes.rows.map((q) => ({
+      ...q,
+      previewUrl: q.uuid ? `${env.frontendUrl}/quote-preview/${q.uuid}` : null
+    })),
+    ...batchesRes.rows.map((b) => ({
+      ...b,
+      trip_name: b.trip_name || b.name,
+      previewUrl: null
+    }))
   ];
+
+  // 4. Fetch last 8 WhatsApp messages for conversation history context
+  let chatHistory = [];
+  try {
+    const historyRes = await query(
+      `SELECT direction, message_text, message_timestamp 
+       FROM whatsapp_messages 
+       WHERE tenant_id = $1 AND chat_id = (
+         SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2 LIMIT 1
+       )
+       ORDER BY message_timestamp DESC 
+       LIMIT 8`,
+      [tenantId, phone]
+    );
+    // Reverse to chronological order
+    chatHistory = historyRes.rows.reverse();
+  } catch (err) {
+    if (onHistoryError) onHistoryError(err);
+  }
 
   let followUpHistory = 'none';
   if (booking) {
@@ -252,7 +291,7 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
     }
   }
 
-  const prompt = buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, phone, message });
+  const prompt = buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, chatHistory, phone, message });
   const reply = await generateContent([{ text: prompt }]);
 
   return { reply: reply || null, booking: booking || null, lead: lead || null };
