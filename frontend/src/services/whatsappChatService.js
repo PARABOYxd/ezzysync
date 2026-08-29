@@ -12,3 +12,6 @@ export const sendChatMessage = (chatId, payload) => {
 
 export const markChatAsRead = (chatId) =>
   api.post(`/whatsapp/chats/${chatId}/read`).then((r) => r.data.chat);
+
+export const updateChatManagement = (chatId, managedBy) =>
+  api.put(`/whatsapp/chats/${chatId}/management`, { managedBy }).then((r) => r.data);

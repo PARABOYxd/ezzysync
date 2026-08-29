@@ -134,6 +134,8 @@ function findBookingByPhone(bookings, phone) {
   });
 }
 
+const { query } = require('../config/db');
+
 function formatFollowUpHistory(logs) {
   if (!logs || logs.length === 0) return null;
   return logs
@@ -141,9 +143,19 @@ function formatFollowUpHistory(logs) {
     .join('\n');
 }
 
-function buildWhatsappReplyPrompt({ booking, followUpHistory, phone, message }) {
-  const context = booking
-    ? `Here is the customer's active booking details:
+function findLeadByPhone(leads, phone) {
+  const cleanTargetPhone = phone.replace(/[^\d]/g, '');
+  return leads.find((l) => {
+    const cleanPhone = (l.phone || '').replace(/[^\d]/g, '');
+    return cleanPhone.endsWith(cleanTargetPhone) || cleanTargetPhone.endsWith(cleanPhone);
+  });
+}
+
+function buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, phone, message }) {
+  let context = '';
+  
+  if (booking) {
+    context += `Here is the customer's active BOOKING details:
 - Name: ${booking.customerName}
 - Phone: ${booking.phone}
 - Email: ${booking.email}
@@ -158,33 +170,77 @@ function buildWhatsappReplyPrompt({ booking, followUpHistory, phone, message }) 
 - Pickup Details: ${booking.pickup || 'none'}
 - Special Notes: ${booking.notes || 'none'}
 - Past Interaction History / Follow-up Notes:
-${followUpHistory}`
-    : `No active booking was found in our database for the customer's phone number (${phone}).`;
+${followUpHistory}\n\n`;
+  } else if (lead) {
+    context += `Here is the prospect's active LEAD details:
+- Name: ${lead.customer_name}
+- Phone: ${lead.phone}
+- Email: ${lead.email || 'none'}
+- Interested Trip: ${lead.trip_name || 'none'}
+- Lead Status: ${lead.status}
+- Notes: ${lead.notes || 'none'}\n\n`;
+  } else {
+    context += `No active booking or lead was found in our database for the customer's phone number (${phone}).\n\n`;
+  }
+
+  if (itineraries && itineraries.length > 0) {
+    context += `Here are our agency's active trip packages/itineraries:
+${itineraries.map((it, idx) => {
+  return `${idx + 1}. Trip: ${it.trip_name || it.name}
+   - Price: ₹${it.price_quote || it.price_per_person || 'Contact sales'}
+   - Days Details: ${JSON.stringify(it.itinerary_days || [])}`;
+}).join('\n')}\n\n`;
+  } else {
+    context += `No active itineraries or tour packages are currently listed.\n\n`;
+  }
 
   return `You are a helpful travel assistant chat bot for our travel agency.
 We received a WhatsApp message from a customer.
 
+DATABASE CONTEXT:
 ${context}
 
 Customer's Message: "${message}"
 
 Write a short, friendly, and helpful WhatsApp response answering their query.
-Rules:
-- Keep it concise (1-4 sentences).
-- Format for WhatsApp (use *bold* for emphasis, emojis where appropriate, and line breaks).
-- Answer specifically using the booking details and the past interaction history if provided (e.g. if they ask for remaining amount, state the exact amount pending, or reference past agreements).
-- If no booking was found, ask them for their email or booking ID to help locate it.`;
+
+STRICT INSTRUCTIONS AND RULES:
+1. Grounding: ONLY answer the question using the database details provided above (booking details, lead details, or the active itinerary days/pricing).
+2. Customization / Modifications Handoff: If the customer asks to customize, edit, or modify an itinerary/plan (e.g. "I want to customize it", "add a day", "Change the hotels", "Change the itinerary"), OR if they ask for a trip details not in our list, OR if they ask to speak to a person, you MUST reply ONLY with the exact code: [FALLBACK_HUMAN_NEEDED].
+3. Answer Missing Handoff: If you cannot find the answer to the customer's question from the provided database context (e.g., they ask about a policy we don't list, or ask about another trip not in context), you MUST reply ONLY with the exact code: [FALLBACK_HUMAN_NEEDED].
+4. No Hallucinations: Do not assume, invent, or make up any prices, trip dates, trip details, itineraries, or pickup locations. If the data is not in the context, output [FALLBACK_HUMAN_NEEDED].
+5. Format for WhatsApp: Keep normal replies concise (1-4 sentences), use *bold* for emphasis, emojis where appropriate, and line breaks. Do not mention [FALLBACK_HUMAN_NEEDED] in normal replies.`;
 }
 
 /**
  * Composes an AI reply to an inbound WhatsApp message, grounded in the
- * matching booking and its follow-up history when one can be found.
+ * matching booking/lead and its follow-up history when one can be found.
  * `onHistoryError` lets the caller log a non-fatal history lookup failure
  * without this service depending on the request logger.
  */
 async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryError } = {}) {
+  // 1. Check bookings
   const bookings = await bookingService.listBookings(tenantId);
   const booking = findBookingByPhone(bookings, phone);
+
+  // 2. Check leads
+  const leadsRes = await query(`SELECT * FROM leads WHERE tenant_id = $1 AND deleted = FALSE`, [tenantId]);
+  const lead = findLeadByPhone(leadsRes.rows, phone);
+
+  // 3. Check itineraries/quotations
+  const quotationsRes = await query(
+    `SELECT trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
+    [tenantId]
+  );
+  const batchesRes = await query(
+    `SELECT name, trip_name, departure_date, price_per_person, itinerary_days FROM tour_batches WHERE tenant_id = $1 AND deleted = FALSE LIMIT 30`,
+    [tenantId]
+  );
+
+  const itineraries = [
+    ...quotationsRes.rows,
+    ...batchesRes.rows.map((b) => ({ ...b, trip_name: b.trip_name || b.name }))
+  ];
 
   let followUpHistory = 'none';
   if (booking) {
@@ -196,10 +252,10 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
     }
   }
 
-  const prompt = buildWhatsappReplyPrompt({ booking, followUpHistory, phone, message });
+  const prompt = buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, phone, message });
   const reply = await generateContent([{ text: prompt }]);
 
-  return { reply: reply || null, booking: booking || null };
+  return { reply: reply || null, booking: booking || null, lead: lead || null };
 }
 
 module.exports = {

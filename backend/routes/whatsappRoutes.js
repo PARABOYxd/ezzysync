@@ -12,5 +12,6 @@ router.get('/chats', requireAuth, ctrl.getChats);
 router.get('/chats/:chatId/messages', requireAuth, ctrl.getChatMessages);
 router.post('/chats/:chatId/send', requireAuth, ctrl.sendChatMessage);
 router.post('/chats/:chatId/read', requireAuth, ctrl.readChat);
+router.put('/chats/:chatId/management', requireAuth, ctrl.updateChatManagement);
 
 module.exports = router;

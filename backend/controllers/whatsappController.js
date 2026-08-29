@@ -3,6 +3,7 @@ const bookingService = require('../services/bookingService');
 const settingsService = require('../services/settingsService');
 const whatsappService = require('../services/whatsappService');
 const whatsappRepo = require('../repositories/whatsappRepository');
+const aiService = require('../services/aiService');
 const { query } = require('../config/db');
 const { broadcastToTenant } = require('../services/websocketService');
 const logger = require('../utils/logger');
@@ -97,6 +98,12 @@ async function sendChatMessage(req, res, next) {
     );
     const chat = rows[0];
     if (!chat) return res.status(404).json({ message: 'Chat not found.' });
+
+    // Update chat to human-managed since the admin is manually typing a reply
+    await query(
+      `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+      [req.user.tenantId, chatId]
+    );
 
     const settings = await settingsService.getSettings(req.user.tenantId);
 
@@ -234,40 +241,119 @@ async function receiveWebhook(req, res) {
 
           logger.info({ dbMessageId: saved.message.id, chatId: saved.chat.id }, '[WhatsApp Webhook] Inbound message saved successfully');
 
-          // Auto-capture Lead if it doesn't exist in CRM
+          // Auto-capture Lead if it doesn't exist in CRM leads or bookings
           try {
             const cleanPhone = normalizePhone(from);
+            
+            // Check if lead exists
             const existingLead = await query(
               `SELECT lead_id FROM leads WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) AND deleted = FALSE LIMIT 1`,
               [tenantId, cleanPhone, `%${cleanPhone}`]
             );
 
-            if (existingLead.rows.length === 0) {
+            // Check if booking exists
+            const existingBooking = await query(
+              `SELECT id FROM bookings WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) LIMIT 1`,
+              [tenantId, cleanPhone, `%${cleanPhone}`]
+            );
+
+            if (existingLead.rows.length === 0 && existingBooking.rows.length === 0) {
               const leadService = require('../services/leadService');
               await leadService.createLead(
                 tenantId,
                 {
                   customerName: contactName || 'WhatsApp Contact',
                   phone: cleanPhone,
-                  interest: text || 'Inquiry via WhatsApp',
+                  interest: 'Inquiry via WhatsApp',
                   source: 'WhatsApp',
                   stage: 'New',
                   notes: `Auto-captured from first WhatsApp message: "${text}"`,
                 },
                 'WhatsApp Bot'
               );
-              logger.info({ tenantId, phone: cleanPhone }, '[WhatsApp Webhook] Auto-created new Lead for inbound message');
+              logger.info({ tenantId, phone: cleanPhone }, '[WhatsApp Webhook] Auto-created new Lead for inbound message (not in leads or bookings)');
             }
           } catch (leadErr) {
             logger.error({ err: leadErr }, '[WhatsApp Webhook] Failed to auto-create Lead from inbound message');
           }
 
-          // Broadcast to tenant's WebSocket clients
+          // Broadcast to tenant's WebSocket clients for the incoming message
           broadcastToTenant(tenantId, {
             type: 'WHATSAPP_MESSAGE_RECEIVED',
             chat: saved.chat,
             message: saved.message
           });
+
+          // Trigger Automated AI Reply if enabled
+          try {
+            const settings = await settingsService.getSettings(tenantId);
+            const chatManagedBy = saved.chat.managed_by || 'human';
+
+            if (settings.whatsapp_ai_auto_reply === true && chatManagedBy === 'ai') {
+              logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');
+
+              const aiReplyResult = await aiService.generateWhatsappReply(
+                tenantId,
+                { phone: from, message: text },
+                { onHistoryError: (err) => logger.warn({ err }, 'Error fetching follow-up history for live webhook context') }
+              );
+
+              if (aiReplyResult && aiReplyResult.reply) {
+                const replyText = aiReplyResult.reply.trim();
+
+                if (replyText === '[FALLBACK_HUMAN_NEEDED]') {
+                  logger.info({ tenantId, from }, '[WhatsApp Webhook] AI fallback triggered. Handoff to human.');
+
+                  // Update chat managed_by to 'human'
+                  await query(
+                    `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+                    [tenantId, saved.chat.id]
+                  );
+
+                  // Broadcast handoff notification to websocket clients
+                  broadcastToTenant(tenantId, {
+                    type: 'WHATSAPP_HUMAN_HANDOFF_TRIGGERED',
+                    chatId: saved.chat.id,
+                    customerName: saved.chat.customer_name || from,
+                    phone: from
+                  });
+                } else {
+                  logger.info({ tenantId, from, replyText }, '[WhatsApp Webhook] Sending automated AI response');
+
+                  // Send response via WhatsApp Service
+                  const mockBooking = { phone: from, bookingId: 'CHAT' };
+                  const sendResult = await whatsappService.sendWhatsAppMessage(
+                    mockBooking,
+                    settings,
+                    null, // no media for auto-reply
+                    replyText
+                  );
+
+                  const messageId = sendResult?.messages?.[0]?.id || null;
+
+                  // Save outbound message to DB
+                  const outboundSaved = await whatsappRepo.saveMessage(
+                    tenantId,
+                    from,
+                    'outbound',
+                    replyText,
+                    saved.chat.customer_name || from,
+                    0,
+                    messageId
+                  );
+
+                  // Broadcast outbound message to websocket clients
+                  broadcastToTenant(tenantId, {
+                    type: 'WHATSAPP_MESSAGE_RECEIVED',
+                    chat: outboundSaved.chat,
+                    message: outboundSaved.message
+                  });
+                }
+              }
+            }
+          } catch (aiErr) {
+            logger.error({ err: aiErr }, '[WhatsApp Webhook] Error during AI auto-reply processing');
+          }
         }
 
         // Handle Status Updates (sent, delivered, read)
@@ -303,6 +389,33 @@ async function receiveWebhook(req, res) {
   }
 }
 
+async function updateChatManagement(req, res, next) {
+  try {
+    const { chatId } = req.params;
+    const { managedBy } = req.body; // 'ai' or 'human'
+
+    if (!['ai', 'human'].includes(managedBy)) {
+      return res.status(400).json({ message: 'Invalid management mode. Supported values: ai, human' });
+    }
+
+    const { rows } = await query(
+      `UPDATE whatsapp_chats 
+       SET managed_by = $1, updated_at = now() 
+       WHERE tenant_id = $2 AND id = $3 
+       RETURNING *`,
+      [managedBy, req.user.tenantId, chatId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Chat not found.' });
+    }
+
+    res.json({ message: `Management mode updated to ${managedBy}`, chat: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = { 
   sendMessage, 
   verifyWebhook, 
@@ -310,5 +423,6 @@ module.exports = {
   getChats,
   getChatMessages,
   sendChatMessage,
-  readChat
+  readChat,
+  updateChatManagement
 };

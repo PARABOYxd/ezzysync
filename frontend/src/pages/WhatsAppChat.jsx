@@ -86,7 +86,6 @@ export default function WhatsAppChat() {
               const filtered = prevChats.filter((c) => c.phone !== updatedChat.phone);
               return [updatedChat, ...filtered];
             });
-
             // Append to active message thread if open
             setActiveChat((currentActive) => {
               if (currentActive && currentActive.phone === updatedChat.phone) {
@@ -100,6 +99,7 @@ export default function WhatsAppChat() {
                 });
                 // Reset unread count for current active chat on backend
                 whatsappChatService.markChatAsRead(currentActive.id).catch(() => {});
+                return updatedChat;
               }
               return currentActive;
             });
@@ -108,6 +108,20 @@ export default function WhatsAppChat() {
             setMessages((prevMsgs) =>
               prevMsgs.map((m) => (m.message_id === messageId ? { ...m, status } : m))
             );
+          } else if (data.type === 'WHATSAPP_HUMAN_HANDOFF_TRIGGERED') {
+            const { chatId, customerName, phone } = data;
+            toast.info(`🔔 Human handoff requested for ${customerName} (${phone})`);
+
+            setChats((prevChats) =>
+              prevChats.map((c) => (c.id === chatId ? { ...c, managed_by: 'human' } : c))
+            );
+
+            setActiveChat((currentActive) => {
+              if (currentActive && currentActive.id === chatId) {
+                return { ...currentActive, managed_by: 'human' };
+              }
+              return currentActive;
+            });
           }
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -186,10 +200,9 @@ export default function WhatsAppChat() {
         loading: false,
         url: response.data.url,
       }));
-      toast.success('File uploaded successfully.');
     } catch (err) {
       setAttachment(null);
-      toast.error(err.response?.data?.message || 'Failed to upload attachment.');
+      toast.error('Failed to upload file.');
     }
   };
 
@@ -218,10 +231,10 @@ export default function WhatsAppChat() {
     try {
       const res = await whatsappChatService.sendChatMessage(activeChat.id, payload);
       setMessages((prev) => {
-        // Prevent duplicate messages in state
         if (prev.some((m) => m.id === res.messageData.id)) return prev;
         return [...prev, res.messageData];
       });
+      setActiveChat(res.chat);
       setChats((prev) =>
         prev.map((c) => (c.id === activeChat.id ? res.chat : c))
       );
@@ -232,18 +245,31 @@ export default function WhatsAppChat() {
     }
   };
 
-  // Filter chats by search query
-  const filteredChats = chats.filter(
-    (c) =>
-      c.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
-  );
+  const toggleManagementMode = async () => {
+    if (!activeChat) return;
+    const newMode = activeChat.managed_by === 'ai' ? 'human' : 'ai';
+    try {
+      const res = await whatsappChatService.updateChatManagement(activeChat.id, newMode);
+      setActiveChat(res.chat);
+      setChats((prev) =>
+        prev.map((c) => (c.id === activeChat.id ? res.chat : c))
+      );
+      toast.success(res.message);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update chat management mode.');
+    }
+  };
 
-  const formatChatTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
+  const formatChatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const filteredChats = chats.filter((c) =>
+    (c.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.phone.includes(searchQuery)
+  );
 
   return (
     <div className="flex h-[calc(100vh-80px)] rounded-2xl overflow-hidden border border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
@@ -364,6 +390,30 @@ export default function WhatsAppChat() {
                   <Phone size={10} /> {activeChat.phone}
                 </p>
               </div>
+
+              {/* AI/Human Management Switch */}
+              <button
+                type="button"
+                onClick={toggleManagementMode}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition shadow-xs border shrink-0 ${
+                  activeChat.managed_by === 'ai'
+                    ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/60'
+                    : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-700/50 text-slate-600 dark:text-zinc-400 hover:bg-slate-100/75 dark:hover:bg-zinc-800/80'
+                }`}
+                title="Click to toggle AI Assistant for this chat"
+              >
+                {activeChat.managed_by === 'ai' ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse inline-block"></span>
+                    🤖 AI Assistant
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-zinc-500 inline-block"></span>
+                    👤 Human Managed
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Messages Area */}

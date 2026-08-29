@@ -530,9 +530,28 @@ export default function SettingsPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* AI Auto-Reply Toggle */}
+                    <div className="pt-2">
+                      <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border border-slate-200 bg-indigo-50/40 hover:bg-indigo-50 transition text-sm font-medium text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={!!settings.whatsappAiAutoReply}
+                          onChange={(e) => setSettings({ ...settings, whatsappAiAutoReply: e.target.checked })}
+                          className="rounded text-indigo-600 focus:ring-indigo-500/20 border-slate-300 mt-1"
+                        />
+                        <div>
+                          <p className="font-bold text-indigo-950 flex items-center gap-1.5">
+                            Enable WhatsApp AI Auto-Replies (Beta)
+                          </p>
+                          <p className="text-xs text-indigo-700/80 mt-0.5 leading-relaxed">
+                            AI will automatically reply to incoming messages when a chat is set to AI-managed. It utilizes bookings, leads, and itineraries data to answer. If the details are missing or customization is requested, it turns off and notifies the team.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
                   </div>
-                ) : (
-                  /* Using EzzySync shared number */
+                ) : (                  /* Using EzzySync shared number */
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
                       <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
