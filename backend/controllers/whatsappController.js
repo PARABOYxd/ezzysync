@@ -306,6 +306,29 @@ async function receiveWebhook(req, res) {
             const chatManagedBy = saved.chat.managed_by || 'ai';
 
             if (settings.whatsappAiAutoReply === true && chatManagedBy === 'ai') {
+              // ── Human-like delay: wait 5 seconds before replying ──────────────
+              // This also acts as a debounce — if the customer sends another
+              // message within these 5 seconds we will detect it below and skip.
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+
+              // ── Debounce guard: check if a newer message arrived from this
+              // sender during the delay. If yes, skip — the newer message
+              // handler will reply to the full conversation instead. ────────────
+              const newerMsg = await query(
+                `SELECT id FROM whatsapp_messages
+                 WHERE tenant_id = $1
+                   AND chat_id = $2
+                   AND direction = 'inbound'
+                   AND id != $3
+                   AND message_timestamp > $4
+                 LIMIT 1`,
+                [tenantId, saved.chat.id, saved.message.id, saved.message.message_timestamp]
+              );
+              if (newerMsg.rows.length > 0) {
+                logger.info({ tenantId, from }, '[WhatsApp Webhook] Newer message detected during delay — skipping reply for this message');
+                return res.sendStatus(200);
+              }
+
               logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');
 
               // Broadcast AI typing state to WebSocket clients
