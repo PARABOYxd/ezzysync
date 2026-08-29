@@ -16,6 +16,7 @@ export default function WhatsAppChat() {
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [typingChats, setTypingChats] = useState({});
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
@@ -122,6 +123,12 @@ export default function WhatsAppChat() {
               }
               return currentActive;
             });
+          } else if (data.type === 'WHATSAPP_AI_TYPING') {
+            const { chatId, typing } = data;
+            setTypingChats((prev) => ({
+              ...prev,
+              [chatId]: typing
+            }));
           }
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -158,7 +165,7 @@ export default function WhatsAppChat() {
   // Auto scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, activeChat ? typingChats[activeChat.id] : false]);
 
   const handleSelectChat = async (chat) => {
     setActiveChat(chat);
@@ -479,6 +486,18 @@ export default function WhatsAppChat() {
                     </div>
                   );
                 })
+              )}
+              {activeChat && typingChats[activeChat.id] && (
+                <div className="max-w-[70%] rounded-xl px-3.5 py-2.5 bg-indigo-50/70 dark:bg-indigo-950/40 text-slate-800 dark:text-indigo-200 self-start rounded-tl-none border border-indigo-100 dark:border-indigo-900/40 flex items-center gap-2 shadow-xs z-10">
+                  <div className="flex gap-1.5 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400">
+                    AI Assistant is thinking...
+                  </span>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>

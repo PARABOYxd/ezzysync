@@ -292,63 +292,81 @@ async function receiveWebhook(req, res) {
             if (settings.whatsappAiAutoReply === true && chatManagedBy === 'ai') {
               logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');
 
-              const aiReplyResult = await aiService.generateWhatsappReply(
-                tenantId,
-                { phone: from, message: text },
-                { onHistoryError: (err) => logger.warn({ err }, 'Error fetching follow-up history for live webhook context') }
-              );
+              // Broadcast AI typing state to WebSocket clients
+              broadcastToTenant(tenantId, {
+                type: 'WHATSAPP_AI_TYPING',
+                chatId: saved.chat.id,
+                typing: true
+              });
 
-              if (aiReplyResult && aiReplyResult.reply) {
-                const replyText = aiReplyResult.reply.trim();
+              try {
+                const aiReplyResult = await aiService.generateWhatsappReply(
+                  tenantId,
+                  { phone: from, message: text },
+                  { onHistoryError: (err) => logger.warn({ err }, 'Error fetching follow-up history for live webhook context') }
+                );
 
-                if (replyText === '[FALLBACK_HUMAN_NEEDED]') {
-                  logger.info({ tenantId, from }, '[WhatsApp Webhook] AI fallback triggered. Handoff to human.');
+                if (aiReplyResult && aiReplyResult.reply) {
+                  const replyText = aiReplyResult.reply.trim();
 
-                  // Update chat managed_by to 'human'
-                  await query(
-                    `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = now() WHERE tenant_id = $1 AND id = $2`,
-                    [tenantId, saved.chat.id]
-                  );
+                  if (replyText === '[FALLBACK_HUMAN_NEEDED]') {
+                    logger.info({ tenantId, from }, '[WhatsApp Webhook] AI fallback triggered. Handoff to human.');
 
-                  // Broadcast handoff notification to websocket clients
-                  broadcastToTenant(tenantId, {
-                    type: 'WHATSAPP_HUMAN_HANDOFF_TRIGGERED',
-                    chatId: saved.chat.id,
-                    customerName: saved.chat.customer_name || from,
-                    phone: from
-                  });
-                } else {
-                  logger.info({ tenantId, from, replyText }, '[WhatsApp Webhook] Sending automated AI response');
+                    // Update chat managed_by to 'human'
+                    await query(
+                      `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+                      [tenantId, saved.chat.id]
+                    );
 
-                  // Send response via WhatsApp Service
-                  const mockBooking = { phone: from, bookingId: 'CHAT' };
-                  const sendResult = await whatsappService.sendWhatsAppMessage(
-                    mockBooking,
-                    settings,
-                    null, // no media for auto-reply
-                    replyText
-                  );
+                    // Broadcast handoff notification to websocket clients
+                    broadcastToTenant(tenantId, {
+                      type: 'WHATSAPP_HUMAN_HANDOFF_TRIGGERED',
+                      chatId: saved.chat.id,
+                      customerName: saved.chat.customer_name || from,
+                      phone: from
+                    });
+                  } else {
+                    logger.info({ tenantId, from, replyText }, '[WhatsApp Webhook] Sending automated AI response');
 
-                  const messageId = sendResult?.messages?.[0]?.id || null;
+                    // Send response via WhatsApp Service
+                    const mockBooking = { phone: from, bookingId: 'CHAT' };
+                    const sendResult = await whatsappService.sendWhatsAppMessage(
+                      mockBooking,
+                      settings,
+                      null, // no media for auto-reply
+                      replyText
+                    );
 
-                  // Save outbound message to DB
-                  const outboundSaved = await whatsappRepo.saveMessage(
-                    tenantId,
-                    from,
-                    'outbound',
-                    replyText,
-                    saved.chat.customer_name || from,
-                    0,
-                    messageId
-                  );
+                    const messageId = sendResult?.messages?.[0]?.id || null;
 
-                  // Broadcast outbound message to websocket clients
-                  broadcastToTenant(tenantId, {
-                    type: 'WHATSAPP_MESSAGE_RECEIVED',
-                    chat: outboundSaved.chat,
-                    message: outboundSaved.message
-                  });
+                    // Save outbound message to DB
+                    const outboundSaved = await whatsappRepo.saveMessage(
+                      tenantId,
+                      from,
+                      'outbound',
+                      replyText,
+                      saved.chat.customer_name || from,
+                      0,
+                      messageId
+                    );
+
+                    // Broadcast outbound message to websocket clients
+                    broadcastToTenant(tenantId, {
+                      type: 'WHATSAPP_MESSAGE_RECEIVED',
+                      chat: outboundSaved.chat,
+                      message: outboundSaved.message
+                    });
+                  }
                 }
+              } catch (aiErr) {
+                logger.error({ err: aiErr }, '[WhatsApp Webhook] Error during AI auto-reply processing');
+              } finally {
+                // Broadcast AI typing completed
+                broadcastToTenant(tenantId, {
+                  type: 'WHATSAPP_AI_TYPING',
+                  chatId: saved.chat.id,
+                  typing: false
+                });
               }
             }
           } catch (aiErr) {
