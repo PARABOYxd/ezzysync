@@ -448,14 +448,7 @@ export default function WhatsAppChat() {
                 </p>
               </div>
             )}
-            {activeChat.managed_by !== 'ai' && (
-              <div className="mx-4 mt-0 mb-1 px-3.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 flex items-center gap-2">
-                <span className="text-amber-500 text-sm">👤</span>
-                <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 leading-snug">
-                  <span className="font-bold">AI Auto-Reply is OFF</span> — You are handling this chat manually. Click <em>"Click to enable AI"</em> above to let AI respond.
-                </p>
-              </div>
-            )}
+
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 md:p-6 space-y-3 relative z-10 flex flex-col">
