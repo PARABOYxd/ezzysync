@@ -287,7 +287,7 @@ async function receiveWebhook(req, res) {
           // Trigger Automated AI Reply if enabled
           try {
             const settings = await settingsService.getSettings(tenantId);
-            const chatManagedBy = saved.chat.managed_by || 'human';
+            const chatManagedBy = saved.chat.managed_by || 'ai';
 
             if (settings.whatsappAiAutoReply === true && chatManagedBy === 'ai') {
               logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');

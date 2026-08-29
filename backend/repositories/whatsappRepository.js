@@ -71,8 +71,8 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
   if (chatRows.rows.length === 0) {
     // Create new chat header
     const insertRes = await query(
-      `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, managed_by)
+       VALUES ($1, $2, $3, $4, $5, $6, 'ai')
        RETURNING *`,
       [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread]
     );
