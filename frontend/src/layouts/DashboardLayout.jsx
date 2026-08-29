@@ -8,6 +8,8 @@ import ThemeToggle from '../components/layout/ThemeToggle.jsx';
 import { Plus, Lock, Check, Crown, Sparkles } from 'lucide-react';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useToast } from '../hooks/useToast.jsx';
+import { openRazorpayCheckout } from '../services/paymentService';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
@@ -34,6 +36,7 @@ export default function DashboardLayout() {
   const [addOpen, setAddOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const toast = useToast();
 
   const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
   const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
@@ -42,6 +45,25 @@ export default function DashboardLayout() {
   const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.planId === 'PRO';
   const isSolo = user?.planId === 'SOLO';
   const isExpired = !isPaidPro && !isSolo && daysRemaining === 0;
+
+  const handlePaywallPayment = (planId, planName) => {
+    openRazorpayCheckout({
+      planId,
+      planName,
+      user,
+      onSuccess: (res) => {
+        toast.success(res.message || 'Payment successful! Plan upgraded.');
+        if (res.token && res.user) {
+          localStorage.setItem('hf_token', res.token);
+          localStorage.setItem('hf_user', JSON.stringify(res.user));
+          window.location.reload();
+        }
+      },
+      onError: (err) => {
+        toast.error(typeof err === 'string' ? err : 'Payment could not be completed.');
+      },
+    });
+  };
 
   const title = TITLES[location.pathname]
     || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'EzzySync');
@@ -104,10 +126,10 @@ export default function DashboardLayout() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => window.open('https://wa.me/919999999999?text=Hi%2C%20I%20want%20to%20subscribe%20to%20EzzySync%20Solo%20Agent%20Plan%20(%E2%82%B9999%2Fmo)', '_blank')}
+                  onClick={() => handlePaywallPayment('SOLO', 'Solo Agent Plan')}
                   className="mt-5 w-full py-2.5 rounded-xl text-xs font-semibold border border-slate-300 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 transition cursor-pointer"
                 >
-                  Activate Solo Plan (₹999)
+                  Pay & Activate Solo (₹999)
                 </button>
               </div>
 
@@ -129,10 +151,10 @@ export default function DashboardLayout() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => window.open('https://wa.me/919999999999?text=Hi%2C%20I%20want%20to%20subscribe%20to%20EzzySync%20Agency%20Growth%20Plan%20(%E2%82%B92499%2Fmo)', '_blank')}
+                  onClick={() => handlePaywallPayment('PRO', 'Agency Growth Pro Plan')}
                   className="mt-5 w-full py-2.5 rounded-xl text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-md transition cursor-pointer"
                 >
-                  Activate Pro Plan (₹2,499)
+                  Pay & Activate Pro (₹2,499)
                 </button>
               </div>
             </div>

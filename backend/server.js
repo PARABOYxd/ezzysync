@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+// Razorpay payment integration active
 const env = require('./config/env');
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');

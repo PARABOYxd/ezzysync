@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as profileService from '../services/profileService';
+import { openRazorpayCheckout } from '../services/paymentService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import Input from '../components/ui/Input.jsx';
@@ -30,6 +31,26 @@ export default function Profile() {
   const isSolo = user?.planId === 'SOLO';
   const isTrial = !isPaidPro && !isSolo && daysRemaining > 0;
   const isExpired = !isPaidPro && !isSolo && daysRemaining === 0;
+
+  const handleUpgradePayment = (planId, planName) => {
+    openRazorpayCheckout({
+      planId,
+      planName,
+      user,
+      onSuccess: (res) => {
+        toast.success(res.message || 'Payment successful! Plan upgraded.');
+        if (res.token && res.user) {
+          localStorage.setItem('hf_token', res.token);
+          localStorage.setItem('hf_user', JSON.stringify(res.user));
+          window.location.reload();
+        }
+        setUpgradeModalOpen(false);
+      },
+      onError: (err) => {
+        toast.error(typeof err === 'string' ? err : 'Payment could not be completed.');
+      },
+    });
+  };
 
   useEffect(() => {
     profileService.getProfile().then(setProfile).catch(() => toast.error('Could not load profile.'));
@@ -369,15 +390,12 @@ export default function Profile() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    toast.success('Solo Plan Selected. Opening setup support...');
-                    window.open('https://wa.me/919999999999?text=Hi%2C%20I%20want%20to%20subscribe%20to%20EzzySync%20Solo%20Agent%20Plan%20(%E2%82%B9999%2Fmo)', '_blank');
-                  }}
+                  onClick={() => handleUpgradePayment('SOLO', 'Solo Agent Plan')}
                   className={`mt-6 w-full py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                     isSolo ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200'
                   }`}
                 >
-                  {isSolo ? 'Current Active Plan' : 'Select Solo (₹999/mo)'}
+                  {isSolo ? 'Current Active Plan' : 'Pay & Activate Solo (₹999)'}
                 </button>
               </div>
 
@@ -406,13 +424,10 @@ export default function Profile() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    toast.success('Agency Growth Plan Selected. Opening activation support...');
-                    window.open('https://wa.me/919999999999?text=Hi%2C%20I%20want%20to%20subscribe%20to%20EzzySync%20Agency%20Growth%20Plan%20(%E2%82%B92499%2Fmo)', '_blank');
-                  }}
+                  onClick={() => handleUpgradePayment('PRO', 'Agency Growth Pro Plan')}
                   className="mt-6 w-full py-2.5 rounded-xl text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-md transition cursor-pointer"
                 >
-                  {isPaidPro ? 'Current Active Plan' : isTrial ? 'Renew Pro (₹2,499/mo)' : 'Upgrade to Pro'}
+                  {isPaidPro ? 'Current Active Plan' : isTrial ? 'Pay & Renew Pro (₹2,499)' : 'Pay & Upgrade to Pro (₹2,499)'}
                 </button>
               </div>
 

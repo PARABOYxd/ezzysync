@@ -1,64 +1,66 @@
+const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const axios = require('axios');
 const env = require('../config/env');
 const planRepository = require('../repositories/planRepository');
 const userRepository = require('../repositories/userRepository');
+const paymentRepository = require('../repositories/paymentRepository');
 const tokenService = require('./tokenService');
 
-const SUBSCRIPTION_AMOUNT_PAISE = 99900; // ₹999.00 in paise
+const PLAN_PRICES_PAISE = {
+  SOLO: 99900,   // ₹999.00 in paise
+  PRO: 249900,   // ₹2,499.00 in paise
+};
 
-/** Mock credentials only exist in local/dev setups with no real Razorpay
- * account. Both the order call and the signature check branch on this. */
-function isMockRazorpay() {
-  return env.razorpayKeyId.startsWith('rzp_test_mockKeyId');
+function getRazorpayInstance() {
+  return new Razorpay({
+    key_id: env.razorpayKeyId,
+    key_secret: env.razorpayKeySecret,
+  });
 }
 
-async function createSubscriptionOrder(tenantId) {
-  const amount = SUBSCRIPTION_AMOUNT_PAISE;
-  const receipt = `sub_${tenantId}_${Date.now()}`;
-
-  // If using mock credentials, simulate order response to avoid network call failure
-  if (isMockRazorpay()) {
-    return {
-      id: `order_mock_${Date.now()}`,
-      amount,
-      currency: 'INR',
-      receipt,
-      key_id: env.razorpayKeyId,
-      mock: true,
-    };
+async function createSubscriptionOrder(tenantId, userId, planId = 'PRO', customAmount = null) {
+  const finalPlan = planId === 'SOLO' ? 'SOLO' : 'PRO';
+  const amount = customAmount ? Math.round(Number(customAmount) * 100) : (PLAN_PRICES_PAISE[finalPlan] || 249900);
+  if (amount < 100) {
+    throw new Error('Minimum order amount must be at least 100 paise.');
   }
 
-  const auth = Buffer.from(`${env.razorpayKeyId}:${env.razorpayKeySecret}`).toString('base64');
-  const response = await axios.post(
-    'https://api.razorpay.com/v1/orders',
-    {
-      amount,
-      currency: 'INR',
-      receipt,
+  const receipt = `sub_${finalPlan.toLowerCase()}_${tenantId.substring(0, 8)}_${Date.now()}`;
+
+  const razorpay = getRazorpayInstance();
+  const order = await razorpay.orders.create({
+    amount,
+    currency: 'INR',
+    receipt,
+    notes: {
+      tenantId,
+      userId: userId || '',
+      planId: finalPlan,
     },
-    {
-      headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  });
+
+  // Record order in payments table
+  await paymentRepository.createPaymentRecord({
+    tenantId,
+    userId,
+    orderId: order.id,
+    planId: finalPlan,
+    amount,
+    currency: 'INR',
+  });
 
   return {
-    ...response.data,
+    ...order,
     key_id: env.razorpayKeyId,
+    planId: finalPlan,
   };
 }
 
 /**
- * Never treat a missing signature as verified outside of a mock setup, or
- * anyone could upgrade to Pro for free by just omitting razorpay_signature
- * from the request.
+ * Validates HMAC-SHA256(order_id + "|" + payment_id, KEY_SECRET) matches razorpay_signature.
  */
 function verifyPaymentSignature({ razorpay_payment_id, razorpay_order_id, razorpay_signature }) {
-  if (isMockRazorpay()) return true;
-  if (!razorpay_signature) return false;
+  if (!razorpay_signature || !razorpay_order_id || !razorpay_payment_id) return false;
 
   const generatedSignature = crypto
     .createHmac('sha256', env.razorpayKeySecret)
@@ -68,14 +70,39 @@ function verifyPaymentSignature({ razorpay_payment_id, razorpay_order_id, razorp
 }
 
 /**
- * Moves the tenant onto the Pro plan and mints a fresh access token carrying
- * the new planId. Returns null when the user row has disappeared, which the
- * caller surfaces as a 404.
+ * Validates Webhook Signature from Razorpay header
  */
-async function upgradeTenantToPro(tenantId, userId) {
-  await planRepository.setTenantPlan(tenantId, 'PRO');
+function verifyWebhookSignature(rawBody, signature, webhookSecret) {
+  if (!signature || !rawBody) return false;
+  const secret = webhookSecret || env.razorpayKeySecret;
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+  return expectedSignature === signature;
+}
 
-  const userRow = await userRepository.findUserWithTenantById(userId);
+/**
+ * Moves the tenant onto the chosen plan (SOLO or PRO), marks payment captured, and mints a fresh token.
+ */
+async function completePaymentAndUpgrade({ tenantId, userId, orderId, paymentId, signature, planId = 'PRO', rawResponse = null }) {
+  const finalPlan = planId === 'SOLO' ? 'SOLO' : 'PRO';
+
+  // 1. Update payments table
+  if (orderId) {
+    await paymentRepository.updatePaymentSuccess({
+      orderId,
+      paymentId,
+      signature,
+      rawResponse,
+    });
+  }
+
+  // 2. Set tenant plan in DB
+  await planRepository.setTenantPlan(tenantId, finalPlan);
+
+  // 3. Fetch fresh user & mint updated token
+  const userRow = userId ? await userRepository.findUserWithTenantById(userId) : await userRepository.findUserById(tenantId);
   if (!userRow) return null;
 
   const user = {
@@ -86,7 +113,7 @@ async function upgradeTenantToPro(tenantId, userId) {
     role: userRow.role,
     permissions: userRow.permissions || null,
     companyName: userRow.company_name || '',
-    planId: userRow.plan_id || 'FREE',
+    planId: userRow.plan_id || finalPlan,
   };
 
   return { user, token: tokenService.signAccessToken(user) };
@@ -95,5 +122,7 @@ async function upgradeTenantToPro(tenantId, userId) {
 module.exports = {
   createSubscriptionOrder,
   verifyPaymentSignature,
-  upgradeTenantToPro,
+  verifyWebhookSignature,
+  completePaymentAndUpgrade,
+  upgradeTenantPlan: (tId, uId, pId) => completePaymentAndUpgrade({ tenantId: tId, userId: uId, planId: pId }),
 };

@@ -678,7 +678,27 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding status/message_id/media columns to whatsapp_messages');
   }
 
-  await query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_msg_id ON whatsapp_messages(message_id);`);
+  // Payments & Subscription Ledger table
+  await query(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      order_id TEXT UNIQUE NOT NULL,
+      payment_id TEXT,
+      signature TEXT,
+      plan_id TEXT NOT NULL,
+      amount INT NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'INR',
+      status TEXT NOT NULL DEFAULT 'created',
+      raw_response JSONB DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_tenant ON payments(tenant_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_payment ON payments(payment_id);`);
 
   logger.info('Schema check complete.');
 }
