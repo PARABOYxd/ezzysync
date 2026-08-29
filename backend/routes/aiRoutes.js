@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { requirePermission } = require('../middleware/permissionMiddleware');
+const { requireFeature } = require('../middleware/planMiddleware');
 const ctrl = require('../controllers/aiController');
 
 const router = express.Router();
@@ -12,6 +13,7 @@ const upload = multer({
 });
 
 router.use(requireAuth);
+router.use(requireFeature('canUseAi'));
 
 router.post('/parse', requirePermission('aiTools', 'use'), upload.single('file'), ctrl.parseTicketOrChat);
 router.post('/generate-itinerary', requirePermission('aiTools', 'use'), ctrl.generateItinerary);

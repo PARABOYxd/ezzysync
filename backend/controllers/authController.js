@@ -16,6 +16,8 @@ function publicUser(user) {
     permissions: user.permissions,
     companyName: user.companyName,
     planId: user.planId || 'FREE',
+    createdAt: user.createdAt,
+    trialDays: Number(process.env.DEFAULT_TRIAL_DAYS || 30),
   };
 }
 
@@ -117,8 +119,17 @@ async function login(req, res, next) {
   }
 }
 
-async function me(req, res) {
-  res.json({ user: req.user });
+async function me(req, res, next) {
+  try {
+    const userId = req.user.userId || req.user.tenantId;
+    const user = await userService.findUserById(userId);
+    if (!user) {
+      return res.json({ user: req.user });
+    }
+    res.json({ user: publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // Silent re-auth: trades a still-valid refresh token for a new access token

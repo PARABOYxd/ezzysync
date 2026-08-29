@@ -77,28 +77,31 @@ app.use(express.json({ limit: '2mb' }));
 app.use(requestLogger);
 app.use('/api', apiLimiter);
 app.use("/api/google", googleRoutes);
+const { requireActiveSubscription } = require('./middleware/planMiddleware');
+
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 app.use('/api/public', publicRoutes);
-
 app.use('/api/auth', authRoutes);
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/leads', leadRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/profile', profileRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/quotations', quotationRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/follow-ups', followUpRoutes);
-app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/batches', batchRoutes);
-app.use('/api/hotels', hotelRoutes);
-app.use('/api/instagram', instagramRoutes);
+
+// Protected CRM business routes (Gated by active subscription / valid trial)
+app.use('/api/bookings', requireActiveSubscription, bookingRoutes);
+app.use('/api/leads', requireActiveSubscription, leadRoutes);
+app.use('/api/dashboard', requireActiveSubscription, dashboardRoutes);
+app.use('/api/invoices', requireActiveSubscription, invoiceRoutes);
+app.use('/api/whatsapp', requireActiveSubscription, whatsappRoutes);
+app.use('/api/settings', requireActiveSubscription, settingsRoutes);
+app.use('/api/upload', requireActiveSubscription, uploadRoutes);
+app.use('/api/users', requireActiveSubscription, userRoutes);
+app.use('/api/quotations', requireActiveSubscription, quotationRoutes);
+app.use('/api/customers', requireActiveSubscription, customerRoutes);
+app.use('/api/follow-ups', requireActiveSubscription, followUpRoutes);
+app.use('/api/ai', requireActiveSubscription, aiRoutes);
+app.use('/api/expenses', requireActiveSubscription, expenseRoutes);
+app.use('/api/batches', requireActiveSubscription, batchRoutes);
+app.use('/api/hotels', requireActiveSubscription, hotelRoutes);
+app.use('/api/instagram', requireActiveSubscription, instagramRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
 app.use(errorHandler);

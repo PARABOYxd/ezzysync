@@ -18,7 +18,12 @@ export function AuthProvider({ children }) {
     }
     authService
       .fetchMe()
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        if (data?.user) {
+          localStorage.setItem('hf_user', JSON.stringify(data.user));
+          setUser(data.user);
+        }
+      })
       .catch((err) => {
         const status = err.response?.status;
         if (status === 401 || status === 403) {

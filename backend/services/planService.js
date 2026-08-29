@@ -1,20 +1,66 @@
+const { query } = require('../config/db');
 const planRepository = require('../repositories/planRepository');
 
 async function getTenantPlanLimits(tenantId) {
-  const plan = await planRepository.getTenantPlan(tenantId);
-  if (!plan) {
-    // Default fallback to Free Plan if not found
+  // 1. Fetch tenant created_at and plan_id
+  const { rows } = await query('SELECT plan_id, created_at FROM tenants WHERE id = $1', [tenantId]);
+  const tenant = rows[0];
+
+  const trialDays = Number(process.env.DEFAULT_TRIAL_DAYS || 30);
+  const createdTime = tenant?.created_at ? new Date(tenant.created_at).getTime() : Date.now();
+  const isWithinTrial = (Date.now() - createdTime) < (trialDays * 24 * 60 * 60 * 1000);
+
+  // If currently within 30-day Free Trial -> unlock PRO features!
+  if (isWithinTrial && (!tenant?.plan_id || tenant.plan_id === 'FREE' || tenant.plan_id === 'TRIAL')) {
     return {
-      id: 'FREE',
-      name: 'Free Plan',
+      id: 'TRIAL',
+      name: 'Pro 30-Day Trial',
       maxBookings: -1,
-      maxTeamMembers: -1,
+      maxTeamMembers: 5,
       canDownloadInvoice: true,
       canSendWhatsapp: true,
       canConnectGmail: true,
       canViewAuditLogs: true,
       canExportReports: true,
+      canUseAi: true,
+      isTrial: true,
+      isExpired: false,
+    };
+  }
+
+  // If trial has expired and tenant has not subscribed to any paid plan -> Lockout!
+  if (!isWithinTrial && (!tenant?.plan_id || tenant.plan_id === 'FREE' || tenant.plan_id === 'TRIAL')) {
+    return {
+      id: 'EXPIRED',
+      name: 'Trial Expired',
+      maxBookings: 0,
+      maxTeamMembers: 0,
+      canDownloadInvoice: false,
+      canSendWhatsapp: false,
+      canConnectGmail: false,
+      canViewAuditLogs: false,
+      canExportReports: false,
       canUseAi: false,
+      isTrial: false,
+      isExpired: true,
+    };
+  }
+
+  const plan = await planRepository.getTenantPlan(tenantId);
+  if (!plan) {
+    return {
+      id: 'EXPIRED',
+      name: 'Trial Expired',
+      maxBookings: 0,
+      maxTeamMembers: 0,
+      canDownloadInvoice: false,
+      canSendWhatsapp: false,
+      canConnectGmail: false,
+      canViewAuditLogs: false,
+      canExportReports: false,
+      canUseAi: false,
+      isTrial: false,
+      isExpired: true,
     };
   }
   return {

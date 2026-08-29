@@ -1,3 +1,5 @@
+const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 const planService = require('../services/planService');
 
 function requireFeature(featureKey) {
@@ -36,7 +38,41 @@ function requireUsageLimit(resource) {
   };
 }
 
+async function requireActiveSubscription(req, res, next) {
+  try {
+    let tenantId = req.user?.tenantId;
+
+    if (!tenantId) {
+      const header = req.headers.authorization || '';
+      const token = header.startsWith('Bearer ') ? header.slice(7) : req.query.token;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, env.jwtSecret);
+          tenantId = decoded.tenantId;
+        } catch (_) {}
+      }
+    }
+
+    if (!tenantId) {
+      return next(); // Unauthenticated requests are handled by requireAuth downstream
+    }
+
+    const limits = await planService.getTenantPlanLimits(tenantId);
+    if (limits.isExpired) {
+      return res.status(403).json({
+        message: 'Your 30-day free trial has expired. Please subscribe to a plan to continue using EzzySync.',
+        code: 'TRIAL_EXPIRED',
+        expired: true,
+      });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   requireFeature,
   requireUsageLimit,
+  requireActiveSubscription,
 };

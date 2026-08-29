@@ -72,6 +72,13 @@ export default function Sidebar({ open, onClose }) {
     </div>
   );
 
+  // Configurable trial duration (default: 30 days, can be overridden via backend/env)
+  const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
+  const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
+  const daysPassed = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24));
+  const daysRemaining = Math.max(0, totalTrialDays - daysPassed);
+  const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.isSubscribed;
+
   return (
     <>
       {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
@@ -99,6 +106,44 @@ export default function Sidebar({ open, onClose }) {
           {renderSection('Billing', billingLinks)}
           {renderSection('Settings', settingsLinks)}
         </nav>
+
+        {/* Trial Days Remaining Badge */}
+        {!isPaidPro && (
+          <div className={`mx-2.5 mb-2 p-2.5 rounded-xl border shadow-xs ${
+            daysRemaining === 0 
+              ? 'bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950/40 dark:to-zinc-900 border-rose-200 dark:border-rose-900/60'
+              : 'bg-gradient-to-br from-emerald-50/80 to-amber-50/80 dark:from-zinc-900 dark:to-zinc-800 border-emerald-200/70 dark:border-zinc-700/70'
+          }`}>
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                daysRemaining === 0 ? 'text-rose-900 dark:text-rose-300' : 'text-emerald-900 dark:text-emerald-300'
+              }`}>
+                {daysRemaining === 0 ? '⚠️ Trial Expired' : '🎁 30-Day Free Trial'}
+              </span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full font-mono ${
+                daysRemaining === 0
+                  ? 'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-100 border border-rose-300'
+                  : daysRemaining <= 3 
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-200 border border-rose-300 dark:border-rose-800' 
+                    : 'bg-emerald-200/90 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-200'
+              }`}>
+                {daysRemaining === 0 ? 'Expired' : `${daysRemaining} ${daysRemaining === 1 ? 'Day Left' : 'Days Left'}`}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-600 dark:text-zinc-400 mb-2 leading-tight">
+              {daysRemaining === 0 
+                ? 'Your 30-day trial has ended. Upgrade to continue using all features.'
+                : 'You have full Pro access active with all features unlocked for free.'}
+            </p>
+            <NavLink
+              to="/profile"
+              onClick={onClose}
+              className="block w-full text-center py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-[11px] font-semibold transition shadow-xs"
+            >
+              {daysRemaining === 0 ? 'Upgrade Plan Now' : 'View Plan & Details'}
+            </NavLink>
+          </div>
+        )}
 
         {/* User Account Section */}
         <div className="p-3 border-t border-[var(--border)]">
