@@ -7,6 +7,17 @@ const { query } = require('../config/db');
 const { broadcastToTenant } = require('../services/websocketService');
 const logger = require('../utils/logger');
 
+function normalizePhone(phone = '') {
+  let clean = phone.replace(/\D/g, '');
+  // Remove leading zeros
+  clean = clean.replace(/^0+/, '');
+  // Prepend country code 91 if it is a 10 digit number
+  if (clean.length === 10) {
+    clean = '91' + clean;
+  }
+  return clean;
+}
+
 async function sendMessage(req, res, next) {
   try {
     const booking = await bookingService.getBookingById(req.user.tenantId, req.params.bookingId);
@@ -24,7 +35,7 @@ async function sendMessage(req, res, next) {
     // Save to the database as outbound chat message
     try {
       const text = messageText || whatsappService.buildMessageText(booking, settings);
-      const cleanPhone = booking.phone.replace(/\D/g, '');
+      const cleanPhone = normalizePhone(booking.phone);
       const messageId = result?.messages?.[0]?.id || null;
       const saved = await whatsappRepo.saveMessage(req.user.tenantId, cleanPhone, 'outbound', text, booking.customerName, 0, messageId);
 
@@ -225,7 +236,7 @@ async function receiveWebhook(req, res) {
 
           // Auto-capture Lead if it doesn't exist in CRM
           try {
-            const cleanPhone = from.replace(/\D/g, '');
+            const cleanPhone = normalizePhone(from);
             const existingLead = await query(
               `SELECT lead_id FROM leads WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) AND deleted = FALSE LIMIT 1`,
               [tenantId, cleanPhone, `%${cleanPhone}`]

@@ -40,19 +40,32 @@ async function resetUnreadCount(tenantId, chatId) {
   return rows[0];
 }
 
+function normalizePhone(phone = '') {
+  let clean = phone.replace(/\D/g, '');
+  // Remove leading zeros
+  clean = clean.replace(/^0+/, '');
+  // Prepend country code 91 if it is a 10 digit number
+  if (clean.length === 10) {
+    clean = '91' + clean;
+  }
+  return clean;
+}
+
 /**
  * Save an incoming or outgoing message.
  * Handles creating or updating the chat header in a single database transaction/block.
  */
 async function saveMessage(tenantId, phone, direction, text, customerName = '', incrementUnread = 0, messageId = null, status = 'sent', timestamp = null, messageType = 'text', mediaUrl = null) {
+  const cleanPhone = normalizePhone(phone);
+  
   // Try to find the chat header first
   let chatRows = await query(
     `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
-    [tenantId, phone]
+    [tenantId, cleanPhone]
   );
 
   let chat;
-  const nameToUse = customerName || (chatRows.rows[0]?.customer_name) || phone;
+  const nameToUse = customerName || (chatRows.rows[0]?.customer_name) || cleanPhone;
   const msgTimestamp = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
 
   if (chatRows.rows.length === 0) {
@@ -61,7 +74,7 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
       `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [tenantId, phone, nameToUse, text, msgTimestamp, incrementUnread]
+      [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread]
     );
     chat = insertRes.rows[0];
   } else {
@@ -75,7 +88,7 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
            updated_at = now()
        WHERE tenant_id = $5 AND phone = $6
        RETURNING *`,
-      [text, msgTimestamp, incrementUnread, nameToUse, tenantId, phone]
+      [text, msgTimestamp, incrementUnread, nameToUse, tenantId, cleanPhone]
     );
     chat = updateRes.rows[0];
   }

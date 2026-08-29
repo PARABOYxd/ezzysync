@@ -23,6 +23,17 @@ function buildMessageText(booking, settings) {
  * `mediaLink` below expects a publicly reachable URL to the invoice PDF
  * (e.g. one you've stored via a cloud bucket or a signed URL endpoint).
  */
+function normalizePhone(phone = '') {
+  let clean = phone.replace(/\D/g, '');
+  // Remove leading zeros
+  clean = clean.replace(/^0+/, '');
+  // Prepend country code 91 if it is a 10 digit number
+  if (clean.length === 10) {
+    clean = '91' + clean;
+  }
+  return clean;
+}
+
 async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null) {
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
@@ -40,12 +51,14 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
     text = buildMessageText(booking, settings);
   }
 
+  const normalizedTo = normalizePhone(booking.phone);
+
   let payload;
   if (mediaLink) {
     if (mediaType === 'image') {
       payload = {
         messaging_product: 'whatsapp',
-        to: booking.phone.replace(/\D/g, ''),
+        to: normalizedTo,
         type: 'image',
         image: { link: mediaLink },
       };
@@ -56,7 +69,7 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
       const nameOfFile = filename || `Document-${Date.now()}.pdf`;
       payload = {
         messaging_product: 'whatsapp',
-        to: booking.phone.replace(/\D/g, ''),
+        to: normalizedTo,
         type: 'document',
         document: { link: mediaLink, filename: nameOfFile },
       };
@@ -67,7 +80,7 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
   } else {
     payload = {
       messaging_product: 'whatsapp',
-      to: booking.phone.replace(/\D/g, ''),
+      to: normalizedTo,
       type: 'text',
       text: { body: text },
     };

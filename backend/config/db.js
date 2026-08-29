@@ -700,6 +700,18 @@ async function ensureSchema() {
   await query(`CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_payments_payment ON payments(payment_id);`);
 
+  // Normalize existing 10-digit phone numbers to 12-digit Indian numbers with 91 prefix in whatsapp_chats
+  try {
+    await query(`
+      UPDATE whatsapp_chats 
+      SET phone = '91' || phone 
+      WHERE LENGTH(phone) = 10 
+        AND ('91' || phone) NOT IN (SELECT phone FROM whatsapp_chats);
+    `);
+  } catch (err) {
+    logger.warn({ err }, 'Failed to normalize existing whatsapp_chats phone numbers');
+  }
+
   logger.info('Schema check complete.');
 }
 
