@@ -348,11 +348,24 @@ export default function WhatsAppChat() {
                       {c.last_message}
                     </p>
                   </div>
-                  {c.unread_count > 0 && (
-                    <span className="bg-emerald-500 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center text-[10px] shrink-0 animate-bounce">
-                      {c.unread_count}
-                    </span>
-                  )}
+                  {/* AI / Human badge in chat list */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {c.unread_count > 0 && (
+                      <span className="bg-emerald-500 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center text-[10px] animate-bounce">
+                        {c.unread_count}
+                      </span>
+                    )}
+                    {c.managed_by === 'ai' ? (
+                      <span className="flex items-center gap-1 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none">
+                        <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse inline-block" />
+                        AI
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none">
+                        👤
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })
