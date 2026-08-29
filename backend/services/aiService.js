@@ -242,7 +242,7 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
 
   // 3. Check itineraries/quotations
   const quotationsRes = await query(
-    `SELECT uuid, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
+    `SELECT id, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
     [tenantId]
   );
   const batchesRes = await query(
@@ -253,7 +253,7 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
   const itineraries = [
     ...quotationsRes.rows.map((q) => ({
       ...q,
-      previewUrl: q.uuid ? `${env.frontendUrl}/quote-preview/${q.uuid}` : null
+      previewUrl: q.id ? `${env.frontendUrl}/quote-preview/${q.id}` : null
     })),
     ...batchesRes.rows.map((b) => ({
       ...b,
