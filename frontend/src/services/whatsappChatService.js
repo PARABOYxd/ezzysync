@@ -15,3 +15,6 @@ export const markChatAsRead = (chatId) =>
 
 export const updateChatManagement = (chatId, managedBy) =>
   api.put(`/whatsapp/chats/${chatId}/management`, { managedBy }).then((r) => r.data);
+
+export const startNewChat = (phone) =>
+  api.post('/whatsapp/chats/start', { phone }).then((r) => r.data.chat);

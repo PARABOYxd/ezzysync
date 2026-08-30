@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Search, Send, User, Check, CheckCheck, MessageSquare, ShieldAlert, Phone, Clock, Paperclip, FileText, Image, X, ArrowLeft } from 'lucide-react';
+import { Search, Send, User, Check, CheckCheck, MessageSquare, ShieldAlert, Phone, Clock, Paperclip, FileText, Image, X, ArrowLeft, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import api, { API_BASE_URL } from '../services/api';
@@ -17,6 +17,7 @@ export default function WhatsAppChat() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [typingChats, setTypingChats] = useState({});
+  const [startingChat, setStartingChat] = useState(false);
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
@@ -189,6 +190,27 @@ export default function WhatsAppChat() {
     } catch (err) {}
   };
 
+  const handleStartNewChat = async () => {
+    if (!searchQuery.trim()) return;
+    setStartingChat(true);
+    try {
+      const newChat = await whatsappChatService.startNewChat(searchQuery.trim());
+      // Append to the list of chats if not already present
+      setChats((prev) => {
+        if (prev.some((c) => c.id === newChat.id || c.phone === newChat.phone)) return prev;
+        return [newChat, ...prev];
+      });
+      // Select the new chat
+      handleSelectChat(newChat);
+      setSearchQuery('');
+      toast.success('New chat started!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to start chat.');
+    } finally {
+      setStartingChat(false);
+    }
+  };
+
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -288,6 +310,11 @@ export default function WhatsAppChat() {
     c.phone.includes(searchQuery)
   );
 
+  const trimmedQuery = searchQuery.trim();
+  const digitsOnly = trimmedQuery.replace(/\D/g, '');
+  const isSearchQueryPhone = digitsOnly.length >= 7;
+  const exactMatchExists = chats.some((c) => c.phone === trimmedQuery || c.phone === digitsOnly);
+
   return (
     <div className="flex h-[calc(100vh-80px)] rounded-2xl overflow-hidden border border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
       {/* Sidebar: Chats List */}
@@ -313,6 +340,29 @@ export default function WhatsAppChat() {
 
         {/* Chats scroll area */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100/50 dark:divide-zinc-800/40">
+          {!loadingChats && isSearchQueryPhone && !exactMatchExists && (
+            <div className="p-3.5 bg-emerald-50/30 dark:bg-emerald-950/10 border-b border-slate-100 dark:border-zinc-800/40">
+              <button
+                type="button"
+                onClick={handleStartNewChat}
+                disabled={startingChat}
+                className="w-full py-2.5 px-3 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-750 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5"
+              >
+                {startingChat ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Starting Chat...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={14} />
+                    Start Chat with "{searchQuery.trim()}"
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
           {loadingChats ? (
             <div className="p-4 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -327,7 +377,9 @@ export default function WhatsAppChat() {
             </div>
           ) : filteredChats.length === 0 ? (
             <div className="p-6 text-center text-slate-400 dark:text-zinc-500 text-xs mt-10">
-              No chats found. Link a webhook and receive incoming messages to get started!
+              {isSearchQueryPhone 
+                ? 'No matching conversations found. Click the button above to start a new chat.'
+                : 'No chats found. Link a webhook and receive incoming messages to get started!'}
             </div>
           ) : (
             filteredChats.map((c) => {

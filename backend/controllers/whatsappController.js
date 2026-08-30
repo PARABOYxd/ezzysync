@@ -70,6 +70,47 @@ async function getChats(req, res, next) {
 }
 
 /**
+ * Start a new chat with a phone number.
+ */
+async function startNewChat(req, res, next) {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Phone number is required.' });
+
+    const cleanPhone = normalizePhone(phone);
+    const tenantId = req.user.tenantId;
+
+    // Check if the chat already exists
+    const { rows } = await query(
+      `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
+      [tenantId, cleanPhone]
+    );
+
+    let chat;
+    if (rows.length > 0) {
+      chat = rows[0];
+    } else {
+      // Check default chat mode from settings
+      const settings = await settingsService.getSettings(tenantId);
+      const defaultChatMode = settings?.whatsappDefaultChatMode || 'ai';
+
+      // Create new chat header
+      const insertRes = await query(
+        `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, managed_by)
+         VALUES ($1, $2, $3, $4, now(), 0, $5)
+         RETURNING *`,
+        [tenantId, cleanPhone, cleanPhone, 'Chat initiated', defaultChatMode]
+      );
+      chat = insertRes.rows[0];
+    }
+
+    res.json({ chat });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * Get message thread for a chat.
  */
 async function getChatMessages(req, res, next) {
@@ -513,6 +554,7 @@ module.exports = {
   verifyWebhook, 
   receiveWebhook,
   getChats,
+  startNewChat,
   getChatMessages,
   sendChatMessage,
   readChat,
