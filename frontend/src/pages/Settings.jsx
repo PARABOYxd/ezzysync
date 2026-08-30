@@ -3,11 +3,12 @@ import * as settingsService from '../services/settingsService';
 import { API_BASE_URL } from '../services/api';
 import * as publicService from '../services/publicService';
 import * as instagramService from '../services/instagramService';
+import * as whatsappTemplateService from '../services/whatsappTemplateService';
 import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
-import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp, Trash2, Plus } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
@@ -40,6 +41,22 @@ export default function SettingsPage() {
   const [connectingWA, setConnectingWA] = useState(false);
   const [disconnectingWA, setDisconnectingWA] = useState(false);
   const toast = useToast();
+
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({ type: 'text', name: '', body: '', languageCode: 'en' });
+  const [addingTemplate, setAddingTemplate] = useState(false);
+  const [showAddTemplateForm, setShowAddTemplateForm] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'whatsapp') {
+      setLoadingTemplates(true);
+      whatsappTemplateService.getTemplates()
+        .then(setTemplates)
+        .catch(() => toast.error('Failed to load templates.'))
+        .finally(() => setLoadingTemplates(false));
+    }
+  }, [activeTab]);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
@@ -251,7 +268,7 @@ export default function SettingsPage() {
               }`}
           >
             <MessageSquare size={16} />
-            WhatsApp Connection
+            WhatsApp Configuration
           </button>
         )}
         {user?.role === 'ADMIN' && (
@@ -718,6 +735,177 @@ export default function SettingsPage() {
                         {saving ? 'Saving...' : 'Save API Credentials'}
                       </Button>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* WhatsApp Templates & Quick Replies Management */}
+              <div className="card space-y-6">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <Sparkles size={18} className="text-emerald-500" />
+                      Templates & Quick Replies
+                    </h3>
+                    <p className="text-xs text-slate-400">Add canned text responses (shortcuts) or Meta template configurations.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddTemplateForm(!showAddTemplateForm);
+                      setNewTemplate({ type: 'text', name: '', body: '', languageCode: 'en' });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-bold transition cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    Add New
+                  </button>
+                </div>
+
+                {showAddTemplateForm && (
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
+                    <p className="text-xs font-bold text-slate-700">New Template details</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Type</label>
+                        <select
+                          value={newTemplate.type}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, type: e.target.value })}
+                          className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
+                        >
+                          <option value="text">Canned Response (Text / Shortcut)</option>
+                          <option value="template">Meta Template (Requires approval on Meta Dashboard)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Input
+                          label={newTemplate.type === 'text' ? 'Shortcut / Keyword (e.g. /welcome)' : 'Meta Template Name (e.g. hello_world)'}
+                          placeholder={newTemplate.type === 'text' ? 'e.g. /welcome' : 'e.g. hello_world'}
+                          value={newTemplate.name}
+                          onChange={(e) => {
+                            let val = e.target.value;
+                            if (newTemplate.type === 'text' && val && !val.startsWith('/')) {
+                              val = '/' + val;
+                            }
+                            setNewTemplate({ ...newTemplate, name: val });
+                          }}
+                        />
+                      </div>
+                      {newTemplate.type === 'template' && (
+                        <div className="sm:col-span-2">
+                          <Input
+                            label="Language Code"
+                            placeholder="e.g. en or en_US"
+                            value={newTemplate.languageCode}
+                            onChange={(e) => setNewTemplate({ ...newTemplate, languageCode: e.target.value })}
+                          />
+                        </div>
+                      )}
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Template Content (Body)</label>
+                        <textarea
+                          rows={3}
+                          placeholder="Type your message content..."
+                          className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
+                          value={newTemplate.body}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowAddTemplateForm(false)}
+                        className="text-xs"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={addingTemplate}
+                        onClick={async () => {
+                          if (!newTemplate.name || !newTemplate.body) {
+                            toast.error('Name/shortcut and body content are required.');
+                            return;
+                          }
+                          setAddingTemplate(true);
+                          try {
+                            const created = await whatsappTemplateService.createTemplate(newTemplate);
+                            setTemplates((prev) => [created, ...prev]);
+                            toast.success('Template saved successfully!');
+                            setShowAddTemplateForm(false);
+                          } catch (err) {
+                            toast.error(err.response?.data?.message || 'Failed to save template.');
+                          } finally {
+                            setAddingTemplate(false);
+                          }
+                        }}
+                        className="text-xs px-4"
+                      >
+                        {addingTemplate ? 'Saving...' : 'Save Template'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {loadingTemplates ? (
+                  <div className="text-center py-6 text-xs text-slate-400">Loading templates...</div>
+                ) : templates.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
+                    No templates or canned replies configured yet. Add one above to get started!
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-150 rounded-xl">
+                    <table className="w-full border-collapse text-left text-xs text-slate-600">
+                      <thead className="bg-slate-50/75 border-b border-slate-150 font-semibold text-slate-700">
+                        <tr>
+                          <th className="p-3">Shortcut / Name</th>
+                          <th className="p-3">Type</th>
+                          <th className="p-3">Body Preview</th>
+                          <th className="p-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {templates.map((t) => (
+                          <tr key={t.id} className="hover:bg-slate-50/50">
+                            <td className="p-3 font-semibold text-slate-800">{t.name}</td>
+                            <td className="p-3">
+                              {t.type === 'template' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                  Meta Template ({t.language_code})
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  Quick Reply
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 truncate max-w-[200px]" title={t.body}>
+                              {t.body}
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!window.confirm('Delete this template?')) return;
+                                  try {
+                                    await whatsappTemplateService.deleteTemplate(t.id);
+                                    setTemplates((prev) => prev.filter((item) => item.id !== t.id));
+                                    toast.success('Template deleted.');
+                                  } catch {
+                                    toast.error('Failed to delete template.');
+                                  }
+                                }}
+                                className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-md transition cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

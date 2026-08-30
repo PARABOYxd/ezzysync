@@ -130,7 +130,7 @@ async function getChatMessages(req, res, next) {
 async function sendChatMessage(req, res, next) {
   try {
     const { chatId } = req.params;
-    const { text, mediaLink, mediaType, filename } = req.body;
+    const { text, mediaLink, mediaType, filename, templateName, languageCode } = req.body;
     
     // Find the chat details to get the phone number
     const { rows } = await query(
@@ -150,7 +150,16 @@ async function sendChatMessage(req, res, next) {
 
     // Send using current WhatsApp service
     const mockBooking = { phone: chat.phone, bookingId: 'CHAT' };
-    const result = await whatsappService.sendWhatsAppMessage(mockBooking, settings, mediaLink, text, mediaType, filename);
+    const result = await whatsappService.sendWhatsAppMessage(
+      mockBooking,
+      settings,
+      mediaLink,
+      text,
+      mediaType,
+      filename,
+      templateName,
+      languageCode
+    );
     const messageId = result?.messages?.[0]?.id || null;
 
     // Save as outbound message (storing media parameters in the database)
@@ -158,13 +167,13 @@ async function sendChatMessage(req, res, next) {
       req.user.tenantId,
       chat.phone,
       'outbound',
-      text || filename || (mediaType === 'image' ? 'Image' : 'Document.pdf'),
+      templateName ? `[Template: ${templateName}]` : (text || filename || (mediaType === 'image' ? 'Image' : 'Document.pdf')),
       null,
       0,
       messageId,
       'sent',
       null,
-      mediaType || 'text',
+      templateName ? 'template' : (mediaType || 'text'),
       mediaLink || null
     );
 

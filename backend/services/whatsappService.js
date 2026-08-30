@@ -34,7 +34,7 @@ function normalizePhone(phone = '') {
   return clean;
 }
 
-async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null) {
+async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null, templateName = null, languageCode = 'en') {
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
 
@@ -54,7 +54,19 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
   const normalizedTo = normalizePhone(booking.phone);
 
   let payload;
-  if (mediaLink) {
+  if (templateName) {
+    payload = {
+      messaging_product: 'whatsapp',
+      to: normalizedTo,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: {
+          code: languageCode || 'en'
+        }
+      }
+    };
+  } else if (mediaLink) {
     if (mediaType === 'image') {
       payload = {
         messaging_product: 'whatsapp',

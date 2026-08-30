@@ -1,0 +1,11 @@
+const express = require('express');
+const ctrl = require('../controllers/whatsappTemplateController');
+const { requireAuth } = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+router.get('/', requireAuth, ctrl.getTemplates);
+router.post('/', requireAuth, ctrl.createTemplate);
+router.delete('/:id', requireAuth, ctrl.deleteTemplate);
+
+module.exports = router;

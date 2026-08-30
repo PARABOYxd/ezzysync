@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import api, { API_BASE_URL } from '../services/api';
 import * as whatsappChatService from '../services/whatsappChatService';
+import * as whatsappTemplateService from '../services/whatsappTemplateService';
 
 export default function WhatsAppChat() {
   const { user } = useAuth();
@@ -18,6 +19,10 @@ export default function WhatsAppChat() {
   const [sending, setSending] = useState(false);
   const [typingChats, setTypingChats] = useState({});
   const [startingChat, setStartingChat] = useState(false);
+  const [allTemplates, setAllTemplates] = useState([]);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+  const [filteredTemplates, setFilteredTemplates] = useState([]);
+  const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
@@ -173,6 +178,13 @@ export default function WhatsAppChat() {
     };
   }, [user]);
 
+  // Load templates on mount
+  useEffect(() => {
+    whatsappTemplateService.getTemplates()
+      .then(setAllTemplates)
+      .catch((err) => console.error('Failed to load templates', err));
+  }, [user]);
+
   // Auto scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -208,6 +220,83 @@ export default function WhatsAppChat() {
       toast.error(err.response?.data?.message || 'Failed to start chat.');
     } finally {
       setStartingChat(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setNewMessage(val);
+
+    // Check if the input contains a slash shortcut (e.g. `/` or `/greet`)
+    // We look for a slash `/` followed by characters (no space) at the end of the text
+    const match = val.match(/\/(\w*)$/);
+    if (match) {
+      const queryStr = match[1].toLowerCase();
+      // Filter templates where name contains queryStr
+      const filtered = allTemplates.filter((t) => {
+        const normalizedName = t.name.startsWith('/') ? t.name.slice(1).toLowerCase() : t.name.toLowerCase();
+        return normalizedName.includes(queryStr);
+      });
+      setFilteredTemplates(filtered);
+      setShowTemplateDropdown(filtered.length > 0);
+      setSelectedTemplateIndex(0);
+    } else {
+      setShowTemplateDropdown(false);
+    }
+  };
+
+  const handleSelectTemplate = async (template) => {
+    if (template.type === 'template') {
+      if (!activeChat) return;
+      setSending(true);
+      setShowTemplateDropdown(false);
+      setNewMessage('');
+      try {
+        const res = await whatsappChatService.sendChatMessage(activeChat.id, {
+          templateName: template.name,
+          languageCode: template.language_code || 'en'
+        });
+        
+        // Append sent template message to the UI thread
+        setMessages((prev) => [...prev, res.messageData]);
+        // Update chats list last_message
+        setChats((prev) =>
+          prev.map((c) => (c.id === activeChat.id ? res.chat : c))
+        );
+        toast.success(`Meta template "${template.name}" sent!`);
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to send template message.');
+      } finally {
+        setSending(false);
+      }
+    } else {
+      const match = newMessage.match(/\/(\w*)$/);
+      if (match) {
+        const index = match.index;
+        const replaced = newMessage.substring(0, index) + template.body;
+        setNewMessage(replaced);
+      } else {
+        setNewMessage(template.body);
+      }
+      setShowTemplateDropdown(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (showTemplateDropdown && filteredTemplates.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedTemplateIndex((prev) => (prev + 1) % filteredTemplates.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedTemplateIndex((prev) => (prev - 1 + filteredTemplates.length) % filteredTemplates.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSelectTemplate(filteredTemplates[selectedTemplateIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowTemplateDropdown(false);
+      }
     }
   };
 
@@ -618,45 +707,76 @@ export default function WhatsAppChat() {
               </div>
             )}
 
-            {/* Input Bar */}
-            <form
-              onSubmit={handleSendMessage}
-              className="px-4 py-3 bg-[#f0f2f5] dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-3 relative z-10"
-            >
-              {/* Invisible File Input */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*,application/pdf"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={sending || (attachment && attachment.loading)}
-                className="text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 p-2 rounded-xl transition hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 shrink-0"
-                title="Attach Image or PDF"
-              >
-                <Paperclip size={18} />
-              </button>
+            {/* Input Bar Wrapper with Template Dropdown */}
+            <div className="relative">
+              {/* Quick Reply / Templates Dropdown */}
+              {showTemplateDropdown && filteredTemplates.length > 0 && (
+                <div className="absolute left-4 bottom-[54px] right-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800">
+                  {filteredTemplates.map((t, idx) => {
+                    const isSelected = idx === selectedTemplateIndex;
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => handleSelectTemplate(t)}
+                        className={`p-3 cursor-pointer text-xs flex justify-between items-center transition ${
+                          isSelected 
+                            ? 'bg-emerald-500/10 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 font-semibold' 
+                            : 'hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700">
+                            {t.type === 'template' ? 'Meta' : 'Quick'}
+                          </span>
+                          <span className="font-semibold">{t.name}</span>
+                        </div>
+                        <span className="text-[11px] opacity-80 truncate ml-4 max-w-[250px]">{t.body}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
-              <input
-                type="text"
-                placeholder={attachment ? "Add a caption..." : "Type a message..."}
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                disabled={sending}
-                className="flex-1 text-xs bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 font-medium text-slate-700 dark:text-zinc-200 transition"
-              />
-              <button
-                type="submit"
-                disabled={sending || (attachment && attachment.loading) || (!newMessage.trim() && !attachment?.url)}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-3 shrink-0 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+              <form
+                onSubmit={handleSendMessage}
+                className="px-4 py-3 bg-[#f0f2f5] dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-3 relative z-10"
               >
-                <Send size={15} />
-              </button>
-            </form>
+                {/* Invisible File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={sending || (attachment && attachment.loading)}
+                  className="text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 p-2 rounded-xl transition hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 shrink-0"
+                  title="Attach Image or PDF"
+                >
+                  <Paperclip size={18} />
+                </button>
+
+                <input
+                  type="text"
+                  placeholder={attachment ? "Add a caption..." : "Type a message... (type / for templates)"}
+                  value={newMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  disabled={sending}
+                  className="flex-1 text-xs bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 font-medium text-slate-700 dark:text-zinc-200 transition"
+                />
+                <button
+                  type="submit"
+                  disabled={sending || (attachment && attachment.loading) || (!newMessage.trim() && !attachment?.url)}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-3 shrink-0 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                >
+                  <Send size={15} />
+                </button>
+              </form>
+            </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 relative z-10 select-none">

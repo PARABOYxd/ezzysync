@@ -31,6 +31,7 @@ const expenseRoutes = require('./routes/expenseRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const hotelRoutes = require('./routes/hotelRoutes');
 const instagramRoutes = require('./routes/instagramRoutes');
+const whatsappTemplateRoutes = require('./routes/whatsappTemplateRoutes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -103,6 +104,7 @@ app.use('/api/expenses', requireActiveSubscription, expenseRoutes);
 app.use('/api/batches', requireActiveSubscription, batchRoutes);
 app.use('/api/hotels', requireActiveSubscription, hotelRoutes);
 app.use('/api/instagram', requireActiveSubscription, instagramRoutes);
+app.use('/api/whatsapp/templates', requireActiveSubscription, whatsappTemplateRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
 app.use(errorHandler);

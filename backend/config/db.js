@@ -715,6 +715,25 @@ async function ensureSchema() {
     logger.warn({ err }, 'Failed to normalize existing whatsapp_chats phone numbers');
   }
 
+  // Create whatsapp_templates table for quick replies and Meta template messages
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_templates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        type TEXT NOT NULL DEFAULT 'text',
+        name TEXT NOT NULL,
+        body TEXT NOT NULL,
+        language_code TEXT DEFAULT 'en',
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now()
+      );
+    `);
+    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_templates_tenant ON whatsapp_templates(tenant_id);`);
+  } catch (err) {
+    logger.warn({ err }, 'Failed to create whatsapp_templates table');
+  }
+
   logger.info('Schema check complete.');
 }
 
