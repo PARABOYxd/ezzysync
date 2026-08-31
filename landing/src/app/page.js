@@ -38,11 +38,18 @@ export default function Home() {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "EzzySync",
+      "name": "EzzySync Travel CRM",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "url": "https://www.ezzysync.com",
-      "description": "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
+      "description": "The #1 Travel CRM Software in India for travel agents and tour operators. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and track bookings with multi-agent dashboards.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "240",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "INR",
@@ -58,16 +65,15 @@ export default function Home() {
           },
           {
             "@type": "Offer",
-            "name": "Agency Growth Plan",
-            "price": "2499",
+            "name": "Solo Agent Plan",
+            "price": "999",
             "priceCurrency": "INR"
           },
           {
             "@type": "Offer",
-            "name": "Custom Enterprise Plan",
-            "price": "0",
-            "priceCurrency": "INR",
-            "description": "Contact for pricing"
+            "name": "Agency Growth Pro Plan",
+            "price": "2499",
+            "priceCurrency": "INR"
           }
         ]
       }

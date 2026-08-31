@@ -9,76 +9,66 @@ import {
 
 export const faqData = [
   {
-    q: "What is a travel CRM?",
-    a: "A travel CRM is software built specifically for travel agencies and tour operators to manage leads, itineraries, bookings, and client communication in one place. Unlike generic sales CRMs, it includes travel-specific tools like day-wise itinerary builders, PDF invoice generation, and WhatsApp booking confirmations.",
+    q: "Which is the best travel CRM software in India?",
+    a: "EzzySync is recognized as the best travel agency CRM software in India for 2026. Unlike generic tools, it features 1-click WhatsApp Business API automation, AI day-wise itinerary builder, multi-agent chat inbox, GST invoice generation, and supplier costing designed specifically for Indian travel agents and tour operators.",
     category: "general",
   },
   {
-    q: "Which is the best CRM for travel agents?",
-    a: "The best travel CRM for agents is one built specifically for the industry rather than adapted from generic sales software. EzzySync focuses on the core travel workflow — lead pipeline, itinerary building, invoicing, and WhatsApp updates — instead of generic deal-tracking features agencies don't need.",
-    category: "general",
-  },
-  {
-    q: "What's the difference between a travel CRM and a generic CRM?",
-    a: "Generic CRMs are built for B2B sales and track deals and contacts, with no concept of itineraries, travel dates, or destination-based invoicing. A travel CRM like EzzySync is built around the actual booking workflow — inquiry, itinerary, payment, departure — instead of bending a sales tool to fit a different job.",
-    category: "general",
-  },
-  {
-    q: "How does booking management software work?",
-    a: "Booking management software centralizes every stage of a trip, from initial inquiry to final invoice, in a shared dashboard. Agents log leads, build itineraries, track booking status (confirmed, completed, cancelled), and generate invoices, replacing scattered spreadsheets, WhatsApp chats, and Word documents with one system.",
+    q: "How does WhatsApp lead automation work in EzzySync?",
+    a: "When a traveler inquires from WhatsApp, Instagram, or your website, EzzySync automatically captures the lead, assigns it to a team member, and triggers instant confirmation messages. You can dispatch customized PDF itineraries and follow-up reminders in 1 click directly via official Meta WhatsApp Cloud API.",
     category: "feature",
   },
   {
-    q: "Is EzzySync better than using spreadsheets for bookings?",
-    a: "Spreadsheets don't send WhatsApp alerts, generate PDF invoices, or stop two agents from double-booking the same client. EzzySync replaces manual spreadsheet tracking with a shared, auto-updating pipeline: every lead, itinerary, and invoice lives in one system your whole team can see in real time.",
-    category: "feature",
+    q: "Is there a free travel agency CRM plan available?",
+    a: "Yes! EzzySync offers a 30-Day Free Trial with 100% full Pro access unlocked (no credit card required) and a permanent Free Starter plan. Paid plans start at just ₹999/month for solo agents with unlimited bookings and AI tools.",
+    category: "pricing",
+  },
+  {
+    q: "How does EzzySync compare to Zoho Travel CRM or TeleCRM?",
+    a: "Generic CRMs like Zoho or TeleCRM require expensive third-party extensions and custom coding for travel features. EzzySync comes out-of-the-box with day-wise itinerary builders, hotel/flight supplier pricing, GST travel vouchers, and multi-agent WhatsApp live chat with zero setup hassle.",
+    category: "general",
+  },
+  {
+    q: "Can B2B travel agents and DMCs in India & Dubai use EzzySync?",
+    a: "Yes. EzzySync is built for both B2C and B2B travel agencies, tour operators, and DMCs in India and Dubai. It manages multi-branch agents, group tour batches, customized supplier costing, and foreign currency calculations seamlessly.",
+    category: "general",
+  },
+  {
+    q: "What is the difference between a travel CRM and a generic CRM?",
+    a: "Generic CRMs are built for B2B sales and track contacts with no concept of itineraries, travel dates, flight PNRs, or destination costing. A dedicated travel CRM like EzzySync is built around the real travel booking lifecycle — Inquiry ➔ Day-Wise Itinerary ➔ Advance Payment ➔ Vouchers ➔ Departure.",
+    category: "general",
   },
   {
     q: "Do I need a separate WhatsApp Business API account?",
-    a: "Yes, you can integrate your own Meta WhatsApp Cloud API credentials directly in the CRM Settings. We guide you step-by-step to get a free phone number ID and access token from Meta so you don't pay third-party markup fees.",
+    a: "You can connect your own Meta WhatsApp Cloud API credentials directly in the CRM Settings. We guide you step-by-step to get a verified number so you don't pay third-party markup fees or risk number bans.",
     category: "feature",
   },
   {
     q: "Is my agency's client data secure and isolated?",
-    a: "Absolutely. EzzySync CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is isolated using a strict tenant filtering policy at the database query level. No agency can ever read or write another agency's data.",
+    a: "Absolutely. EzzySync CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is strictly isolated using tenant filtering policies at the database level. No agency can ever access another agency's client data.",
     category: "feature",
   },
   {
     q: "Can I export invoices and reports to Excel or PDF?",
-    a: "Yes, you can download any invoice as a beautifully formatted PDF directly from the interface, and you can export all your bookings and financial reports to standard CSV/Excel format with a single click.",
+    a: "Yes. You can generate and download GST-compliant PDF invoices with custom agency letterheads and export your booking pipeline, revenue, and expense ledgers to CSV/Excel in 1 click.",
     category: "feature",
-  },
-  {
-    q: "Does EzzySync support multiple agents with different permissions?",
-    a: "Currently, our system supports agency-wide credentials. We are rolling out multi-agent role-based permissions (Admin, Agent, Finance) in our upcoming release next month.",
-    category: "feature",
-  },
-  {
-    q: "Is EzzySync free?",
-    a: "Yes. EzzySync has a free Starter plan covering up to 100 client leads, a basic itinerary builder, and PDF invoice generation, no credit card required. Paid plans add unlimited leads, the advanced day-wise planner, WhatsApp Cloud API integration, and multiple agent logins for growing agencies.",
-    category: "pricing",
-  },
-  {
-    q: "Is there a free trial for paid plans?",
-    a: "Yes. The Agency Growth plan includes a 7-day free trial with full access to the advanced day-wise itinerary planner, Meta WhatsApp API integration, and up to 5 agent logins, so you can evaluate it before paying.",
-    category: "pricing",
   },
 ];
 
 export const whatsappTemplates = {
   lead: {
-    title: "New Lead Welcome",
-    msg: "Hello *Rahul Sharma*! 👋 Thank you for choosing EzzySync. We have received your inquiry for the *Bali Adventure Tour*. Our agent is preparing the best customized itinerary for you. Stay tuned!",
+    title: "New Lead Auto-Capture",
+    msg: "Hello *Rahul Sharma*! 👋 Thank you for inquiring with us. We have received your request for the *Bali Honeymoon Tour*. Our travel specialist is customizing your day-wise itinerary right now!",
     badge: "Auto-sent on inquiry",
   },
   itinerary: {
-    title: "Itinerary Ready",
-    msg: "Hi *Rahul Sharma*! ✈️ Your customized Bali itinerary is ready! Check the day-by-day hotels, sightseeing details, and costs here: \n\n🔗 _https://www.ezzysync.com/app/public/itinerary/bali-xyz_\n\nLet us know if you want to make any changes!",
-    badge: "One-click share",
+    title: "AI Itinerary Ready",
+    msg: "Hi *Rahul Sharma*! ✈️ Your customized Bali 5N/6D itinerary is ready! Check hotel ratings, sightseeing details, and total package cost here: \n\n🔗 _https://www.ezzysync.com/app/public/itinerary/bali-xyz_\n\nLet us know if you'd like any customizations!",
+    badge: "1-Click PDF share",
   },
   invoice: {
-    title: "Invoice & Booking",
-    msg: "Dear *Rahul Sharma*, your booking for Bali is confirmed! 🎉 Please find your digital booking invoice below. \n\nTotal Paid: *₹85,000*\nBalance Due: *₹0*\n\nThank you for traveling with us! 🚀",
+    title: "Booking & GST Invoice",
+    msg: "Dear *Rahul Sharma*, your trip to Bali is confirmed! 🎉 Please find your official GST travel invoice and booking voucher attached. \n\nAdvance Paid: *₹85,000*\nBalance Due: *₹0*\n\nHave a memorable trip! 🚀",
     badge: "Auto-sent on payment",
   },
 };
@@ -88,22 +78,22 @@ export const featuresList = [
     icon: Users,
     iconColor: "text-brand-600",
     iconBg: "bg-brand-50",
-    title: "Lead Pipeline",
-    description: "Log travel inquiries from customers. Add client preferences and track bookings across statuses such as Confirmed, Completed, Cancelled, and Refunded.",
+    title: "Lead Automated Pipeline",
+    description: "Auto-capture travel inquiries from WhatsApp, Instagram DMs, Google Ads, and website forms into a centralized travel CRM dashboard with stage tracking.",
   },
   {
     icon: MessageSquare,
     iconColor: "text-amber-600",
     iconBg: "bg-amber-50",
-    title: "WhatsApp Integration",
-    description: "Send pre-configured messages and itinerary links directly to clients on WhatsApp using official Meta APIs.",
+    title: "WhatsApp Lead Automation & Live Chat",
+    description: "Send pre-configured WhatsApp confirmations, automated follow-up sequences, and PDF itineraries via official Meta WhatsApp Cloud API with multi-agent inbox.",
   },
   {
     icon: Map,
-    iconColor: "text-rose-550",
-    iconBg: "bg-rose-50",
-    title: "Itinerary Builder",
-    description: "Build day-by-day travel itineraries. Add detailed daily schedules, flight routes, hotel options, and sightseeing points.",
+    iconColor: "text-blue-600",
+    iconBg: "bg-blue-50",
+    title: "AI Day-Wise Itinerary Builder",
+    description: "Generate beautiful, day-by-day travel quotations with hotel choices, activities, inclusions, and exclusions in under 60 seconds.",
   },
   {
     icon: FileText,

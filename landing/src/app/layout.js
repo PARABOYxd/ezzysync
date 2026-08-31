@@ -9,10 +9,40 @@ const geist = Geist({
 });
 
 export const metadata = {
-  title: "EzzySync — Travel CRM with WhatsApp Automation & AI Itinerary Builder",
-  description: "EzzySync is the best travel CRM for travel agents — automate client updates via WhatsApp, generate itineraries with AI, and manage billing statements in one platform. Start free.",
+  title: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation & AI Itineraries",
+  description: "EzzySync is the best travel agency CRM software in India & Dubai. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and manage bookings on one unified travel CRM dashboard. Start 30-day free trial.",
   metadataBase: new URL("https://www.ezzysync.com"),
-  keywords: ["travel crm", "best travel crm", "travel crm with whatsapp integration", "automated travel itinerary builder", "crm for travel agents", "travel agency crm software", "booking management software", "tour operator crm", "travel booking crm", "itinerary management software", "best crm for travel agency in india", "free travel agency software", "ezzysync"],
+  keywords: [
+    "travel crm",
+    "best travel crm",
+    "travel crm software",
+    "best travel crm in india",
+    "best travel crm software",
+    "best travel crm software in india",
+    "travel agency crm",
+    "travel agency crm software",
+    "best travel agency crm",
+    "best travel agency crm software 2026",
+    "travel crm free",
+    "free travel crm",
+    "travel crm software free",
+    "travel crm dashboard",
+    "travel agency crm dashboard",
+    "travel crm features",
+    "travel crm demo",
+    "b2b travel crm",
+    "travel crm india",
+    "travel agency crm dubai",
+    "lead automated",
+    "whatsapp lead automate",
+    "whatsapp travel crm",
+    "travel crm login",
+    "zoho travel crm alternative",
+    "sembark travel crm alternative",
+    "tour operator crm",
+    "travel booking management software",
+    "ezzysync"
+  ],
   alternates: {
     canonical: "/",
   },
@@ -21,32 +51,27 @@ export const metadata = {
     follow: true,
   },
   openGraph: {
-    title: "EzzySync — Travel CRM with WhatsApp Automation & AI Itinerary Builder",
-    description: "EzzySync is the best travel CRM for travel agents — automate client updates via WhatsApp, generate itineraries with AI, and manage billing statements in one platform. Start free.",
+    title: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation & AI Itineraries",
+    description: "EzzySync is the best travel agency CRM software in India & Dubai. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and manage bookings on one unified travel CRM dashboard. Start 30-day free trial.",
     url: "https://www.ezzysync.com",
     siteName: "EzzySync",
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: "/images/og-image.png", // TODO: Create and place 1200x630 OG image in public/images/og-image.png
+        url: "/dashboard_mockup.jpg",
         width: 1200,
         height: 630,
-        alt: "EzzySync — Travel CRM with WhatsApp Automation",
+        alt: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation",
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "EzzySync — Travel CRM with WhatsApp Automation & AI Itinerary Builder",
-    description: "EzzySync is the best travel CRM for travel agents — automate client updates via WhatsApp, generate itineraries with AI, and manage billing statements in one platform. Start free.",
-    images: ["/images/og-image.png"], // TODO: Create and place 1200x630 OG image in public/images/og-image.png
+    title: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation & AI Itineraries",
+    description: "EzzySync is the best travel agency CRM software in India & Dubai. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and manage bookings on one unified travel CRM dashboard. Start 30-day free trial.",
+    images: ["/dashboard_mockup.jpg"],
   },
-  // Icons are intentionally NOT declared here. The app/ file conventions
-  // (favicon.ico, icon.png, apple-icon.png) emit the correct <link> tags on
-  // their own with accurate type/sizes attributes. Declaring them here too
-  // produced three competing rel="icon" tags, which left search engines
-  // guessing at which icon to use.
 };
 
 export default function RootLayout({ children }) {
@@ -55,15 +80,30 @@ export default function RootLayout({ children }) {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "EzzySync",
+      "alternateName": ["EasySync", "EssySync", "Ezzy Sync", "EasySync CRM", "EzzySync CRM", "EasySync Travel CRM"],
       "url": "https://www.ezzysync.com",
-      "logo": "https://www.ezzysync.com/logo.png", // TODO: Create and place logo.png in public/logo.png
-      "sameAs": [] // TODO: Add social links here in the future
+      "logo": "https://www.ezzysync.com/logo.png",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "jainpayal0201@gmail.com",
+        "contactType": "customer support"
+      },
+      "sameAs": [
+        "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
+        "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr" 
+      ]
     },
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "EzzySync",
-      "url": "https://www.ezzysync.com"
+      "name": "EzzySync Travel CRM",
+      "alternateName": ["EasySync", "EssySync", "Ezzy Sync", "EasySync CRM"],
+      "url": "https://www.ezzysync.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://www.ezzysync.com/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
     }
   ];
 
