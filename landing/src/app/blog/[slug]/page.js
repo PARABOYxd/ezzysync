@@ -13,6 +13,263 @@ if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("http
 const globalCrmUrl = rawCrmUrl;
 
 const articlesData = {
+  "best-travel-agency-crm-software-india-2026": {
+    title: "7 Best Travel Agency CRM Software in India (2026 Comparison & In-Depth Review)",
+    metaTitle: "7 Best Travel Agency CRM Software in India (2026 Review)",
+    metaDescription: "Compare the 7 best travel agency CRM software in India for 2026. Discover features, WhatsApp API automation, AI day-wise itineraries, GST invoicing, and pricing.",
+    date: "August 30, 2026",
+    readTime: "8 min read",
+    category: "Comparison",
+    image: "/blog_best_crm.jpg",
+    content: (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "Which is the best CRM software for travel agencies in India?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "EzzySync CRM is rated #1 for Indian travel agencies and tour operators in 2026. It features 1-click WhatsApp Business API, AI day-wise itinerary builder, GST invoice generator, multi-agent chat inbox, and supplier cost management starting at ₹999/mo."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Why do generic CRMs like Zoho or Salesforce fail for travel agents?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Generic CRMs lack travel-specific workflows such as day-wise sightseeing builders, hotel and flight voucher generation, supplier pricing calculation, and multi-pax GST billing. They require months of expensive custom coding."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How much does a travel CRM cost in India?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Travel CRMs in India range from ₹999/month for solo agents (like EzzySync Solo) to ₹2,499/month for growing agencies with 5+ team logins and unlimited bookings."
+                  }
+                }
+              ]
+            })
+          }}
+        />
+
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          The Indian travel industry is witnessing an unprecedented boom. From customized Bali honeymoon packages to high-margin European group tours and domestic pilgrimage circuits, tour operators are inundated with leads across WhatsApp, Instagram DMs, Google Ads, and website inquiries.
+        </p>
+
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          However, <strong>managing 100+ traveler inquiries on spreadsheets and personal WhatsApp chats results in a 40% lead loss.</strong> Missed follow-ups, delayed quotes, and disorganized hotel vouchers cost travel agencies lakhs in lost revenue every single month.
+        </p>
+
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          In this definitive 2026 guide, we evaluate and rank the <strong>top 7 travel agency CRM software solutions in India</strong> to help you pick the right tool for your agency's scale and workflow.
+        </p>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">Quick Comparison Table: Top Travel CRMs in India (2026)</h2>
+        
+        <div className="overflow-x-auto my-6">
+          <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+            <thead className="bg-slate-900 text-white">
+              <tr>
+                <th className="p-3">CRM Software</th>
+                <th className="p-3">Best For</th>
+                <th className="p-3">WhatsApp API</th>
+                <th className="p-3">AI Itineraries</th>
+                <th className="p-3">Starting Price</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+              <tr className="bg-orange-50/40 font-semibold text-slate-900">
+                <td className="p-3 flex items-center gap-1.5"><span className="text-orange-500 font-bold">1. EzzySync CRM</span> ⭐</td>
+                <td className="p-3">Indian Travel Agencies & DMCs</td>
+                <td className="p-3 text-emerald-600 font-bold">✓ Native Multi-Agent</td>
+                <td className="p-3 text-emerald-600 font-bold">✓ Built-in AI</td>
+                <td className="p-3 text-orange-600 font-bold">₹999 /mo</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">2. TeleCRM</td>
+                <td className="p-3">Telesales & Call Heavy Teams</td>
+                <td className="p-3">✓ Basic API</td>
+                <td className="p-3 text-slate-400">✗ No (Generic)</td>
+                <td className="p-3">₹849 /user/mo</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">3. Zoho CRM</td>
+                <td className="p-3">Large Enterprise Corporations</td>
+                <td className="p-3">Requires 3rd Party Extension</td>
+                <td className="p-3 text-slate-400">✗ Requires custom dev</td>
+                <td className="p-3">₹1,300 /user/mo</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">4. Travefy</td>
+                <td className="p-3">Western Itinerary Design</td>
+                <td className="p-3 text-slate-400">✗ Limited WhatsApp</td>
+                <td className="p-3">✓ Visual Builder</td>
+                <td className="p-3">$35 /user (~₹2,900)</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">5. HelloLeads</td>
+                <td className="p-3">Simple Lead Capture</td>
+                <td className="p-3">Basic Templates</td>
+                <td className="p-3 text-slate-400">✗ No Itineraries</td>
+                <td className="p-3">₹599 /user/mo</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">6. LeadSquared</td>
+                <td className="p-3">Large Tour Franchises</td>
+                <td className="p-3">✓ Enterprise WhatsApp</td>
+                <td className="p-3 text-slate-400">✗ Custom Module Needed</td>
+                <td className="p-3">₹2,500+ /user/mo</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">7. Tutterfly CRM</td>
+                <td className="p-3">Traditional Travel Agencies</td>
+                <td className="p-3">Add-on module</td>
+                <td className="p-3">Manual Templates</td>
+                <td className="p-3">₹1,200 /user/mo</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">1. EzzySync CRM — The #1 All-in-One Travel CRM</h2>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          <strong>EzzySync</strong> is purpose-built from the ground up for Indian travel consultants, agencies, and DMCs. Unlike generic sales tools, EzzySync combines four mission-critical workflows into one unified workspace:
+        </p>
+
+        <div className="space-y-4 my-6">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 className="font-bold text-slate-900 text-sm mb-1">⚡ 1-Click WhatsApp Business API & Multi-Agent Inbox</h3>
+            <p className="text-xs text-slate-600">Connect your agency number to receive, assign, and reply to client inquiries from a single screen. Never lose leads when an employee is on leave.</p>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 className="font-bold text-slate-900 text-sm mb-1">🗺️ AI Day-Wise Itinerary & Quotation Builder</h3>
+            <p className="text-xs text-slate-600">Generate professional, branded PDF itineraries with hotel ratings, daily sightseeing, inclusions, and exclusions in under 60 seconds.</p>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 className="font-bold text-slate-900 text-sm mb-1">🧾 GST Compliant Travel Invoicing & Supplier Costing</h3>
+            <p className="text-xs text-slate-600">Calculate net margins on flights, hotels, and transport. Issue GST invoices and payment receipts with 1-click Razorpay payment links.</p>
+          </div>
+        </div>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">Key Features to Look For in a Travel CRM</h2>
+        <ul className="list-disc pl-6 space-y-3 text-slate-600 mb-8 text-[15px]">
+          <li><strong>WhatsApp Native Chat:</strong> Over 90% of Indian travel transactions happen on WhatsApp. Your CRM must support multi-agent live chat and automated follow-up sequences.</li>
+          <li><strong>Day-Wise PDF Generator:</strong> Clients demand clean, beautiful itinerary PDFs on their mobile phones. Avoid CRMs that force you to design itineraries on Microsoft Word.</li>
+          <li><strong>Stage-by-Stage Kanban Pipeline:</strong> Track inquiries from <em>New Lead</em> ➔ <em>Itinerary Shared</em> ➔ <em>Follow-Up Active</em> ➔ <em>Booking Confirmed</em> ➔ <em>Vouchers Dispatched</em>.</li>
+          <li><strong>Affordable Flat Pricing:</strong> Avoid per-user pricing traps that penalize you for growing your team.</li>
+        </ul>
+
+        <div className="my-10 p-6 rounded-2xl border border-orange-200 bg-orange-50/50 text-center">
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Ready to Scale Your Travel Agency?</h3>
+          <p className="text-slate-600 text-xs sm:text-sm mb-4">Start your 30-Day Free Trial with full Pro features unlocked. No credit card required.</p>
+          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg transition-colors">Start 30-Day Free Trial</a>
+        </div>
+      </>
+    )
+  },
+  "whatsapp-business-api-travel-agency-setup-guide": {
+    title: "How to Set Up WhatsApp Business API for Travel Agencies: The Complete 2026 Blueprint",
+    metaTitle: "WhatsApp Business API for Travel Agencies: 2026 Setup Guide",
+    metaDescription: "Complete step-by-step guide to setting up WhatsApp Business API for travel agencies. Automate lead capture, send PDF quotes, and run multi-agent chats without getting banned.",
+    date: "August 28, 2026",
+    readTime: "7 min read",
+    category: "Marketing",
+    image: "/blog_whatsapp_api.jpg",
+    content: (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "What is the difference between WhatsApp Business App and WhatsApp Business API?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The standard WhatsApp Business App is limited to 1 phone and lacks multi-agent routing, automated CRM lead capture, and bulk broadcast capabilities. WhatsApp Business API connects directly to your CRM, supports multiple team agents on one number, and prevents account bans."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Can travel agencies get banned for sending itineraries on personal WhatsApp?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Sending bulk promotional messages or frequent PDF quotes from personal WhatsApp numbers violates WhatsApp Terms of Service and triggers automatic number bans. Official WhatsApp Cloud API eliminates this risk."
+                  }
+                }
+              ]
+            })
+          }}
+        />
+
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          In India, WhatsApp is not just a messaging app—it is the operating system of the entire travel trade. From honeymoon inquiries and corporate offsites to flight reschedule alerts and hotel vouchers, <strong>95% of travel bookings are negotiated and closed on WhatsApp.</strong>
+        </p>
+
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          Yet, most travel agencies still operate using the standard WhatsApp Business mobile app on personal SIM cards. This creates major operational bottlenecks:
+        </p>
+
+        <ul className="list-disc pl-6 space-y-2 text-slate-600 mb-6 text-[15px]">
+          <li><strong>Single Device Lockout:</strong> Only one agent can handle client chats at a time.</li>
+          <li><strong>Lead Leaks:</strong> When an employee leaves your agency, your valuable client database walks out the door with them.</li>
+          <li><strong>High Risk of Number Bans:</strong> Sending quotes to multiple new inquiries triggers WhatsApp anti-spam filters, getting your business number blocked overnight.</li>
+        </ul>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">The Solution: Meta's Official WhatsApp Cloud API</h2>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          The <strong>WhatsApp Business API</strong> solves every single one of these problems by integrating directly with your travel CRM (like <strong>EzzySync</strong>). Here is how it transforms your day-to-day operations:
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-8">
+          <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
+            <h3 className="font-bold text-emerald-900 text-sm mb-1">👥 Shared Team Inbox</h3>
+            <p className="text-xs text-slate-600">5 to 20 travel agents can chat with different travelers simultaneously using one single official agency WhatsApp number.</p>
+          </div>
+          <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
+            <h3 className="font-bold text-blue-900 text-sm mb-1">📄 1-Click PDF Itinerary Dispatch</h3>
+            <p className="text-xs text-slate-600">Send personalized, high-resolution day-wise itineraries directly inside the traveler's chat with real-time delivery tracking.</p>
+          </div>
+          <div className="bg-amber-50/50 border border-amber-100 p-4 rounded-xl">
+            <h3 className="font-bold text-amber-900 text-sm mb-1">⏰ Automated 24h & 48h Follow-ups</h3>
+            <p className="text-xs text-slate-600">If a customer doesn't respond after receiving a quote, the CRM sends a polite reminder automatically to recover the lead.</p>
+          </div>
+          <div className="bg-purple-50/50 border border-purple-100 p-4 rounded-xl">
+            <h3 className="font-bold text-purple-900 text-sm mb-1">🔒 Zero Ban Guarantee</h3>
+            <p className="text-xs text-slate-600">Built on Meta's enterprise infrastructure with approved message templates and verified green-tick eligibility.</p>
+          </div>
+        </div>
+
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">How to Connect WhatsApp API in EzzySync in 5 Minutes</h2>
+        <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
+          Setting up WhatsApp API used to require weeks of technical configuration with third-party BSPs. With <strong>EzzySync</strong>, the setup is integrated into your onboarding:
+        </p>
+
+        <ol className="list-decimal pl-6 space-y-3 text-slate-600 mb-8 text-[15px]">
+          <li><strong>Sign Up for EzzySync:</strong> Start a 30-Day Free Trial.</li>
+          <li><strong>Navigate to Settings ➔ WhatsApp Setup:</strong> Request your agency WhatsApp number connection.</li>
+          <li><strong>Verify Business Profile:</strong> Provide your Meta Business Manager ID and registered phone number.</li>
+          <li><strong>Start Chatting & Converting:</strong> Assign inquiries to team agents, send day-wise quotes, and close trips faster than your competitors.</li>
+        </ol>
+
+        <div className="my-10 p-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 text-center">
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Upgrade to Multi-Agent WhatsApp Today</h3>
+          <p className="text-slate-600 text-xs sm:text-sm mb-4">Empower your travel agency team with 1-click WhatsApp quotes and automated CRM tracking.</p>
+          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">Connect WhatsApp CRM</a>
+        </div>
+      </>
+    )
+  },
   "automate-travel-agency-follow-ups": {
     title: "How to Automate Travel Agency Follow-Ups and Boost Conversions by 40%",
     metaTitle: "Automate Travel Agency Follow-Ups: Boost Sales by 40%",

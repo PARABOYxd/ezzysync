@@ -8,6 +8,80 @@ import Footer from "@/components/layout/Footer";
 // Real-world, trending travel agency tech articles with high SEO query match
 const blogPosts = [
   {
+    slug: "best-travel-agency-crm-software-india-2026",
+    title: "7 Best Travel Agency CRM Software in India (2026 Comparison & Review)",
+    excerpt: "Compare the top travel CRMs in India. Discover how AI day-wise itineraries, native WhatsApp Business API, and automated follow-ups help Indian travel agencies scale to ₹1Cr+.",
+    date: "August 30, 2026",
+    readTime: "8 min read",
+    category: "Comparison",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* Comparison Board Mockup */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span className="text-[10px] font-bold text-orange-600">Travel CRM Comparison 2026</span>
+          <span className="text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded font-bold">TOP RATED</span>
+        </div>
+        <div className="space-y-1.5 py-2 w-full">
+          <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black text-orange-500">#1 EzzySync CRM</span>
+              <span className="text-[8px] text-slate-500">WhatsApp + AI</span>
+            </div>
+            <span className="text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">9.9/10 ★</span>
+          </div>
+          <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs opacity-75">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-medium text-slate-700">Generic CRMs</span>
+              <span className="text-[8px] text-slate-400">Complex setup</span>
+            </div>
+            <span className="text-[8px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded">6.5/10</span>
+          </div>
+        </div>
+        <div className="bg-slate-900 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">
+          <span className="text-[9px] font-bold">Built for Indian Travel Operators</span>
+          <span className="text-[9px] font-bold text-orange-400">₹999/mo</span>
+        </div>
+      </div>
+    )
+  },
+  {
+    slug: "whatsapp-business-api-travel-agency-setup-guide",
+    title: "How to Set Up WhatsApp Business API for Travel Agencies: Complete 2026 Blueprint",
+    excerpt: "Stop risking your number with unofficial tools. Learn how to connect official WhatsApp Cloud API to send PDF quotes, manage 5+ agents on one number, and automate client follow-ups.",
+    date: "August 28, 2026",
+    readTime: "7 min read",
+    category: "Marketing",
+    thumbnail: (
+      <div className="w-full h-full bg-slate-50 relative p-4 flex flex-col justify-between overflow-hidden">
+        {/* WhatsApp Cloud API Mockup */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span className="text-[10px] font-bold text-emerald-600">Meta Cloud WhatsApp API</span>
+          <span className="text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded font-bold">OFFICIAL</span>
+        </div>
+        <div className="space-y-1.5 py-2 w-full">
+          <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="text-[9px] font-medium text-slate-700">Auto-Send PDF Itinerary</span>
+            </div>
+            <span className="text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded">1-Click</span>
+          </div>
+          <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span className="text-[9px] font-medium text-slate-700">Multi-Agent Team Inbox</span>
+            </div>
+            <span className="text-[8px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded">5 Agents</span>
+          </div>
+        </div>
+        <div className="bg-emerald-600 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">
+          <span className="text-[9px] font-bold">Zero Banned Numbers</span>
+          <span className="text-[9px] font-bold">Meta Verified ✓</span>
+        </div>
+      </div>
+    )
+  },
+  {
     slug: "automate-travel-agency-follow-ups",
     title: "How to Automate Travel Agency Follow-Ups and Boost Conversions by 40%",
     excerpt: "Struggling to follow up with clients on time? Discover how automating your WhatsApp and email follow-up sequence recovers lost revenue and closes deals faster.",

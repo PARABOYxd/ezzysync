@@ -39,6 +39,18 @@ export default function sitemap() {
       priority: 0.8,
     },
     {
+      url: 'https://www.ezzysync.com/blog/best-travel-agency-crm-software-india-2026',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: 'https://www.ezzysync.com/blog/whatsapp-business-api-travel-agency-setup-guide',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
       url: 'https://www.ezzysync.com/blog/whatsapp-marketing-for-travel-agents',
       lastModified,
       changeFrequency: 'monthly',
