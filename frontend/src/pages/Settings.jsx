@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import * as settingsService from '../services/settingsService';
 import { API_BASE_URL } from '../services/api';
 import * as publicService from '../services/publicService';
@@ -25,6 +25,7 @@ const FIELDS = [
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const templateTextareaRef = useRef(null);
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState(null);
   const [errors, setErrors] = useState({});
@@ -826,10 +827,37 @@ export default function SettingsPage() {
                     .sort((a, b) => parseInt(a) - parseInt(b));
 
                   const insertPlaceholder = (num) => {
+                    const tag = `{{${num}}}`;
+                    const el = templateTextareaRef.current;
+                    if (!el) {
+                      setNewTemplate((prev) => ({
+                        ...prev,
+                        body: (prev.body || '') + ` ${tag}`
+                      }));
+                      return;
+                    }
+
+                    const start = el.selectionStart || 0;
+                    const end = el.selectionEnd || 0;
+                    const currentText = newTemplate.body || '';
+
+                    const before = currentText.substring(0, start);
+                    const after = currentText.substring(end);
+
+                    const needsSpaceBefore = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n');
+                    const inserted = (needsSpaceBefore ? ' ' : '') + tag;
+
+                    const updatedText = before + inserted + after;
                     setNewTemplate((prev) => ({
                       ...prev,
-                      body: (prev.body || '') + ` {{${num}}}`
+                      body: updatedText
                     }));
+
+                    setTimeout(() => {
+                      el.focus();
+                      const newPos = start + inserted.length;
+                      el.setSelectionRange(newPos, newPos);
+                    }, 0);
                   };
 
                   return (
@@ -928,6 +956,7 @@ export default function SettingsPage() {
                             )}
                           </div>
                           <textarea
+                            ref={templateTextareaRef}
                             rows={3}
                             placeholder={newTemplate.type === 'template' ? "e.g. Hi {{1}}, your booking for {{2}} on {{3}} is confirmed!" : "Type your canned message text..."}
                             className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
