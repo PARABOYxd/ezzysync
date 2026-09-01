@@ -4,7 +4,7 @@ const { query } = require('../config/db');
 
 async function getWabaDetails(settings) {
   const accessToken = settings?.whatsappAccessToken || env.whatsapp?.accessToken;
-  const wabaId = settings?.whatsappBusinessAccountId || settings?.whatsappAccountId || env.whatsapp?.businessAccountId;
+  const wabaId = settings?.whatsappWabaId || settings?.whatsappBusinessAccountId || settings?.whatsappAccountId || env.whatsapp?.businessAccountId;
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp?.phoneNumberId;
 
   if (!accessToken) {
