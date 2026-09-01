@@ -30,17 +30,31 @@ async function createMetaTemplate(settings, templateData) {
 
   const url = `https://graph.facebook.com/${env.whatsapp?.apiVersion || 'v18.0'}/${wabaId}/message_templates`;
 
+  const bodyComponent = {
+    type: 'BODY',
+    text: templateData.body
+  };
+
+  const matches = (templateData.body || '').match(/\{\{(\d+)\}\}/g) || [];
+  if (matches.length > 0) {
+    const samples = matches.map((m, idx) => {
+      if (idx === 0) return 'Rishabh';
+      if (idx === 1) return settings?.companyName || 'EzzySync';
+      if (idx === 2) return '15th Sept';
+      if (idx === 3) return '₹12,500';
+      return `Sample ${idx + 1}`;
+    });
+    bodyComponent.example = {
+      body_text: [samples]
+    };
+  }
+
   const payload = {
     name: cleanName,
     category: (templateData.category || 'UTILITY').toUpperCase(),
     allow_category_change: true,
     language: templateData.language_code || 'en_US',
-    components: [
-      {
-        type: 'BODY',
-        text: templateData.body
-      }
-    ]
+    components: [bodyComponent]
   };
 
   try {
