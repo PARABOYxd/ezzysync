@@ -61,6 +61,10 @@ export default function SettingsPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [submittingMetaId, setSubmittingMetaId] = useState(null);
 
+  const detectedPlaceholders = Array.from(new Set((newTemplate.body || '').match(/\{\{(\d+)\}\}/g) || []))
+    .map((p) => p.replace(/[\{\}]/g, ''))
+    .sort((a, b) => parseInt(a) - parseInt(b));
+
   const getPreviewText = (body) => {
     if (!body) return '';
     return body
@@ -861,11 +865,6 @@ export default function SettingsPage() {
                 </div>
 
                 {showAddTemplateForm && (() => {
-                  // Detect placeholders {{1}}, {{2}} in template body
-                  const detectedPlaceholders = Array.from(new Set((newTemplate.body || '').match(/\{\{(\d+)\}\}/g) || []))
-                    .map((p) => p.replace(/[\{\}]/g, ''))
-                    .sort((a, b) => parseInt(a) - parseInt(b));
-
                   const metaWarnings = [];
                   const bodyText = newTemplate.body || '';
 
