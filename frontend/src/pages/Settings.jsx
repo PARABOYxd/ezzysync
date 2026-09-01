@@ -826,39 +826,30 @@ export default function SettingsPage() {
                     .map((p) => p.replace(/[\{\}]/g, ''))
                     .sort((a, b) => parseInt(a) - parseInt(b));
 
-                  const insertPlaceholder = (num) => {
-                    const tag = `{{${num}}}`;
-                    const el = templateTextareaRef.current;
-                    if (!el) {
-                      setNewTemplate((prev) => ({
-                        ...prev,
-                        body: (prev.body || '') + ` ${tag}`
-                      }));
-                      return;
+                  const metaWarnings = [];
+                  const bodyText = newTemplate.body || '';
+
+                  if (newTemplate.type === 'template' && bodyText) {
+                    const nums = detectedPlaceholders.map((n) => parseInt(n));
+                    for (let i = 0; i < nums.length; i++) {
+                      if (nums[i] !== i + 1) {
+                        metaWarnings.push(`Placeholder numbers must start from {{1}} and be sequential (e.g. {{1}}, {{2}}, {{3}}). Detected missing {{${i + 1}}}.`);
+                        break;
+                      }
                     }
 
-                    const start = el.selectionStart || 0;
-                    const end = el.selectionEnd || 0;
-                    const currentText = newTemplate.body || '';
+                    if (/\{\{\d+\}\}\s*$/.test(bodyText)) {
+                      metaWarnings.push('Meta disallows placing a variable tag (e.g. {{2}}) at the very end of the text. Add trailing punctuation or text (e.g. "Regards, {{2}} Team").');
+                    }
 
-                    const before = currentText.substring(0, start);
-                    const after = currentText.substring(end);
+                    if (/thanks\s+you/i.test(bodyText)) {
+                      metaWarnings.push('Typo detected: "thanks you" — replace with "thank you".');
+                    }
 
-                    const needsSpaceBefore = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n');
-                    const inserted = (needsSpaceBefore ? ' ' : '') + tag;
-
-                    const updatedText = before + inserted + after;
-                    setNewTemplate((prev) => ({
-                      ...prev,
-                      body: updatedText
-                    }));
-
-                    setTimeout(() => {
-                      el.focus();
-                      const newPos = start + inserted.length;
-                      el.setSelectionRange(newPos, newPos);
-                    }, 0);
-                  };
+                    if (newTemplate.category === 'UTILITY' && /(detail|inquir|share|plan|trip|packag|offer|book)/i.test(bodyText)) {
+                      metaWarnings.push('Category Tip: Templates asking customers for trip details or inquiries get approved much faster under the MARKETING category rather than UTILITY.');
+                    }
+                  }
 
                   return (
                     <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
@@ -964,6 +955,20 @@ export default function SettingsPage() {
                             onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
                           />
                         </div>
+
+                        {newTemplate.type === 'template' && metaWarnings.length > 0 && (
+                          <div className="sm:col-span-2 p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5 text-xs text-amber-900">
+                            <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                              <Sparkles size={14} className="text-amber-600" />
+                              Meta Approval & Policy Suggestions:
+                            </p>
+                            <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-amber-800">
+                              {metaWarnings.map((w, idx) => (
+                                <li key={idx}>{w}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
                         {/* Explicit Dropdown Mapper for Detected Placeholders */}
                         {newTemplate.type === 'template' && detectedPlaceholders.length > 0 && (
