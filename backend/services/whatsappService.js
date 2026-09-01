@@ -55,6 +55,9 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
 
   let payload;
   if (templateName) {
+    let cleanName = templateName.trim();
+    if (cleanName.startsWith('/')) cleanName = cleanName.slice(1);
+
     let components = templateComponents;
     if (!components) {
       const companyName = settings?.companyName || 'EzzySync';
@@ -76,7 +79,7 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
       to: normalizedTo,
       type: 'template',
       template: {
-        name: templateName,
+        name: cleanName,
         language: {
           code: languageCode || 'en'
         },
