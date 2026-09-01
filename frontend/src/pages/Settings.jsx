@@ -55,6 +55,32 @@ export default function SettingsPage() {
   });
   const [addingTemplate, setAddingTemplate] = useState(false);
   const [showAddTemplateForm, setShowAddTemplateForm] = useState(false);
+  const [checkingMeta, setCheckingMeta] = useState(false);
+  const [existingMetaFound, setExistingMetaFound] = useState(null);
+
+  const handleCheckMetaTemplate = async (name) => {
+    if (!name || name.length < 2 || newTemplate.type !== 'template') return;
+    setCheckingMeta(true);
+    try {
+      const res = await whatsappTemplateService.lookupTemplate(name);
+      if (res.exists) {
+        setExistingMetaFound(res.template);
+        setNewTemplate((prev) => ({
+          ...prev,
+          body: res.template.body || prev.body,
+          category: res.template.category || prev.category || 'UTILITY',
+          languageCode: res.template.language || prev.languageCode || 'en_US'
+        }));
+        toast.info(`Found existing Meta template "${res.template.name}"! Details auto-filled below.`);
+      } else {
+        setExistingMetaFound(null);
+      }
+    } catch {
+      setExistingMetaFound(null);
+    } finally {
+      setCheckingMeta(false);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'whatsapp') {
@@ -833,7 +859,15 @@ export default function SettingsPage() {
                               }
                               setNewTemplate({ ...newTemplate, name: val });
                             }}
+                            onBlur={() => {
+                              if (newTemplate.type === 'template') {
+                                handleCheckMetaTemplate(newTemplate.name);
+                              }
+                            }}
                           />
+                          {checkingMeta && (
+                            <p className="text-[10px] text-brand-600 animate-pulse mt-1">Checking Meta API for template details...</p>
+                          )}
                         </div>
                         {newTemplate.type === 'template' && (
                           <>
@@ -864,6 +898,16 @@ export default function SettingsPage() {
                             </div>
                           </>
                         )}
+
+                        {existingMetaFound && (
+                          <div className="sm:col-span-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800">
+                            <span className="font-semibold flex items-center gap-1.5">
+                              ✨ Found existing template <strong>"{existingMetaFound.name}"</strong> on Meta! Status: <strong>{existingMetaFound.status} 🟢</strong>
+                            </span>
+                            <span className="text-[10px] font-bold bg-emerald-100 px-2 py-0.5 rounded text-emerald-900">Auto-filled</span>
+                          </div>
+                        )}
+
                         <div className="sm:col-span-2 space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="block text-xs font-semibold text-slate-500 font-medium">Template Content (Body)</label>
@@ -933,7 +977,10 @@ export default function SettingsPage() {
                         <Button
                           type="button"
                           variant="ghost"
-                          onClick={() => setShowAddTemplateForm(false)}
+                          onClick={() => {
+                            setShowAddTemplateForm(false);
+                            setExistingMetaFound(null);
+                          }}
                           className="text-xs"
                         >
                           Cancel
@@ -950,8 +997,9 @@ export default function SettingsPage() {
                             try {
                               const created = await whatsappTemplateService.createTemplate(newTemplate);
                               setTemplates((prev) => [created, ...prev]);
-                              toast.success(newTemplate.type === 'template' ? 'Template submitted to Meta and saved!' : 'Template saved successfully!');
+                              toast.success(existingMetaFound ? 'Template imported and saved to EzzySync!' : (newTemplate.type === 'template' ? 'Template submitted to Meta and saved!' : 'Template saved successfully!'));
                               setShowAddTemplateForm(false);
+                              setExistingMetaFound(null);
                             } catch (err) {
                               toast.error(err.response?.data?.message || 'Failed to save template.');
                             } finally {
@@ -960,7 +1008,7 @@ export default function SettingsPage() {
                           }}
                           className="text-xs px-4"
                         >
-                          {addingTemplate ? 'Saving...' : (newTemplate.type === 'template' ? 'Submit to Meta & Save' : 'Save Template')}
+                          {addingTemplate ? 'Saving...' : (existingMetaFound ? 'Import & Save Template' : (newTemplate.type === 'template' ? 'Submit to Meta & Save' : 'Save Template'))}
                         </Button>
                       </div>
                     </div>

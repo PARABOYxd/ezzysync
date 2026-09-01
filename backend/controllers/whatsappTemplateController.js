@@ -11,6 +11,19 @@ async function getTemplates(req, res, next) {
   }
 }
 
+async function lookupTemplate(req, res, next) {
+  try {
+    const { name } = req.query;
+    if (!name) return res.json({ exists: false });
+
+    const settings = await settingsService.getSettings(req.user.tenantId);
+    const lookup = await whatsappMetaService.lookupMetaTemplate(settings, name);
+    res.json(lookup);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function createTemplate(req, res, next) {
   try {
     const { type, name, body, languageCode, category, variablesMap, submitToMeta } = req.body;
@@ -38,10 +51,17 @@ async function createTemplate(req, res, next) {
           finalName = metaRes.cleanName;
         }
       } catch (metaErr) {
-        // If Meta API returns an error, forward error to client
-        return res.status(metaErr.status || 400).json({
-          message: metaErr.message || 'Failed to submit template to Meta API.'
-        });
+        // Check if template already exists on Meta. If so, import details gracefully
+        const lookup = await whatsappMetaService.lookupMetaTemplate(settings, name);
+        if (lookup.exists) {
+          wabaTemplateId = lookup.template.id;
+          metaStatus = lookup.template.status || 'APPROVED';
+          finalName = lookup.template.name;
+        } else {
+          return res.status(metaErr.status || 400).json({
+            message: metaErr.message || 'Failed to submit template to Meta API.'
+          });
+        }
       }
     }
 
@@ -56,7 +76,7 @@ async function createTemplate(req, res, next) {
       variablesMap
     });
 
-    res.json({ message: 'Template created successfully.', template });
+    res.json({ message: 'Template saved successfully.', template });
   } catch (err) {
     next(err);
   }
@@ -92,6 +112,7 @@ async function deleteTemplate(req, res, next) {
 
 module.exports = {
   getTemplates,
+  lookupTemplate,
   createTemplate,
   syncTemplates,
   deleteTemplate,

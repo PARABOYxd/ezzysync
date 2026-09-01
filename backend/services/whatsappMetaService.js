@@ -115,7 +115,55 @@ async function syncMetaTemplates(settings, tenantId) {
   }
 }
 
+async function lookupMetaTemplate(settings, name) {
+  const { accessToken, wabaId } = await getWabaDetails(settings);
+
+  if (!wabaId || !name) {
+    return { exists: false };
+  }
+
+  let cleanName = (name || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  if (cleanName.startsWith('/')) cleanName = cleanName.slice(1);
+
+  const url = `https://graph.facebook.com/${env.whatsapp?.apiVersion || 'v18.0'}/${wabaId}/message_templates?name=${encodeURIComponent(cleanName)}`;
+
+  try {
+    const res = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const metaTemplates = res.data?.data || [];
+    if (metaTemplates.length === 0) {
+      return { exists: false };
+    }
+
+    const t = metaTemplates[0];
+    let bodyText = '';
+    const bodyComp = (t.components || []).find((c) => c.type === 'BODY');
+    if (bodyComp) {
+      bodyText = bodyComp.text || '';
+    }
+
+    return {
+      exists: true,
+      template: {
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        language: t.language,
+        status: t.status,
+        body: bodyText
+      }
+    };
+  } catch (err) {
+    return { exists: false };
+  }
+}
+
 module.exports = {
   createMetaTemplate,
-  syncMetaTemplates
+  syncMetaTemplates,
+  lookupMetaTemplate
 };
