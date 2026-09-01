@@ -162,12 +162,29 @@ async function sendChatMessage(req, res, next) {
     );
     const messageId = result?.messages?.[0]?.id || null;
 
+    let messageTextToSave = text;
+    if (!messageTextToSave && templateName) {
+      const cleanTplName = templateName.trim();
+      const strippedTplName = cleanTplName.replace(/^\//, '');
+      const tplQuery = await query(
+        `SELECT body FROM whatsapp_templates 
+         WHERE tenant_id = $1 AND (name = $2 OR name = $3 OR name = $4) 
+         LIMIT 1`,
+        [req.user.tenantId, cleanTplName, strippedTplName, `/${strippedTplName}`]
+      );
+      if (tplQuery.rows.length > 0) {
+        messageTextToSave = tplQuery.rows[0].body;
+      } else {
+        messageTextToSave = `[Template: ${cleanTplName}]`;
+      }
+    }
+
     // Save as outbound message (storing media parameters in the database)
     const saved = await whatsappRepo.saveMessage(
       req.user.tenantId,
       chat.phone,
       'outbound',
-      text || (templateName ? `[Template: ${templateName}]` : (filename || (mediaType === 'image' ? 'Image' : 'Document.pdf'))),
+      messageTextToSave || (filename || (mediaType === 'image' ? 'Image' : 'Document.pdf')),
       null,
       0,
       messageId,
