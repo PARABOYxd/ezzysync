@@ -82,6 +82,54 @@ async function createTemplate(req, res, next) {
   }
 }
 
+async function updateTemplate(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { type, name, body, languageCode, category, variablesMap, submitToMeta } = req.body;
+
+    const existing = await templateRepo.getTemplateById(req.user.tenantId, id);
+    if (!existing) {
+      return res.status(404).json({ message: 'Template not found.' });
+    }
+
+    let metaStatus = submitToMeta === false ? 'DRAFT' : 'PENDING';
+    let wabaTemplateId = existing.waba_template_id;
+
+    if (type === 'template' && submitToMeta !== false) {
+      const settings = await settingsService.getSettings(req.user.tenantId);
+      try {
+        const metaRes = await whatsappMetaService.createMetaTemplate(settings, {
+          name: existing.name || name,
+          category: category || 'UTILITY',
+          language_code: languageCode || 'en_US',
+          body
+        });
+        wabaTemplateId = metaRes.wabaTemplateId || wabaTemplateId;
+        metaStatus = metaRes.status || 'PENDING';
+      } catch (metaErr) {
+        return res.status(metaErr.status || 400).json({
+          message: metaErr.message || 'Failed to update template on Meta API.'
+        });
+      }
+    }
+
+    const updated = await templateRepo.updateTemplateRecord(req.user.tenantId, id, {
+      type: type || existing.type,
+      name: existing.name || name,
+      body: body || existing.body,
+      languageCode: languageCode || existing.language_code,
+      category: category || existing.category,
+      metaStatus: type === 'text' ? 'APPROVED' : metaStatus,
+      wabaTemplateId,
+      variablesMap: variablesMap || existing.variables_map
+    });
+
+    res.json({ message: 'Template updated successfully.', template: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function submitMetaTemplate(req, res, next) {
   try {
     const { id } = req.params;
@@ -141,6 +189,7 @@ module.exports = {
   getTemplates,
   lookupTemplate,
   createTemplate,
+  updateTemplate,
   submitMetaTemplate,
   syncTemplates,
   deleteTemplate,

@@ -60,10 +60,33 @@ async function updateMetaStatus(tenantId, id, { metaStatus, wabaTemplateId }) {
   return rows[0];
 }
 
+async function updateTemplateRecord(tenantId, id, { type, name, body, languageCode, category, metaStatus, wabaTemplateId, variablesMap }) {
+  const { rows } = await query(
+    `UPDATE whatsapp_templates 
+     SET type = $1, name = $2, body = $3, language_code = $4, category = $5, meta_status = $6, waba_template_id = COALESCE($7, waba_template_id), variables_map = $8, updated_at = now() 
+     WHERE tenant_id = $9 AND id = $10 
+     RETURNING *`,
+    [
+      type || 'text',
+      name,
+      body,
+      languageCode || 'en_US',
+      category || 'UTILITY',
+      metaStatus || 'APPROVED',
+      wabaTemplateId || null,
+      JSON.stringify(variablesMap || {}),
+      tenantId,
+      id
+    ]
+  );
+  return rows[0];
+}
+
 module.exports = {
   getTemplates,
   getTemplateById,
   createTemplate,
+  updateTemplateRecord,
   updateMetaStatus,
   deleteTemplate,
 };

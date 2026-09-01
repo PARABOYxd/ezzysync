@@ -8,7 +8,7 @@ import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle } from '../services/googleService';
-import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp, Trash2, Plus } from 'lucide-react';
+import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp, Trash2, Plus, Edit2 } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
@@ -56,6 +56,7 @@ export default function SettingsPage() {
   });
   const [addingTemplate, setAddingTemplate] = useState(false);
   const [showAddTemplateForm, setShowAddTemplateForm] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
   const [checkingMeta, setCheckingMeta] = useState(false);
   const [existingMetaFound, setExistingMetaFound] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -76,25 +77,49 @@ export default function SettingsPage() {
       .replace(/\{\{6\}\}/g, 'https://ezzysync.com/pay/inv_987');
   };
 
-  const handleCreateTemplate = async (submitToMeta = true) => {
+  const handleEditStart = (t) => {
+    setEditingTemplateId(t.id);
+    setNewTemplate({
+      type: t.type || 'text',
+      name: t.name || '',
+      body: t.body || '',
+      languageCode: t.language_code || 'en_US',
+      category: t.category || 'UTILITY',
+      variablesMap: typeof t.variables_map === 'string' ? JSON.parse(t.variables_map) : (t.variables_map || {})
+    });
+    setShowAddTemplateForm(true);
+    setExistingMetaFound(null);
+  };
+
+  const handleSaveTemplate = async (submitToMeta = true) => {
     if (!newTemplate.name || !newTemplate.body) {
       toast.error('Name/shortcut and body content are required.');
       return;
     }
     setAddingTemplate(true);
     try {
-      const created = await whatsappTemplateService.createTemplate({
-        ...newTemplate,
-        submitToMeta
-      });
-      setTemplates((prev) => [created, ...prev]);
-      if (submitToMeta) {
-        toast.success(existingMetaFound ? 'Template imported and saved!' : 'Template submitted to Meta and saved!');
+      if (editingTemplateId) {
+        const updated = await whatsappTemplateService.updateTemplate(editingTemplateId, {
+          ...newTemplate,
+          submitToMeta
+        });
+        setTemplates((prev) => prev.map((item) => item.id === editingTemplateId ? updated : item));
+        toast.success(submitToMeta ? 'Template update submitted to Meta for review!' : 'Template draft updated!');
       } else {
-        toast.success('Template saved as local draft! You can submit to Meta later.');
+        const created = await whatsappTemplateService.createTemplate({
+          ...newTemplate,
+          submitToMeta
+        });
+        setTemplates((prev) => [created, ...prev]);
+        if (submitToMeta) {
+          toast.success(existingMetaFound ? 'Template imported and saved!' : 'Template submitted to Meta and saved!');
+        } else {
+          toast.success('Template saved as local draft! You can submit to Meta later.');
+        }
       }
       setShowAddTemplateForm(false);
       setShowPreviewModal(false);
+      setEditingTemplateId(null);
       setExistingMetaFound(null);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save template.');
@@ -892,7 +917,9 @@ export default function SettingsPage() {
 
                   return (
                     <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
-                      <p className="text-xs font-bold text-slate-700">New Template Configuration</p>
+                      <p className="text-xs font-bold text-slate-700">
+                        {editingTemplateId ? `Editing Template: ${newTemplate.name}` : 'New Template Configuration'}
+                      </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Type</label>
@@ -910,6 +937,7 @@ export default function SettingsPage() {
                             label={newTemplate.type === 'text' ? 'Shortcut / Keyword (e.g. /welcome)' : 'Meta Template Code Name (e.g. welcome_message)'}
                             placeholder={newTemplate.type === 'text' ? 'e.g. /welcome' : 'e.g. welcome_message'}
                             value={newTemplate.name}
+                            disabled={!!editingTemplateId}
                             onChange={(e) => {
                               let val = e.target.value;
                               if (newTemplate.type === 'text' && val && !val.startsWith('/')) {
@@ -918,7 +946,7 @@ export default function SettingsPage() {
                               setNewTemplate({ ...newTemplate, name: val });
                             }}
                             onBlur={() => {
-                              if (newTemplate.type === 'template') {
+                              if (newTemplate.type === 'template' && !editingTemplateId) {
                                 handleCheckMetaTemplate(newTemplate.name);
                               }
                             }}
@@ -1052,6 +1080,7 @@ export default function SettingsPage() {
                           variant="ghost"
                           onClick={() => {
                             setShowAddTemplateForm(false);
+                            setEditingTemplateId(null);
                             setExistingMetaFound(null);
                           }}
                           className="text-xs"
@@ -1141,7 +1170,7 @@ export default function SettingsPage() {
                           type="button"
                           variant="ghost"
                           disabled={addingTemplate}
-                          onClick={() => handleCreateTemplate(false)}
+                          onClick={() => handleSaveTemplate(false)}
                           className="text-xs border border-slate-200 text-slate-700 hover:bg-slate-50"
                         >
                           💾 Save as Local Draft (Submit Later)
@@ -1149,7 +1178,7 @@ export default function SettingsPage() {
                         <Button
                           type="button"
                           disabled={addingTemplate}
-                          onClick={() => handleCreateTemplate(true)}
+                          onClick={() => handleSaveTemplate(true)}
                           className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                         >
                           🚀 Submit to Meta & Save
@@ -1245,6 +1274,14 @@ export default function SettingsPage() {
                                     {submittingMetaId === t.id ? 'Submitting...' : '🚀 Submit to Meta'}
                                   </button>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditStart(t)}
+                                  className="text-slate-500 hover:text-brand-600 hover:bg-slate-100 p-1.5 rounded-md transition cursor-pointer mr-1"
+                                  title="Edit Template"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={async () => {
