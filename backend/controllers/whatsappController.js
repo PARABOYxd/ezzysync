@@ -179,6 +179,14 @@ async function sendChatMessage(req, res, next) {
       }
     }
 
+    if (messageTextToSave) {
+      const companyName = settings?.companyName || 'EzzySync';
+      const customerName = chat.customer_name || 'Customer';
+      messageTextToSave = messageTextToSave
+        .replace(/\{\{1\}\}/g, companyName)
+        .replace(/\{\{2\}\}/g, customerName);
+    }
+
     // Save as outbound message (storing media parameters in the database)
     const saved = await whatsappRepo.saveMessage(
       req.user.tenantId,
