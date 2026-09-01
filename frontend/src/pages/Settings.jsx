@@ -104,17 +104,25 @@ export default function SettingsPage() {
           submitToMeta
         });
         setTemplates((prev) => prev.map((item) => item.id === editingTemplateId ? updated : item));
-        toast.success(submitToMeta ? 'Template update submitted to Meta for review!' : 'Template draft updated!');
+        if (newTemplate.type === 'text') {
+          toast.success('Quick Message updated successfully!');
+        } else if (submitToMeta) {
+          toast.success('Template update submitted to Meta for review!');
+        } else {
+          toast.success('Meta Template draft updated!');
+        }
       } else {
         const created = await whatsappTemplateService.createTemplate({
           ...newTemplate,
           submitToMeta
         });
         setTemplates((prev) => [created, ...prev]);
-        if (submitToMeta) {
-          toast.success(existingMetaFound ? 'Template imported and saved!' : 'Template submitted to Meta and saved!');
+        if (newTemplate.type === 'text') {
+          toast.success('Quick Message saved successfully!');
+        } else if (submitToMeta) {
+          toast.success(existingMetaFound ? 'Template imported and saved!' : 'Template submitted to Meta for review!');
         } else {
-          toast.success('Template saved as local draft! You can submit to Meta later.');
+          toast.success('Meta Template saved as local draft!');
         }
       }
       setShowAddTemplateForm(false);
@@ -928,8 +936,8 @@ export default function SettingsPage() {
                             onChange={(e) => setNewTemplate({ ...newTemplate, type: e.target.value })}
                             className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
                           >
-                            <option value="text">Canned Response (Text / Shortcut)</option>
-                            <option value="template">Meta Template (Submit & Sync via Meta WABA API)</option>
+                            <option value="text">Quick Message (Text / Shortcut)</option>
+                            <option value="template">Meta Template (WhatsApp Official API)</option>
                           </select>
                         </div>
                         <div>
@@ -1219,7 +1227,7 @@ export default function SettingsPage() {
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                    Quick Reply
+                                    Quick Message
                                   </span>
                                 )}
                               </td>
