@@ -10,12 +10,22 @@ async function getTemplates(tenantId) {
   return rows;
 }
 
-async function createTemplate(tenantId, { type, name, body, languageCode }) {
+async function createTemplate(tenantId, { type, name, body, languageCode, category, metaStatus, wabaTemplateId, variablesMap }) {
   const { rows } = await query(
-    `INSERT INTO whatsapp_templates (tenant_id, type, name, body, language_code)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO whatsapp_templates (tenant_id, type, name, body, language_code, category, meta_status, waba_template_id, variables_map)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [tenantId, type || 'text', name, body, languageCode || 'en']
+    [
+      tenantId, 
+      type || 'text', 
+      name, 
+      body, 
+      languageCode || 'en', 
+      category || 'UTILITY', 
+      metaStatus || (type === 'template' ? 'PENDING' : 'APPROVED'), 
+      wabaTemplateId || null, 
+      JSON.stringify(variablesMap || {})
+    ]
   );
   return rows[0];
 }

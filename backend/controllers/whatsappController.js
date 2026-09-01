@@ -148,34 +148,54 @@ async function sendChatMessage(req, res, next) {
 
     const settings = await settingsService.getSettings(req.user.tenantId);
 
-    // Send using current WhatsApp service
-    const mockBooking = { phone: chat.phone, bookingId: 'CHAT' };
-    const result = await whatsappService.sendWhatsAppMessage(
-      mockBooking,
-      settings,
-      mediaLink,
-      text,
-      mediaType,
-      filename,
-      templateName,
-      languageCode
-    );
-    const messageId = result?.messages?.[0]?.id || null;
-
+    let templateComponents = null;
     let messageTextToSave = text;
-    if (!messageTextToSave && templateName) {
+
+    if (templateName) {
       const cleanTplName = templateName.trim();
       const strippedTplName = cleanTplName.replace(/^\//, '');
       const tplQuery = await query(
-        `SELECT body FROM whatsapp_templates 
+        `SELECT body, variables_map FROM whatsapp_templates 
          WHERE tenant_id = $1 AND (name = $2 OR name = $3 OR name = $4) 
          LIMIT 1`,
         [req.user.tenantId, cleanTplName, strippedTplName, `/${strippedTplName}`]
       );
+
       if (tplQuery.rows.length > 0) {
-        messageTextToSave = tplQuery.rows[0].body;
-      } else {
-        messageTextToSave = `[Template: ${cleanTplName}]`;
+        const tpl = tplQuery.rows[0];
+        messageTextToSave = messageTextToSave || tpl.body;
+        const varMap = typeof tpl.variables_map === 'string' ? JSON.parse(tpl.variables_map) : (tpl.variables_map || {});
+        
+        const paramKeys = Object.keys(varMap).sort((a, b) => parseInt(a) - parseInt(b));
+        if (paramKeys.length > 0) {
+          const params = [];
+          for (const k of paramKeys) {
+            const field = varMap[k];
+            let val = '';
+            if (field === 'customer_name') val = chat.customer_name || 'Customer';
+            else if (field === 'customer_phone') val = chat.phone || '';
+            else if (field === 'company_name') val = settings.companyName || 'EzzySync';
+            else if (field === 'trip_name') val = chat.package_name || 'Trip';
+            else if (field === 'departure_date') val = 'Upcoming Date';
+            else if (field === 'total_price') val = '₹0';
+            else if (field === 'invoice_link') val = '';
+            else val = settings.companyName || 'EzzySync';
+
+            params.push({ type: 'text', text: val || 'N/A' });
+
+            if (messageTextToSave) {
+              const regex = new RegExp(`\\{\\{${k}\\}\\}`, 'g');
+              messageTextToSave = messageTextToSave.replace(regex, val || 'N/A');
+            }
+          }
+
+          templateComponents = [
+            {
+              type: 'body',
+              parameters: params
+            }
+          ];
+        }
       }
     }
 
@@ -186,6 +206,21 @@ async function sendChatMessage(req, res, next) {
         .replace(/\{\{1\}\}/g, companyName)
         .replace(/\{\{2\}\}/g, customerName);
     }
+
+    // Send using current WhatsApp service
+    const mockBooking = { phone: chat.phone, bookingId: 'CHAT' };
+    const result = await whatsappService.sendWhatsAppMessage(
+      mockBooking,
+      settings,
+      mediaLink,
+      text,
+      mediaType,
+      filename,
+      templateName,
+      languageCode,
+      templateComponents
+    );
+    const messageId = result?.messages?.[0]?.id || null;
 
     // Save as outbound message (storing media parameters in the database)
     const saved = await whatsappRepo.saveMessage(

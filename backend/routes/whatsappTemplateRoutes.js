@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/', requireAuth, ctrl.getTemplates);
 router.post('/', requireAuth, ctrl.createTemplate);
+router.post('/sync', requireAuth, ctrl.syncTemplates);
 router.delete('/:id', requireAuth, ctrl.deleteTemplate);
 
 module.exports = router;

@@ -6,5 +6,8 @@ export const getTemplates = () =>
 export const createTemplate = (payload) =>
   api.post('/whatsapp/templates', payload).then((r) => r.data.template);
 
+export const syncTemplates = () =>
+  api.post('/whatsapp/templates/sync').then((r) => r.data);
+
 export const deleteTemplate = (id) =>
   api.delete(`/whatsapp/templates/${id}`).then((r) => r.data);

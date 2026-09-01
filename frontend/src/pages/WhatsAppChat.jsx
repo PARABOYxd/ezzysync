@@ -232,8 +232,11 @@ export default function WhatsAppChat() {
     const match = val.match(/\/(\w*)$/);
     if (match) {
       const queryStr = match[1].toLowerCase();
-      // Filter templates where name contains queryStr
+      // Filter templates where name contains queryStr and meta_status is APPROVED
       const filtered = allTemplates.filter((t) => {
+        if (t.type === 'template' && t.meta_status && t.meta_status !== 'APPROVED') {
+          return false;
+        }
         const normalizedName = t.name.startsWith('/') ? t.name.slice(1).toLowerCase() : t.name.toLowerCase();
         return normalizedName.includes(queryStr);
       });

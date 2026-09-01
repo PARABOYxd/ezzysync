@@ -725,10 +725,18 @@ async function ensureSchema() {
         name TEXT NOT NULL,
         body TEXT NOT NULL,
         language_code TEXT DEFAULT 'en',
+        category TEXT DEFAULT 'UTILITY',
+        meta_status TEXT DEFAULT 'APPROVED',
+        waba_template_id TEXT,
+        variables_map JSONB DEFAULT '{}'::jsonb,
         created_at TIMESTAMPTZ DEFAULT now(),
         updated_at TIMESTAMPTZ DEFAULT now()
       );
     `);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'UTILITY';`);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS meta_status TEXT DEFAULT 'APPROVED';`);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS waba_template_id TEXT;`);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS variables_map JSONB DEFAULT '{}'::jsonb;`);
     await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_templates_tenant ON whatsapp_templates(tenant_id);`);
   } catch (err) {
     logger.warn({ err }, 'Failed to create whatsapp_templates table');

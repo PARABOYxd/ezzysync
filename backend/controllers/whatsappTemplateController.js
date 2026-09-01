@@ -1,4 +1,6 @@
 const templateRepo = require('../repositories/whatsappTemplateRepository');
+const settingsService = require('../services/settingsService');
+const whatsappMetaService = require('../services/whatsappMetaService');
 
 async function getTemplates(req, res, next) {
   try {
@@ -11,19 +13,65 @@ async function getTemplates(req, res, next) {
 
 async function createTemplate(req, res, next) {
   try {
-    const { type, name, body, languageCode } = req.body;
+    const { type, name, body, languageCode, category, variablesMap, submitToMeta } = req.body;
     if (!name || !body) {
       return res.status(400).json({ message: 'Name and body are required.' });
     }
 
+    let metaStatus = 'APPROVED';
+    let wabaTemplateId = null;
+    let finalName = name;
+
+    // If it's a Meta template and submitToMeta is true, attempt direct submission to Meta Graph API
+    if (type === 'template' && submitToMeta !== false) {
+      const settings = await settingsService.getSettings(req.user.tenantId);
+      try {
+        const metaRes = await whatsappMetaService.createMetaTemplate(settings, {
+          name,
+          category: category || 'UTILITY',
+          language_code: languageCode || 'en_US',
+          body
+        });
+        wabaTemplateId = metaRes.wabaTemplateId;
+        metaStatus = metaRes.status || 'PENDING';
+        if (metaRes.cleanName) {
+          finalName = metaRes.cleanName;
+        }
+      } catch (metaErr) {
+        // If Meta API returns an error, forward error to client
+        return res.status(metaErr.status || 400).json({
+          message: metaErr.message || 'Failed to submit template to Meta API.'
+        });
+      }
+    }
+
     const template = await templateRepo.createTemplate(req.user.tenantId, {
       type,
-      name,
+      name: finalName,
       body,
       languageCode,
+      category: category || 'UTILITY',
+      metaStatus: type === 'text' ? 'APPROVED' : metaStatus,
+      wabaTemplateId,
+      variablesMap
     });
 
-    res.json({ message: 'Template saved successfully.', template });
+    res.json({ message: 'Template created successfully.', template });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function syncTemplates(req, res, next) {
+  try {
+    const settings = await settingsService.getSettings(req.user.tenantId);
+    const result = await whatsappMetaService.syncMetaTemplates(settings, req.user.tenantId);
+    const templates = await templateRepo.getTemplates(req.user.tenantId);
+
+    res.json({
+      message: `Synced ${result.syncedCount || 0} template status(es) from Meta!`,
+      templates
+    });
   } catch (err) {
     next(err);
   }
@@ -45,5 +93,6 @@ async function deleteTemplate(req, res, next) {
 module.exports = {
   getTemplates,
   createTemplate,
+  syncTemplates,
   deleteTemplate,
 };

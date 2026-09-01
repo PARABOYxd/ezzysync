@@ -44,7 +44,15 @@ export default function SettingsPage() {
 
   const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
-  const [newTemplate, setNewTemplate] = useState({ type: 'text', name: '', body: '', languageCode: 'en' });
+  const [syncingTemplates, setSyncingTemplates] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({ 
+    type: 'text', 
+    name: '', 
+    body: '', 
+    languageCode: 'en_US', 
+    category: 'UTILITY', 
+    variablesMap: {} 
+  });
   const [addingTemplate, setAddingTemplate] = useState(false);
   const [showAddTemplateForm, setShowAddTemplateForm] = useState(false);
 
@@ -741,113 +749,223 @@ export default function SettingsPage() {
 
               {/* WhatsApp Templates & Quick Replies Management */}
               <div className="card space-y-6">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                   <div>
                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
                       <Sparkles size={18} className="text-emerald-500" />
                       Templates & Quick Replies
                     </h3>
-                    <p className="text-xs text-slate-400">Add canned text responses (shortcuts) or Meta template configurations.</p>
+                    <p className="text-xs text-slate-400">Add canned text responses (shortcuts) or submit & sync Meta template configurations.</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddTemplateForm(!showAddTemplateForm);
-                      setNewTemplate({ type: 'text', name: '', body: '', languageCode: 'en' });
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-bold transition cursor-pointer"
-                  >
-                    <Plus size={14} />
-                    Add New
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={syncingTemplates}
+                      onClick={async () => {
+                        setSyncingTemplates(true);
+                        try {
+                          const res = await whatsappTemplateService.syncTemplates();
+                          if (res.templates) setTemplates(res.templates);
+                          toast.success(res.message || 'Synced templates with Meta!');
+                        } catch (err) {
+                          toast.error(err.response?.data?.message || 'Failed to sync templates from Meta.');
+                        } finally {
+                          setSyncingTemplates(false);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
+                      title="Sync live approval statuses from Meta Graph API"
+                    >
+                      <RefreshCw size={13} className={syncingTemplates ? 'animate-spin' : ''} />
+                      Sync Status
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddTemplateForm(!showAddTemplateForm);
+                        setNewTemplate({ type: 'text', name: '', body: '', languageCode: 'en_US', category: 'UTILITY', variablesMap: {} });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-bold transition cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      Add New
+                    </button>
+                  </div>
                 </div>
 
-                {showAddTemplateForm && (
-                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
-                    <p className="text-xs font-bold text-slate-700">New Template details</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Type</label>
-                        <select
-                          value={newTemplate.type}
-                          onChange={(e) => setNewTemplate({ ...newTemplate, type: e.target.value })}
-                          className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
-                        >
-                          <option value="text">Canned Response (Text / Shortcut)</option>
-                          <option value="template">Meta Template (Requires approval on Meta Dashboard)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <Input
-                          label={newTemplate.type === 'text' ? 'Shortcut / Keyword (e.g. /welcome)' : 'Meta Template Name (e.g. hello_world)'}
-                          placeholder={newTemplate.type === 'text' ? 'e.g. /welcome' : 'e.g. hello_world'}
-                          value={newTemplate.name}
-                          onChange={(e) => {
-                            let val = e.target.value;
-                            if (newTemplate.type === 'text' && val && !val.startsWith('/')) {
-                              val = '/' + val;
-                            }
-                            setNewTemplate({ ...newTemplate, name: val });
-                          }}
-                        />
-                      </div>
-                      {newTemplate.type === 'template' && (
-                        <div className="sm:col-span-2">
+                {showAddTemplateForm && (() => {
+                  // Detect placeholders {{1}}, {{2}} in template body
+                  const detectedPlaceholders = Array.from(new Set((newTemplate.body || '').match(/\{\{(\d+)\}\}/g) || []))
+                    .map((p) => p.replace(/[\{\}]/g, ''))
+                    .sort((a, b) => parseInt(a) - parseInt(b));
+
+                  const insertPlaceholder = (num) => {
+                    setNewTemplate((prev) => ({
+                      ...prev,
+                      body: (prev.body || '') + ` {{${num}}}`
+                    }));
+                  };
+
+                  return (
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-4">
+                      <p className="text-xs font-bold text-slate-700">New Template Configuration</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Type</label>
+                          <select
+                            value={newTemplate.type}
+                            onChange={(e) => setNewTemplate({ ...newTemplate, type: e.target.value })}
+                            className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
+                          >
+                            <option value="text">Canned Response (Text / Shortcut)</option>
+                            <option value="template">Meta Template (Submit & Sync via Meta WABA API)</option>
+                          </select>
+                        </div>
+                        <div>
                           <Input
-                            label="Language Code"
-                            placeholder="e.g. en or en_US"
-                            value={newTemplate.languageCode}
-                            onChange={(e) => setNewTemplate({ ...newTemplate, languageCode: e.target.value })}
+                            label={newTemplate.type === 'text' ? 'Shortcut / Keyword (e.g. /welcome)' : 'Meta Template Code Name (e.g. welcome_message)'}
+                            placeholder={newTemplate.type === 'text' ? 'e.g. /welcome' : 'e.g. welcome_message'}
+                            value={newTemplate.name}
+                            onChange={(e) => {
+                              let val = e.target.value;
+                              if (newTemplate.type === 'text' && val && !val.startsWith('/')) {
+                                val = '/' + val;
+                              }
+                              setNewTemplate({ ...newTemplate, name: val });
+                            }}
                           />
                         </div>
-                      )}
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Template Content (Body)</label>
-                        <textarea
-                          rows={3}
-                          placeholder="Type your message content..."
-                          className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
-                          value={newTemplate.body}
-                          onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
-                        />
+                        {newTemplate.type === 'template' && (
+                          <>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Meta Category</label>
+                              <select
+                                value={newTemplate.category || 'UTILITY'}
+                                onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
+                                className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
+                              >
+                                <option value="UTILITY">UTILITY (Transactional / Confirmations)</option>
+                                <option value="MARKETING">MARKETING (Promotions / Offers)</option>
+                                <option value="AUTHENTICATION">AUTHENTICATION (OTPs / Security)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-500 mb-1.5 font-medium">Language Code</label>
+                              <select
+                                value={newTemplate.languageCode || 'en_US'}
+                                onChange={(e) => setNewTemplate({ ...newTemplate, languageCode: e.target.value })}
+                                className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
+                              >
+                                <option value="en_US">English (US) [en_US]</option>
+                                <option value="en_IN">English (India) [en_IN]</option>
+                                <option value="en">English [en]</option>
+                                <option value="hi">Hindi [hi]</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                        <div className="sm:col-span-2 space-y-2">
+                          <div className="flex justify-between items-center">
+                            <label className="block text-xs font-semibold text-slate-500 font-medium">Template Content (Body)</label>
+                            {newTemplate.type === 'template' && (
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <span className="text-slate-400 font-semibold">Quick Variable Insert:</span>
+                                {[1, 2, 3, 4].map((num) => (
+                                  <button
+                                    key={num}
+                                    type="button"
+                                    onClick={() => insertPlaceholder(num)}
+                                    className="px-2 py-0.5 rounded bg-white hover:bg-slate-200 text-brand-700 border border-slate-200 font-mono font-bold transition cursor-pointer"
+                                  >
+                                    + &#123;&#123;{num}&#125;&#125;
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <textarea
+                            rows={3}
+                            placeholder={newTemplate.type === 'template' ? "e.g. Hi {{1}}, your booking for {{2}} on {{3}} is confirmed!" : "Type your canned message text..."}
+                            className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 outline-none font-medium text-slate-700 focus:border-brand-500 transition"
+                            value={newTemplate.body}
+                            onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
+                          />
+                        </div>
+
+                        {/* Explicit Dropdown Mapper for Detected Placeholders */}
+                        {newTemplate.type === 'template' && detectedPlaceholders.length > 0 && (
+                          <div className="sm:col-span-2 p-3 bg-white rounded-xl border border-slate-200 space-y-3">
+                            <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                              <Sparkles size={14} className="text-indigo-500" />
+                              Map Detected Placeholders to CRM Data Fields:
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {detectedPlaceholders.map((num) => (
+                                <div key={num} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-lg border border-slate-150">
+                                  <span className="text-xs font-mono font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                    &#123;&#123;{num}&#125;&#125;
+                                  </span>
+                                  <select
+                                    value={newTemplate.variablesMap?.[num] || 'customer_name'}
+                                    onChange={(e) => {
+                                      setNewTemplate({
+                                        ...newTemplate,
+                                        variablesMap: { ...newTemplate.variablesMap, [num]: e.target.value }
+                                      });
+                                    }}
+                                    className="text-xs bg-white border border-slate-200 rounded-lg p-2 outline-none font-medium text-slate-700"
+                                  >
+                                    <option value="customer_name">Customer Name</option>
+                                    <option value="customer_phone">Customer Phone</option>
+                                    <option value="company_name">Company / Agency Name</option>
+                                    <option value="trip_name">Trip / Package Name</option>
+                                    <option value="departure_date">Departure Date</option>
+                                    <option value="total_price">Total Booking Amount</option>
+                                    <option value="invoice_link">Invoice / Payment Link</option>
+                                  </select>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 justify-end pt-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setShowAddTemplateForm(false)}
+                          className="text-xs"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={addingTemplate}
+                          onClick={async () => {
+                            if (!newTemplate.name || !newTemplate.body) {
+                              toast.error('Name/shortcut and body content are required.');
+                              return;
+                            }
+                            setAddingTemplate(true);
+                            try {
+                              const created = await whatsappTemplateService.createTemplate(newTemplate);
+                              setTemplates((prev) => [created, ...prev]);
+                              toast.success(newTemplate.type === 'template' ? 'Template submitted to Meta and saved!' : 'Template saved successfully!');
+                              setShowAddTemplateForm(false);
+                            } catch (err) {
+                              toast.error(err.response?.data?.message || 'Failed to save template.');
+                            } finally {
+                              setAddingTemplate(false);
+                            }
+                          }}
+                          className="text-xs px-4"
+                        >
+                          {addingTemplate ? 'Saving...' : (newTemplate.type === 'template' ? 'Submit to Meta & Save' : 'Save Template')}
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2 justify-end pt-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setShowAddTemplateForm(false)}
-                        className="text-xs"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        disabled={addingTemplate}
-                        onClick={async () => {
-                          if (!newTemplate.name || !newTemplate.body) {
-                            toast.error('Name/shortcut and body content are required.');
-                            return;
-                          }
-                          setAddingTemplate(true);
-                          try {
-                            const created = await whatsappTemplateService.createTemplate(newTemplate);
-                            setTemplates((prev) => [created, ...prev]);
-                            toast.success('Template saved successfully!');
-                            setShowAddTemplateForm(false);
-                          } catch (err) {
-                            toast.error(err.response?.data?.message || 'Failed to save template.');
-                          } finally {
-                            setAddingTemplate(false);
-                          }
-                        }}
-                        className="text-xs px-4"
-                      >
-                        {addingTemplate ? 'Saving...' : 'Save Template'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {loadingTemplates ? (
                   <div className="text-center py-6 text-xs text-slate-400">Loading templates...</div>
@@ -862,48 +980,73 @@ export default function SettingsPage() {
                         <tr>
                           <th className="p-3">Shortcut / Name</th>
                           <th className="p-3">Type</th>
+                          <th className="p-3">Status</th>
                           <th className="p-3">Body Preview</th>
                           <th className="p-3 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {templates.map((t) => (
-                          <tr key={t.id} className="hover:bg-slate-50/50">
-                            <td className="p-3 font-semibold text-slate-800">{t.name}</td>
-                            <td className="p-3">
-                              {t.type === 'template' ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                                  Meta Template ({t.language_code})
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                  Quick Reply
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3 truncate max-w-[200px]" title={t.body}>
-                              {t.body}
-                            </td>
-                            <td className="p-3 text-right">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!window.confirm('Delete this template?')) return;
-                                  try {
-                                    await whatsappTemplateService.deleteTemplate(t.id);
-                                    setTemplates((prev) => prev.filter((item) => item.id !== t.id));
-                                    toast.success('Template deleted.');
-                                  } catch {
-                                    toast.error('Failed to delete template.');
-                                  }
-                                }}
-                                className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-md transition cursor-pointer"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {templates.map((t) => {
+                          const status = t.meta_status || 'APPROVED';
+                          return (
+                            <tr key={t.id} className="hover:bg-slate-50/50">
+                              <td className="p-3 font-semibold text-slate-800">{t.name}</td>
+                              <td className="p-3">
+                                {t.type === 'template' ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                    Meta ({t.category || 'UTILITY'})
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                    Quick Reply
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                {t.type === 'template' ? (
+                                  status === 'APPROVED' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      APPROVED 🟢
+                                    </span>
+                                  ) : status === 'PENDING' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                      PENDING 🟡
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                      REJECTED 🔴
+                                    </span>
+                                  )
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    ACTIVE 🟢
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 truncate max-w-[200px]" title={t.body}>
+                                {t.body}
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!window.confirm('Delete this template?')) return;
+                                    try {
+                                      await whatsappTemplateService.deleteTemplate(t.id);
+                                      setTemplates((prev) => prev.filter((item) => item.id !== t.id));
+                                      toast.success('Template deleted.');
+                                    } catch {
+                                      toast.error('Failed to delete template.');
+                                    }
+                                  }}
+                                  className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-md transition cursor-pointer"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
