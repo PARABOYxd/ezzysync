@@ -254,7 +254,8 @@ export default function WhatsAppChat() {
       try {
         const res = await whatsappChatService.sendChatMessage(activeChat.id, {
           templateName: template.name,
-          languageCode: template.language_code || 'en'
+          languageCode: template.language_code || 'en',
+          text: template.body
         });
         
         // Append sent template message to the UI thread

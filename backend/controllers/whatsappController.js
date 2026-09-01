@@ -167,7 +167,7 @@ async function sendChatMessage(req, res, next) {
       req.user.tenantId,
       chat.phone,
       'outbound',
-      templateName ? `[Template: ${templateName}]` : (text || filename || (mediaType === 'image' ? 'Image' : 'Document.pdf')),
+      text || (templateName ? `[Template: ${templateName}]` : (filename || (mediaType === 'image' ? 'Image' : 'Document.pdf'))),
       null,
       0,
       messageId,
