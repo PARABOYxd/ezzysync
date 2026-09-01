@@ -34,7 +34,7 @@ function normalizePhone(phone = '') {
   return clean;
 }
 
-async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null, templateName = null, languageCode = 'en') {
+async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null, templateName = null, languageCode = 'en', templateComponents = null) {
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
 
@@ -55,6 +55,22 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
 
   let payload;
   if (templateName) {
+    let components = templateComponents;
+    if (!components) {
+      const companyName = settings?.companyName || 'EzzySync';
+      components = [
+        {
+          type: 'body',
+          parameters: [
+            {
+              type: 'text',
+              text: companyName
+            }
+          ]
+        }
+      ];
+    }
+
     payload = {
       messaging_product: 'whatsapp',
       to: normalizedTo,
@@ -63,7 +79,8 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
         name: templateName,
         language: {
           code: languageCode || 'en'
-        }
+        },
+        components
       }
     };
   } else if (mediaLink) {
@@ -98,18 +115,49 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
     };
   }
 
-  try {
-    const res = await axios.post(url, payload, {
+  const executePost = async (reqPayload) => {
+    return axios.post(url, reqPayload, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
     });
+  };
+
+  try {
+    const res = await executePost(payload);
     return res.data;
   } catch (err) {
+    // Check if error #132001 (Template translation / mismatch error)
+    if (err.response && templateName) {
+      const errCode = err.response.data?.error?.code;
+      const errMsg = err.response.data?.error?.message || '';
+
+      // If translation error code 132001 or missing translation message
+      if (errCode === 132001 || errMsg.toLowerCase().includes('translation') || errMsg.toLowerCase().includes('does not exist')) {
+        const fallbacks = ['en_US', 'en_IN', 'en'];
+        for (const fallbackCode of fallbacks) {
+          if (fallbackCode !== (languageCode || 'en')) {
+            try {
+              payload.template.language.code = fallbackCode;
+              const fallbackRes = await executePost(payload);
+              return fallbackRes.data;
+            } catch (fbErr) {
+              // continue fallback loop
+            }
+          }
+        }
+      }
+
+      const errorMsg = err.response.data?.error?.message || err.message;
+      const status = err.response.status === 401 ? 400 : (err.response.status || 502);
+      const metaErr = new Error(`Meta WhatsApp API: ${errorMsg}`);
+      metaErr.status = status;
+      throw metaErr;
+    }
+
     if (err.response) {
       const errorMsg = err.response.data?.error?.message || err.message;
-      // Map 401 to 400 to prevent the frontend interceptor from thinking CRM session expired
       const status = err.response.status === 401 ? 400 : (err.response.status || 502);
       const metaErr = new Error(`Meta WhatsApp API: ${errorMsg}`);
       metaErr.status = status;
