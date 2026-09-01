@@ -8,6 +8,7 @@ router.get('/', requireAuth, ctrl.getTemplates);
 router.get('/lookup', requireAuth, ctrl.lookupTemplate);
 router.post('/', requireAuth, ctrl.createTemplate);
 router.post('/sync', requireAuth, ctrl.syncTemplates);
+router.post('/:id/submit', requireAuth, ctrl.submitMetaTemplate);
 router.delete('/:id', requireAuth, ctrl.deleteTemplate);
 
 module.exports = router;

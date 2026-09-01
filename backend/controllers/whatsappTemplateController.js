@@ -31,7 +31,7 @@ async function createTemplate(req, res, next) {
       return res.status(400).json({ message: 'Name and body are required.' });
     }
 
-    let metaStatus = 'APPROVED';
+    let metaStatus = submitToMeta === false ? 'DRAFT' : 'APPROVED';
     let wabaTemplateId = null;
     let finalName = name;
 
@@ -82,6 +82,33 @@ async function createTemplate(req, res, next) {
   }
 }
 
+async function submitMetaTemplate(req, res, next) {
+  try {
+    const { id } = req.params;
+    const template = await templateRepo.getTemplateById(req.user.tenantId, id);
+    if (!template) {
+      return res.status(404).json({ message: 'Template not found.' });
+    }
+
+    const settings = await settingsService.getSettings(req.user.tenantId);
+    const metaRes = await whatsappMetaService.createMetaTemplate(settings, {
+      name: template.name,
+      category: template.category || 'UTILITY',
+      language_code: template.language_code || 'en_US',
+      body: template.body
+    });
+
+    const updated = await templateRepo.updateMetaStatus(req.user.tenantId, id, {
+      metaStatus: metaRes.status || 'PENDING',
+      wabaTemplateId: metaRes.wabaTemplateId
+    });
+
+    res.json({ message: 'Template submitted to Meta successfully!', template: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function syncTemplates(req, res, next) {
   try {
     const settings = await settingsService.getSettings(req.user.tenantId);
@@ -114,6 +141,7 @@ module.exports = {
   getTemplates,
   lookupTemplate,
   createTemplate,
+  submitMetaTemplate,
   syncTemplates,
   deleteTemplate,
 };

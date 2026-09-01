@@ -40,8 +40,30 @@ async function deleteTemplate(tenantId, id) {
   return rows[0];
 }
 
+async function getTemplateById(tenantId, id) {
+  const { rows } = await query(
+    `SELECT * FROM whatsapp_templates 
+     WHERE tenant_id = $1 AND id = $2`,
+    [tenantId, id]
+  );
+  return rows[0];
+}
+
+async function updateMetaStatus(tenantId, id, { metaStatus, wabaTemplateId }) {
+  const { rows } = await query(
+    `UPDATE whatsapp_templates 
+     SET meta_status = $1, waba_template_id = $2, updated_at = now() 
+     WHERE tenant_id = $3 AND id = $4 
+     RETURNING *`,
+    [metaStatus, wabaTemplateId, tenantId, id]
+  );
+  return rows[0];
+}
+
 module.exports = {
   getTemplates,
+  getTemplateById,
   createTemplate,
+  updateMetaStatus,
   deleteTemplate,
 };

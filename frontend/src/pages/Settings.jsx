@@ -58,6 +58,46 @@ export default function SettingsPage() {
   const [showAddTemplateForm, setShowAddTemplateForm] = useState(false);
   const [checkingMeta, setCheckingMeta] = useState(false);
   const [existingMetaFound, setExistingMetaFound] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [submittingMetaId, setSubmittingMetaId] = useState(null);
+
+  const getPreviewText = (body) => {
+    if (!body) return '';
+    return body
+      .replace(/\{\{1\}\}/g, 'Rishabh')
+      .replace(/\{\{2\}\}/g, settings?.companyName || 'Goa 3D/2N Tour')
+      .replace(/\{\{3\}\}/g, '15th Sept')
+      .replace(/\{\{4\}\}/g, '₹12,500')
+      .replace(/\{\{5\}\}/g, settings?.companyName || 'EzzySync Travels')
+      .replace(/\{\{6\}\}/g, 'https://ezzysync.com/pay/inv_987');
+  };
+
+  const handleCreateTemplate = async (submitToMeta = true) => {
+    if (!newTemplate.name || !newTemplate.body) {
+      toast.error('Name/shortcut and body content are required.');
+      return;
+    }
+    setAddingTemplate(true);
+    try {
+      const created = await whatsappTemplateService.createTemplate({
+        ...newTemplate,
+        submitToMeta
+      });
+      setTemplates((prev) => [created, ...prev]);
+      if (submitToMeta) {
+        toast.success(existingMetaFound ? 'Template imported and saved!' : 'Template submitted to Meta and saved!');
+      } else {
+        toast.success('Template saved as local draft! You can submit to Meta later.');
+      }
+      setShowAddTemplateForm(false);
+      setShowPreviewModal(false);
+      setExistingMetaFound(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save template.');
+    } finally {
+      setAddingTemplate(false);
+    }
+  };
 
   const handleCheckMetaTemplate = async (name) => {
     if (!name || name.length < 2 || newTemplate.type !== 'template') return;
@@ -1022,32 +1062,103 @@ export default function SettingsPage() {
                         <Button
                           type="button"
                           disabled={addingTemplate}
-                          onClick={async () => {
+                          onClick={() => {
                             if (!newTemplate.name || !newTemplate.body) {
                               toast.error('Name/shortcut and body content are required.');
                               return;
                             }
-                            setAddingTemplate(true);
-                            try {
-                              const created = await whatsappTemplateService.createTemplate(newTemplate);
-                              setTemplates((prev) => [created, ...prev]);
-                              toast.success(existingMetaFound ? 'Template imported and saved to EzzySync!' : (newTemplate.type === 'template' ? 'Template submitted to Meta and saved!' : 'Template saved successfully!'));
-                              setShowAddTemplateForm(false);
-                              setExistingMetaFound(null);
-                            } catch (err) {
-                              toast.error(err.response?.data?.message || 'Failed to save template.');
-                            } finally {
-                              setAddingTemplate(false);
+                            if (newTemplate.type === 'template') {
+                              setShowPreviewModal(true);
+                            } else {
+                              handleCreateTemplate(false);
                             }
                           }}
                           className="text-xs px-4"
                         >
-                          {addingTemplate ? 'Saving...' : (existingMetaFound ? 'Import & Save Template' : (newTemplate.type === 'template' ? 'Submit to Meta & Save' : 'Save Template'))}
+                          {addingTemplate ? 'Saving...' : (newTemplate.type === 'template' ? 'Preview & Submit options' : 'Save Template')}
                         </Button>
                       </div>
                     </div>
                   );
                 })()}
+
+                {/* WhatsApp Template Live Preview Modal */}
+                {showPreviewModal && (
+                  <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+                      <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="text-emerald-400" size={18} />
+                          <span className="font-bold text-xs">WhatsApp Template Live Preview</span>
+                        </div>
+                        <button
+                          onClick={() => setShowPreviewModal(false)}
+                          className="text-slate-400 hover:text-white transition text-xs font-bold px-2 py-1 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-slate-100 space-y-3">
+                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-center justify-between">
+                          <span>Live WhatsApp chat appearance with test data:</span>
+                          <span className="text-[10px] font-bold bg-amber-100 px-1.5 py-0.5 rounded text-amber-900">Sample</span>
+                        </div>
+
+                        {/* Chat Bubble Preview */}
+                        <div className="bg-[#dcf8c6] border border-emerald-200 rounded-2xl rounded-tl-none p-3 shadow-sm text-slate-800 text-xs leading-relaxed font-sans relative">
+                          <p className="whitespace-pre-wrap font-medium">
+                            {getPreviewText(newTemplate.body)}
+                          </p>
+                          <div className="flex justify-end items-center gap-1 text-[9px] text-slate-400 font-semibold pt-1">
+                            <span>10:45 AM</span>
+                            <span className="text-blue-500 font-bold">✓✓</span>
+                          </div>
+                        </div>
+
+                        {/* Summary Meta Details */}
+                        <div className="bg-white p-3 rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <span className="text-slate-400 font-semibold block text-[9px]">TEMPLATE CODE NAME</span>
+                            <span className="font-bold text-slate-700 font-mono">{newTemplate.name}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-semibold block text-[9px]">META CATEGORY</span>
+                            <span className="font-bold text-slate-700">{newTemplate.category || 'UTILITY'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-semibold block text-[9px]">LANGUAGE</span>
+                            <span className="font-bold text-slate-700">{newTemplate.languageCode || 'en_US'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-semibold block text-[9px]">MAPPED VARIABLES</span>
+                            <span className="font-bold text-slate-700">{detectedPlaceholders.length} field(s)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-2 justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={addingTemplate}
+                          onClick={() => handleCreateTemplate(false)}
+                          className="text-xs border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        >
+                          💾 Save as Local Draft (Submit Later)
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={addingTemplate}
+                          onClick={() => handleCreateTemplate(true)}
+                          className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                        >
+                          🚀 Submit to Meta & Save
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {loadingTemplates ? (
                   <div className="text-center py-6 text-xs text-slate-400">Loading templates...</div>
@@ -1094,6 +1205,10 @@ export default function SettingsPage() {
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                       PENDING 🟡
                                     </span>
+                                  ) : status === 'DRAFT' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                      DRAFT 📄
+                                    </span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                       REJECTED 🔴
@@ -1109,6 +1224,28 @@ export default function SettingsPage() {
                                 {t.body}
                               </td>
                               <td className="p-3 text-right">
+                                {t.type === 'template' && (status === 'DRAFT' || status === 'REJECTED') && (
+                                  <button
+                                    type="button"
+                                    disabled={submittingMetaId === t.id}
+                                    onClick={async () => {
+                                      try {
+                                        setSubmittingMetaId(t.id);
+                                        toast.info(`Submitting "${t.name}" to Meta...`);
+                                        const updated = await whatsappTemplateService.submitMetaTemplate(t.id);
+                                        setTemplates((prev) => prev.map((item) => item.id === t.id ? updated : item));
+                                        toast.success('Submitted to Meta successfully!');
+                                      } catch (err) {
+                                        toast.error(err.response?.data?.message || 'Failed to submit to Meta.');
+                                      } finally {
+                                        setSubmittingMetaId(null);
+                                      }
+                                    }}
+                                    className="text-emerald-600 hover:text-emerald-800 text-xs font-bold mr-3 transition cursor-pointer"
+                                  >
+                                    {submittingMetaId === t.id ? 'Submitting...' : '🚀 Submit to Meta'}
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={async () => {

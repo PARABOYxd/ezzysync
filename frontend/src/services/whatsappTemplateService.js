@@ -9,6 +9,9 @@ export const lookupTemplate = (name) =>
 export const createTemplate = (payload) =>
   api.post('/whatsapp/templates', payload).then((r) => r.data.template);
 
+export const submitMetaTemplate = (id) =>
+  api.post(`/whatsapp/templates/${id}/submit`).then((r) => r.data.template);
+
 export const syncTemplates = () =>
   api.post('/whatsapp/templates/sync').then((r) => r.data);
 
