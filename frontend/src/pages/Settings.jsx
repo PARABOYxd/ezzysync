@@ -1098,7 +1098,7 @@ export default function SettingsPage() {
                             if (newTemplate.type === 'template') {
                               setShowPreviewModal(true);
                             } else {
-                              handleCreateTemplate(false);
+                              handleSaveTemplate(false);
                             }
                           }}
                           className="text-xs px-4"
