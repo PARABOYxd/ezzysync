@@ -14,9 +14,10 @@ const {
   jidNormalizedUser,
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
-const { query } = require('../config/db');
+const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const logger = require('../utils/logger');
 const aiService = require('./aiService');
+const planService = require('./planService');
 
 // aiService emits this exact token instead of a reply when the model decides a
 // human should take over. It must never reach the customer.
@@ -191,13 +192,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       try {
         const qrBase64 = await QRCode.toDataURL(qr, { width: 320, margin: 2 });
         activeSockets.set(tenantId, { sock, qr: qrBase64, status: 'qrcode' });
-        await query(
-          `INSERT INTO whatsapp_sessions (tenant_id, status, qr_code_data, updated_at)
-           VALUES ($1, 'qrcode', $2, now())
-           ON CONFLICT (tenant_id) DO UPDATE
-           SET status = 'qrcode', qr_code_data = $2, updated_at = now()`,
-          [tenantId, qrBase64]
-        );
+        await whatsappWebRepository.saveQrCode(tenantId, qrBase64);
       } catch (err) {
         logger.error({ err }, 'Error generating QR Code data URL');
       }
@@ -217,10 +212,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
           fs.rmSync(sessionPath, { recursive: true, force: true });
         } catch (e) {}
         activeSockets.delete(tenantId);
-        await query(
-          `UPDATE whatsapp_sessions SET status = 'disconnected', qr_code_data = NULL, phone_number = '', updated_at = now() WHERE tenant_id = $1`,
-          [tenantId]
-        );
+        await whatsappWebRepository.markLoggedOut(tenantId);
       } else {
         // 515 (restartRequired) is the normal step right after a QR scan:
         // WhatsApp pairs the device, drops the socket, and expects us to dial
@@ -231,10 +223,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
         const nextStatus = isRestart ? 'connecting' : 'disconnected';
 
         activeSockets.set(tenantId, { sock: null, qr: null, status: nextStatus });
-        await query(
-          `UPDATE whatsapp_sessions SET status = $2, qr_code_data = NULL, updated_at = now() WHERE tenant_id = $1`,
-          [tenantId, nextStatus]
-        );
+        await whatsappWebRepository.setSessionStatus(tenantId, nextStatus);
         if (shouldReconnect) {
           setTimeout(() => {
             initWhatsAppSession(tenantId).catch((err) => {
@@ -248,13 +237,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       logger.info({ tenantId, phoneNumber }, 'WhatsApp Web connected successfully!');
 
       activeSockets.set(tenantId, { sock, qr: null, status: 'connected' });
-      await query(
-        `INSERT INTO whatsapp_sessions (tenant_id, status, qr_code_data, phone_number, connected_at, updated_at)
-         VALUES ($1, 'connected', NULL, $2, now(), now())
-         ON CONFLICT (tenant_id) DO UPDATE
-         SET status = 'connected', qr_code_data = NULL, phone_number = $2, connected_at = now(), updated_at = now()`,
-        [tenantId, phoneNumber]
-      );
+      await whatsappWebRepository.markConnected(tenantId, phoneNumber);
     }
   });
 
@@ -324,10 +307,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
         if (update.update.status === 4) statusStr = 'read'; // Blue Ticks!
 
         try {
-          await query(
-            `UPDATE whatsapp_messages SET status = $1 WHERE message_id = $2`,
-            [statusStr, update.key.id]
-          );
+          await whatsappWebRepository.updateMessageStatus(update.key.id, statusStr);
         } catch (err) {
           logger.warn({ err, messageId: update.key.id }, 'Error updating message status');
         }
@@ -351,34 +331,25 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
  * people who are not customers.
  */
 async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId }) {
-  const chatRes = await query(
-    `SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
-    [tenantId, senderPhone]
-  );
-  const chat = chatRes.rows[0];
+  const chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone);
   if (!chat) return;
 
-  const inserted = await query(
-    `INSERT INTO whatsapp_messages (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
-     VALUES ($1, $2, $3, 'outbound', 'agent', $4, 'sent', now())
-     ON CONFLICT (message_id) DO NOTHING
-     RETURNING id`,
-    [tenantId, chat.id, messageId, messageText]
-  );
+  const inserted = await whatsappWebRepository.insertMessage(tenantId, {
+    chatId: chat.id,
+    messageId,
+    direction: 'outbound',
+    sender: 'agent',
+    messageText,
+    status: 'sent',
+  });
 
   // Nothing inserted means this was the echo of a message the server sent, so
   // the chat row is already up to date and AI state must not be touched.
-  if (inserted.rowCount === 0) return;
+  if (!inserted.inserted) return;
 
   // A human answering from their phone is a human takeover, same as replying
   // in the app - so autopilot stands down and any escalation is cleared.
-  await query(
-    `UPDATE whatsapp_chats
-     SET last_message = $1, last_message_timestamp = now(), unread_count = 0,
-         ai_enabled = FALSE, needs_human = FALSE, handoff_reason = NULL, updated_at = now()
-     WHERE id = $2`,
-    [messageText, chat.id]
-  );
+  await whatsappWebRepository.recordHumanReplyOnChat(chat.id, messageText);
 
   logger.info({ tenantId, chatId: chat.id }, 'Recorded a reply sent from the linked phone');
 }
@@ -387,33 +358,19 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
 async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock }) {
-  let chatRes = await query(
-    `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
-    [tenantId, senderPhone]
-  );
-
-  let chat = chatRes.rows[0];
+  let chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone);
 
   if (!chat) {
-    const leadCheck = await query(
-      `SELECT id FROM leads WHERE tenant_id = $1 AND (phone LIKE '%' || $2 OR $2 LIKE '%' || phone) AND deleted = FALSE LIMIT 1`,
-      [tenantId, senderPhone]
-    );
-
-    let leadId = leadCheck.rows[0]?.id || null;
+    let leadId = await whatsappWebRepository.findLeadIdByPhone(tenantId, senderPhone);
 
     if (!leadId) {
       try {
-        const leadSeqRes = await query(`SELECT nextval('leads_seq') AS num`);
-        const leadIdStr = `LEAD-${leadSeqRes.rows[0].num}`;
-        const newLeadRes = await query(
-          `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, source, stage, notes, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, 'WhatsApp Inbound', 'New', 'Auto-created from WhatsApp chat', now(), now())
-           RETURNING id`,
-          [tenantId, leadIdStr, pushName, senderPhone]
-        );
-        leadId = newLeadRes.rows[0]?.id;
-        logger.info({ tenantId, leadId: leadIdStr, phone: senderPhone }, 'Auto-created new lead from WhatsApp');
+        const created = await whatsappWebRepository.createLeadFromWhatsapp(tenantId, {
+          customerName: pushName,
+          phone: senderPhone,
+        });
+        leadId = created.id;
+        logger.info({ tenantId, leadId: created.leadCode, phone: senderPhone }, 'Auto-created new lead from WhatsApp');
       } catch (e) {
         logger.warn({ err: e }, 'Failed to auto-create lead from WhatsApp');
       }
@@ -422,36 +379,35 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     // A brand-new chat inherits the tenant's "autopilot for new chats" default
     // rather than being switched on unconditionally. From here on, this chat's
     // own flag is what decides - the tenant setting never reaches back in.
-    const defaultRes = await query(
-      `SELECT ai_autopilot_enabled FROM whatsapp_sessions WHERE tenant_id = $1`,
-      [tenantId]
-    );
-    const aiDefault = defaultRes.rows[0]?.ai_autopilot_enabled === true;
+    const aiDefault = await whatsappWebRepository.getAutopilotDefault(tenantId);
 
-    const newChatRes = await query(
-      `INSERT INTO whatsapp_chats (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, unread_count, ai_enabled, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, now(), 1, $7, now(), now())
-       RETURNING *`,
-      [tenantId, senderPhone, senderJid, pushName, leadId, messageText, aiDefault]
-    );
-    chat = newChatRes.rows[0];
+    chat = await whatsappWebRepository.createChat(tenantId, {
+      phone: senderPhone,
+      jid: senderJid,
+      customerName: pushName,
+      leadId,
+      lastMessage: messageText,
+      aiEnabled: aiDefault,
+    });
   } else {
     // jid is refreshed on every inbound message so a chat created before this
     // column existed (or one whose addressing WhatsApp has since migrated to
     // @lid) picks up a routable address the first time the customer writes in.
-    await query(
-      `UPDATE whatsapp_chats
-       SET last_message = $1, last_message_timestamp = now(), unread_count = unread_count + 1, customer_name = COALESCE(NULLIF(customer_name, ''), $2), jid = $4, updated_at = now()
-       WHERE id = $3`,
-      [messageText, pushName, chat.id, senderJid]
-    );
+    await whatsappWebRepository.recordInboundOnChat(chat.id, {
+      lastMessage: messageText,
+      pushName,
+      jid: senderJid,
+    });
   }
 
-  await query(
-    `INSERT INTO whatsapp_messages (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
-     VALUES ($1, $2, $3, 'inbound', 'customer', $4, 'delivered', now())`,
-    [tenantId, chat.id, messageId, messageText]
-  );
+  await whatsappWebRepository.insertMessage(tenantId, {
+    chatId: chat.id,
+    messageId,
+    direction: 'inbound',
+    sender: 'customer',
+    messageText,
+    status: 'delivered',
+  });
 
   // This chat's own switch is the only thing that decides. The tenant-level
   // setting is a default applied when a chat is first created, not a veto
@@ -463,7 +419,12 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
   // on a chat the AI already backed away from is the worst outcome.
   const chatAiEnabled = chat.ai_enabled === true && chat.needs_human !== true;
 
-  if (chatAiEnabled) {
+  // Autopilot fires from the socket, not an HTTP route, so the plan check has
+  // to happen here too - route middleware alone would leave a downgraded
+  // tenant still being served by AI on chats enabled before the downgrade.
+  const planAllowsAi = chatAiEnabled && (await planService.checkFeatureAccess(tenantId, 'canUseAi'));
+
+  if (planAllowsAi) {
     if (aiInFlight.has(chat.id)) {
       logger.info({ tenantId, chatId: chat.id }, 'AI reply already in flight for this chat - skipping duplicate');
       return;
@@ -480,12 +441,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
         // next message does not run the same losing decision again. The flag
         // is what puts it in front of an agent.
         await sock.sendPresenceUpdate('paused', senderJid);
-        await query(
-          `UPDATE whatsapp_chats
-           SET ai_enabled = FALSE, needs_human = TRUE, handoff_reason = 'AI escalated: needs a human', updated_at = now()
-           WHERE id = $1`,
-          [chat.id]
-        );
+        await whatsappWebRepository.flagChatForHuman(chat.id, 'AI escalated: needs a human');
         logger.warn({ tenantId, senderPhone, chatId: chat.id }, 'AI escalated this chat to a human - no reply sent');
       } else if (replyData && replyData.reply) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -493,16 +449,16 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
         const sentResult = await sock.sendMessage(senderJid, { text: replyData.reply });
         const sentMessageId = sentResult?.key?.id || `out_${Date.now()}`;
 
-        await query(
-          `INSERT INTO whatsapp_messages (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
-           VALUES ($1, $2, $3, 'outbound', 'ai_bot', $4, 'sent', now())`,
-          [tenantId, chat.id, sentMessageId, replyData.reply]
-        );
+        await whatsappWebRepository.insertMessage(tenantId, {
+          chatId: chat.id,
+          messageId: sentMessageId,
+          direction: 'outbound',
+          sender: 'ai_bot',
+          messageText: replyData.reply,
+          status: 'sent',
+        });
 
-        await query(
-          `UPDATE whatsapp_chats SET last_message = $1, last_message_timestamp = now(), updated_at = now() WHERE id = $2`,
-          [replyData.reply, chat.id]
-        );
+        await whatsappWebRepository.recordAiReplyOnChat(chat.id, replyData.reply);
 
         await sock.sendPresenceUpdate('paused', senderJid);
       }
@@ -578,21 +534,18 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
 
   const messageId = sentResult?.key?.id || `out_${Date.now()}`;
 
-  await query(
-    `INSERT INTO whatsapp_messages (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
-     VALUES ($1, $2, $3, 'outbound', 'agent', $4, 'sent', now())`,
-    [tenantId, chatId, messageId, messageText]
-  );
+  await whatsappWebRepository.insertMessage(tenantId, {
+    chatId,
+    messageId,
+    direction: 'outbound',
+    sender: 'agent',
+    messageText,
+    status: 'sent',
+  });
 
   // An agent replying is the escalation being handled, so the flag clears here
   // rather than needing a separate "mark as done" step.
-  await query(
-    `UPDATE whatsapp_chats
-     SET last_message = $1, last_message_timestamp = now(), ai_enabled = FALSE,
-         needs_human = FALSE, handoff_reason = NULL, updated_at = now()
-     WHERE id = $2`,
-    [messageText, chatId]
-  );
+  await whatsappWebRepository.recordHumanReplyOnChat(chatId, messageText);
 
   return { messageId, status: 'sent' };
 }
@@ -611,10 +564,7 @@ async function disconnectSession(tenantId) {
     fs.rmSync(sessionPath, { recursive: true, force: true });
   } catch (e) {}
 
-  await query(
-    `UPDATE whatsapp_sessions SET status = 'disconnected', qr_code_data = NULL, phone_number = '', updated_at = now() WHERE tenant_id = $1`,
-    [tenantId]
-  );
+  await whatsappWebRepository.markLoggedOut(tenantId);
 
   return { status: 'disconnected' };
 }
@@ -635,20 +585,10 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
   const sock = socketData?.sock;
   if (!sock || socketData.status !== 'connected') return { sent: false, reason: 'not_connected' };
 
-  const chatRes = await query(
-    `SELECT id, phone, jid FROM whatsapp_chats WHERE id = $1 AND tenant_id = $2`,
-    [chatId, tenantId]
-  );
-  const chat = chatRes.rows[0];
+  const chat = await whatsappWebRepository.findChatById(tenantId, chatId);
   if (!chat) return { sent: false, reason: 'chat_not_found' };
 
-  const lastRes = await query(
-    `SELECT direction, message_text FROM whatsapp_messages
-     WHERE tenant_id = $1 AND chat_id = $2
-     ORDER BY message_timestamp DESC LIMIT 1`,
-    [tenantId, chatId]
-  );
-  const last = lastRes.rows[0];
+  const last = await whatsappWebRepository.getLastMessage(tenantId, chatId);
   if (!last) return { sent: false, reason: 'no_messages' };
   if (last.direction !== 'inbound') return { sent: false, reason: 'customer_not_waiting' };
 
@@ -662,12 +602,7 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
     if (replyData.needsHuman) {
       // The agent handed this to AI, but AI judged it a human's job. Hand it
       // straight back rather than leaving autopilot on to fail again.
-      await query(
-        `UPDATE whatsapp_chats
-         SET ai_enabled = FALSE, needs_human = TRUE, handoff_reason = 'AI escalated: needs a human', updated_at = now()
-         WHERE id = $1`,
-        [chatId]
-      );
+      await whatsappWebRepository.flagChatForHuman(chatId, 'AI escalated: needs a human');
       logger.warn({ tenantId, chatId }, 'AI declined takeover and escalated back to a human');
       return { sent: false, reason: 'needs_human' };
     }
@@ -677,15 +612,15 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
     const sentResult = await sock.sendMessage(jid, { text: replyData.reply });
     const messageId = sentResult?.key?.id || `out_${Date.now()}`;
 
-    await query(
-      `INSERT INTO whatsapp_messages (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
-       VALUES ($1, $2, $3, 'outbound', 'ai_bot', $4, 'sent', now())`,
-      [tenantId, chatId, messageId, replyData.reply]
-    );
-    await query(
-      `UPDATE whatsapp_chats SET last_message = $1, last_message_timestamp = now(), updated_at = now() WHERE id = $2`,
-      [replyData.reply, chatId]
-    );
+    await whatsappWebRepository.insertMessage(tenantId, {
+      chatId,
+      messageId,
+      direction: 'outbound',
+      sender: 'ai_bot',
+      messageText: replyData.reply,
+      status: 'sent',
+    });
+    await whatsappWebRepository.recordAiReplyOnChat(chatId, replyData.reply);
 
     logger.info({ tenantId, chatId }, 'AI autopilot sent a catch-up reply on takeover');
     return { sent: true, reply: replyData.reply };
@@ -695,12 +630,7 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
 }
 
 async function getSessionStatus(tenantId) {
-  const res = await query(
-    `SELECT status, qr_code_data, phone_number, connected_at, ai_autopilot_enabled FROM whatsapp_sessions WHERE tenant_id = $1`,
-    [tenantId]
-  );
-
-  const dbSession = res.rows[0];
+  const dbSession = await whatsappWebRepository.getSession(tenantId);
   const inMemory = activeSockets.get(tenantId);
 
   return {
@@ -714,14 +644,10 @@ async function getSessionStatus(tenantId) {
 
 async function autoInitConnectedSessions() {
   try {
-    // 'connecting' is included so a session caught mid-restart (515) by a
-    // server restart still gets resumed instead of stranding the tenant.
-    const res = await query(
-      `SELECT tenant_id FROM whatsapp_sessions WHERE status IN ('connected', 'connecting')`
-    );
-    for (const row of res.rows) {
-      initWhatsAppSession(row.tenant_id).catch((err) => {
-        logger.warn({ tenantId: row.tenant_id, err }, 'Failed to auto-resume WhatsApp session');
+    const tenantIds = await whatsappWebRepository.listResumableTenantIds();
+    for (const tenantId of tenantIds) {
+      initWhatsAppSession(tenantId).catch((err) => {
+        logger.warn({ tenantId, err }, 'Failed to auto-resume WhatsApp session');
       });
     }
   } catch (err) {

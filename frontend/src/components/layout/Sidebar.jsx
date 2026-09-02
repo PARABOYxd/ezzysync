@@ -77,7 +77,11 @@ export default function Sidebar({ open, onClose }) {
   const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
   const daysPassed = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24));
   const daysRemaining = Math.max(0, totalTrialDays - daysPassed);
-  const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.isSubscribed;
+  // Kept in step with DashboardLayout/Profile, which already treat SOLO as a
+  // paid plan. Without isSolo this badge counted a paid Solo tenant's days
+  // down from signup and then declared "Trial Expired" over a live plan.
+  const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.planId === 'PRO' || user?.isSubscribed;
+  const isSolo = user?.planId === 'SOLO';
 
   return (
     <>
@@ -108,7 +112,7 @@ export default function Sidebar({ open, onClose }) {
         </nav>
 
         {/* Trial Days Remaining Badge */}
-        {!isPaidPro && (
+        {!isPaidPro && !isSolo && (
           <div className={`mx-2.5 mb-2 p-2.5 rounded-xl border shadow-xs ${
             daysRemaining === 0 
               ? 'bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950/40 dark:to-zinc-900 border-rose-200 dark:border-rose-900/60'
@@ -141,6 +145,34 @@ export default function Sidebar({ open, onClose }) {
               className="block w-full text-center py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-[11px] font-semibold transition shadow-xs"
             >
               {daysRemaining === 0 ? 'Upgrade Plan Now' : 'View Plan & Details'}
+            </NavLink>
+          </div>
+        )}
+
+        {/* Paid plan card. Trial tenants get the countdown above instead; a
+            paid plan has no end date in the schema, so this deliberately
+            states what the plan IS rather than inventing a days-left number. */}
+        {(isPaidPro || isSolo) && (
+          <div className="mx-2.5 mb-2 p-2.5 rounded-xl border shadow-xs bg-gradient-to-br from-emerald-50/80 to-sky-50/80 dark:from-zinc-900 dark:to-zinc-800 border-emerald-200/70 dark:border-zinc-700/70">
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
+                ✅ {isSolo ? 'Solo Agent Plan' : 'Agency Growth Pro'}
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-200/90 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-200">
+                Active
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-600 dark:text-zinc-400 mb-2 leading-tight">
+              {isSolo
+                ? '1 login · 200 bookings · AI tools included.'
+                : 'Unlimited bookings · 5 team logins · AI tools included.'}
+            </p>
+            <NavLink
+              to="/profile"
+              onClick={onClose}
+              className="block w-full text-center py-1 rounded-lg bg-white/70 dark:bg-zinc-900/70 hover:bg-white dark:hover:bg-zinc-900 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-zinc-700 text-[11px] font-semibold transition"
+            >
+              {isSolo ? 'View Plan / Upgrade' : 'View Plan & Details'}
             </NavLink>
           </div>
         )}

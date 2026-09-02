@@ -1,5 +1,5 @@
 const whatsappWebService = require('../services/whatsappWebService');
-const { query } = require('../config/db');
+const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const PDFDocument = require('pdfkit');
 const aiService = require('../services/aiService');
 
@@ -36,10 +36,7 @@ async function disconnect(req, res, next) {
 async function toggleAiAutopilot(req, res, next) {
   try {
     const { enabled } = req.body;
-    await query(
-      `UPDATE whatsapp_sessions SET ai_autopilot_enabled = $1, updated_at = now() WHERE tenant_id = $2`,
-      [Boolean(enabled), req.user.tenantId]
-    );
+    await whatsappWebRepository.setAutopilotDefault(req.user.tenantId, enabled);
     res.json({ success: true, aiAutopilotEnabled: Boolean(enabled) });
   } catch (err) {
     next(err);
@@ -49,26 +46,8 @@ async function toggleAiAutopilot(req, res, next) {
 async function listChats(req, res, next) {
   try {
     const { search } = req.query;
-    let sql = `
-      SELECT c.*, 
-             l.lead_id AS formatted_lead_id, l.stage AS lead_stage, l.interest AS lead_interest,
-             b.trip AS booking_trip, b.travel_status AS booking_travel_status, b.payment_status AS booking_payment_status
-      FROM whatsapp_chats c
-      LEFT JOIN leads l ON l.id = c.lead_id
-      LEFT JOIN bookings b ON b.id = c.booking_id
-      WHERE c.tenant_id = $1
-    `;
-    const params = [req.user.tenantId];
-
-    if (search && search.trim()) {
-      sql += ` AND (c.customer_name ILIKE $2 OR c.phone ILIKE $2 OR c.last_message ILIKE $2)`;
-      params.push(`%${search.trim()}%`);
-    }
-
-    sql += ` ORDER BY c.last_message_timestamp DESC LIMIT 100`;
-
-    const result = await query(sql, params);
-    res.json({ chats: result.rows });
+    const chats = await whatsappWebRepository.listChats(req.user.tenantId, search);
+    res.json({ chats });
   } catch (err) {
     next(err);
   }
@@ -79,34 +58,12 @@ async function getChatMessages(req, res, next) {
     const { chatId } = req.params;
 
     // Reset unread count
-    await query(
-      `UPDATE whatsapp_chats SET unread_count = 0, updated_at = now() WHERE id = $1 AND tenant_id = $2`,
-      [chatId, req.user.tenantId]
-    );
+    await whatsappWebRepository.clearUnread(req.user.tenantId, chatId);
 
-    const messagesRes = await query(
-      `SELECT * FROM whatsapp_messages 
-       WHERE chat_id = $1 AND tenant_id = $2 
-       ORDER BY message_timestamp ASC 
-       LIMIT 300`,
-      [chatId, req.user.tenantId]
-    );
+    const messages = await whatsappWebRepository.listMessages(req.user.tenantId, chatId);
+    const chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chatId);
 
-    const chatRes = await query(
-      `SELECT c.*, 
-              l.id AS lead_uuid, l.lead_id AS formatted_lead_id, l.customer_name AS lead_name, l.stage AS lead_stage, l.interest AS lead_interest, l.notes AS lead_notes,
-              b.id AS booking_uuid, b.booking_id AS formatted_booking_id, b.trip AS booking_trip, b.total_amount, b.paid, b.remaining, b.travel_status, b.payment_status
-       FROM whatsapp_chats c
-       LEFT JOIN leads l ON l.id = c.lead_id
-       LEFT JOIN bookings b ON b.id = c.booking_id
-       WHERE c.id = $1 AND c.tenant_id = $2`,
-      [chatId, req.user.tenantId]
-    );
-
-    res.json({
-      chat: chatRes.rows[0] || null,
-      messages: messagesRes.rows,
-    });
+    res.json({ chat, messages });
   } catch (err) {
     next(err);
   }
@@ -118,11 +75,7 @@ async function sendMessage(req, res, next) {
     const { messageText } = req.body;
     const file = req.file;
 
-    const chatRes = await query(
-      `SELECT * FROM whatsapp_chats WHERE id = $1 AND tenant_id = $2`,
-      [chatId, req.user.tenantId]
-    );
-    const chat = chatRes.rows[0];
+    const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     let mediaBuffer = null;
@@ -156,10 +109,7 @@ async function toggleChatAi(req, res, next) {
     const { chatId } = req.params;
     const { enabled } = req.body;
 
-    await query(
-      `UPDATE whatsapp_chats SET ai_enabled = $1, updated_at = now() WHERE id = $2 AND tenant_id = $3`,
-      [Boolean(enabled), chatId, req.user.tenantId]
-    );
+    await whatsappWebRepository.setChatAiEnabled(req.user.tenantId, chatId, enabled);
 
     // Handing a chat to AI mid-conversation should actually move it forward,
     // so if the customer is sitting on an unanswered message the AI replies
@@ -188,11 +138,7 @@ async function sendItineraryPdf(req, res, next) {
       return res.status(400).json({ message: 'chatId, tripName, and itineraryText are required.' });
     }
 
-    const chatRes = await query(
-      `SELECT * FROM whatsapp_chats WHERE id = $1 AND tenant_id = $2`,
-      [chatId, req.user.tenantId]
-    );
-    const chat = chatRes.rows[0];
+    const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     // Generate clean PDF in memory
@@ -266,29 +212,20 @@ async function aiSuggest(req, res, next) {
       return res.status(400).json({ message: 'Type a message first, then ask AI to improve it.' });
     }
 
-    const chatRes = await query(
-      `SELECT * FROM whatsapp_chats WHERE id = $1 AND tenant_id = $2`,
-      [chatId, req.user.tenantId]
-    );
-    const chat = chatRes.rows[0];
+    const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     if (!aiService.isConfigured()) {
       return res.status(503).json({ message: 'AI is not configured. Add a Gemini API key in your environment.' });
     }
 
-    const lastInbound = await query(
-      `SELECT message_text FROM whatsapp_messages
-       WHERE tenant_id = $1 AND chat_id = $2 AND direction = 'inbound'
-       ORDER BY message_timestamp DESC LIMIT 1`,
-      [req.user.tenantId, chatId]
-    );
+    const lastInbound = await whatsappWebRepository.getLastInboundMessage(req.user.tenantId, chatId);
 
     const { suggestion } = await aiService.suggestWhatsappDraft(req.user.tenantId, {
       phone: chat.phone,
       mode,
       draft,
-      lastCustomerMessage: lastInbound.rows[0]?.message_text || '',
+      lastCustomerMessage: lastInbound,
     });
 
     if (!suggestion) {

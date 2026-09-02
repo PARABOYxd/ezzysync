@@ -57,8 +57,9 @@ async function ensureSchema() {
 
   await query(`
     INSERT INTO plans (id, name, max_bookings, max_team_members, can_download_invoice, can_send_whatsapp, can_connect_gmail, can_view_audit_logs, can_export_reports, can_use_ai)
-    VALUES 
+    VALUES
       ('FREE', 'Free Plan', -1, -1, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+      ('SOLO', 'Solo Agent Plan', 200, 1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
       ('PRO', 'Pro Plan', -1, -1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
     ON CONFLICT (id) DO NOTHING;
   `);
