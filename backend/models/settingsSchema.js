@@ -39,7 +39,9 @@ function rowToSettings(row) {
     const val = row ? row[COLUMN_MAP[k]] : undefined;
     if (k === 'invoiceShowGst' || k === 'invoiceShowPaymentStatus') {
       obj[k] = val !== undefined ? !!val : true;
-    } else if (k === 'autoSendInvoice' || k === 'whatsappAiAutoReply') {
+    } else if (k === 'whatsappAiAutoReply') {
+      obj[k] = val !== undefined && val !== null ? !!val : true;
+    } else if (k === 'autoSendInvoice') {
       obj[k] = !!val;
     } else if (k === 'whatsappDefaultChatMode') {
       obj[k] = val || 'ai';

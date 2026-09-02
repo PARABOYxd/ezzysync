@@ -1,8 +1,10 @@
 const axios = require('axios');
 const env = require('../config/env');
 const bookingService = require('./bookingService');
+const logger = require('../utils/logger');
 
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
 const GEMINI_TIMEOUT_MS = 30000;
 
 // JSON schema for Gemini structured output
@@ -28,20 +30,38 @@ function isConfigured() {
   return Boolean(env.geminiApiKey);
 }
 
-/** Single entry point for Gemini generateContent. Returns the first candidate's
- * text, or undefined when the model returned nothing usable - callers decide
- * what HTTP status that deserves. */
+/** Single entry point for Gemini generateContent with automatic model fallback.
+ * Returns the first candidate's text, or undefined when the model returned nothing usable. */
 async function generateContent(parts, generationConfig) {
-  const requestBody = { contents: [{ parts }] };
-  if (generationConfig) requestBody.generationConfig = generationConfig;
+  if (!env.geminiApiKey) {
+    logger.warn('[aiService] GEMINI_API_KEY is not configured in env.');
+    return undefined;
+  }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.geminiApiKey}`;
-  const response = await axios.post(url, requestBody, {
-    headers: { 'Content-Type': 'application/json' },
-    timeout: GEMINI_TIMEOUT_MS,
-  });
+  const modelsToTry = [PRIMARY_GEMINI_MODEL, ...FALLBACK_GEMINI_MODELS];
+  let lastError = null;
 
-  return response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  for (const model of modelsToTry) {
+    try {
+      const requestBody = { contents: [{ parts }] };
+      if (generationConfig) requestBody.generationConfig = generationConfig;
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.geminiApiKey}`;
+      const response = await axios.post(url, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: GEMINI_TIMEOUT_MS,
+      });
+
+      const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text;
+    } catch (err) {
+      lastError = err;
+      logger.warn({ model, err: err.response?.data || err.message }, `[aiService] Model ${model} generateContent failed, trying next...`);
+    }
+  }
+
+  logger.error({ err: lastError?.response?.data || lastError?.message }, '[aiService] All Gemini models failed to generate content');
+  return undefined;
 }
 
 /** Extracts structured booking fields from a PDF ticket buffer or raw chat

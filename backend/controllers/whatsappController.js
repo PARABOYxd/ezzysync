@@ -415,7 +415,7 @@ async function receiveWebhook(req, res) {
             const settings = await settingsService.getSettings(tenantId);
             const chatManagedBy = saved.chat.managed_by || 'ai';
 
-            if (settings.whatsappAiAutoReply === true && chatManagedBy === 'ai') {
+            if (settings.whatsappAiAutoReply !== false && chatManagedBy === 'ai') {
               // ── Human-like delay: wait 5 seconds before replying ──────────────
               // This also acts as a debounce — if the customer sends another
               // message within these 5 seconds we will detect it below and skip.

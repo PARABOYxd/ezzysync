@@ -274,7 +274,7 @@ export default function AITools() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 dark:text-zinc-200 text-base">1-Click Itinerary Generator</h4>
-                <p className="text-xs text-slate-500 dark:text-zinc-400">Create detailed travel plans powered by Gemini 3.5 Flash</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Create detailed travel plans powered by Gemini 2.5 Flash</p>
               </div>
             </div>
 
