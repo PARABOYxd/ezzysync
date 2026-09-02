@@ -1,799 +1,717 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Search, Send, User, Check, CheckCheck, MessageSquare, ShieldAlert, Phone, Clock, Paperclip, FileText, Image, X, ArrowLeft, Plus } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth.jsx';
-import { useToast } from '../hooks/useToast.jsx';
-import api, { API_BASE_URL } from '../services/api';
-import * as whatsappChatService from '../services/whatsappChatService';
-import * as whatsappTemplateService from '../services/whatsappTemplateService';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  MessageSquare,
+  Search,
+  Bot,
+  User,
+  Send,
+  Paperclip,
+  Check,
+  CheckCheck,
+  QrCode,
+  Sparkles,
+  FileText,
+  Briefcase,
+  Calendar,
+  DollarSign,
+  AlertCircle,
+  RefreshCw,
+  Phone,
+  Power,
+  ChevronRight,
+  PlusCircle,
+  ExternalLink,
+  Wand2,
+  Loader2,
+} from 'lucide-react';
+import { whatsappWebService } from '../services/whatsappWebService';
+import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
 
 export default function WhatsAppChat() {
-  const { user } = useAuth();
-  const toast = useToast();
+  const [session, setSession] = useState({
+    status: 'disconnected',
+    phoneNumber: '',
+    aiAutopilotEnabled: false,
+  });
   const [chats, setChats] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
+  const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loadingChats, setLoadingChats] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [typingChats, setTypingChats] = useState({});
-  const [startingChat, setStartingChat] = useState(false);
-  const [allTemplates, setAllTemplates] = useState([]);
-  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
-  const [filteredTemplates, setFilteredTemplates] = useState([]);
-  const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [itineraryModalOpen, setItineraryModalOpen] = useState(false);
+  const [itineraryForm, setItineraryForm] = useState({ tripName: '', itineraryText: '' });
+  const [sendingItinerary, setSendingItinerary] = useState(false);
+  const [aiDrafting, setAiDrafting] = useState(false);
+  const [togglingAi, setTogglingAi] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const socketRef = useRef(null);
   const fileInputRef = useRef(null);
-  const [attachment, setAttachment] = useState(null); // { file, url, type, name, loading }
 
-  // Load chat headers
-  const loadChats = useCallback(async (selectFirst = false) => {
-    try {
-      const data = await whatsappChatService.getChats();
-      setChats(data);
-      if (selectFirst && data.length > 0 && !activeChat) {
-        handleSelectChat(data[0]);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Could not load WhatsApp chats.');
-    } finally {
-      setLoadingChats(false);
-    }
-  }, [activeChat, toast]);
-
-  // Load messages for the selected chat
-  const loadMessages = useCallback(async (chatId) => {
-    setLoadingMessages(true);
-    try {
-      const data = await whatsappChatService.getChatMessages(chatId);
-      setMessages(data);
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Could not load chat messages.');
-    } finally {
-      setLoadingMessages(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadChats(true);
-  }, []);
-
-  // Set up WebSocket for live updates with auto-reconnect
-  useEffect(() => {
-    if (!user?.tenantId) return;
-
-    let socket;
-    let reconnectTimeout;
-    let isUnmounted = false;
-
-    const connect = () => {
-      if (isUnmounted) return;
-      
-      const wsUrl = API_BASE_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
-      socket = new WebSocket(wsUrl);
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        // eslint-disable-next-line no-console
-        console.log('[WhatsApp WebSocket] Connected');
-        socket.send(JSON.stringify({ type: 'join', tenantId: user.tenantId }));
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'WHATSAPP_MESSAGE_RECEIVED') {
-            const { chat: updatedChat, message: newMsg } = data;
-
-            // Update chats list
-            setChats((prevChats) => {
-              const filtered = prevChats.filter((c) => c.phone !== updatedChat.phone);
-              return [updatedChat, ...filtered];
-            });
-            // Append to active message thread if open and message exists
-            if (newMsg) {
-              setActiveChat((currentActive) => {
-                if (currentActive && currentActive.phone === updatedChat.phone) {
-                  setMessages((prevMsgs) => {
-                    // Prevent duplicate messages in state (using DB ID or Meta message_id)
-                    const exists = prevMsgs.some(
-                      (m) => m.id === newMsg.id || (m.message_id && m.message_id === newMsg.message_id)
-                    );
-                    if (exists) return prevMsgs;
-                    return [...prevMsgs, newMsg];
-                  });
-                  // Reset unread count for current active chat on backend
-                  whatsappChatService.markChatAsRead(currentActive.id).catch(() => {});
-                  return updatedChat;
-                }
-                return currentActive;
-              });
-            } else {
-              // Chat-only update (e.g. managed_by changed) — just refresh the active chat
-              setActiveChat((currentActive) => {
-                if (currentActive && currentActive.phone === updatedChat.phone) {
-                  return updatedChat;
-                }
-                return currentActive;
-              });
-            }
-          } else if (data.type === 'WHATSAPP_STATUS_UPDATED') {
-            const { messageId, status } = data;
-            setMessages((prevMsgs) =>
-              prevMsgs.map((m) => (m.message_id === messageId ? { ...m, status } : m))
-            );
-          } else if (data.type === 'WHATSAPP_HUMAN_HANDOFF_TRIGGERED') {
-            const { chatId, customerName, phone } = data;
-            toast.info(`🔔 Human handoff requested for ${customerName} (${phone})`);
-
-            setChats((prevChats) =>
-              prevChats.map((c) => (c.id === chatId ? { ...c, managed_by: 'human' } : c))
-            );
-
-            setActiveChat((currentActive) => {
-              if (currentActive && currentActive.id === chatId) {
-                return { ...currentActive, managed_by: 'human' };
-              }
-              return currentActive;
-            });
-          } else if (data.type === 'WHATSAPP_AI_TYPING') {
-            const { chatId, typing } = data;
-            setTypingChats((prev) => ({
-              ...prev,
-              [chatId]: typing
-            }));
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error('[WhatsApp WebSocket] Error parsing message:', err);
-        }
-      };
-
-      socket.onclose = () => {
-        if (isUnmounted) return;
-        // eslint-disable-next-line no-console
-        console.log('[WhatsApp WebSocket] Disconnected. Reconnecting in 3 seconds...');
-        reconnectTimeout = setTimeout(connect, 3000);
-      };
-
-      socket.onerror = (err) => {
-        // eslint-disable-next-line no-console
-        console.error('[WhatsApp WebSocket] Socket error:', err);
-        socket.close();
-      };
-    };
-
-    connect();
-
-    return () => {
-      isUnmounted = true;
-      if (socket) {
-        socket.onclose = null;
-        socket.close();
-      }
-      clearTimeout(reconnectTimeout);
-    };
-  }, [user]);
-
-  // Load templates on mount
-  useEffect(() => {
-    whatsappTemplateService.getTemplates()
-      .then(setAllTemplates)
-      .catch((err) => console.error('Failed to load templates', err));
-  }, [user]);
-
-  // Auto scroll to bottom of messages
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, activeChat ? typingChats[activeChat.id] : false]);
-
-  const handleSelectChat = async (chat) => {
-    setActiveChat(chat);
-    await loadMessages(chat.id);
-    // Mark as read locally and on backend
-    try {
-      const updated = await whatsappChatService.markChatAsRead(chat.id);
-      setChats((prev) =>
-        prev.map((c) => (c.id === chat.id ? { ...c, unread_count: 0 } : c))
-      );
-    } catch (err) {}
   };
 
-  const handleStartNewChat = async () => {
-    if (!searchQuery.trim()) return;
-    setStartingChat(true);
+  const loadStatus = async () => {
     try {
-      const newChat = await whatsappChatService.startNewChat(searchQuery.trim());
-      // Append to the list of chats if not already present
-      setChats((prev) => {
-        if (prev.some((c) => c.id === newChat.id || c.phone === newChat.phone)) return prev;
-        return [newChat, ...prev];
-      });
-      // Select the new chat
-      handleSelectChat(newChat);
-      setSearchQuery('');
-      toast.success('New chat started!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to start chat.');
+      const data = await whatsappWebService.getStatus();
+      setSession(data);
+    } catch (e) {}
+  };
+
+  const loadChats = async (search = searchQuery) => {
+    try {
+      const data = await whatsappWebService.listChats(search);
+      setChats(data.chats || []);
+    } catch (e) {}
+  };
+
+  const loadChatMessages = async (chatId) => {
+    setLoading(true);
+    try {
+      const data = await whatsappWebService.getChatMessages(chatId);
+      setSelectedChat(data.chat);
+      setMessages(data.messages || []);
+      // Refresh chats to clear unread badge
+      loadChats();
+    } catch (e) {
     } finally {
-      setStartingChat(false);
+      setLoading(false);
+      setTimeout(scrollToBottom, 100);
     }
   };
 
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setNewMessage(val);
+  useEffect(() => {
+    loadStatus();
+    loadChats();
 
-    // Check if the input contains a slash shortcut (e.g. `/` or `/greet`)
-    // We look for a slash `/` followed by characters (no space) at the end of the text
-    const match = val.match(/\/(\w*)$/);
-    if (match) {
-      const queryStr = match[1].toLowerCase();
-      // Filter templates where name contains queryStr and meta_status is APPROVED
-      const filtered = allTemplates.filter((t) => {
-        if (t.type === 'template' && t.meta_status && t.meta_status !== 'APPROVED') {
-          return false;
-        }
-        const normalizedName = t.name.startsWith('/') ? t.name.slice(1).toLowerCase() : t.name.toLowerCase();
-        return normalizedName.includes(queryStr);
-      });
-      setFilteredTemplates(filtered);
-      setShowTemplateDropdown(filtered.length > 0);
-      setSelectedTemplateIndex(0);
-    } else {
-      setShowTemplateDropdown(false);
-    }
-  };
-
-  const handleSelectTemplate = async (template) => {
-    if (template.type === 'template') {
-      if (!activeChat) return;
-      setSending(true);
-      setShowTemplateDropdown(false);
-      setNewMessage('');
-      try {
-        const res = await whatsappChatService.sendChatMessage(activeChat.id, {
-          templateName: template.name,
-          languageCode: template.language_code || 'en',
-          text: template.body
-        });
-        
-        // Append sent template message to the UI thread
-        setMessages((prev) => [...prev, res.messageData]);
-        // Update chats list last_message
-        setChats((prev) =>
-          prev.map((c) => (c.id === activeChat.id ? res.chat : c))
-        );
-        toast.success(`Meta template "${template.name}" sent!`);
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to send template message.');
-      } finally {
-        setSending(false);
+    // Poll chats and active message updates every 4 seconds
+    const interval = setInterval(() => {
+      loadStatus();
+      loadChats();
+      if (selectedChat?.id) {
+        whatsappWebService.getChatMessages(selectedChat.id).then((data) => {
+          if (data.messages?.length !== messages.length) {
+            setMessages(data.messages || []);
+            scrollToBottom();
+          }
+        }).catch(() => {});
       }
-    } else {
-      const match = newMessage.match(/\/(\w*)$/);
-      if (match) {
-        const index = match.index;
-        const replaced = newMessage.substring(0, index) + template.body;
-        setNewMessage(replaced);
-      } else {
-        setNewMessage(template.body);
-      }
-      setShowTemplateDropdown(false);
-    }
-  };
+    }, 4000);
 
-  const handleKeyDown = (e) => {
-    if (showTemplateDropdown && filteredTemplates.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedTemplateIndex((prev) => (prev + 1) % filteredTemplates.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedTemplateIndex((prev) => (prev - 1 + filteredTemplates.length) % filteredTemplates.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSelectTemplate(filteredTemplates[selectedTemplateIndex]);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setShowTemplateDropdown(false);
-      }
-    }
-  };
+    return () => clearInterval(interval);
+  }, [selectedChat?.id]);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size cannot exceed 5MB.');
-      return;
-    }
-
-    setAttachment({
-      name: file.name,
-      type: file.type.startsWith('image/') ? 'image' : 'document',
-      loading: true,
-      url: null,
-    });
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setAttachment((prev) => ({
-        ...prev,
-        loading: false,
-        url: response.data.url,
-      }));
-    } catch (err) {
-      setAttachment(null);
-      toast.error('Failed to upload file.');
-    }
-  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!activeChat) return;
-
-    const hasText = !!newMessage.trim();
-    const hasAttachment = !!attachment && !!attachment.url;
-
-    if (!hasText && !hasAttachment) return;
+    e?.preventDefault();
+    if ((!inputText.trim() && !selectedFile) || !selectedChat) return;
 
     setSending(true);
-    const textToSend = newMessage.trim();
-    setNewMessage('');
-
-    const payload = {
-      text: textToSend,
-      mediaLink: attachment?.url || null,
-      mediaType: attachment?.type || null,
-      filename: attachment?.name || null,
-    };
-
-    setAttachment(null);
-
     try {
-      const res = await whatsappChatService.sendChatMessage(activeChat.id, payload);
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === res.messageData.id)) return prev;
-        return [...prev, res.messageData];
-      });
-      setActiveChat(res.chat);
-      setChats((prev) =>
-        prev.map((c) => (c.id === activeChat.id ? res.chat : c))
-      );
+      await whatsappWebService.sendMessage(selectedChat.id, inputText.trim(), selectedFile);
+      setInputText('');
+      setSelectedFile(null);
+      // Reload current chat messages
+      await loadChatMessages(selectedChat.id);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send WhatsApp message.');
+      alert(err.response?.data?.message || 'Failed to send message.');
     } finally {
       setSending(false);
     }
   };
 
-  const toggleManagementMode = async () => {
-    if (!activeChat) return;
-    const newMode = activeChat.managed_by === 'ai' ? 'human' : 'ai';
+  const handleToggleChatAi = async () => {
+    // Guarded because the takeover can send a real WhatsApp message; a double
+    // click used to mean the customer got the same reply twice.
+    if (!selectedChat || togglingAi) return;
+    const newStatus = !selectedChat.ai_enabled;
+    setTogglingAi(true);
     try {
-      const res = await whatsappChatService.updateChatManagement(activeChat.id, newMode);
-      setActiveChat(res.chat);
-      setChats((prev) =>
-        prev.map((c) => (c.id === activeChat.id ? res.chat : c))
-      );
-      toast.success(res.message);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update chat management mode.');
+      const res = await whatsappWebService.toggleChatAi(selectedChat.id, newStatus);
+      setSelectedChat({ ...selectedChat, ai_enabled: newStatus });
+
+      // Handing over to AI can send a catch-up reply server-side, so pull the
+      // thread again rather than leaving the agent looking at a stale view.
+      if (res?.catchUp?.sent) {
+        const data = await whatsappWebService.getChatMessages(selectedChat.id);
+        setMessages(data.messages || []);
+        loadChats();
+      }
+    } catch (e) {
+      alert('Failed to update AI toggle for this chat.');
+    } finally {
+      setTogglingAi(false);
     }
   };
 
-  const formatChatTime = (timestamp) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleToggleGlobalAi = async () => {
+    const newStatus = !session.aiAutopilotEnabled;
+    try {
+      await whatsappWebService.toggleAiAutopilot(newStatus);
+      setSession({ ...session, aiAutopilotEnabled: newStatus });
+    } catch (e) {
+      alert('Failed to toggle AI Autopilot.');
+    }
   };
 
-  const filteredChats = chats.filter((c) =>
-    (c.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.includes(searchQuery)
-  );
+  /**
+   * Asks the AI for a draft and drops it into the composer. Nothing is sent -
+   * the agent still reads it, edits it and presses Send, which is the whole
+   * point of assist mode as opposed to autopilot.
+   */
+  const handleAiDraft = async (mode) => {
+    if (!selectedChat || aiDrafting) return;
+    setAiDrafting(true);
+    try {
+      const { suggestion } = await whatsappWebService.aiSuggest(selectedChat.id, {
+        mode,
+        draft: inputText.trim(),
+      });
+      if (suggestion) setInputText(suggestion);
+    } catch (err) {
+      alert(err.response?.data?.message || 'AI could not draft a reply. Please try again.');
+    } finally {
+      setAiDrafting(false);
+    }
+  };
 
-  const trimmedQuery = searchQuery.trim();
-  const digitsOnly = trimmedQuery.replace(/\D/g, '');
-  const isSearchQueryPhone = digitsOnly.length >= 7;
-  const exactMatchExists = chats.some((c) => c.phone === trimmedQuery || c.phone === digitsOnly);
+  const handleSendItinerary = async (e) => {
+    e.preventDefault();
+    if (!itineraryForm.tripName || !itineraryForm.itineraryText || !selectedChat) return;
+
+    setSendingItinerary(true);
+    try {
+      await whatsappWebService.sendItineraryPdf(
+        selectedChat.id,
+        itineraryForm.tripName,
+        itineraryForm.itineraryText
+      );
+      setItineraryModalOpen(false);
+      setItineraryForm({ tripName: '', itineraryText: '' });
+      await loadChatMessages(selectedChat.id);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to send itinerary PDF.');
+    } finally {
+      setSendingItinerary(false);
+    }
+  };
+
+  /**
+   * What is *actually* happening on this chat, as opposed to what the per-chat
+   * switch alone suggests. Autopilot needs the master switch AND the chat
+   * switch, so a chat can read "AI Auto-Pilot" while nothing sends - which is
+   * exactly the state that looks like a silent failure.
+   */
+  const getAiState = (chat) => {
+    if (!chat) return null;
+    if (chat.needs_human) return 'escalated';
+    if (!chat.ai_enabled) return 'human';
+    return 'ai';
+  };
+
+  const AI_STATE_UI = {
+    ai: {
+      label: 'AI Auto-Pilot',
+      title: 'AI is replying automatically. Click to take over.',
+      className: 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+    },
+    human: {
+      label: 'Human Mode',
+      title: 'You are replying. Click to hand this chat to AI.',
+      className: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    },
+    escalated: {
+      label: 'Needs You',
+      title: 'AI stepped back on this chat. Reply yourself to clear it.',
+      className: 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    },
+  };
+
+  const formatTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] rounded-2xl overflow-hidden border border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
-      {/* Sidebar: Chats List */}
-      <div className={`w-full md:w-80 lg:w-96 flex-col border-r border-slate-100 dark:border-zinc-800 bg-[#FBFCFD] dark:bg-zinc-900/50 ${
-        activeChat ? 'hidden md:flex' : 'flex'
-      }`}>
-        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-zinc-800">
-          <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-2">
-            <MessageSquare className="text-emerald-500" size={20} />
-            WhatsApp Chat
-          </h2>
-          <div className="relative mt-2.5 sm:mt-3">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search chat or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-xs bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 outline-none focus:border-emerald-500 font-medium text-slate-700 dark:text-zinc-200 transition"
+    <div className="flex flex-col h-[calc(100vh-5rem)] bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      {/* Top Banner: Connection & AI Status Bar */}
+      <div className="flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-3 h-3 rounded-full ${
+                session.status === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+              }`}
             />
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              {session.status === 'connected'
+                ? `WhatsApp Web Connected (+${session.phoneNumber})`
+                : 'WhatsApp Web Disconnected'}
+            </span>
           </div>
+
+          {session.status === 'connected' ? (
+            <button
+              onClick={() => whatsappWebService.disconnect().then(loadStatus)}
+              className="text-xs text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium ml-2"
+            >
+              Disconnect
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsQrModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 rounded-lg border border-emerald-300 dark:border-emerald-800 transition-colors shadow-sm"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              Scan QR to Connect
+            </button>
+          )}
         </div>
 
-        {/* Chats scroll area */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100/50 dark:divide-zinc-800/40">
-          {!loadingChats && isSearchQueryPhone && !exactMatchExists && (
-            <div className="p-3.5 bg-emerald-50/30 dark:bg-emerald-950/10 border-b border-slate-100 dark:border-zinc-800/40">
-              <button
-                type="button"
-                onClick={handleStartNewChat}
-                disabled={startingChat}
-                className="w-full py-2.5 px-3 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-750 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5"
-              >
-                {startingChat ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Starting Chat...
-                  </>
-                ) : (
-                  <>
-                    <Plus size={14} />
-                    Start Chat with "{searchQuery.trim()}"
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {loadingChats ? (
-            <div className="p-4 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-3 items-center animate-pulse">
-                  <div className="w-11 h-11 bg-slate-100 dark:bg-zinc-800 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/3 bg-slate-100 dark:bg-zinc-800 rounded" />
-                    <div className="h-2 w-2/3 bg-slate-100 dark:bg-zinc-800 rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredChats.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 dark:text-zinc-500 text-xs mt-10">
-              {isSearchQueryPhone 
-                ? 'No matching conversations found. Click the button above to start a new chat.'
-                : 'No chats found. Link a webhook and receive incoming messages to get started!'}
-            </div>
-          ) : (
-            filteredChats.map((c) => {
-              const isActive = activeChat?.id === c.id;
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => handleSelectChat(c)}
-                  className={`flex gap-3 items-center p-3 sm:p-3.5 cursor-pointer select-none transition ${
-                    isActive
-                      ? 'bg-slate-100/70 dark:bg-zinc-800/70 border-l-4 border-emerald-500 rounded-r-lg'
-                      : 'hover:bg-slate-50 dark:hover:bg-zinc-850/40'
-                  }`}
-                >
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 border border-emerald-500/15 shadow-sm">
-                    {c.customer_name ? c.customer_name.slice(0, 2).toUpperCase() : <User size={18} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-0.5">
-                      <p className="font-semibold text-slate-800 dark:text-zinc-200 text-xs truncate">
-                        {c.customer_name || c.phone}
-                      </p>
-                      <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
-                        {formatChatTime(c.last_message_timestamp)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 dark:text-zinc-500 truncate pr-4">
-                      {c.last_message}
-                    </p>
-                  </div>
-                  {/* AI / Human badge in chat list */}
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    {c.unread_count > 0 && (
-                      <span className="bg-emerald-500 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center text-[10px] animate-bounce">
-                        {c.unread_count}
-                      </span>
-                    )}
-                    {c.managed_by === 'ai' ? (
-                      <span className="flex items-center gap-1 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none">
-                        <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse inline-block" />
-                        AI
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none">
-                        👤
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* Global AI Autopilot Toggle */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+            <Bot className={`w-4 h-4 ${session.aiAutopilotEnabled ? 'text-indigo-500' : 'text-slate-400'}`} />
+            <span className="font-medium">AI for new chats:</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${
+                session.aiAutopilotEnabled
+                  ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {session.aiAutopilotEnabled ? 'On' : 'Off'}
+            </span>
+          </div>
+          <button
+            onClick={handleToggleGlobalAi}
+            title={
+              session.aiAutopilotEnabled
+                ? 'New incoming chats start with AI Auto-Pilot on. Existing chats keep their own setting.'
+                : 'New incoming chats start in Human Mode. Turn AI on per chat from its header.'
+            }
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              session.aiAutopilotEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                session.aiAutopilotEnabled ? 'translate-x-4.5' : 'translate-x-1'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Right Pane: Messages Window */}
-      <div className={`flex-1 flex-col bg-[#efeae2] dark:bg-zinc-950 relative ${
-        activeChat ? 'flex' : 'hidden md:flex'
-      }`}>
-        {/* WhatsApp Pattern Overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.02] pointer-events-none"
-          style={{
-            backgroundImage: `url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")`,
-            backgroundRepeat: 'repeat',
-          }}
-        />
-
-        {activeChat ? (
-          <>
-            {/* Active Header with Mobile Back Button */}
-            <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-5 py-3 border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs z-10">
-              <button
-                type="button"
-                onClick={() => setActiveChat(null)}
-                className="md:hidden p-1.5 -ml-1 rounded-lg text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
-                title="Back to chats"
-              >
-                <ArrowLeft size={18} />
-              </button>
-
-              <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/15">
-                {activeChat.customer_name ? activeChat.customer_name.slice(0, 2).toUpperCase() : <User size={16} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800 dark:text-zinc-100 text-xs truncate">
-                  {activeChat.customer_name || 'Active Chat'}
-                </p>
-                <p className="text-[10px] text-slate-400 dark:text-zinc-500 flex items-center gap-1 mt-0.5">
-                  <Phone size={10} /> {activeChat.phone}
-                </p>
-              </div>
-
-              {/* AI/Human Management Switch — prominent status badge */}
-              <button
-                type="button"
-                onClick={toggleManagementMode}
-                title="Click to toggle AI Assistant for this chat"
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 border shrink-0 shadow-sm ${
-                  activeChat.managed_by === 'ai'
-                    ? 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700 shadow-indigo-300/40 shadow-md'
-                    : 'bg-slate-100 dark:bg-zinc-800 border-slate-300 dark:border-zinc-600 text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
-                }`}
-              >
-                {activeChat.managed_by === 'ai' ? (
-                  <>
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                    </span>
-                    🤖 AI Active — Click to switch to Human
-                  </>
-                ) : (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-zinc-500 inline-block" />
-                    👤 Human — Click to enable AI
-                  </>
-                )}
-              </button>
+      {/* Main 3-Column WhatsApp Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Column: Chats List */}
+        <div className="w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0">
+          {/* Search Bar */}
+          <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search chats by name or phone..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  loadChats(e.target.value);
+                }}
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
+              />
             </div>
+          </div>
 
-            {/* AI mode info banner below header */}
-            {activeChat.managed_by === 'ai' && (
-              <div className="mx-4 mt-0 mb-1 px-3.5 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/40 flex items-center gap-2">
-                <span className="text-indigo-500 text-sm">🤖</span>
-                <p className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 leading-snug">
-                  <span className="font-bold">AI Auto-Reply is ON</span> — The AI assistant will automatically respond to incoming messages from this customer.
-                </p>
+          {/* Conversation List */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+            {chats.length === 0 ? (
+              <div className="text-center py-12 px-4 text-slate-400">
+                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
+                <p className="text-xs font-medium">No WhatsApp conversations yet.</p>
+                <p className="text-[11px] mt-1 text-slate-500">Inbound messages from customers will automatically appear here!</p>
               </div>
-            )}
+            ) : (
+              chats.map((chat) => {
+                const isSelected = selectedChat?.id === chat.id;
+                return (
+                  <button
+                    key={chat.id}
+                    onClick={() => loadChatMessages(chat.id)}
+                    className={`w-full text-left p-3.5 flex items-start gap-3 transition-colors ${
+                      isSelected
+                        ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-l-4 border-emerald-500'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-sm text-slate-600 dark:text-slate-300 shrink-0">
+                      {chat.customer_name ? chat.customer_name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                    </div>
 
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 md:p-6 space-y-3 relative z-10 flex flex-col">
-              {loadingMessages ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : (
-                messages.map((m) => {
-                  const isOutbound = m.direction === 'outbound';
-                  return (
-                    <div
-                      key={m.id}
-                      className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] rounded-xl px-3 sm:px-3.5 py-2 sm:py-2.5 shadow-sm text-xs relative flex flex-col gap-1 ${
-                        isOutbound
-                          ? 'bg-[#E1F3D4] dark:bg-emerald-950 text-slate-800 dark:text-emerald-100 self-end rounded-tr-none'
-                          : 'bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 self-start rounded-tl-none border border-slate-100 dark:border-zinc-800'
-                      }`}
-                    >
-                      {m.message_type === 'image' && m.media_url && (
-                        <div className="mb-1 rounded-lg overflow-hidden border border-slate-200/60 dark:border-zinc-800/60">
-                          <img
-                            src={m.media_url}
-                            alt="Attachment"
-                            className="max-h-60 max-w-full object-cover cursor-pointer hover:opacity-90 transition rounded"
-                            onClick={() => window.open(m.media_url, '_blank')}
-                          />
-                        </div>
-                      )}
-                      {m.message_type === 'document' && m.media_url && (
-                        <a
-                          href={m.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={m.message_text || 'Document.pdf'}
-                          className="mb-1 flex items-center gap-2.5 p-2 rounded-lg bg-slate-100/50 dark:bg-zinc-800/30 hover:bg-slate-200/50 dark:hover:bg-zinc-800/80 border border-slate-200/40 dark:border-zinc-800/40 transition text-slate-800 dark:text-zinc-200 text-[11px] font-medium"
-                        >
-                          <FileText size={16} className="text-emerald-500 shrink-0" />
-                          <span className="truncate flex-1 max-w-[200px]">{m.message_text || 'Document.pdf'}</span>
-                        </a>
-                      )}
-                      {/* Display message body text (or image/doc caption) */}
-                      {!(m.message_type === 'document' && m.media_url) && m.message_text && (
-                        <p className="leading-relaxed break-words">{m.message_text}</p>
-                      )}
-                      <div className="flex justify-end items-center gap-1.5 self-end">
-                        <span className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono">
-                          {formatChatTime(m.message_timestamp)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                          {chat.customer_name || `+${chat.phone}`}
+                        </h4>
+                        <span className="text-[10px] text-slate-400 shrink-0">
+                          {formatDate(chat.last_message_timestamp)}
                         </span>
-                        {isOutbound && (
-                          m.status === 'read' ? (
-                            <CheckCheck size={13} className="text-blue-500 dark:text-blue-400" title="Read" />
-                          ) : m.status === 'delivered' ? (
-                            <CheckCheck size={13} className="text-slate-400" title="Delivered" />
-                          ) : m.status === 'failed' ? (
-                            <ShieldAlert size={13} className="text-red-500" title="Failed" />
-                          ) : (
-                            <Check size={13} className="text-slate-400" title="Sent" />
-                          )
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        {chat.last_message || 'Attachment sent'}
+                      </p>
+
+                      {/* Lead / Booking badges */}
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        {chat.formatted_lead_id && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            {chat.formatted_lead_id} • {chat.lead_stage || 'New'}
+                          </span>
+                        )}
+                        {chat.booking_trip && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800">
+                            Trip: {chat.booking_trip}
+                          </span>
                         )}
                       </div>
                     </div>
-                  );
-                })
-              )}
-              {activeChat && typingChats[activeChat.id] && (
-                <div className="max-w-[70%] rounded-xl px-3.5 py-2.5 bg-indigo-50/70 dark:bg-indigo-950/40 text-slate-800 dark:text-indigo-200 self-start rounded-tl-none border border-indigo-100 dark:border-indigo-900/40 flex items-center gap-2 shadow-xs z-10">
-                  <div className="flex gap-1.5 items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" />
-                  </div>
-                  <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400">
-                    AI Assistant is thinking...
-                  </span>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
 
-            {/* Attachment Preview Bar */}
-            {attachment && (
-              <div className="px-5 py-2.5 bg-slate-50 dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-3 z-10 relative">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {attachment.loading ? (
-                    <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : attachment.type === 'image' ? (
-                    <Image size={16} className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <FileText size={16} className="text-emerald-500 shrink-0" />
-                  )}
-                  <span className="text-[11px] font-medium text-slate-700 dark:text-zinc-300 truncate max-w-[300px]">
-                    {attachment.name} {attachment.loading && <span className="text-slate-400 font-normal">(Uploading...)</span>}
-                  </span>
-                </div>
-                {!attachment.loading && (
-                  <button
-                    type="button"
-                    onClick={() => setAttachment(null)}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition p-1 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800"
-                  >
-                    <X size={14} />
+                    {chat.needs_human && (
+                      <span
+                        className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold"
+                        title="AI escalated this chat - it needs a person"
+                      >
+                        <AlertCircle className="w-3 h-3" />
+                        <span>You</span>
+                      </span>
+                    )}
+
+                    {chat.unread_count > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {chat.unread_count}
+                      </span>
+                    )}
                   </button>
-                )}
-              </div>
+                );
+              })
             )}
+          </div>
+        </div>
 
-            {/* Input Bar Wrapper with Template Dropdown */}
-            <div className="relative">
-              {/* Quick Reply / Templates Dropdown */}
-              {showTemplateDropdown && filteredTemplates.length > 0 && (
-                <div className="absolute left-4 bottom-[54px] right-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800">
-                  {filteredTemplates.map((t, idx) => {
-                    const isSelected = idx === selectedTemplateIndex;
-                    return (
+        {/* Center Column: Active Chat Thread */}
+        <div className="flex-1 flex flex-col bg-slate-100 dark:bg-slate-950/80">
+          {selectedChat ? (
+            <>
+              {/* Chat Thread Header */}
+              <div className="px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 shrink-0 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+                    {selectedChat.customer_name ? selectedChat.customer_name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-baseline gap-2 min-w-0">
+                      <span className="truncate">{selectedChat.customer_name || 'WhatsApp Contact'}</span>
+                      <span className="text-xs font-normal text-slate-500 whitespace-nowrap shrink-0">+{selectedChat.phone}</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {selectedChat.formatted_lead_id
+                        ? `CRM Lead: ${selectedChat.formatted_lead_id} (${selectedChat.lead_stage || 'Inquiry'})`
+                        : selectedChat.booking_trip
+                        ? `Active Booking: ${selectedChat.booking_trip}`
+                        : 'Direct WhatsApp Customer'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Per-Chat Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Human Takeover / Per-chat AI Toggle */}
+                  <button
+                    onClick={handleToggleChatAi}
+                    disabled={togglingAi}
+                    title={AI_STATE_UI[getAiState(selectedChat)].title}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed ${AI_STATE_UI[getAiState(selectedChat)].className}`}
+                  >
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>{AI_STATE_UI[getAiState(selectedChat)].label}</span>
+                  </button>
+
+                  {/* Send Itinerary PDF button */}
+                  <button
+                    onClick={() => setItineraryModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-sm whitespace-nowrap"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>Itinerary PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Messages Stream */}
+              {getAiState(selectedChat) === 'escalated' && (
+                <div className="mx-6 mt-4 px-4 py-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                  <div className="text-xs text-rose-700 dark:text-rose-300">
+                    <p className="font-semibold">AI stepped back — this one needs you.</p>
+                    <p className="mt-0.5 text-rose-600/90 dark:text-rose-400/90">
+                      Nothing was sent to the customer. Autopilot is off for this chat; replying below clears this.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 px-6 py-5 overflow-y-auto space-y-2">
+                {messages.map((msg) => {
+                  const isOutbound = msg.direction === 'outbound';
+                  return (
+                    <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                       <div
-                        key={t.id}
-                        onClick={() => handleSelectTemplate(t)}
-                        className={`p-3 cursor-pointer text-xs flex justify-between items-center transition ${
-                          isSelected 
-                            ? 'bg-emerald-500/10 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 font-semibold' 
-                            : 'hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                        className={`max-w-[75%] sm:max-w-md min-w-[88px] rounded-2xl px-3.5 py-2 shadow-sm text-xs leading-relaxed break-words ${
+                          isOutbound
+                            ? 'bg-emerald-600 text-white rounded-br-none'
+                            : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-800 rounded-bl-none'
                         }`}
                       >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700">
-                            {t.type === 'template' ? 'Meta' : 'Quick'}
-                          </span>
-                          <span className="font-semibold">{t.name}</span>
-                        </div>
-                        <span className="text-[11px] opacity-80 truncate ml-4 max-w-[250px]">{t.body}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        {/* Sender tag for outbound */}
+                        {isOutbound && (
+                          <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-100/90 mb-0.5">
+                            {msg.sender === 'ai_bot' ? <Bot className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                            <span>{msg.sender === 'ai_bot' ? 'Gemini AI Auto-Pilot' : 'Agent (You)'}</span>
+                          </div>
+                        )}
 
-              <form
-                onSubmit={handleSendMessage}
-                className="px-4 py-3 bg-[#f0f2f5] dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-3 relative z-10"
-              >
-                {/* Invisible File Input */}
+                        <div className="whitespace-pre-wrap break-words">{msg.message_text}</div>
+
+                        {/* Status & Timestamp */}
+                        <div
+                          className={`flex items-center justify-end gap-1 text-[10px] mt-0.5 ${
+                            isOutbound ? 'text-emerald-100/80' : 'text-slate-400'
+                          }`}
+                        >
+                          <span>{formatTime(msg.message_timestamp)}</span>
+                          {isOutbound && (
+                            <span>
+                              {msg.status === 'read' ? (
+                                <CheckCheck className="w-3.5 h-3.5 text-sky-300" /> // Blue ticks!
+                              ) : msg.status === 'delivered' ? (
+                                <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 text-emerald-200" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input Box */}
+              <form onSubmit={handleSendMessage} className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*,application/pdf"
+                  onChange={(e) => setSelectedFile(e.target.files[0])}
                   className="hidden"
                 />
+
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={sending || (attachment && attachment.loading)}
-                  className="text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 p-2 rounded-xl transition hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 shrink-0"
-                  title="Attach Image or PDF"
+                  className={`p-2.5 rounded-xl border transition-colors ${
+                    selectedFile
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                  }`}
+                  title="Attach PDF / Image"
                 >
-                  <Paperclip size={18} />
+                  <Paperclip className="w-4 h-4" />
                 </button>
+
+                {selectedFile && (
+                  <span className="text-[11px] text-emerald-600 font-medium truncate max-w-xs">
+                    📎 {selectedFile.name}
+                  </span>
+                )}
 
                 <input
                   type="text"
-                  placeholder={attachment ? "Add a caption..." : "Type a message... (type / for templates)"}
-                  value={newMessage}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  disabled={sending}
-                  className="flex-1 text-xs bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 font-medium text-slate-700 dark:text-zinc-200 transition"
+                  placeholder="Type a message (sent directly to customer's WhatsApp)..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  className="flex-1 px-4 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
                 />
+
+                <button
+                  type="button"
+                  onClick={() => handleAiDraft(inputText.trim() ? 'improve' : 'suggest')}
+                  disabled={aiDrafting}
+                  className="p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 disabled:opacity-50 transition-colors"
+                  title={inputText.trim() ? 'Improve my message with AI' : 'Suggest a reply with AI'}
+                >
+                  {aiDrafting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : inputText.trim() ? (
+                    <Wand2 className="w-4 h-4" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                </button>
+
                 <button
                   type="submit"
-                  disabled={sending || (attachment && attachment.loading) || (!newMessage.trim() && !attachment?.url)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-3 shrink-0 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                  disabled={sending || (!inputText.trim() && !selectedFile)}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all"
                 >
-                  <Send size={15} />
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Send</span>
                 </button>
               </form>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+              <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-3" />
+              <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">No Chat Selected</h3>
+              <p className="text-xs text-slate-500 max-w-sm mt-1">
+                Select a conversation from the left to view message history, chat live, or send travel itineraries.
+              </p>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 relative z-10 select-none">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-4 border border-emerald-500/20">
-              <MessageSquare size={32} />
+          )}
+        </div>
+
+        {/* Right Column: Customer Lead & Booking 360° Sidebar */}
+        {selectedChat && (
+          <div className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
+            <div>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Customer 360°</h4>
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60">
+                <p className="font-bold text-sm text-slate-900 dark:text-white">{selectedChat.customer_name || 'Guest'}</p>
+                <p className="text-xs text-slate-500 mt-0.5">+{selectedChat.phone}</p>
+              </div>
             </div>
-            <h3 className="font-bold text-slate-700 dark:text-zinc-200 text-sm">EzzySync WhatsApp Chat</h3>
-            <p className="text-xs text-slate-400 dark:text-zinc-500 max-w-sm mt-1">
-              Send and receive messages live. Click on any contact on the left side menu to view the conversation history and start chatting.
-            </p>
+
+            {/* Lead Card */}
+            {selectedChat.formatted_lead_id ? (
+              <div className="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5" />
+                    {selectedChat.formatted_lead_id}
+                  </span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-200/60 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                    {selectedChat.lead_stage || 'New'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  <strong>Interest:</strong> {selectedChat.lead_interest || 'Inquiry'}
+                </p>
+                {selectedChat.lead_notes && (
+                  <p className="text-[11px] text-slate-500 mt-1 italic">"{selectedChat.lead_notes}"</p>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center">
+                <p className="text-xs text-slate-500">No CRM Lead linked yet.</p>
+              </div>
+            )}
+
+            {/* Active Booking Card */}
+            {selectedChat.booking_trip ? (
+              <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {selectedChat.booking_trip}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 dark:text-slate-400 flex justify-between">
+                  <span>Total: ₹{selectedChat.total_amount || 0}</span>
+                  <span className="text-rose-600 font-medium">Pending: ₹{selectedChat.remaining || 0}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
+
+      {/* QR Code Modal */}
+      <WhatsAppQRModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        onConnected={(data) => {
+          setSession(data);
+          loadChats();
+        }}
+      />
+
+      {/* Send Itinerary Modal */}
+      {itineraryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3">Send Custom Itinerary PDF to WhatsApp</h3>
+            <form onSubmit={handleSendItinerary} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Trip Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 5 Days Luxury Goa Vacation"
+                  value={itineraryForm.tripName}
+                  onChange={(e) => setItineraryForm({ ...itineraryForm, tripName: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Day-by-Day Itinerary Text</label>
+                <textarea
+                  rows={6}
+                  placeholder="Day 1: Arrival & Sunset Beach Club&#10;Day 2: Private Yacht Tour..."
+                  value={itineraryForm.itineraryText}
+                  onChange={(e) => setItineraryForm({ ...itineraryForm, itineraryText: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setItineraryModalOpen(false)}
+                  className="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingItinerary}
+                  className="px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {sendingItinerary ? 'Generating & Sending...' : 'Send PDF via WhatsApp'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
