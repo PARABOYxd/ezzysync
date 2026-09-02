@@ -264,7 +264,6 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
 
     for (const msg of messages) {
       if (!msg.message) continue;
-      if (msg.key.fromMe) continue;
 
       const senderJid = msg.key.remoteJid;
       if (!senderJid) continue;
@@ -287,6 +286,19 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       const messageId = msg.key.id;
 
       if (!messageText) continue;
+
+      // A message the linked account sent itself. That is either the agent
+      // replying from their own phone - which the CRM was dropping entirely,
+      // so the thread looked one-sided - or an echo of something this server
+      // just sent, which the message_id conflict swallows.
+      if (msg.key.fromMe) {
+        try {
+          await recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId });
+        } catch (err) {
+          logger.error({ err, tenantId, senderPhone }, 'Error recording message sent from the phone');
+        }
+        continue;
+      }
 
       try {
         await processInboundMessage(tenantId, {
@@ -324,6 +336,51 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
   });
 
   return sock;
+}
+
+/**
+ * Records a message the linked WhatsApp account sent itself.
+ *
+ * Two things arrive on this path: replies the agent typed on their own phone,
+ * and echoes of messages this server sent through the socket. The message_id
+ * conflict makes the echo a no-op, so only genuine phone replies land.
+ *
+ * Deliberately limited to chats the CRM already knows. The linked number is
+ * someone's real WhatsApp, full of personal conversations - creating a chat
+ * for every number they message from their phone would fill the CRM with
+ * people who are not customers.
+ */
+async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId }) {
+  const chatRes = await query(
+    `SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
+    [tenantId, senderPhone]
+  );
+  const chat = chatRes.rows[0];
+  if (!chat) return;
+
+  const inserted = await query(
+    `INSERT INTO whatsapp_messages (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
+     VALUES ($1, $2, $3, 'outbound', 'agent', $4, 'sent', now())
+     ON CONFLICT (message_id) DO NOTHING
+     RETURNING id`,
+    [tenantId, chat.id, messageId, messageText]
+  );
+
+  // Nothing inserted means this was the echo of a message the server sent, so
+  // the chat row is already up to date and AI state must not be touched.
+  if (inserted.rowCount === 0) return;
+
+  // A human answering from their phone is a human takeover, same as replying
+  // in the app - so autopilot stands down and any escalation is cleared.
+  await query(
+    `UPDATE whatsapp_chats
+     SET last_message = $1, last_message_timestamp = now(), unread_count = 0,
+         ai_enabled = FALSE, needs_human = FALSE, handoff_reason = NULL, updated_at = now()
+     WHERE id = $2`,
+    [messageText, chat.id]
+  );
+
+  logger.info({ tenantId, chatId: chat.id }, 'Recorded a reply sent from the linked phone');
 }
 
 /**
