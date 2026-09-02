@@ -3,9 +3,9 @@ const env = require('../config/env');
 const bookingService = require('./bookingService');
 const logger = require('../utils/logger');
 
-const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-const GEMINI_TIMEOUT_MS = 30000;
+const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+const FALLBACK_GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 30000;
 
 // JSON schema for Gemini structured output
 const bookingJsonSchema = {
@@ -27,18 +27,19 @@ const bookingJsonSchema = {
 };
 
 function isConfigured() {
-  return Boolean(env.geminiApiKey);
+  return Boolean(env.geminiApiKey && env.geminiApiKey.trim());
 }
 
 /** Single entry point for Gemini generateContent with automatic model fallback.
  * Returns the first candidate's text, or undefined when the model returned nothing usable. */
 async function generateContent(parts, generationConfig) {
-  if (!env.geminiApiKey) {
+  const apiKey = (env.geminiApiKey || '').trim();
+  if (!apiKey) {
     logger.warn('[aiService] GEMINI_API_KEY is not configured in env.');
     return undefined;
   }
 
-  const modelsToTry = [PRIMARY_GEMINI_MODEL, ...FALLBACK_GEMINI_MODELS];
+  const modelsToTry = Array.from(new Set([PRIMARY_GEMINI_MODEL, ...FALLBACK_GEMINI_MODELS]));
   let lastError = null;
 
   for (const model of modelsToTry) {
@@ -46,7 +47,7 @@ async function generateContent(parts, generationConfig) {
       const requestBody = { contents: [{ parts }] };
       if (generationConfig) requestBody.generationConfig = generationConfig;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.geminiApiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await axios.post(url, requestBody, {
         headers: { 'Content-Type': 'application/json' },
         timeout: GEMINI_TIMEOUT_MS,
