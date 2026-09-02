@@ -26,6 +26,25 @@ const bookingJsonSchema = {
   required: ['customerName', 'trip', 'departure'],
 };
 
+/**
+ * Generation settings for WhatsApp-length replies.
+ *
+ * thinkingBudget: 0 is the big one. Gemini 3.x bills its private reasoning as
+ * output, and on a two-line sales reply it spent ~410 thinking tokens to
+ * produce ~40 of actual message - measured 478 total tokens with thinking on
+ * versus 72 with it off, for answers of equal quality. Reasoning earns its
+ * keep on hard problems; this is not one.
+ *
+ * It also makes maxOutputTokens mean what it looks like it means. Thinking
+ * tokens count against that same budget, so a 200 cap left only a handful for
+ * the reply and returned truncated fragments with finishReason MAX_TOKENS.
+ */
+const WHATSAPP_REPLY_CONFIG = {
+  maxOutputTokens: 300,
+  temperature: 0.7,
+  thinkingConfig: { thinkingBudget: 0 },
+};
+
 function isConfigured() {
   return Boolean(env.geminiApiKey && env.geminiApiKey.trim());
 }
@@ -42,18 +61,42 @@ async function generateContent(parts, generationConfig) {
   const modelsToTry = Array.from(new Set([PRIMARY_GEMINI_MODEL, ...FALLBACK_GEMINI_MODELS]));
   let lastError = null;
 
+  const url = (model) =>
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const call = async (model, config) => {
+    const requestBody = { contents: [{ parts }] };
+    if (config) requestBody.generationConfig = config;
+    return axios.post(url(model), requestBody, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: GEMINI_TIMEOUT_MS,
+    });
+  };
+
   for (const model of modelsToTry) {
     try {
-      const requestBody = { contents: [{ parts }] };
-      if (generationConfig) requestBody.generationConfig = generationConfig;
+      let response;
+      try {
+        response = await call(model, generationConfig);
+      } catch (err) {
+        // Lighter models reject thinkingConfig with a bare 400
+        // "Request contains an invalid argument" that names no field, so the
+        // trigger has to be the status code rather than the message text.
+        // Retrying without it beats skipping a model that otherwise works.
+        const rejectsThinking =
+          generationConfig?.thinkingConfig && err.response?.status === 400;
+        if (!rejectsThinking) throw err;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const response = await axios.post(url, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: GEMINI_TIMEOUT_MS,
-      });
+        logger.warn({ model }, '[aiService] Model rejected thinkingConfig, retrying without it');
+        const { thinkingConfig, ...rest } = generationConfig;
+        response = await call(model, rest);
+      }
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const finishReason = response.data?.candidates?.[0]?.finishReason;
+      if (finishReason === 'MAX_TOKENS') {
+        logger.warn({ model, finishReason }, '[aiService] Reply hit the output cap and may be truncated');
+      }
       if (text) return text;
     } catch (err) {
       lastError = err;
@@ -172,6 +215,92 @@ function findLeadByPhone(leads, phone) {
   });
 }
 
+
+/**
+ * Renders the agency's packages compactly for the prompt.
+ *
+ * The previous version inlined JSON.stringify(itinerary_days) for up to 60
+ * packages. On a real agency's data that is thousands of tokens per WhatsApp
+ * reply, for detail the model almost never needs - it is answering a one-line
+ * question, not writing the itinerary. Day titles alone preserve the useful
+ * signal ("what does this trip cover") at a fraction of the size, and the full
+ * itinerary is still one shareable link away.
+ */
+function formatPackagesForPrompt(itineraries, { maxPackages = 8, maxDays = 6 } = {}) {
+  if (!itineraries || itineraries.length === 0) return '';
+
+  const lines = itineraries.slice(0, maxPackages).map((it, idx) => {
+    const price = it.price_quote || it.price_per_person;
+    const days = Array.isArray(it.itinerary_days) ? it.itinerary_days : [];
+    const dayTitles = days
+      .slice(0, maxDays)
+      .map((d, i) => (typeof d === 'string' ? d : d?.title || d?.heading || d?.name || `Day ${i + 1}`))
+      .map((t) => String(t).slice(0, 60))
+      .join(' | ');
+
+    const parts = [`${idx + 1}. ${it.trip_name || it.name}`];
+    parts.push(price ? `₹${price}` : 'price on request');
+    if (days.length) parts.push(`${days.length}d: ${dayTitles}${days.length > maxDays ? ' …' : ''}`);
+    if (it.previewUrl) parts.push(`link: ${it.previewUrl}`);
+    return parts.join(' — ');
+  });
+
+  const extra =
+    itineraries.length > maxPackages
+      ? `\n(+${itineraries.length - maxPackages} more packages - ask the customer what they want and look it up)`
+      : '';
+
+  return `OUR ACTIVE PACKAGES:\n${lines.join('\n')}${extra}\n\n`;
+}
+
+/**
+ * Loads only the rows this conversation actually needs.
+ * Matching by phone in SQL avoids pulling every booking and lead the tenant
+ * owns into memory on each inbound message.
+ */
+async function loadChatContext(tenantId, phone) {
+  const digits = (phone || '').replace(/[^\d]/g, '');
+  const suffix = digits.slice(-10);
+
+  const bookingRes = await query(
+    `SELECT * FROM bookings
+     WHERE tenant_id = $1 AND deleted = FALSE AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE $2
+     ORDER BY updated_at DESC LIMIT 1`,
+    [tenantId, `%${suffix}`]
+  );
+
+  const leadRes = await query(
+    `SELECT * FROM leads
+     WHERE tenant_id = $1 AND deleted = FALSE AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE $2
+     ORDER BY created_at DESC LIMIT 1`,
+    [tenantId, `%${suffix}`]
+  );
+
+  // Mapped to the same camelCase shape bookingService.listBookings returns,
+  // since buildWhatsappReplyPrompt and the follow-up lookup both read that.
+  const row = bookingRes.rows[0];
+  const booking = row
+    ? {
+        bookingId: row.booking_id,
+        customerName: row.customer_name,
+        phone: row.phone,
+        email: row.email,
+        trip: row.trip,
+        departure: row.departure,
+        pickup: row.pickup,
+        members: row.members,
+        totalAmount: row.total_amount,
+        paid: row.paid,
+        remaining: row.remaining,
+        travelStatus: row.travel_status,
+        paymentStatus: row.payment_status,
+        notes: row.notes,
+      }
+    : null;
+
+  return { booking, lead: leadRes.rows[0] || null };
+}
+
 function buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, chatHistory, phone, message }) {
   let context = '';
   
@@ -205,28 +334,33 @@ ${followUpHistory}\n\n`;
   }
 
   if (itineraries && itineraries.length > 0) {
-    context += `Here are our agency's active trip packages/itineraries:
-${itineraries.map((it, idx) => {
-  return `${idx + 1}. Trip: ${it.trip_name || it.name}
-   - Price: ₹${it.price_quote || it.price_per_person || 'Contact sales'}
-   - Shareable Itinerary Link: ${it.previewUrl || 'none'}
-   - Days Details: ${JSON.stringify(it.itinerary_days || [])}`;
-}).join('\n')}\n\n`;
+    context += formatPackagesForPrompt(itineraries);
   } else {
     context += `No active itineraries or tour packages are currently listed.\n\n`;
   }
 
   let historyContext = '';
   if (chatHistory && chatHistory.length > 0) {
-    historyContext = `RECENT CHAT HISTORY (ordered oldest to newest):
-${chatHistory.map((m) => {
-  const sender = m.direction === 'inbound' ? 'Customer' : 'Bot';
-  return `[${sender}]: ${m.message_text}`;
-}).join('\n')}\n\n`;
+    // Labelled per sender, not just by direction. When AI takes over a chat a
+    // human was handling, it needs to see which lines were the agent's so it
+    // continues that thread instead of re-introducing itself or repeating an
+    // offer the agent already made. Each line is capped so one pasted
+    // paragraph cannot crowd out the rest of the history.
+    historyContext = `CONVERSATION SO FAR (oldest to newest). Read it, pick up exactly where it left off, and never repeat a question already answered here:
+${chatHistory
+  .map((m) => {
+    const who = m.direction === 'inbound' ? 'Customer' : m.sender === 'ai_bot' ? 'You (AI)' : 'Our agent';
+    const text = String(m.message_text || '').replace(/\s+/g, ' ').slice(0, 300);
+    return `[${who}]: ${text}`;
+  })
+  .join('\n')}\n\n`;
   }
 
-  return `You are a highly professional, friendly, and persuasive travel agent sales representative for a travel agency.
-You are chatting with a customer on WhatsApp. Your goal is to warmly greet them, answer their questions about trips, highlight selling points, and guide them toward booking.
+  return `You are a warm, sharp, genuinely helpful travel consultant for a travel agency, chatting with a customer on WhatsApp.
+
+YOUR MISSION: turn this conversation into a booking. A chat is only "won" when you know three things - WHERE they want to go, WHEN they want to travel, and HOW MANY people are coming. Every reply should either answer what they asked or move one step closer to learning those three. Never let a conversation die on a polite dead end.
+
+Sound like a real person who books trips for a living, not a chatbot. Short sentences. No corporate filler. No "I'd be happy to assist you with that".
 
 DATABASE CONTEXT (your only source of truth for trip details, prices, bookings):
 ${context}
@@ -247,19 +381,38 @@ NEVER output [FALLBACK_HUMAN_NEEDED] for greetings or small talk.
 RULE 1 — GROUNDING:
 For specific questions about trips, prices, dates, itineraries — answer ONLY from the database context above. Do not invent or guess.
 
-RULE 2 — PERSUASION & NEGOTIATION:
+RULE 2 — QUALIFY, THEN PERSUADE:
 - Only mention trip selling points when the customer asks about a trip or shows interest.
-- If they ask for a discount, explain the premium value warmly and stay persuasive.
-- Guide them toward booking only when they show clear interest: "Shall I reserve a slot for you?"
+- Whenever the destination, travel dates or passenger count is still unknown, end your reply with ONE easy question that fills the biggest gap. One question only - never interrogate.
+- If they ask for a discount, warmly justify the value (inclusions, hotel quality, support) before anything else. Never invent a discount that is not in the database context.
+- Once they show clear interest, ask for the commitment directly: "Shall I hold a slot for you?"
+
+RULE 2B — BRUSH-OFFS ARE NOT A GOODBYE (very important):
+When the customer stalls - "I'll think about it", "just looking", "I'll ask ChatGPT/someone else", "too expensive", "let me check with family", "will get back to you" - do NOT simply accept it and sign off.
+Reply in this shape, in one or two short sentences:
+  1. Acknowledge them lightly, with zero pressure and zero guilt.
+  2. Give ONE concrete reason you are more useful than a search engine or a competitor - you have live prices, real availability, and you handle the booking end to end.
+  3. Close with one low-effort question that keeps the door open ("Which month were you thinking?" / "Want me to send a quick quote for those dates?").
+Good example: "Totally fair 😊 Though ChatGPT can't check live availability or hold a slot for you — I can. Which month were you looking at?"
+Never reply with just "Okay, let me know!" or "Sure, feel free to reach out" - that loses the lead.
 
 RULE 3 — ITINERARY LINKS:
 If the customer asks for itinerary details or a link for a trip, and a "Shareable Itinerary Link" is in the database context, include it directly.
 
-RULE 4 — HUMAN HANDOFF (only for genuine situations, never for casual chat):
-Output ONLY the exact text [FALLBACK_HUMAN_NEEDED] (nothing else) ONLY if:
-- The customer explicitly asks to speak to a human, manager, or agent.
-- They want to significantly customize a trip (change days, add new destinations).
-- The question is very specific and the answer is genuinely not in the database context.
+RULE 4 — HUMAN HANDOFF (this rule OVERRIDES every other rule, including RULE 2B):
+Output ONLY the exact text [FALLBACK_HUMAN_NEEDED] and nothing else - no apology, no greeting, no "let me connect you", not one extra word - whenever ANY of these is true:
+
+a) They ask for a human, manager, owner, or "real person".
+b) They are angry, upset, insulting, threatening, or complaining about service, a refund, a cancellation, a delay, or something that went wrong on a trip.
+c) Money is in dispute: refunds, cancellation charges, a payment they say they made, an amount they disagree with, or any demand to change what was already paid or agreed.
+d) The request is genuinely complex: heavy trip customization, group/corporate bookings, multi-city planning, or anything needing negotiation or approval.
+e) It is outside travel and outside this agency's business - visas, insurance claims, legal or medical questions, jobs, partnerships, other companies' products, or plain spam.
+f) The answer is simply not in the DATABASE CONTEXT above and you would have to guess a price, a date, an availability or a policy to answer.
+g) You are unsure which of the rules applies, or unsure whether your answer would be correct.
+
+The test is simple: if a wrong answer here could cost the agency money, a customer, or trust, hand it over. Saying nothing is always safer than guessing. A human will read the whole conversation and reply - so an unanswered message is never lost, it is escalated.
+
+DO NOT hand off for ordinary sales work: greetings, small talk, questions you can answer from the context, price questions already covered above, or a customer merely hesitating (that is RULE 2B, handle it yourself).
 
 RULE 5 — FORMAT & LENGTH:
 Keep ALL replies short and conversational — 1 to 3 sentences max. No long paragraphs. Write like a friendly human agent texting on WhatsApp. Use emojis sparingly (1-2 max). Use *bold* only for key details like trip names or prices.
@@ -275,21 +428,18 @@ Address the customer by first name if known. Do NOT repeat "Hi [Name]!" if you a
  * without this service depending on the request logger.
  */
 async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryError } = {}) {
-  // 1. Check bookings
-  const bookings = await bookingService.listBookings(tenantId);
-  const booking = findBookingByPhone(bookings, phone);
+  // 1 + 2. Matching booking and lead, resolved in SQL rather than by scanning
+  // every row the tenant owns on each inbound message.
+  const { booking, lead } = await loadChatContext(tenantId, phone);
 
-  // 2. Check leads
-  const leadsRes = await query(`SELECT * FROM leads WHERE tenant_id = $1 AND deleted = FALSE`, [tenantId]);
-  const lead = findLeadByPhone(leadsRes.rows, phone);
-
-  // 3. Check itineraries/quotations
+  // 3. Packages. Capped here and summarised in formatPackagesForPrompt - the
+  // model is writing a two-line WhatsApp reply, not the itinerary itself.
   const quotationsRes = await query(
-    `SELECT id, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
+    `SELECT id, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 8`,
     [tenantId]
   );
   const batchesRes = await query(
-    `SELECT name, trip_name, departure_date, price_per_person, itinerary_days FROM tour_batches WHERE tenant_id = $1 AND deleted = FALSE LIMIT 30`,
+    `SELECT name, trip_name, departure_date, price_per_person, itinerary_days FROM tour_batches WHERE tenant_id = $1 AND deleted = FALSE ORDER BY departure_date ASC LIMIT 4`,
     [tenantId]
   );
 
@@ -309,13 +459,13 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
   let chatHistory = [];
   try {
     const historyRes = await query(
-      `SELECT direction, message_text, message_timestamp 
-       FROM whatsapp_messages 
+      `SELECT direction, sender, message_text, message_timestamp
+       FROM whatsapp_messages
        WHERE tenant_id = $1 AND chat_id = (
          SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2 LIMIT 1
        )
-       ORDER BY message_timestamp DESC 
-       LIMIT 8`,
+       ORDER BY message_timestamp DESC
+       LIMIT 10`,
       [tenantId, phone]
     );
     // Reverse to chronological order
@@ -335,9 +485,87 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
   }
 
   const prompt = buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, chatHistory, phone, message });
-  const reply = await generateContent([{ text: prompt }]);
+  // A WhatsApp reply is 1-3 sentences. Capping output stops the model from
+  // drifting into paragraphs and caps the billed completion tokens with it.
+  const reply = await generateContent([{ text: prompt }], WHATSAPP_REPLY_CONFIG);
 
   return { reply: reply || null, booking: booking || null, lead: lead || null };
+}
+
+
+/**
+ * Drafts a reply *for the agent to review*, never to be auto-sent.
+ *
+ * Two modes share one grounding pass so a suggestion is as well-informed as an
+ * autopilot reply would have been:
+ *  - 'suggest' writes a fresh reply to the customer's last message.
+ *  - 'improve' rewrites the agent's own draft, keeping their intent and facts
+ *    but fixing tone, grammar and length for WhatsApp.
+ *
+ * The goal in both cases is to move the conversation toward a booking, so the
+ * prompt asks for one concrete next step rather than a polite dead end.
+ */
+async function suggestWhatsappDraft(tenantId, { phone, mode = 'suggest', draft = '', lastCustomerMessage = '' }) {
+  const bookings = await bookingService.listBookings(tenantId);
+  const booking = findBookingByPhone(bookings, phone);
+
+  const leadsRes = await query(`SELECT * FROM leads WHERE tenant_id = $1 AND deleted = FALSE`, [tenantId]);
+  const lead = findLeadByPhone(leadsRes.rows, phone);
+
+  const quotationsRes = await query(
+    `SELECT id, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
+    [tenantId]
+  );
+  const itineraries = quotationsRes.rows.map((q) => ({
+    ...q,
+    previewUrl: q.id ? `${env.frontendUrl}/quote-preview/${q.id}` : null,
+  }));
+
+  let chatHistory = [];
+  try {
+    const historyRes = await query(
+      `SELECT direction, sender, message_text, message_timestamp
+       FROM whatsapp_messages
+       WHERE tenant_id = $1 AND chat_id = (
+         SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2 LIMIT 1
+       )
+       ORDER BY message_timestamp DESC
+       LIMIT 10`,
+      [tenantId, phone]
+    );
+    chatHistory = historyRes.rows.reverse();
+  } catch (err) {
+    logger.warn({ err, tenantId }, '[aiService] Could not load history for draft suggestion');
+  }
+
+  const base = buildWhatsappReplyPrompt({
+    booking,
+    lead,
+    itineraries,
+    followUpHistory: 'none',
+    chatHistory,
+    phone,
+    message: lastCustomerMessage || draft,
+  });
+
+  const task =
+    mode === 'improve'
+      ? `TASK OVERRIDE — REWRITE MODE:
+The agent has drafted this reply: "${draft}"
+Rewrite it for WhatsApp. Keep the agent's intent and every factual claim they made.
+Fix grammar, tone and length; make it warm, confident and easy to read.
+Do NOT invent prices, dates or offers the agent did not mention.
+Output ONLY the rewritten message - no preamble, no options, no quotes around it.`
+      : `TASK OVERRIDE — SUGGESTION MODE:
+Draft the reply the agent should send next, based on the conversation above.
+Move the customer one concrete step closer to booking - ask for travel dates,
+passenger count, or offer to hold a slot, whichever fits naturally.
+Output ONLY the message text - no preamble, no options, no quotes around it.`;
+
+  const text = await generateContent([{ text: `${base}
+
+${task}` }], WHATSAPP_REPLY_CONFIG);
+  return { suggestion: (text || '').trim() || null };
 }
 
 module.exports = {
@@ -346,4 +574,5 @@ module.exports = {
   generateItineraryText,
   parseItineraryJson,
   generateWhatsappReply,
+  suggestWhatsappDraft,
 };

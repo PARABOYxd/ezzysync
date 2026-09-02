@@ -92,26 +92,6 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);`);
 
-  // Long-lived refresh tokens so a client can silently mint a new access
-  // token instead of forcing re-login once the (short-lived) JWT expires.
-  // Only a hash of the token is stored - the raw value is never persisted,
-  // same reasoning as password hashing. Rotated (old row revoked, new row
-  // inserted) on every use so a leaked-and-replayed token stops working
-  // after one refresh instead of staying valid for its whole 30-day life.
-  await query(`
-    CREATE TABLE IF NOT EXISTS refresh_tokens (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      token_hash TEXT NOT NULL UNIQUE,
-      expires_at TIMESTAMPTZ NOT NULL,
-      revoked_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);`);
-
   // Backfill existing tenants into users table as ADMINs if users table is empty
   const { rows } = await query(`SELECT id FROM users LIMIT 1`);
   if (rows.length === 0) {
@@ -289,35 +269,6 @@ async function ensureSchema() {
     );
   `);
 
-  // Create hotels table if it does not exist
-  await query(`
-    CREATE TABLE IF NOT EXISTS hotels (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      city TEXT NOT NULL,
-      rating TEXT DEFAULT '3 Star',
-      address TEXT DEFAULT '',
-      contact_person TEXT DEFAULT '',
-      contact_phone TEXT DEFAULT '',
-      rooms_and_rates JSONB DEFAULT '[]'::jsonb,
-      contacts JSONB DEFAULT '[]'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_hotels_tenant ON hotels(tenant_id);`);
-
-  // Add missing hotel columns to bookings table
-  try {
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_id UUID REFERENCES hotels(id) ON DELETE SET NULL;`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS room_category TEXT DEFAULT '';`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_booking_status TEXT DEFAULT 'Pending';`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_confirmation_no TEXT DEFAULT '';`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding hotel column details to bookings');
-  }
-
   // Bookings costing parameters for net profit ledger
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vendor_hotel_cost NUMERIC(12,2) DEFAULT 0;`);
@@ -360,13 +311,6 @@ async function ensureSchema() {
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expiry TIMESTAMPTZ DEFAULT NULL;`);
   } catch (err) {
     logger.warn({ err }, 'Note adding reset_otp columns to users');
-  }
-
-  // B2B Supplier Cost column for bookings
-  try {
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS b2b_cost NUMERIC(12,2) DEFAULT 0;`);
-  } catch (err) {
-    logger.warn({ err }, 'Error adding b2b_cost column to bookings');
   }
 
   // Lightweight, auto-populated customer rollup - natural key is (tenant_id, phone).
@@ -422,13 +366,6 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding lead_id to bookings');
   }
 
-  // Link leads to tour batches
-  try {
-    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding batch_id to leads');
-  }
-
   // Link bookings/quotations to the customer rollup (additive, nullable -
   // existing rows and existing create/update flows keep working unchanged).
   try {
@@ -457,289 +394,79 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding public_lead_key column to tenants');
   }
 
-  // Group Tour Batching - lets many individual bookings (Rahul, Priya, Amit...)
-  // be linked under one fixed-departure tour with a shared itinerary, price
-  // and seat capacity, instead of every booking being tracked standalone.
-  await query(`
-    CREATE TABLE IF NOT EXISTS tour_batches (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      batch_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      trip_name TEXT NOT NULL,
-      departure_date TEXT NOT NULL,
-      total_capacity INTEGER NOT NULL DEFAULT 0,
-      price_per_person NUMERIC(12,2) NOT NULL DEFAULT 0,
-      itinerary_days JSONB DEFAULT '[]'::jsonb,
-      status TEXT NOT NULL DEFAULT 'Planning',
-      notes TEXT DEFAULT '',
-      created_by TEXT DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      deleted BOOLEAN NOT NULL DEFAULT FALSE,
-      UNIQUE (tenant_id, batch_id)
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_tour_batches_tenant ON tour_batches(tenant_id);`);
-  await query(`CREATE SEQUENCE IF NOT EXISTS tour_batches_seq START 1000;`);
-
-  try {
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding batch_id to bookings');
-  }
-
-  // Tracks which saved Itinerary/Quotation a batch's master itinerary was
-  // imported from, so the Quotations page can show "used in this batch" -
-  // same loose text-reference convention as bookings.source_quotation_id.
-  try {
-    await query(`ALTER TABLE tour_batches ADD COLUMN IF NOT EXISTS source_quotation_id TEXT DEFAULT NULL;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding source_quotation_id to tour_batches');
-  }
-
-  // What's included/excluded in the package price - shown on the public
-  // itinerary preview page alongside the day-by-day schedule.
-  try {
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS inclusions JSONB DEFAULT '[]'::jsonb;`);
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS exclusions JSONB DEFAULT '[]'::jsonb;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding inclusions/exclusions to quotations');
-  }
-
-  try {
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS auto_send_invoice BOOLEAN DEFAULT FALSE;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding auto_send_invoice to settings');
-  }
-
-  // WhatsApp & Instagram API credentials in settings
-  try {
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_waba_id TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_business_id TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_app_secret TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_username TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_account_id TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS instagram_access_token TEXT DEFAULT '';`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_ai_auto_reply BOOLEAN DEFAULT FALSE;`);
-    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_default_chat_mode TEXT DEFAULT 'ai';`);
-    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS managed_by TEXT DEFAULT 'ai';`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding WhatsApp/Instagram/AI columns to settings and chats');
-  }
-
-  // Instagram sender ID on leads for DM-sourced lead deduplication
-  try {
-    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS instagram_sender_id TEXT DEFAULT NULL;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding instagram_sender_id to leads');
-  }
-
-  // Optional trip highlights (short bullet list) and per-pickup-point
-  // pricing (each entry is its own absolute total price, not an add-on).
-  try {
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS highlights JSONB DEFAULT '[]'::jsonb;`);
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS pickup_options JSONB DEFAULT '[]'::jsonb;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding highlights/pickup_options to quotations');
-  }
-
-  // Create expenses schema table for central tracking linked to bookings or batches
-  await query(`
-    CREATE TABLE IF NOT EXISTS expenses (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      title TEXT NOT NULL,
-      amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-      category TEXT NOT NULL DEFAULT 'Other',
-      link_type TEXT NOT NULL,
-      booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
-      batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL,
-      vendor_name TEXT DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'Pending',
-      created_by TEXT DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_expenses_tenant ON expenses(tenant_id);`);
-
-  // Create trip cost templates table for automation (supporting multiple versions per trip)
-  await query(`
-    CREATE TABLE IF NOT EXISTS trip_cost_templates (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      trip_name TEXT NOT NULL,
-      template_name TEXT NOT NULL DEFAULT 'Default',
-      hotel_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
-      flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
-      transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
-      other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE (tenant_id, trip_name, template_name)
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_trip_cost_templates_tenant ON trip_cost_templates(tenant_id);`);
-
-  // Migration: Alter existing trip_cost_templates to add template_name and drop single-unique constraint
-  try {
-    await query(`ALTER TABLE trip_cost_templates ADD COLUMN IF NOT EXISTS template_name TEXT NOT NULL DEFAULT 'Default';`);
-    await query(`ALTER TABLE trip_cost_templates DROP CONSTRAINT IF EXISTS trip_cost_templates_tenant_id_trip_name_key;`);
-    await query(`ALTER TABLE trip_cost_templates DROP CONSTRAINT IF EXISTS trip_cost_templates_tenant_trip_version_key;`);
-    await query(`ALTER TABLE trip_cost_templates ADD CONSTRAINT trip_cost_templates_tenant_trip_version_key UNIQUE (tenant_id, trip_name, template_name);`);
-  } catch (err) {
-    logger.warn({ err }, 'Note altering trip_cost_templates constraint');
-  }
-
-  // Migration: Add costing fields and sharing_type to bookings and quotations
-  try {
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cost_template_id UUID REFERENCES trip_cost_templates(id) ON DELETE SET NULL;`);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS sharing_type TEXT DEFAULT 'Double';`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding cost_template_id/sharing_type to bookings');
-  }
-
-  try {
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS hotel_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0;`);
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS cost_template_id UUID REFERENCES trip_cost_templates(id) ON DELETE SET NULL;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding costing columns to quotations');
-  }
-
-  try {
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS banner_url TEXT DEFAULT '';`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding banner_url to quotations');
-  }
-
-  try {
-    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS related_quotations JSONB DEFAULT '[]'::jsonb;`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding related_quotations to quotations');
-  }
-
-  // WhatsApp own number setup requests from agencies
-  await query(`
-    CREATE TABLE IF NOT EXISTS whatsapp_setup_requests (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      phone TEXT NOT NULL,
-      company_name TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_wa_requests_tenant ON whatsapp_setup_requests(tenant_id);`);
-
-  // WhatsApp Chats table
-  await query(`
-    CREATE TABLE IF NOT EXISTS whatsapp_chats (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      phone TEXT NOT NULL,
-      customer_name TEXT DEFAULT '',
-      last_message TEXT DEFAULT '',
-      last_message_timestamp TIMESTAMPTZ DEFAULT now(),
-      unread_count INT DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT now(),
-      updated_at TIMESTAMPTZ DEFAULT now(),
-      UNIQUE (tenant_id, phone)
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_wa_chats_tenant ON whatsapp_chats(tenant_id);`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_wa_chats_phone ON whatsapp_chats(phone);`);
-
-  // WhatsApp Messages table
-  await query(`
-    CREATE TABLE IF NOT EXISTS whatsapp_messages (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      chat_id UUID NOT NULL REFERENCES whatsapp_chats(id) ON DELETE CASCADE,
-      direction TEXT NOT NULL,
-      message_text TEXT NOT NULL,
-      message_type TEXT NOT NULL DEFAULT 'text',
-      media_url TEXT DEFAULT NULL,
-      message_id TEXT UNIQUE,
-      status TEXT DEFAULT 'sent',
-      message_timestamp TIMESTAMPTZ DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_chat ON whatsapp_messages(chat_id);`);
-
-  try {
-    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS message_type TEXT NOT NULL DEFAULT 'text';`);
-    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS media_url TEXT DEFAULT NULL;`);
-    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS message_id TEXT UNIQUE;`);
-    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'sent';`);
-  } catch (err) {
-    logger.warn({ err }, 'Note adding status/message_id/media columns to whatsapp_messages');
-  }
-
-  // Payments & Subscription Ledger table
-  await query(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-      order_id TEXT UNIQUE NOT NULL,
-      payment_id TEXT,
-      signature TEXT,
-      plan_id TEXT NOT NULL,
-      amount INT NOT NULL,
-      currency TEXT NOT NULL DEFAULT 'INR',
-      status TEXT NOT NULL DEFAULT 'created',
-      raw_response JSONB DEFAULT NULL,
-      created_at TIMESTAMPTZ DEFAULT now(),
-      updated_at TIMESTAMPTZ DEFAULT now()
-    );
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_payments_tenant ON payments(tenant_id);`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_payments_payment ON payments(payment_id);`);
-
-  // Normalize existing 10-digit phone numbers to 12-digit Indian numbers with 91 prefix in whatsapp_chats
+  // ==========================================
+  // WHATSAPP WEB MULTI-DEVICE TABLES
+  // ==========================================
   try {
     await query(`
-      UPDATE whatsapp_chats 
-      SET phone = '91' || phone 
-      WHERE LENGTH(phone) = 10 
-        AND ('91' || phone) NOT IN (SELECT phone FROM whatsapp_chats);
-    `);
-  } catch (err) {
-    logger.warn({ err }, 'Failed to normalize existing whatsapp_chats phone numbers');
-  }
-
-  // Create whatsapp_templates table for quick replies and Meta template messages
-  try {
-    await query(`
-      CREATE TABLE IF NOT EXISTS whatsapp_templates (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-        type TEXT NOT NULL DEFAULT 'text',
-        name TEXT NOT NULL,
-        body TEXT NOT NULL,
-        language_code TEXT DEFAULT 'en',
-        category TEXT DEFAULT 'UTILITY',
-        meta_status TEXT DEFAULT 'APPROVED',
-        waba_template_id TEXT,
-        variables_map JSONB DEFAULT '{}'::jsonb,
-        created_at TIMESTAMPTZ DEFAULT now(),
-        updated_at TIMESTAMPTZ DEFAULT now()
+      CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+        tenant_id UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'disconnected', -- 'disconnected', 'qrcode', 'connecting', 'connected'
+        qr_code_data TEXT DEFAULT NULL,
+        phone_number TEXT DEFAULT '',
+        connected_at TIMESTAMPTZ DEFAULT NULL,
+        ai_autopilot_enabled BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
     `);
-    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'UTILITY';`);
-    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS meta_status TEXT DEFAULT 'APPROVED';`);
-    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS waba_template_id TEXT;`);
-    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS variables_map JSONB DEFAULT '{}'::jsonb;`);
-    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_templates_tenant ON whatsapp_templates(tenant_id);`);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_chats (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        phone TEXT NOT NULL,
+        customer_name TEXT DEFAULT '',
+        last_message TEXT DEFAULT '',
+        last_message_timestamp TIMESTAMPTZ DEFAULT now(),
+        unread_count INT DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (tenant_id, phone)
+      );
+    `);
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS lead_id UUID REFERENCES leads(id) ON DELETE SET NULL;`);
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL;`);
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS ai_enabled BOOLEAN DEFAULT FALSE;`);
+    // Every conversation starts human-handled. AI autopilot is something an
+    // agent opts into per chat, so these defaults are flipped for databases
+    // created while they still defaulted to TRUE.
+    await query(`ALTER TABLE whatsapp_chats ALTER COLUMN ai_enabled SET DEFAULT FALSE;`);
+    await query(`ALTER TABLE whatsapp_sessions ALTER COLUMN ai_autopilot_enabled SET DEFAULT FALSE;`);
+    // The exact JID we must address when replying. Since WhatsApp's LID
+    // rollout, the routable address is not always derivable from the phone
+    // number (a @lid chat has a different user part), so rebuilding it as
+    // `<phone>@s.whatsapp.net` silently sends to a non-existent address.
+    // Stored verbatim from the inbound message key instead.
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS jid TEXT DEFAULT NULL;`);
+    // Raised when AI autopilot decides a message is beyond it (angry customer,
+    // refund dispute, off-topic, anything it would have to guess at). The chat
+    // is left unanswered on purpose, so this flag is what stops it from
+    // sitting silently in the queue with nobody aware it needs a person.
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS needs_human BOOLEAN DEFAULT FALSE;`);
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS handoff_reason TEXT DEFAULT NULL;`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_chats_tenant_phone ON whatsapp_chats(tenant_id, phone);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_chats_last_msg ON whatsapp_chats(last_message_timestamp DESC);`);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        chat_id UUID NOT NULL REFERENCES whatsapp_chats(id) ON DELETE CASCADE,
+        message_id TEXT NOT NULL,
+        direction TEXT NOT NULL, -- 'inbound', 'outbound'
+        message_text TEXT DEFAULT '',
+        message_type TEXT DEFAULT 'text', -- 'text', 'image', 'document', 'pdf'
+        media_url TEXT DEFAULT NULL,
+        status TEXT NOT NULL DEFAULT 'sent', -- 'pending', 'sent', 'delivered', 'read', 'failed'
+        message_timestamp TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS sender TEXT NOT NULL DEFAULT 'customer';`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_chat ON whatsapp_messages(chat_id, message_timestamp ASC);`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_msg_id ON whatsapp_messages(message_id);`);
   } catch (err) {
-    logger.warn({ err }, 'Failed to create whatsapp_templates table');
+    logger.error({ err }, 'Error creating WhatsApp Web tables');
   }
 
   logger.info('Schema check complete.');

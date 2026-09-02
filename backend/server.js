@@ -26,6 +26,8 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const followUpRoutes = require('./routes/followUpRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const whatsappWebRoutes = require('./routes/whatsappWebRoutes');
+const whatsappWebService = require('./services/whatsappWebService');
 
 const expenseRoutes = require('./routes/expenseRoutes');
 const batchRoutes = require('./routes/batchRoutes');
@@ -37,9 +39,10 @@ const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
-// Render/Railway sit one reverse-proxy hop in front of this app. Trusting
-// exactly one hop makes req.ip resolve to the real client IP (from
-// X-Forwarded-For) instead of the proxy's own IP, which the rate limiters
+// Trust the first proxy hop (Nginx / Cloudflare / Heroku / AWS ALB)
+// so express-rate-limit correctly reads the client IP from X-Forwarded-For.
+// Also ensures req.ip resolves to the real visitor rather than the proxy.
+// CRITICAL FOR MULTI-TENANT: each tenant user has their own IP; rate limiters
 // below key on — without this every user would share one IP-based bucket.
 app.set('trust proxy', 1);
 
@@ -65,11 +68,12 @@ app.use(
       const isAllowed = allowedOrigins.some((o) => {
         if (!o) return false;
         return o.replace(/\/$/, '') === origin.replace(/\/$/, '');
-      }) || origin.endsWith('.ezzysync.com') || origin === 'https://ezzysync.com';
+      });
       if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error(`Not allowed by CORS: ${origin}`));
+        logger.warn({ origin }, 'CORS request blocked from origin');
+        callback(new Error(`CORS policy does not allow access from origin ${origin}`));
       }
     },
     credentials: true,
@@ -93,6 +97,7 @@ app.use('/api/leads', requireActiveSubscription, leadRoutes);
 app.use('/api/dashboard', requireActiveSubscription, dashboardRoutes);
 app.use('/api/invoices', requireActiveSubscription, invoiceRoutes);
 app.use('/api/whatsapp', requireActiveSubscription, whatsappRoutes);
+app.use('/api/whatsapp-web', requireActiveSubscription, whatsappWebRoutes);
 app.use('/api/settings', requireActiveSubscription, settingsRoutes);
 app.use('/api/upload', requireActiveSubscription, uploadRoutes);
 app.use('/api/users', requireActiveSubscription, userRoutes);
@@ -120,6 +125,7 @@ async function start() {
   const server = app.listen(env.port, () => {
     logger.info({ port: env.port, env: env.nodeEnv }, 'JourneyFlow API started');
     initScheduler();
+    whatsappWebService.autoInitConnectedSessions();
   });
   const websocketService = require('./services/websocketService');
   websocketService.init(server);
@@ -135,4 +141,3 @@ process.on('uncaughtException', (err) => {
 });
 
 start();
-// Reload trigger comment to force environment updates from .env v7
