@@ -198,7 +198,7 @@ function findBookingByPhone(bookings, phone) {
   });
 }
 
-const { query } = require('../config/db');
+const aiContextRepository = require('../repositories/aiContextRepository');
 
 function formatFollowUpHistory(logs) {
   if (!logs || logs.length === 0) return null;
@@ -259,46 +259,30 @@ function formatPackagesForPrompt(itineraries, { maxPackages = 8, maxDays = 6 } =
  * owns into memory on each inbound message.
  */
 async function loadChatContext(tenantId, phone) {
-  const digits = (phone || '').replace(/[^\d]/g, '');
-  const suffix = digits.slice(-10);
-
-  const bookingRes = await query(
-    `SELECT * FROM bookings
-     WHERE tenant_id = $1 AND deleted = FALSE AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE $2
-     ORDER BY updated_at DESC LIMIT 1`,
-    [tenantId, `%${suffix}`]
-  );
-
-  const leadRes = await query(
-    `SELECT * FROM leads
-     WHERE tenant_id = $1 AND deleted = FALSE AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE $2
-     ORDER BY created_at DESC LIMIT 1`,
-    [tenantId, `%${suffix}`]
-  );
+  const { bookingRow, lead } = await aiContextRepository.findCustomerContext(tenantId, phone);
 
   // Mapped to the same camelCase shape bookingService.listBookings returns,
   // since buildWhatsappReplyPrompt and the follow-up lookup both read that.
-  const row = bookingRes.rows[0];
-  const booking = row
+  const booking = bookingRow
     ? {
-        bookingId: row.booking_id,
-        customerName: row.customer_name,
-        phone: row.phone,
-        email: row.email,
-        trip: row.trip,
-        departure: row.departure,
-        pickup: row.pickup,
-        members: row.members,
-        totalAmount: row.total_amount,
-        paid: row.paid,
-        remaining: row.remaining,
-        travelStatus: row.travel_status,
-        paymentStatus: row.payment_status,
-        notes: row.notes,
+        bookingId: bookingRow.booking_id,
+        customerName: bookingRow.customer_name,
+        phone: bookingRow.phone,
+        email: bookingRow.email,
+        trip: bookingRow.trip,
+        departure: bookingRow.departure,
+        pickup: bookingRow.pickup,
+        members: bookingRow.members,
+        totalAmount: bookingRow.total_amount,
+        paid: bookingRow.paid,
+        remaining: bookingRow.remaining,
+        travelStatus: bookingRow.travel_status,
+        paymentStatus: bookingRow.payment_status,
+        notes: bookingRow.notes,
       }
     : null;
 
-  return { booking, lead: leadRes.rows[0] || null };
+  return { booking, lead };
 }
 
 function buildWhatsappReplyPrompt({ booking, lead, itineraries, followUpHistory, chatHistory, phone, message }) {
@@ -434,21 +418,17 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
 
   // 3. Packages. Capped here and summarised in formatPackagesForPrompt - the
   // model is writing a two-line WhatsApp reply, not the itinerary itself.
-  const quotationsRes = await query(
-    `SELECT id, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 8`,
-    [tenantId]
-  );
-  const batchesRes = await query(
-    `SELECT name, trip_name, departure_date, price_per_person, itinerary_days FROM tour_batches WHERE tenant_id = $1 AND deleted = FALSE ORDER BY departure_date ASC LIMIT 4`,
-    [tenantId]
-  );
+  const [quotationRows, batchRows] = await Promise.all([
+    aiContextRepository.listQuotationsForPrompt(tenantId),
+    aiContextRepository.listTourBatchesForPrompt(tenantId),
+  ]);
 
   const itineraries = [
-    ...quotationsRes.rows.map((q) => ({
+    ...quotationRows.map((q) => ({
       ...q,
       previewUrl: q.id ? `${env.frontendUrl}/quote-preview/${q.id}` : null
     })),
-    ...batchesRes.rows.map((b) => ({
+    ...batchRows.map((b) => ({
       ...b,
       trip_name: b.trip_name || b.name,
       previewUrl: null
@@ -458,18 +438,7 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
   // 4. Fetch last 8 WhatsApp messages for conversation history context
   let chatHistory = [];
   try {
-    const historyRes = await query(
-      `SELECT direction, sender, message_text, message_timestamp
-       FROM whatsapp_messages
-       WHERE tenant_id = $1 AND chat_id = (
-         SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2 LIMIT 1
-       )
-       ORDER BY message_timestamp DESC
-       LIMIT 10`,
-      [tenantId, phone]
-    );
-    // Reverse to chronological order
-    chatHistory = historyRes.rows.reverse();
+    chatHistory = await aiContextRepository.getChatHistoryByPhone(tenantId, phone);
   } catch (err) {
     if (onHistoryError) onHistoryError(err);
   }
@@ -506,34 +475,19 @@ async function generateWhatsappReply(tenantId, { phone, message }, { onHistoryEr
  * prompt asks for one concrete next step rather than a polite dead end.
  */
 async function suggestWhatsappDraft(tenantId, { phone, mode = 'suggest', draft = '', lastCustomerMessage = '' }) {
-  const bookings = await bookingService.listBookings(tenantId);
-  const booking = findBookingByPhone(bookings, phone);
+  // Same targeted, capped loads as the autopilot path. This used to pull every
+  // booking and lead the tenant owns and 30 full itineraries per suggestion.
+  const { booking, lead } = await loadChatContext(tenantId, phone);
 
-  const leadsRes = await query(`SELECT * FROM leads WHERE tenant_id = $1 AND deleted = FALSE`, [tenantId]);
-  const lead = findLeadByPhone(leadsRes.rows, phone);
-
-  const quotationsRes = await query(
-    `SELECT id, trip_name, price_quote, itinerary_days FROM quotations WHERE tenant_id = $1 LIMIT 30`,
-    [tenantId]
-  );
-  const itineraries = quotationsRes.rows.map((q) => ({
+  const quotationRows = await aiContextRepository.listQuotationsForPrompt(tenantId);
+  const itineraries = quotationRows.map((q) => ({
     ...q,
     previewUrl: q.id ? `${env.frontendUrl}/quote-preview/${q.id}` : null,
   }));
 
   let chatHistory = [];
   try {
-    const historyRes = await query(
-      `SELECT direction, sender, message_text, message_timestamp
-       FROM whatsapp_messages
-       WHERE tenant_id = $1 AND chat_id = (
-         SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2 LIMIT 1
-       )
-       ORDER BY message_timestamp DESC
-       LIMIT 10`,
-      [tenantId, phone]
-    );
-    chatHistory = historyRes.rows.reverse();
+    chatHistory = await aiContextRepository.getChatHistoryByPhone(tenantId, phone);
   } catch (err) {
     logger.warn({ err, tenantId }, '[aiService] Could not load history for draft suggestion');
   }

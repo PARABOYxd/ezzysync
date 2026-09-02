@@ -27,6 +27,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const followUpRoutes = require('./routes/followUpRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const whatsappWebRoutes = require('./routes/whatsappWebRoutes');
+const planRoutes = require('./routes/planRoutes');
 const whatsappWebService = require('./services/whatsappWebService');
 
 const expenseRoutes = require('./routes/expenseRoutes');
@@ -88,6 +89,9 @@ const { requireActiveSubscription } = require('./middleware/planMiddleware');
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
+// Deliberately not behind requireActiveSubscription - a locked-out tenant
+// still has to be able to read the plan that is locking them out.
+app.use('/api/plans', planRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/payments', paymentRoutes);
 

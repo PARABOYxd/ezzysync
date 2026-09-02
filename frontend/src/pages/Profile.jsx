@@ -226,10 +226,10 @@ export default function Profile() {
                 <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Sparkles size={14} className="text-amber-500" /> AI Travel Tools
                 </span>
-                {isSolo ? <XCircle size={15} className="text-slate-400" /> : <CheckCircle2 size={15} className="text-emerald-500" />}
+                <CheckCircle2 size={15} className="text-emerald-500" />
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
-                {isSolo ? 'Locked (Pro only)' : 'Gemini AI Itineraries'}
+                Gemini AI Itineraries
               </p>
             </div>
 

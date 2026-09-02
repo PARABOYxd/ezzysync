@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import * as userService from '../services/userService';
+import api from '../services/api';
 import Input from '../components/ui/Input.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search } from 'lucide-react';
@@ -77,13 +78,25 @@ export default function Team() {
   });
 
   const [formErrors, setFormErrors] = useState({});
+  const [planInfo, setPlanInfo] = useState(null);
+
+  // -1 means unlimited, so only a positive limit can actually be full.
+  const seatsFull =
+    !!planInfo &&
+    planInfo.limits.maxTeamMembers !== -1 &&
+    planInfo.usage.teamMembers >= planInfo.limits.maxTeamMembers;
 
   useEffect(() => {
     fetchMembers();
+    // Seats are enforced server-side; reading them here is what lets the page
+    // say so up front instead of letting the agent fill in a form and hit a
+    // 403 on submit.
+    api.get('/plans/me').then((res) => setPlanInfo(res.data)).catch(() => {});
   }, []);
 
   const fetchMembers = () => {
     setLoading(true);
+    api.get('/plans/me').then((res) => setPlanInfo(res.data)).catch(() => {});
     userService.getUsers()
       .then((users) => {
         setMembers(users);
@@ -225,13 +238,32 @@ export default function Team() {
           <p className="text-sm text-slate-500 mt-1">
             Manage your travel agency staff accounts, roles, and CRUD permission privileges.
           </p>
+          {planInfo && (
+            <p className="text-xs mt-2 flex items-center gap-1.5">
+              <span className="text-slate-500">
+                {planInfo.plan.name} —{' '}
+                <strong className={seatsFull ? 'text-rose-600' : 'text-slate-700'}>
+                  {planInfo.usage.teamMembers}
+                  {planInfo.limits.maxTeamMembers === -1 ? '' : ` / ${planInfo.limits.maxTeamMembers}`}
+                </strong>{' '}
+                {planInfo.limits.maxTeamMembers === -1 ? 'logins (unlimited)' : 'logins used'}
+              </span>
+              {seatsFull && (
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                  Limit reached
+                </span>
+              )}
+            </p>
+          )}
         </div>
         <button
           onClick={() => {
             setFormErrors({});
             setShowAddModal(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold shadow-md shadow-brand-500/10 transition text-sm self-start sm:self-auto"
+          disabled={seatsFull}
+          title={seatsFull ? `Your ${planInfo?.plan?.name} includes ${planInfo?.limits?.maxTeamMembers} login(s). Upgrade to add more.` : 'Add a team member'}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-md shadow-brand-500/10 transition text-sm self-start sm:self-auto"
         >
           <Plus size={16} />
           Add Member

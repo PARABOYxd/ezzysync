@@ -28,9 +28,18 @@ async function countActiveBookings(tenantId) {
   return rows[0].count;
 }
 
+/**
+ * Counts seats in use, which means every user who can log in - the admin
+ * included.
+ *
+ * Plans are sold in logins ("1 Solo Login", "Up to 5 Team Logins"), but this
+ * used to filter on role = 'TEAM_MEMBER', so the owner's own account was free.
+ * A Solo tenant with maxTeamMembers = 1 could therefore add a staff member on
+ * top of themselves and run two logins on a one-login plan.
+ */
 async function countTeamMembers(tenantId) {
   const { rows } = await query(
-    "SELECT COUNT(*)::int as count FROM users WHERE tenant_id = $1 AND role = 'TEAM_MEMBER'",
+    'SELECT COUNT(*)::int as count FROM users WHERE tenant_id = $1',
     [tenantId]
   );
   return rows[0].count;
