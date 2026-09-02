@@ -17,7 +17,7 @@ const TITLES = {
   '/follow-ups': 'Follow-ups',
   '/bookings': 'Bookings',
   '/upcoming-trips': 'Upcoming Booked Trip',
-  '/whatsapp-chat': 'WhatsApp Live Chat',
+  '/whatsapp-chat': 'Live Chat (WhatsApp & Instagram)',
   '/tour-batches': 'Group Tours',
   '/invoices': 'Invoices',
   '/quotations': 'Itineraries & Quotes',

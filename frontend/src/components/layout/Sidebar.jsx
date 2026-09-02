@@ -23,7 +23,7 @@ export default function Sidebar({ open, onClose }) {
   const salesLinks = [
     { to: '/bookings', label: 'Bookings', icon: CalendarCheck, module: 'bookings' },
     { to: '/upcoming-trips', label: 'Upcoming Booked Trip', icon: Compass, module: 'bookings' },
-    { to: '/whatsapp-chat', label: 'WhatsApp Live Chat', icon: MessageSquare, module: 'bookings' },
+    { to: '/whatsapp-chat', label: 'Live Chat (WA & IG)', icon: MessageSquare, module: 'bookings' },
     { to: '/tour-batches', label: 'Group Tours', icon: Layers, module: 'tourBatches' },
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map, module: 'quotations' },
     { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles, module: 'aiTools', action: 'use' },

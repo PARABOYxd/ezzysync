@@ -3,6 +3,7 @@ const bookingService = require('../services/bookingService');
 const settingsService = require('../services/settingsService');
 const whatsappService = require('../services/whatsappService');
 const whatsappRepo = require('../repositories/whatsappRepository');
+const instagramDirectService = require('../services/instagramDirectService');
 const aiService = require('../services/aiService');
 const { query } = require('../config/db');
 const { broadcastToTenant } = require('../services/websocketService');
@@ -205,6 +206,37 @@ async function sendChatMessage(req, res, next) {
       messageTextToSave = messageTextToSave
         .replace(/\{\{1\}\}/g, companyName)
         .replace(/\{\{2\}\}/g, customerName);
+    }
+
+    // Check if destination is Instagram Direct Chat
+    if (chat.phone.startsWith('IG_')) {
+      const textToSend = messageTextToSave || text || (filename || 'Attachment');
+      await instagramDirectService.sendManualDm(req.user.tenantId, {
+        recipientUsername: chat.phone,
+        text: textToSend,
+      });
+
+      const saved = await whatsappRepo.saveMessage(
+        req.user.tenantId,
+        chat.phone,
+        'outbound',
+        textToSend,
+        null,
+        0,
+        `ig_out_${Date.now()}`,
+        'sent',
+        null,
+        'text',
+        mediaLink || null
+      );
+
+      broadcastToTenant(req.user.tenantId, {
+        type: 'WHATSAPP_MESSAGE_RECEIVED',
+        chat: saved.chat,
+        message: saved.message,
+      });
+
+      return res.json({ message: 'Instagram DM sent successfully.', chat: saved.chat, messageData: saved.message });
     }
 
     // Send using current WhatsApp service
