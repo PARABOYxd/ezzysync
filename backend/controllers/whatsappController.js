@@ -541,6 +541,29 @@ async function receiveWebhook(req, res) {
                       message: outboundSaved.message
                     });
                   }
+                } else {
+                  logger.warn({ tenantId, from }, '[WhatsApp Webhook] AI returned no response or GEMINI_API_KEY is unconfigured. Triggering fallback handoff.');
+                  try {
+                    const fallbackMsg = `🙏 Thank you for contacting us! Our team has received your message and will assist you shortly.`;
+                    const mockBooking = { phone: from, bookingId: 'CHAT' };
+                    await whatsappService.sendWhatsAppMessage(mockBooking, settings, null, fallbackMsg);
+                    const outboundSaved = await whatsappRepo.saveMessage(
+                      tenantId,
+                      from,
+                      'outbound',
+                      fallbackMsg,
+                      saved.chat.customer_name || from,
+                      0,
+                      null
+                    );
+                    broadcastToTenant(tenantId, {
+                      type: 'WHATSAPP_MESSAGE_RECEIVED',
+                      chat: outboundSaved.chat,
+                      message: outboundSaved.message
+                    });
+                  } catch (fbErr) {
+                    logger.warn({ err: fbErr }, '[WhatsApp Webhook] Failed to send fallback handoff message');
+                  }
                 }
               } catch (aiErr) {
                 logger.error({ err: aiErr }, '[WhatsApp Webhook] Error during AI auto-reply processing');
