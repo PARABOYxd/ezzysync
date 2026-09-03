@@ -69,36 +69,57 @@ async function getChatMessages(req, res, next) {
   }
 }
 
+/**
+ * Sends one customer message: text, up to eight attachments, or both.
+ *
+ * Each attachment becomes its own WhatsApp message, which is how WhatsApp
+ * itself handles a multi-file send. The caption rides on the first one only -
+ * repeating it under every photo reads as spam to the customer.
+ *
+ * Sends are sequential with a gap between them on purpose. Firing eight media
+ * uploads at WhatsApp back-to-back from one account is exactly the burst
+ * pattern that gets a number rate-limited or flagged.
+ */
 async function sendMessage(req, res, next) {
   try {
     const { chatId } = req.params;
     const { messageText } = req.body;
-    const file = req.file;
+    const files = req.files || [];
 
     const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-    let mediaBuffer = null;
-    let fileName = null;
-    let mimeType = null;
-
-    if (file) {
-      mediaBuffer = file.buffer;
-      fileName = file.originalname;
-      mimeType = file.mimetype;
+    const caption = String(messageText || '').trim();
+    if (!files.length && !caption) {
+      return res.status(400).json({ message: 'Nothing to send. Type a message or attach a file.' });
     }
 
-    const result = await whatsappWebService.sendManualMessage(req.user.tenantId, {
-      chatId,
-      phone: chat.phone,
-      jid: chat.jid,
-      messageText,
-      mediaBuffer,
-      fileName,
-      mimeType,
-    });
+    const base = { chatId, phone: chat.phone, jid: chat.jid };
+    const results = [];
 
-    res.json({ success: true, ...result });
+    if (!files.length) {
+      results.push(
+        await whatsappWebService.sendManualMessage(req.user.tenantId, { ...base, messageText: caption })
+      );
+    } else {
+      for (const [index, file] of files.entries()) {
+        if (index > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+
+        results.push(
+          await whatsappWebService.sendManualMessage(req.user.tenantId, {
+            ...base,
+            messageText: index === 0 ? caption : '',
+            mediaBuffer: file.buffer,
+            fileName: file.originalname,
+            mimeType: file.mimetype,
+          })
+        );
+      }
+    }
+
+    res.json({ success: true, sent: results.length, results });
   } catch (err) {
     next(err);
   }
@@ -208,8 +229,14 @@ async function aiSuggest(req, res, next) {
     const { chatId } = req.params;
     const { draft = '', mode = 'suggest' } = req.body;
 
-    if (mode === 'improve' && !draft.trim()) {
-      return res.status(400).json({ message: 'Type a message first, then ask AI to improve it.' });
+    // Everything except 'suggest' rewrites something the agent typed, so it
+    // needs that text to exist.
+    const REWRITE_MODES = ['improve', 'shorten', 'friendly', 'professional', 'hinglish'];
+    if (REWRITE_MODES.includes(mode) && !draft.trim()) {
+      return res.status(400).json({ message: 'Type a message first, then ask AI to rewrite it.' });
+    }
+    if (mode !== 'suggest' && !REWRITE_MODES.includes(mode)) {
+      return res.status(400).json({ message: 'Unknown AI action.' });
     }
 
     const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
@@ -238,6 +265,19 @@ async function aiSuggest(req, res, next) {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Quick replies - canned messages an agent inserts with "/shortcut"
+ * ------------------------------------------------------------------ */
+
+async function listQuickReplies(req, res, next) {
+  try {
+    const quickReplies = await whatsappWebRepository.listQuickReplies(req.user.tenantId);
+    res.json({ quickReplies });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getStatus,
   startSession,
@@ -249,4 +289,5 @@ module.exports = {
   toggleChatAi,
   sendItineraryPdf,
   aiSuggest,
+  listQuickReplies,
 };

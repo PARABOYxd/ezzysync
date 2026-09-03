@@ -31,16 +31,20 @@ export const whatsappWebService = {
     return res.data;
   },
 
-  sendMessage: async (chatId, messageText, file = null) => {
-    if (file) {
+  // `files` accepts a single File or an array - the backend takes up to 8.
+  sendMessage: async (chatId, messageText, files = null) => {
+    const list = files ? (Array.isArray(files) ? files : [files]) : [];
+
+    if (list.length) {
       const formData = new FormData();
-      formData.append('file', file);
+      list.forEach((f) => formData.append('files', f));
       if (messageText) formData.append('messageText', messageText);
       const res = await api.post(`/whatsapp-web/chats/${chatId}/send`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return res.data;
     }
+
     const res = await api.post(`/whatsapp-web/chats/${chatId}/send`, { messageText });
     return res.data;
   },
@@ -52,6 +56,11 @@ export const whatsappWebService = {
 
   aiSuggest: async (chatId, { mode = 'suggest', draft = '' } = {}) => {
     const res = await api.post(`/whatsapp-web/chats/${chatId}/ai-suggest`, { mode, draft });
+    return res.data;
+  },
+
+  listQuickReplies: async () => {
+    const res = await api.get('/whatsapp-web/quick-replies');
     return res.data;
   },
 

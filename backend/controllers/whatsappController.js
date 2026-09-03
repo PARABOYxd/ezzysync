@@ -3,6 +3,7 @@ const bookingService = require('../services/bookingService');
 const settingsService = require('../services/settingsService');
 const whatsappService = require('../services/whatsappService');
 const whatsappRepo = require('../repositories/whatsappRepository');
+const instagramDirectService = require('../services/instagramDirectService');
 const aiService = require('../services/aiService');
 const { query } = require('../config/db');
 const { broadcastToTenant } = require('../services/websocketService');
@@ -90,16 +91,13 @@ async function startNewChat(req, res, next) {
     if (rows.length > 0) {
       chat = rows[0];
     } else {
-      // Check default chat mode from settings
-      const settings = await settingsService.getSettings(tenantId);
-      const defaultChatMode = settings?.whatsappDefaultChatMode || 'ai';
-
-      // Create new chat header
+      // Create new chat header. Human-handled to start with, like every
+      // other inbound path; managed_by is gone from this table.
       const insertRes = await query(
-        `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, managed_by)
-         VALUES ($1, $2, $3, $4, now(), 0, $5)
+        `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, ai_enabled)
+         VALUES ($1, $2, $3, $4, now(), 0, FALSE)
          RETURNING *`,
-        [tenantId, cleanPhone, cleanPhone, 'Chat initiated', defaultChatMode]
+        [tenantId, cleanPhone, cleanPhone, 'Chat initiated']
       );
       chat = insertRes.rows[0];
     }
@@ -142,7 +140,7 @@ async function sendChatMessage(req, res, next) {
 
     // Update chat to human-managed since the admin is manually typing a reply
     await query(
-      `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+      `UPDATE whatsapp_chats SET ai_enabled = FALSE, updated_at = now() WHERE tenant_id = $1 AND id = $2`,
       [req.user.tenantId, chatId]
     );
 
@@ -205,6 +203,37 @@ async function sendChatMessage(req, res, next) {
       messageTextToSave = messageTextToSave
         .replace(/\{\{1\}\}/g, companyName)
         .replace(/\{\{2\}\}/g, customerName);
+    }
+
+    // Check if destination is Instagram Direct Chat
+    if (chat.phone.startsWith('IG_')) {
+      const textToSend = messageTextToSave || text || (filename || 'Attachment');
+      await instagramDirectService.sendManualDm(req.user.tenantId, {
+        recipientUsername: chat.phone,
+        text: textToSend,
+      });
+
+      const saved = await whatsappRepo.saveMessage(
+        req.user.tenantId,
+        chat.phone,
+        'outbound',
+        textToSend,
+        null,
+        0,
+        `ig_out_${Date.now()}`,
+        'sent',
+        null,
+        'text',
+        mediaLink || null
+      );
+
+      broadcastToTenant(req.user.tenantId, {
+        type: 'WHATSAPP_MESSAGE_RECEIVED',
+        chat: saved.chat,
+        message: saved.message,
+      });
+
+      return res.json({ message: 'Instagram DM sent successfully.', chat: saved.chat, messageData: saved.message });
     }
 
     // Send using current WhatsApp service
@@ -345,11 +374,11 @@ async function receiveWebhook(req, res) {
 
           logger.info({ tenantId, from, text, contactName, messageId, msgTimestamp, messageType, mediaUrl }, '[WhatsApp Webhook] Saving inbound message');
 
-          // Save the inbound message to DB (increment unread count by 1)
-          // Fetch settings first to get admin-configured default chat mode
-          const inboundSettings = await settingsService.getSettings(tenantId);
-          const defaultChatMode = inboundSettings?.whatsappDefaultChatMode || 'ai';
-
+          // Save the inbound message to DB (increment unread count by 1).
+          // New chats start human-handled, matching WhatsApp Web and Instagram:
+          // AI is something an agent switches on for a chat, never a default.
+          // (The old whatsapp_default_chat_mode setting column no longer
+          // exists, so the previous lookup always fell through to 'ai'.)
           const saved = await whatsappRepo.saveMessage(
             tenantId,
             from,
@@ -362,7 +391,7 @@ async function receiveWebhook(req, res) {
             msgTimestamp,
             messageType,
             mediaUrl,
-            defaultChatMode
+            false
           );
 
           logger.info({ dbMessageId: saved.message.id, chatId: saved.chat.id }, '[WhatsApp Webhook] Inbound message saved successfully');
@@ -413,9 +442,9 @@ async function receiveWebhook(req, res) {
           // Trigger Automated AI Reply if enabled
           try {
             const settings = await settingsService.getSettings(tenantId);
-            const chatManagedBy = saved.chat.managed_by || 'ai';
+            const chatAiEnabled = saved.chat.ai_enabled === true && saved.chat.needs_human !== true;
 
-            if (settings.whatsappAiAutoReply !== false && chatManagedBy === 'ai') {
+            if (settings.whatsappAiAutoReply !== false && chatAiEnabled) {
               // ── Human-like delay: wait 5 seconds before replying ──────────────
               // This also acts as a debounce — if the customer sends another
               // message within these 5 seconds we will detect it below and skip.
@@ -489,9 +518,9 @@ async function receiveWebhook(req, res) {
                       logger.warn({ err: handoffErr }, '[WhatsApp Webhook] Failed to send handoff message');
                     }
 
-                    // Update chat managed_by to 'human'
+                    // Hand this chat to a human
                     await query(
-                      `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+                      `UPDATE whatsapp_chats SET ai_enabled = FALSE, updated_at = now() WHERE tenant_id = $1 AND id = $2`,
                       [tenantId, saved.chat.id]
                     );
 
@@ -502,10 +531,10 @@ async function receiveWebhook(req, res) {
                       customerName: saved.chat.customer_name || from,
                       phone: from
                     });
-                    // Reload chats to reflect managed_by change
+                    // Reload chats to reflect the handover
                     broadcastToTenant(tenantId, {
                       type: 'WHATSAPP_MESSAGE_RECEIVED',
-                      chat: { ...saved.chat, managed_by: 'human' },
+                      chat: { ...saved.chat, ai_enabled: false, needs_human: true },
                       message: null
                     });
 
@@ -623,12 +652,16 @@ async function updateChatManagement(req, res, next) {
       return res.status(400).json({ message: 'Invalid management mode. Supported values: ai, human' });
     }
 
+    // 'ai'/'human' is kept as the API contract this endpoint already had;
+    // it maps onto ai_enabled, which is what the table stores now. Switching
+    // to human also clears any escalation, since a person is taking it on.
+    const enableAi = managedBy === 'ai';
     const { rows } = await query(
-      `UPDATE whatsapp_chats 
-       SET managed_by = $1, updated_at = now() 
-       WHERE tenant_id = $2 AND id = $3 
+      `UPDATE whatsapp_chats
+       SET ai_enabled = $1, needs_human = FALSE, handoff_reason = NULL, updated_at = now()
+       WHERE tenant_id = $2 AND id = $3
        RETURNING *`,
-      [managedBy, req.user.tenantId, chatId]
+      [enableAi, req.user.tenantId, chatId]
     );
 
     if (rows.length === 0) {

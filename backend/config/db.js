@@ -93,6 +93,84 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);`);
 
+  // ==========================================================================
+  // Tables recovered from commit 5d46fc9.
+  //
+  // These were dropped when this file was rewritten, but the code never
+  // stopped querying them. Existing databases still have them, so nothing
+  // looked broken locally - a fresh production database would have had none
+  // of them, and refresh_tokens alone would have failed every single login.
+  // ==========================================================================
+
+  // Long-lived refresh tokens, so a client can mint a new access token instead
+  // of forcing a re-login. Only a hash is stored, and it is rotated on every
+  // use, so a leaked token is good for one refresh rather than its full life.
+  await query(`
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      revoked_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS hotels (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      rating TEXT DEFAULT '3 Star',
+      address TEXT DEFAULT '',
+      contact_person TEXT DEFAULT '',
+      contact_phone TEXT DEFAULT '',
+      rooms_and_rates JSONB DEFAULT '[]'::jsonb,
+      contacts JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_hotels_tenant ON hotels(tenant_id);`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      order_id TEXT UNIQUE NOT NULL,
+      payment_id TEXT,
+      signature TEXT,
+      plan_id TEXT NOT NULL,
+      amount INT NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'INR',
+      status TEXT NOT NULL DEFAULT 'created',
+      raw_response JSONB DEFAULT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_tenant ON payments(tenant_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_payment ON payments(payment_id);`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_setup_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      phone TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_wa_requests_tenant ON whatsapp_setup_requests(tenant_id);`);
+
+
   // Backfill existing tenants into users table as ADMINs if users table is empty
   const { rows } = await query(`SELECT id FROM users LIMIT 1`);
   if (rows.length === 0) {
@@ -135,6 +213,66 @@ async function ensureSchema() {
     );
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_bookings_tenant ON bookings(tenant_id);`);
+
+  // Also recovered from 5d46fc9. Ordered after bookings because expenses
+  // references both bookings and tour_batches.
+  await query(`
+    CREATE TABLE IF NOT EXISTS tour_batches (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      batch_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      trip_name TEXT NOT NULL,
+      departure_date TEXT NOT NULL,
+      total_capacity INTEGER NOT NULL DEFAULT 0,
+      price_per_person NUMERIC(12,2) NOT NULL DEFAULT 0,
+      itinerary_days JSONB DEFAULT '[]'::jsonb,
+      status TEXT NOT NULL DEFAULT 'Planning',
+      notes TEXT DEFAULT '',
+      created_by TEXT DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      deleted BOOLEAN NOT NULL DEFAULT FALSE,
+      UNIQUE (tenant_id, batch_id)
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_tour_batches_tenant ON tour_batches(tenant_id);`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+      category TEXT NOT NULL DEFAULT 'Other',
+      link_type TEXT NOT NULL,
+      booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+      batch_id UUID REFERENCES tour_batches(id) ON DELETE SET NULL,
+      vendor_name TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Pending',
+      created_by TEXT DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_expenses_tenant ON expenses(tenant_id);`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS trip_cost_templates (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      trip_name TEXT NOT NULL,
+      template_name TEXT NOT NULL DEFAULT 'Default',
+      hotel_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      flight_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      transport_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      other_cost_per_pax NUMERIC(12,2) NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (tenant_id, trip_name, template_name)
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_trip_cost_templates_tenant ON trip_cost_templates(tenant_id);`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -234,6 +372,14 @@ async function ensureSchema() {
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS invoice_show_gst BOOLEAN DEFAULT TRUE;`);
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS invoice_show_payment_status BOOLEAN DEFAULT TRUE;`);
     await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS invoice_terms TEXT DEFAULT 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.';`);
+
+    // Also lost in the 5d46fc9 rewrite. settingsService writes these by name,
+    // so saving WhatsApp settings failed outright with 'column
+    // whatsapp_ai_auto_reply does not exist', and reading them through
+    // SELECT * quietly returned undefined - which the auto-reply check read
+    // as "not false", i.e. on. Default FALSE, matching AI being opt-in.
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_ai_auto_reply BOOLEAN DEFAULT FALSE;`);
+    await query(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_default_chat_mode TEXT DEFAULT 'human';`);
   } catch (err) {
     logger.warn({ err }, 'Note updating settings invoice customization columns');
   }
@@ -446,6 +592,55 @@ async function ensureSchema() {
     // sitting silently in the queue with nobody aware it needs a person.
     await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS needs_human BOOLEAN DEFAULT FALSE;`);
     await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS handoff_reason TEXT DEFAULT NULL;`);
+
+
+    // Canned replies and Meta message templates, managed from Settings.
+    // Restored from commit 5a1358d: this table was dropped when db.js was
+    // rewritten, but three files still query it - saving a template failed
+    // with 'relation "whatsapp_templates" does not exist'.
+    await query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_templates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        type TEXT NOT NULL DEFAULT 'text',
+        name TEXT NOT NULL,
+        body TEXT NOT NULL,
+        language_code TEXT DEFAULT 'en',
+        category TEXT DEFAULT 'UTILITY',
+        meta_status TEXT DEFAULT 'APPROVED',
+        waba_template_id TEXT,
+        variables_map JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'UTILITY';`);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS meta_status TEXT DEFAULT 'APPROVED';`);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS waba_template_id TEXT;`);
+    await query(`ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS variables_map JSONB DEFAULT '{}'::jsonb;`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_templates_tenant ON whatsapp_templates(tenant_id);`);
+
+    // Instagram Direct (instagram-private-api) session, one per tenant.
+    // Defined here rather than in its repository so the whole schema is
+    // created in one ordered pass on boot - the repository used to build this
+    // itself on module load, which raced the first query and swallowed errors.
+    // ai_autopilot_enabled defaults FALSE to match WhatsApp: AI is opt-in.
+    await query(`
+      CREATE TABLE IF NOT EXISTS instagram_direct_sessions (
+        tenant_id UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+        username TEXT,
+        account_id TEXT,
+        session_data TEXT,
+        status TEXT DEFAULT 'disconnected',
+        challenge_context JSONB,
+        ai_autopilot_enabled BOOLEAN DEFAULT FALSE,
+        encrypted_creds TEXT DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await query(`ALTER TABLE instagram_direct_sessions ADD COLUMN IF NOT EXISTS encrypted_creds TEXT DEFAULT '';`);
+    await query(`ALTER TABLE instagram_direct_sessions ALTER COLUMN ai_autopilot_enabled SET DEFAULT FALSE;`);
     await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_chats_tenant_phone ON whatsapp_chats(tenant_id, phone);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_chats_last_msg ON whatsapp_chats(last_message_timestamp DESC);`);
 

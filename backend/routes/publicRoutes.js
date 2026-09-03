@@ -17,7 +17,11 @@ router.post('/leads/:publicLeadKey', publicLimiter, ctrl.captureLead);
 // Public submission endpoint for marketing site
 router.post('/walkthrough', publicLimiter, ctrl.submitWalkthroughRequest);
 
-// Authenticated endpoint for Admin dashboard check
-router.get('/walkthrough', requireAuth, ctrl.listWalkthroughRequests);
+const env = require('../config/env');
+
+// Public features config endpoint
+router.get('/features', (req, res) => {
+  res.json({ features: env.features });
+});
 
 module.exports = router;
