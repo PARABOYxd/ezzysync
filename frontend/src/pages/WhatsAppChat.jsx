@@ -531,18 +531,7 @@ export default function WhatsAppChat() {
                 <MessageSquare size={10} />
                 WhatsApp ({chats.filter((c) => !c.phone?.startsWith('IG_')).length})
               </button>
-              <button
-                type="button"
-                onClick={() => setPlatformFilter('instagram')}
-                className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 ${
-                  platformFilter === 'instagram'
-                    ? 'bg-pink-600 text-white'
-                    : 'bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 hover:bg-pink-100'
-                }`}
-              >
-                <Instagram size={10} />
-                Instagram ({chats.filter((c) => c.phone?.startsWith('IG_')).length})
-              </button>
+
             </div>
           </div>
 

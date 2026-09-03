@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer";
 import Pricing from "../../components/sections/Pricing";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
@@ -31,7 +32,7 @@ export const metadata = {
 };
 
 export default function PricingPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  const crmUrl = getCrmUrl();
   const pricingFaqs = faqData.filter((item) => item.category === "pricing");
 
   const pageJsonLd = [

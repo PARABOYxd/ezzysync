@@ -5,6 +5,7 @@ import Features from "../../components/sections/Features";
 import WhyEzzySync from "../../components/sections/WhyEzzySync";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "Travel CRM Features — Lead Management, Itineraries & Invoicing | EzzySync",
@@ -32,7 +33,7 @@ export const metadata = {
 };
 
 export default function FeaturesPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  const crmUrl = getCrmUrl();
   const featureFaqs = faqData.filter((item) => item.category === "feature");
 
   const pageJsonLd = [

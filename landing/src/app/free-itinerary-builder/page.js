@@ -2,6 +2,7 @@ import React from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import FreeItineraryTool from "@/components/tools/FreeItineraryTool";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "Free AI Travel Itinerary Builder & Generator (No Login Required) | EzzySync",
@@ -28,7 +29,7 @@ export const metadata = {
 };
 
 export default function FreeItineraryBuilderPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "https://www.ezzysync.com/app";
+  const crmUrl = getCrmUrl();
 
   const webAppSchema = {
     "@context": "https://schema.org",
