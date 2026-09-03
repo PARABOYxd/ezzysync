@@ -83,9 +83,9 @@ function loadEnv() {
     r2: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-      endpoint: process.env.R2_ENDPOINT || '',
-      bucketName: process.env.R2_BUCKET_NAME || '',
-      publicUrl: process.env.R2_PUBLIC_URL || '',
+      endpoint: process.env.R2_ENDPOINT || (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : ''),
+      bucketName: process.env.R2_BUCKET_NAME || process.env.R2_BUCKET || '',
+      publicUrl: process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL || '',
     },
   };
 }

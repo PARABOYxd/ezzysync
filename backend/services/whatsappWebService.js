@@ -159,7 +159,8 @@ async function storeInboundMedia(sock, msg, media) {
       reuploadRequest: sock.updateMediaMessage,
     });
     if (!buffer?.length) return null;
-    return await r2Service.uploadFile(buffer, media.fileName, media.mimetype);
+    const folder = `whatsapp/inbound/${media.type === 'image' ? 'images' : 'documents'}`;
+    return await r2Service.uploadFile(buffer, media.fileName, media.mimetype, folder);
   } catch (err) {
     logger.warn({ err }, 'Could not download inbound WhatsApp media');
     return null;
@@ -660,7 +661,8 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
     // upload to have failed loudly here rather than leaving a message row
     // pointing at nothing.
     try {
-      mediaUrl = await r2Service.uploadFile(mediaBuffer, fileName || 'attachment', mimeType);
+      const folder = `whatsapp/outbound/${isImage ? 'images' : 'documents'}`;
+      mediaUrl = await r2Service.uploadFile(mediaBuffer, fileName || 'attachment', mimeType, folder);
     } catch (err) {
       logger.error({ err, tenantId, chatId }, 'Could not store outgoing attachment');
     }

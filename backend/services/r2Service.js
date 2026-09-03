@@ -78,22 +78,23 @@ async function optimizeImage(buffer) {
  * Uploads an image buffer to Cloudflare R2 (or falls back to local storage)
  * @param {Buffer} fileBuffer - File raw buffer
  * @param {string} originalName - Original file name
+ * @param {string} subFolder - Optional subfolder in bucket (e.g. 'whatsapp/images')
  * @returns {Promise<string>} - Public URL of the uploaded image
  */
-async function uploadImage(fileBuffer, originalName) {
+async function uploadImage(fileBuffer, originalName, subFolder = '') {
   // 1. Optimize image first
   const { buffer, ext, mime } = await optimizeImage(fileBuffer);
 
   // Generate unique filename to prevent overwrites
   const hash = crypto.randomBytes(16).toString('hex');
   const filename = `${hash}${ext}`;
+  const envFolder = env.nodeEnv === 'production' ? 'production' : 'development';
+  const cleanSubFolder = subFolder ? subFolder.replace(/^\/+|\/+$/g, '') : '';
+  const key = cleanSubFolder ? `${cleanSubFolder}/${filename}` : `${envFolder}/${filename}`;
 
   // 2. Upload to R2 if configured
   if (isR2Configured && s3Client) {
     try {
-      const folder = env.nodeEnv === 'production' ? 'production' : 'development';
-      const key = `${folder}/${filename}`;
-
       const command = new PutObjectCommand({
         Bucket: env.r2.bucketName,
         Key: key,
@@ -114,18 +115,20 @@ async function uploadImage(fileBuffer, originalName) {
     }
   }
 
-  // 3. Fallback: Save locally
+  // 3. Fallback: Save locally in matching folder structure
   const uploadsDir = path.join(__dirname, '..', 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  const targetDir = cleanSubFolder ? path.join(uploadsDir, cleanSubFolder) : uploadsDir;
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
-  const filePath = path.join(uploadsDir, filename);
+  const filePath = path.join(targetDir, filename);
   fs.writeFileSync(filePath, buffer);
 
   // Return local static path
   const host = getLocalHost();
-  return `${host}/uploads/${filename}`;
+  const relPath = cleanSubFolder ? `uploads/${cleanSubFolder}/${filename}` : `uploads/${filename}`;
+  return `${host}/${relPath}`;
 }
 
 /**
@@ -135,9 +138,10 @@ async function uploadImage(fileBuffer, originalName) {
  * @param {Buffer} fileBuffer - Raw buffer of the file
  * @param {string} originalName - Original filename (e.g. invoice.pdf)
  * @param {string} mimeType - The mime-type of the file
+ * @param {string} subFolder - Optional subfolder in bucket (e.g. 'whatsapp/documents')
  * @returns {Promise<string>} - Public URL
  */
-async function uploadFile(fileBuffer, originalName, mimeType) {
+async function uploadFile(fileBuffer, originalName, mimeType, subFolder = '') {
   let buffer = fileBuffer;
   let ext = path.extname(originalName).toLowerCase();
   let mime = mimeType || 'application/octet-stream';
@@ -154,13 +158,13 @@ async function uploadFile(fileBuffer, originalName, mimeType) {
   // Generate unique filename to prevent overwrites
   const hash = crypto.randomBytes(16).toString('hex');
   const filename = `${hash}${ext}`;
+  const envFolder = env.nodeEnv === 'production' ? 'production' : 'development';
+  const cleanSubFolder = subFolder ? subFolder.replace(/^\/+|\/+$/g, '') : '';
+  const key = cleanSubFolder ? `${cleanSubFolder}/${filename}` : `${envFolder}/${filename}`;
 
   // 2. Upload to R2 if configured
   if (isR2Configured && s3Client) {
     try {
-      const folder = env.nodeEnv === 'production' ? 'production' : 'development';
-      const key = `${folder}/${filename}`;
-
       const command = new PutObjectCommand({
         Bucket: env.r2.bucketName,
         Key: key,
@@ -181,18 +185,20 @@ async function uploadFile(fileBuffer, originalName, mimeType) {
     }
   }
 
-  // 3. Fallback: Save locally
+  // 3. Fallback: Save locally in matching folder structure
   const uploadsDir = path.join(__dirname, '..', 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  const targetDir = cleanSubFolder ? path.join(uploadsDir, cleanSubFolder) : uploadsDir;
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
-  const filePath = path.join(uploadsDir, filename);
+  const filePath = path.join(targetDir, filename);
   fs.writeFileSync(filePath, buffer);
 
   // Return local static path
   const host = getLocalHost();
-  return `${host}/uploads/${filename}`;
+  const relPath = cleanSubFolder ? `uploads/${cleanSubFolder}/${filename}` : `uploads/${filename}`;
+  return `${host}/${relPath}`;
 }
 
 module.exports = {
