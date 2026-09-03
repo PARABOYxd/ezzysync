@@ -114,8 +114,10 @@ app.use('/api/ai', requireActiveSubscription, aiRoutes);
 app.use('/api/expenses', requireActiveSubscription, expenseRoutes);
 app.use('/api/batches', requireActiveSubscription, batchRoutes);
 app.use('/api/hotels', requireActiveSubscription, hotelRoutes);
-app.use('/api/instagram', requireActiveSubscription, instagramRoutes);
-app.use('/api/instagram-direct', requireActiveSubscription, instagramDirectRoutes);
+if (env.features.instagram) {
+  app.use('/api/instagram', requireActiveSubscription, instagramRoutes);
+  app.use('/api/instagram-direct', requireActiveSubscription, instagramDirectRoutes);
+}
 app.use('/api/whatsapp/templates', requireActiveSubscription, whatsappTemplateRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
@@ -133,7 +135,9 @@ async function start() {
     logger.info({ port: env.port, env: env.nodeEnv }, 'JourneyFlow API started');
     initScheduler();
     whatsappWebService.autoInitConnectedSessions();
-    instagramDirectService.autoResumeConnectedSessions();
+    if (env.features.instagram) {
+      instagramDirectService.autoResumeConnectedSessions();
+    }
   });
   const websocketService = require('./services/websocketService');
   websocketService.init(server);

@@ -5,6 +5,7 @@ import * as publicService from '../services/publicService';
 import * as instagramService from '../services/instagramService';
 import * as instagramDirectService from '../services/instagramDirectService';
 import * as whatsappTemplateService from '../services/whatsappTemplateService';
+import { getFeatures, fetchFeatures } from '../services/featureService';
 import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -43,6 +44,11 @@ export default function SettingsPage() {
   const [connectingWA, setConnectingWA] = useState(false);
   const [disconnectingWA, setDisconnectingWA] = useState(false);
   const toast = useToast();
+
+  const [features, setFeatures] = useState(getFeatures());
+  useEffect(() => {
+    fetchFeatures().then(setFeatures).catch(() => {});
+  }, []);
 
   // Direct Instagram Connection (Username + Password + 2FA) State
   const [igDirectStatus, setIgDirectStatus] = useState({ status: 'disconnected', username: '' });
@@ -105,6 +111,36 @@ export default function SettingsPage() {
       toast.error('Failed to disconnect Instagram.');
     }
   };
+
+  const handleMetaInstagramConnect = () => {
+    instagramService.connectInstagram();
+  };
+
+  const handleMetaInstagramDisconnect = async () => {
+    if (!window.confirm('Disconnect Official Meta Instagram account?')) return;
+    try {
+      await instagramService.disconnect();
+      setSettings((prev) => ({ ...prev, instagramUsername: '', instagramAccountId: '' }));
+      toast.success('Official Instagram disconnected.');
+    } catch {
+      toast.error('Could not disconnect Instagram.');
+    }
+  };
+
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (e.data?.instagramOAuth === 'success') {
+        toast.success('Instagram connected successfully via Meta!');
+        settingsService.getSettings().then(setSettings).catch(() => {});
+      } else if (e.data?.instagramOAuth === 'denied') {
+        toast.error('Instagram connection was cancelled.');
+      } else if (e.data?.instagramOAuth === 'error') {
+        toast.error('Instagram connection failed.');
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
@@ -449,7 +485,7 @@ export default function SettingsPage() {
             WhatsApp Configuration
           </button>
         )}
-        {user?.role === 'ADMIN' && (
+        {user?.role === 'ADMIN' && features?.instagram && (
           <button
             type="button"
             onClick={() => setActiveTab('instagram')}
@@ -1391,13 +1427,85 @@ export default function SettingsPage() {
           );
         })()}
 
-        {activeTab === 'instagram' && (() => {
+        {features?.instagram && activeTab === 'instagram' && (() => {
           const isDirectConnected = igDirectStatus.status === 'connected';
 
           return (
             <div className="max-w-3xl mx-auto space-y-6">
-              {/* ⚡ DIRECT INSTAGRAM CONNECTION (Baileys-style Username & Password) */}
-              <div className="card space-y-5 border-2 border-pink-500/30 bg-gradient-to-br from-white via-pink-50/20 to-rose-50/30 shadow-xl shadow-pink-500/5">
+              {/* 🌟 1-CLICK OFFICIAL META INSTAGRAM LOGIN */}
+              <div className="card space-y-5 border-2 border-indigo-500/40 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/30 shadow-xl shadow-indigo-500/5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+                      <Instagram size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                        Official Instagram Login
+                        <span className="text-[10px] font-extrabold uppercase bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                          100% Meta Official • Zero Ban Risk
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        1-Click login with your normal Instagram/Facebook account via official Meta popup.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {settings?.instagramUsername ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold text-base shadow-md shadow-indigo-500/20 shrink-0">
+                          {(settings.instagramUsername || 'IG')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-base text-slate-900">@{settings.instagramUsername}</p>
+                          <p className="text-xs text-emerald-800 font-mono mt-0.5">
+                            Status: Meta Official Webhook Active (AI Auto-Pilot & DMs ON)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/80 px-3 py-1.5 rounded-lg shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Official Connected
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleMetaInstagramDisconnect}
+                          className="px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5 bg-white/80 rounded-2xl border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800">Normal 1-Click Meta Login</h4>
+                      <p className="text-xs text-slate-500 mt-0.5 max-w-md">
+                        Click the button to open Meta's official login window, log in normally, and allow permissions. DMs will auto-sync with CRM and Gemini AI.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleMetaInstagramConnect}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-500/25 transition shrink-0 cursor-pointer"
+                    >
+                      <Instagram size={16} />
+                      <span>Log in with Instagram</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ⚡ DIRECT INSTAGRAM CONNECTION (Alternative Method) */}
+              <div className="card space-y-5 border-2 border-slate-200 dark:border-slate-800 bg-white">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-600 text-white flex items-center justify-center shadow-md shadow-pink-500/20">
@@ -1405,10 +1513,10 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                        Direct Instagram Connect
-                        <span className="text-[10px] font-extrabold uppercase bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full border border-pink-200">No Meta App Needed</span>
+                        Alternative: Direct Username & Password
+                        <span className="text-[10px] font-extrabold uppercase bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">Direct Device</span>
                       </h3>
-                      <p className="text-xs text-slate-500">Connect directly using your Instagram Username & Password for real-time DMs & AI Auto-Replies.</p>
+                      <p className="text-xs text-slate-500">Connect directly using your Instagram Username & Password if you prefer not using Facebook login.</p>
                     </div>
                   </div>
                 </div>

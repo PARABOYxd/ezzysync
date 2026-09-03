@@ -2,9 +2,11 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
+import { getFeatures } from '../../services/featureService';
 
 export default function Sidebar({ open, onClose }) {
   const { logout, user } = useAuth();
+  const features = getFeatures();
 
   // Plain helper (not a hook) reusing the already-loaded user object -
   // .filter() callbacks can't call hooks themselves.
@@ -23,7 +25,7 @@ export default function Sidebar({ open, onClose }) {
   const salesLinks = [
     { to: '/bookings', label: 'Bookings', icon: CalendarCheck, module: 'bookings' },
     { to: '/upcoming-trips', label: 'Upcoming Booked Trip', icon: Compass, module: 'bookings' },
-    { to: '/whatsapp-chat', label: 'Live Chat (WA & IG)', icon: MessageSquare, module: 'bookings' },
+    { to: '/whatsapp-chat', label: features.instagram ? 'Live Chat (WA & IG)' : 'WhatsApp Live Chat', icon: MessageSquare, module: 'bookings' },
     { to: '/tour-batches', label: 'Group Tours', icon: Layers, module: 'tourBatches' },
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map, module: 'quotations' },
     { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles, module: 'aiTools', action: 'use' },

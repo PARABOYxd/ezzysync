@@ -58,6 +58,11 @@ function loadEnv() {
       max: Number(process.env.RATE_LIMIT_MAX || 200),
     },
     tokenEncryptionKey: process.env.TOKEN_ENCRYPTION_KEY,
+    features: {
+      instagram: process.env.ENABLE_INSTAGRAM === 'true',
+      whatsappWeb: process.env.ENABLE_WHATSAPP_WEB !== 'false',
+      aiAutopilot: process.env.ENABLE_AI_AUTOPILOT !== 'false',
+    },
     geminiApiKey: process.env.GEMINI_API_KEY,
     unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY || '',
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId123',
