@@ -97,6 +97,23 @@ export default function Navbar({ crmUrl }) {
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-16 inset-x-0 border-b border-slate-200 bg-white px-5 pt-3 pb-6 space-y-1 shadow-sm">
           <Link
+            href="/free-itinerary-builder"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center justify-between px-3 py-3 rounded-xl text-[15px] font-bold my-1 ${
+              pathname === "/free-itinerary-builder"
+                ? "text-brand-600 bg-brand-50/50"
+                : "text-brand-800 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200"
+            } focus-visible:outline-none`}
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <span>Free AI Itinerary Maker</span>
+            </span>
+            <span className="text-[10px] font-extrabold uppercase bg-brand-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+              FREE
+            </span>
+          </Link>
+          <Link
             href="/features"
             onClick={() => setMobileMenuOpen(false)}
             className={`block px-3 py-3 rounded-lg text-[15px] font-medium ${pathname === "/features" ? "text-brand-600 bg-brand-50/50" : "text-slate-700 hover:bg-slate-50"} focus-visible:outline-none`}

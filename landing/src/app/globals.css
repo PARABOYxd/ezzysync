@@ -105,4 +105,64 @@ body {
   }
 }
 
-  
+/* ==========================================================
+   PRINT STYLES FOR ITINERARY PDF EXPORT
+   ========================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm 12mm 14mm;
+  }
+
+  /* Hide entire website UI, navbar, footer, form, buttons */
+  header,
+  footer,
+  nav,
+  #generator-hero,
+  #generator-card,
+  #action-bar,
+  #why-use-section,
+  #faq-section,
+  #upsell-cta,
+  .print-hide {
+    display: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  #printable-itinerary {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .itinerary-day-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 12pt !important;
+  }
+
+  .inclusions-block {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

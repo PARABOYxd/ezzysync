@@ -105,7 +105,7 @@ export default function FreeItineraryBuilderPage() {
         <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 space-y-16">
           
           {/* Header */}
-          <div className="text-center max-w-[800px] mx-auto space-y-4">
+          <div id="generator-hero" className="text-center max-w-[800px] mx-auto space-y-4">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-200">
               ⚡ 100% Free AI Tool for Travel Agents
             </span>
@@ -122,7 +122,7 @@ export default function FreeItineraryBuilderPage() {
           <FreeItineraryTool crmUrl={crmUrl} />
 
           {/* SEO Content: Why use this tool */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+          <div id="why-use-section" className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
               <span className="text-2xl">⚡</span>
               <h3 className="font-bold text-slate-900 text-base">Save 2 Hours Per Inquiry</h3>
@@ -149,7 +149,7 @@ export default function FreeItineraryBuilderPage() {
           </div>
 
           {/* FAQ Section */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 space-y-8 shadow-sm">
+          <div id="faq-section" className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 space-y-8 shadow-sm">
             <div className="text-center max-w-[600px] mx-auto space-y-2">
               <h2 className="font-extrabold text-2xl sm:text-3xl text-slate-950">Frequently Asked Questions</h2>
               <p className="text-sm text-slate-500">Everything you need to know about EzzySync Free Itinerary Builder.</p>

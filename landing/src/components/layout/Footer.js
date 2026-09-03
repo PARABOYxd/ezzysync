@@ -18,6 +18,7 @@ export default function Footer({ crmUrl }) {
         {/* One row of links */}
         <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-500">
           <Link href="/features" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Features</Link>
+          <Link href="/free-itinerary-builder" className="hover:text-brand-600 font-semibold text-brand-700 transition-colors focus-visible:outline-none">Free Itinerary Maker</Link>
           <Link href="/pricing" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Pricing</Link>
           <Link href="/about" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">About</Link>
           <Link href="/blog" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Blog</Link>
