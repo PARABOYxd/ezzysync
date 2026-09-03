@@ -30,3 +30,22 @@ export async function submitWalkthroughRequest({ name, agencyName, email, phone 
     throw new Error(err.message || "Failed to submit request.");
   }
 }
+
+/** Generates a free day-wise travel itinerary using the CRM public AI endpoint. */
+export async function generateFreeItinerary({ destination, days, tripType, agencyName, email, phone, name }) {
+  const response = await fetch(`${getApiBaseUrl()}/api/public/generate-free-itinerary`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ destination, days, tripType, agencyName, email, phone, name }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || "Failed to generate itinerary.");
+  }
+
+  return response.json();
+}
+

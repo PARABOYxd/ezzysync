@@ -9,6 +9,12 @@ export default function sitemap() {
       priority: 1.0,
     },
     {
+      url: 'https://www.ezzysync.com/free-itinerary-builder',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 1.0,
+    },
+    {
       url: 'https://www.ezzysync.com/features',
       lastModified,
       changeFrequency: 'monthly',

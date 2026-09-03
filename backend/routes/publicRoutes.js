@@ -17,6 +17,9 @@ router.post('/leads/:publicLeadKey', publicLimiter, ctrl.captureLead);
 // Public submission endpoint for marketing site
 router.post('/walkthrough', publicLimiter, ctrl.submitWalkthroughRequest);
 
+// Free AI Itinerary Generator tool endpoint
+router.post('/generate-free-itinerary', publicLimiter, ctrl.generateFreeItinerary);
+
 const env = require('../config/env');
 
 // Public features config endpoint

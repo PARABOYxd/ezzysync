@@ -43,8 +43,14 @@ export default function Navbar({ crmUrl }) {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav aria-label="Main" className="hidden md:flex items-center gap-8 text-[14px] font-medium text-slate-600">
+          <nav aria-label="Main" className="hidden md:flex items-center gap-7 text-[14px] font-medium text-slate-600">
             <Link href="/features" className={getLinkClass("/features")}>Features</Link>
+            <Link href="/free-itinerary-builder" className={getLinkClass("/free-itinerary-builder")}>
+              <span className="flex items-center gap-1.5">
+                Free Itinerary Maker
+                <span className="text-[9px] font-extrabold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full border border-amber-200">Free</span>
+              </span>
+            </Link>
             <Link href="/pricing" className={getLinkClass("/pricing")}>Pricing</Link>
             <Link href="/about" className={getLinkClass("/about")}>About</Link>
             <Link href="/blog" className={getLinkClass("/blog")}>Blog</Link>

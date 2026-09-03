@@ -52,4 +52,32 @@ async function listWalkthroughRequests(req, res, next) {
   }
 }
 
-module.exports = { captureLead, submitWalkthroughRequest, listWalkthroughRequests };
+async function generateFreeItinerary(req, res, next) {
+  try {
+    const { destination, days, tripType, agencyName, email, phone, name } = req.body;
+    if (!destination) {
+      return res.status(400).json({ message: 'Destination is required.' });
+    }
+
+    const itinerary = await publicService.generateFreeItinerary({
+      destination,
+      days: Number(days) || 4,
+      tripType: tripType || 'Family & Leisure',
+      agencyName: agencyName || 'EzzySync Partner Agency',
+      email,
+      phone,
+      name,
+    });
+
+    res.json({
+      success: true,
+      itinerary: itinerary || '',
+      destination,
+      days,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { captureLead, submitWalkthroughRequest, listWalkthroughRequests, generateFreeItinerary };
