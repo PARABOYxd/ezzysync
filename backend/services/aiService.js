@@ -502,19 +502,51 @@ async function suggestWhatsappDraft(tenantId, { phone, mode = 'suggest', draft =
     message: lastCustomerMessage || draft,
   });
 
-  const task =
-    mode === 'improve'
-      ? `TASK OVERRIDE — REWRITE MODE:
-The agent has drafted this reply: "${draft}"
-Rewrite it for WhatsApp. Keep the agent's intent and every factual claim they made.
-Fix grammar, tone and length; make it warm, confident and easy to read.
-Do NOT invent prices, dates or offers the agent did not mention.
-Output ONLY the rewritten message - no preamble, no options, no quotes around it.`
-      : `TASK OVERRIDE — SUGGESTION MODE:
+  // Every rewrite mode keeps the same hard rule: the agent's facts are theirs.
+  // The model may change wording, never prices, dates or commitments.
+  const KEEP_FACTS =
+    "Keep the agent's intent and every factual claim they made. " +
+    'You may only rephrase what is already in their draft. Do NOT add, remove or change ' +
+    'any fact - that includes prices, dates, durations, commitments, and what is or is ' +
+    "not included (meals, transfers, sightseeing, taxes). If the agent did not mention " +
+    'something, it does not go in. Do NOT add a new question they did not ask. ' +
+    'Output ONLY the message text - no preamble, no options, no quotes around it.';
+
+  const TASKS = {
+    suggest: `TASK OVERRIDE — SUGGESTION MODE:
 Draft the reply the agent should send next, based on the conversation above.
 Move the customer one concrete step closer to booking - ask for travel dates,
 passenger count, or offer to hold a slot, whichever fits naturally.
-Output ONLY the message text - no preamble, no options, no quotes around it.`;
+Output ONLY the message text - no preamble, no options, no quotes around it.`,
+
+    improve: `TASK OVERRIDE — REWRITE MODE:
+The agent has drafted this reply: "${draft}"
+Rewrite it for WhatsApp: fix grammar and spelling, and make it warm, confident
+and easy to read. ${KEEP_FACTS}`,
+
+    shorten: `TASK OVERRIDE — SHORTEN MODE:
+The agent has drafted this reply: "${draft}"
+Cut it down to the shortest version that still says everything it needs to -
+one or two sentences. Remove filler, keep every fact. ${KEEP_FACTS}`,
+
+    friendly: `TASK OVERRIDE — WARMTH MODE:
+The agent has drafted this reply: "${draft}"
+Rewrite it to sound warmer and more personal, like a helpful human rather than
+a form letter. One or two emojis at most. ${KEEP_FACTS}`,
+
+    professional: `TASK OVERRIDE — PROFESSIONAL MODE:
+The agent has drafted this reply: "${draft}"
+Rewrite it to sound polished and professional while staying friendly. No slang,
+no emojis. ${KEEP_FACTS}`,
+
+    hinglish: `TASK OVERRIDE — HINGLISH MODE:
+The agent has drafted this reply: "${draft}"
+Rewrite it in natural Hinglish - the everyday Hindi-English mix Indian
+customers use on WhatsApp, written in the Latin alphabet, not Devanagari.
+Keep it warm and casual. ${KEEP_FACTS}`,
+  };
+
+  const task = TASKS[mode] || TASKS.suggest;
 
   const text = await generateContent([{ text: `${base}
 

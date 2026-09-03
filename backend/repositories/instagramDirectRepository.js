@@ -1,35 +1,7 @@
 const { query } = require('../config/db');
 const logger = require('../utils/logger');
 
-/**
- * Ensures the `instagram_direct_sessions` table exists in PostgreSQL.
- */
-async function ensureTable() {
-  const sql = `
-    CREATE TABLE IF NOT EXISTS instagram_direct_sessions (
-      tenant_id UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
-      username TEXT,
-      account_id TEXT,
-      session_data TEXT,
-      status TEXT DEFAULT 'disconnected',
-      challenge_context JSONB,
-      ai_autopilot_enabled BOOLEAN DEFAULT TRUE,
-      encrypted_creds TEXT DEFAULT '',
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-  `;
-  try {
-    await query(sql);
-    // Add encrypted_creds column if table already existed without it
-    await query(`ALTER TABLE instagram_direct_sessions ADD COLUMN IF NOT EXISTS encrypted_creds TEXT DEFAULT ''`).catch(() => {});
-  } catch (err) {
-    logger.error({ err }, '[instagramDirectRepository] Failed to ensure instagram_direct_sessions table');
-  }
-}
-
-// Auto-run table check on module load
-ensureTable().catch(() => {});
+// Schema lives in config/db.js ensureSchema(), with the rest of it.
 
 async function getSession(tenantId) {
   const { rows } = await query(
@@ -103,7 +75,6 @@ async function listConnectedTenantIds() {
 }
 
 module.exports = {
-  ensureTable,
   getSession,
   saveSession,
   updateStatus,

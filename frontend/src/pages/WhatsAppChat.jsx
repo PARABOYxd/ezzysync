@@ -24,15 +24,25 @@ import {
   Wand2,
   Loader2,
   Instagram,
+  X,
+  Smile,
 } from 'lucide-react';
 import { whatsappWebService } from '../services/whatsappWebService';
 import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
+import AttachmentPreviewModal from '../components/whatsapp/AttachmentPreviewModal.jsx';
+
+// WhatsApp itself caps a multi-attachment send; the backend enforces the same
+// number, this is only so the UI can stop the agent before the upload.
+const MAX_ATTACHMENTS = 8;
 
 export default function WhatsAppChat() {
   const [session, setSession] = useState({
     status: 'disconnected',
     phoneNumber: '',
     aiAutopilotEnabled: false,
+    // Only a live socket can deliver. The stored status alone used to show
+    // "Connected" while every send failed.
+    canSend: false,
   });
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -41,13 +51,21 @@ export default function WhatsAppChat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [itineraryModalOpen, setItineraryModalOpen] = useState(false);
   const [itineraryForm, setItineraryForm] = useState({ tripName: '', itineraryText: '' });
   const [sendingItinerary, setSendingItinerary] = useState(false);
   const [aiDrafting, setAiDrafting] = useState(false);
   const [togglingAi, setTogglingAi] = useState(false);
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [quickReplies, setQuickReplies] = useState([]);
+  const [quickReplyQuery, setQuickReplyQuery] = useState(null); // null = popup closed
+  const [filePreviewUrls, setFilePreviewUrls] = useState([]);
+  const [viewingMedia, setViewingMedia] = useState(null); // a message already in the thread
+  const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'whatsapp' | 'instagram'
 
   const filteredChats = chats.filter((c) => {
@@ -99,6 +117,10 @@ export default function WhatsAppChat() {
   useEffect(() => {
     loadStatus();
     loadChats();
+    whatsappWebService
+      .listQuickReplies()
+      .then((d) => setQuickReplies(d.quickReplies || []))
+      .catch(() => {});
 
     // Poll chats and active message updates every 4 seconds
     const interval = setInterval(() => {
@@ -121,15 +143,63 @@ export default function WhatsAppChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Object URLs have to be released by hand, otherwise every attachment the
+  // agent picks and cancels leaks its blob for the life of the page.
+  useEffect(() => {
+    if (!selectedFiles.length) {
+      setFilePreviewUrls([]);
+      return;
+    }
+    // One blob URL per staged file, for every type - the preview renders PDFs
+    // and video from these too. All of them are revoked together, otherwise
+    // each attach/cancel cycle leaks a blob for the life of the page.
+    const urls = selectedFiles.map((f) => URL.createObjectURL(f));
+    setFilePreviewUrls(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [selectedFiles]);
+
+  /**
+   * Stored messages keep a coarse message_type ('image' / 'document') and a
+   * URL, not the original mime type - so the real type is read back off the
+   * stored file's extension. Guessing "pdf" for everything non-image would
+   * have shown a broken PDF frame for Word files, spreadsheets and the rest.
+   */
+  const mediaTypeOf = (msg) => {
+    if (!msg) return '';
+    if (msg.message_type === 'image') return 'image/*';
+    const ext = String(msg.media_url || '').split('?')[0].split('.').pop().toLowerCase();
+    const byExt = {
+      pdf: 'application/pdf',
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
+      mp4: 'video/mp4', webm: 'video/webm',
+      ogg: 'audio/ogg', mp3: 'audio/mpeg', m4a: 'audio/mp4',
+    };
+    return byExt[ext] || 'application/octet-stream';
+  };
+
+  const mediaNameOf = (msg) => {
+    if (!msg) return 'Attachment';
+    const fromUrl = String(msg.media_url || '').split('?')[0].split('/').pop();
+    return fromUrl || (msg.message_type === 'image' ? 'Photo' : 'Attachment');
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if ((!inputText.trim() && !selectedFile) || !selectedChat) return;
+    if ((!inputText.trim() && !selectedFiles.length) || !selectedChat) return;
 
     setSending(true);
     try {
-      await whatsappWebService.sendMessage(selectedChat.id, inputText.trim(), selectedFile);
+      await whatsappWebService.sendMessage(selectedChat.id, inputText.trim(), selectedFiles);
       setInputText('');
-      setSelectedFile(null);
+      setQuickReplyQuery(null);
+      clearAttachment();
       // Reload current chat messages
       await loadChatMessages(selectedChat.id);
     } catch (err) {
@@ -180,6 +250,7 @@ export default function WhatsAppChat() {
    */
   const handleAiDraft = async (mode) => {
     if (!selectedChat || aiDrafting) return;
+    setAiMenuOpen(false);
     setAiDrafting(true);
     try {
       const { suggestion } = await whatsappWebService.aiSuggest(selectedChat.id, {
@@ -192,6 +263,92 @@ export default function WhatsAppChat() {
     } finally {
       setAiDrafting(false);
     }
+  };
+
+  /** Clears the staged attachment and resets the file input so the same file
+   *  can be picked again straight after removing it. */
+  const clearAttachment = () => {
+    setSelectedFiles([]);
+    setActiveFileIndex(0);
+    setAttachmentPreviewOpen(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  /** Drops one file from the staged set, keeping the preview on a valid index. */
+  const removeFileAt = (index) => {
+    setSelectedFiles((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (!next.length) {
+        setAttachmentPreviewOpen(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+      setActiveFileIndex((cur) => Math.max(0, Math.min(cur, next.length - 1)));
+      return next;
+    });
+  };
+
+  /** Appends a picked batch, capped at MAX_ATTACHMENTS in total. */
+  const addFiles = (picked) => {
+    const incoming = Array.from(picked || []);
+    if (!incoming.length) return;
+
+    setSelectedFiles((prev) => {
+      const room = MAX_ATTACHMENTS - prev.length;
+      if (room <= 0) {
+        alert(`You can attach up to ${MAX_ATTACHMENTS} files in one message.`);
+        return prev;
+      }
+      if (incoming.length > room) {
+        alert(`Only ${room} more file${room === 1 ? '' : 's'} can be added - the limit is ${MAX_ATTACHMENTS}.`);
+      }
+      return [...prev, ...incoming.slice(0, room)];
+    });
+    setAttachmentPreviewOpen(true);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  /**
+   * Watches the composer for a "/shortcut" being typed.
+   *
+   * Only a slash at the very start opens the picker - mid-sentence slashes
+   * (dates, "and/or", URLs) are left alone.
+   */
+  const handleComposerChange = (value) => {
+    setInputText(value);
+    const match = /^\/([a-zA-Z0-9_-]*)$/.exec(value);
+    setQuickReplyQuery(match ? match[1].toLowerCase() : null);
+  };
+
+  const applyQuickReply = (reply) => {
+    setInputText(reply.message);
+    setQuickReplyQuery(null);
+  };
+
+  const matchingQuickReplies =
+    quickReplyQuery === null
+      ? []
+      : quickReplies.filter((q) => q.shortcut.startsWith(quickReplyQuery));
+
+  // What the AI button offers. 'suggest' writes from scratch; the rest rework
+  // what the agent already typed, so they only make sense with a draft.
+  const AI_ACTIONS = [
+    { mode: 'suggest', label: 'Suggest a reply', hint: 'Write the next message for me', needsDraft: false },
+    { mode: 'improve', label: 'Fix & improve', hint: 'Grammar, spelling and tone', needsDraft: true },
+    { mode: 'shorten', label: 'Make it shorter', hint: 'Cut it to the essentials', needsDraft: true },
+    { mode: 'friendly', label: 'Make it warmer', hint: 'Friendlier, more personal', needsDraft: true },
+    { mode: 'professional', label: 'Make it formal', hint: 'Polished, no emojis', needsDraft: true },
+    { mode: 'hinglish', label: 'Write in Hinglish', hint: 'Casual Hindi-English mix', needsDraft: true },
+  ];
+
+  const EMOJIS = [
+    '😊','😃','😍','🙏','👍','👌','🙌','🎉','✨','🔥',
+    '❤️','😅','😉','🤝','💯','✅','⭐','😎','🥳','🤗',
+    '✈️','🏖️','🏔️','🗺️','🧳','🚗','🏨','📅','💰','📞',
+  ];
+
+  const insertEmoji = (emoji) => {
+    setInputText((prev) => prev + emoji);
+    setEmojiOpen(false);
   };
 
   const handleSendItinerary = async (e) => {
@@ -595,7 +752,38 @@ export default function WhatsAppChat() {
                           </div>
                         )}
 
-                        <div className="whitespace-pre-wrap break-words">{msg.message_text}</div>
+                        {msg.media_url && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingMedia(msg)}
+                            className="block mb-1.5 w-full text-left"
+                            title="Open attachment"
+                          >
+                            {msg.message_type === 'image' ? (
+                              <img
+                                src={msg.media_url}
+                                alt={msg.message_text || 'Attachment'}
+                                className="rounded-xl max-h-64 w-auto object-cover border border-black/5"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span
+                                className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border ${
+                                  isOutbound
+                                    ? 'bg-white/15 border-white/20'
+                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                                }`}
+                              >
+                                <FileText className="w-4 h-4 shrink-0" />
+                                <span className="truncate underline underline-offset-2">Open attachment</span>
+                              </span>
+                            )}
+                          </button>
+                        )}
+
+                        {msg.message_text && (
+                          <div className="whitespace-pre-wrap break-words">{msg.message_text}</div>
+                        )}
 
                         {/* Status & Timestamp */}
                         <div
@@ -623,12 +811,89 @@ export default function WhatsAppChat() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Attachment bar. The full-screen preview is the real check -
+                  this row just shows what is staged and opens it. */}
+              {selectedFiles.length > 0 && (
+                <div className="px-4 pt-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentPreviewOpen(true)}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors text-left"
+                  >
+                    <span className="flex -space-x-2 shrink-0">
+                      {selectedFiles.slice(0, 3).map((f, i) =>
+                        f.type?.startsWith('image/') && filePreviewUrls[i] ? (
+                          <img
+                            key={i}
+                            src={filePreviewUrls[i]}
+                            alt=""
+                            className="w-10 h-10 rounded-lg object-cover border-2 border-white dark:border-slate-800"
+                          />
+                        ) : (
+                          <span
+                            key={i}
+                            className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border-2 border-white dark:border-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center"
+                          >
+                            <FileText className="w-4 h-4 text-slate-400" />
+                          </span>
+                        )
+                      )}
+                    </span>
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        {selectedFiles.length === 1
+                          ? selectedFiles[0].name
+                          : `${selectedFiles.length} attachments`}
+                      </span>
+                      <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                        {formatFileSize(selectedFiles.reduce((sum, f) => sum + f.size, 0))} · Click to preview
+                      </span>
+                    </span>
+
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearAttachment();
+                      }}
+                      title="Remove all attachments"
+                      className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {!session.canSend && (
+                <div className="mx-4 mt-3 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-300">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="flex-1">
+                    {session.status === 'connecting'
+                      ? 'Reconnecting to WhatsApp — sending will work again in a moment.'
+                      : 'WhatsApp is not connected, so messages cannot be sent.'}
+                  </span>
+                  {session.status !== 'connecting' && (
+                    <button
+                      type="button"
+                      onClick={() => setIsQrModalOpen(true)}
+                      className="shrink-0 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-colors"
+                    >
+                      Scan QR
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Message Input Box */}
-              <form onSubmit={handleSendMessage} className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
+              <form onSubmit={handleSendMessage} className={`px-4 pb-4 ${selectedFiles.length ? 'pt-2' : 'pt-4 border-t border-slate-200 dark:border-slate-800'} bg-white dark:bg-slate-900 flex items-center gap-2`}>
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={(e) => setSelectedFile(e.target.files[0])}
+                  multiple
+                  onChange={(e) => addFiles(e.target.files)}
                   className="hidden"
                 />
 
@@ -636,7 +901,7 @@ export default function WhatsAppChat() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className={`p-2.5 rounded-xl border transition-colors ${
-                    selectedFile
+                    selectedFiles.length
                       ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
                       : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                   }`}
@@ -645,39 +910,142 @@ export default function WhatsAppChat() {
                   <Paperclip className="w-4 h-4" />
                 </button>
 
-                {selectedFile && (
-                  <span className="text-[11px] text-emerald-600 font-medium truncate max-w-xs">
-                    📎 {selectedFile.name}
-                  </span>
-                )}
 
-                <input
-                  type="text"
-                  placeholder="Type a message (sent directly to customer's WhatsApp)..."
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => handleAiDraft(inputText.trim() ? 'improve' : 'suggest')}
-                  disabled={aiDrafting}
-                  className="p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 disabled:opacity-50 transition-colors"
-                  title={inputText.trim() ? 'Improve my message with AI' : 'Suggest a reply with AI'}
-                >
-                  {aiDrafting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : inputText.trim() ? (
-                    <Wand2 className="w-4 h-4" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
+                <div className="relative flex-1">
+                  {/* Quick reply picker. Anchored above the composer so it does
+                      not push the thread around as it opens and closes. */}
+                  {quickReplyQuery !== null && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 max-h-56 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg z-20">
+                      <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                        Quick replies
+                      </div>
+                      {matchingQuickReplies.length === 0 ? (
+                        <div className="px-3 py-3 text-[11px] text-slate-500">
+                          {quickReplies.length === 0
+                            ? 'No quick replies saved yet. Add them in Settings.'
+                            : `No shortcut matches "/${quickReplyQuery}".`}
+                        </div>
+                      ) : (
+                        matchingQuickReplies.map((q) => (
+                          <button
+                            key={q.id}
+                            type="button"
+                            onClick={() => applyQuickReply(q)}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors border-b border-slate-50 dark:border-slate-800/60 last:border-0"
+                          >
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">/{q.shortcut}</span>
+                            <span className="block text-[11px] text-slate-600 dark:text-slate-400 truncate">{q.message}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
                   )}
-                </button>
+
+                  <input
+                    type="text"
+                    placeholder="Type a message, or / for a quick reply..."
+                    value={inputText}
+                    onChange={(e) => handleComposerChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setQuickReplyQuery(null);
+                      // Enter picks the top match instead of sending "/price"
+                      // to the customer as literal text.
+                      if (e.key === 'Enter' && matchingQuickReplies.length > 0) {
+                        e.preventDefault();
+                        applyQuickReply(matchingQuickReplies[0]);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+
+                {/* Emoji picker */}
+                <div className="relative shrink-0">
+                  {emojiOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setEmojiOpen(false)} />
+                      <div className="absolute bottom-full right-0 mb-2 z-20 w-64 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg">
+                        <div className="grid grid-cols-10 gap-0.5">
+                          {EMOJIS.map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => insertEmoji(e)}
+                              className="w-6 h-6 flex items-center justify-center text-base leading-none rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => { setEmojiOpen((v) => !v); setAiMenuOpen(false); }}
+                    title="Insert emoji"
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-amber-500 hover:border-amber-300 transition-colors"
+                  >
+                    <Smile className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* AI actions. A menu rather than one guessed action - the
+                    agent decides what should happen to what they wrote. */}
+                <div className="relative shrink-0">
+                  {aiMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setAiMenuOpen(false)} />
+                      <div className="absolute bottom-full right-0 mb-2 z-20 w-60 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                        <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                          AI assist
+                        </div>
+                        {AI_ACTIONS.map((a) => {
+                          const blocked = a.needsDraft && !inputText.trim();
+                          return (
+                            <button
+                              key={a.mode}
+                              type="button"
+                              disabled={blocked}
+                              onClick={() => handleAiDraft(a.mode)}
+                              title={blocked ? 'Type a message first' : a.hint}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors border-b border-slate-50 dark:border-slate-800/60 last:border-0"
+                            >
+                              <span className="block text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                                {a.label}
+                              </span>
+                              <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                                {a.hint}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => { setAiMenuOpen((v) => !v); setEmojiOpen(false); }}
+                    disabled={aiDrafting}
+                    className="p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 disabled:opacity-50 transition-colors"
+                    title="AI assist"
+                  >
+                    {aiDrafting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : inputText.trim() ? (
+                      <Wand2 className="w-4 h-4" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
 
                 <button
                   type="submit"
-                  disabled={sending || (!inputText.trim() && !selectedFile)}
+                  disabled={sending || !session.canSend || (!inputText.trim() && !selectedFiles.length)}
+                  title={session.canSend ? 'Send' : 'WhatsApp is not connected right now'}
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
@@ -752,6 +1120,35 @@ export default function WhatsAppChat() {
       </div>
 
       {/* QR Code Modal */}
+      <AttachmentPreviewModal
+        open={attachmentPreviewOpen && selectedFiles.length > 0}
+        mode="compose"
+        files={selectedFiles}
+        previewUrls={filePreviewUrls}
+        activeIndex={activeFileIndex}
+        onActiveIndexChange={setActiveFileIndex}
+        onRemoveFile={removeFileAt}
+        onAddFiles={() => fileInputRef.current?.click()}
+        maxFiles={MAX_ATTACHMENTS}
+        caption={inputText}
+        onCaptionChange={setInputText}
+        sending={sending}
+        onSend={async () => {
+          await handleSendMessage();
+          setAttachmentPreviewOpen(false);
+        }}
+        onClose={() => setAttachmentPreviewOpen(false)}
+      />
+
+      <AttachmentPreviewModal
+        open={!!viewingMedia}
+        mode="view"
+        url={viewingMedia?.media_url}
+        fileName={mediaNameOf(viewingMedia)}
+        mimeType={mediaTypeOf(viewingMedia)}
+        onClose={() => setViewingMedia(null)}
+      />
+
       <WhatsAppQRModal
         isOpen={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}

@@ -1,23 +1,58 @@
-const { IgApiClient, IgLoginTwoFactorRequiredError, IgCheckpointError } = require('instagram-private-api');
+const {
+  IgApiClient,
+  IgLoginTwoFactorRequiredError,
+  IgCheckpointError,
+  IgLoginRequiredError,
+} = require('instagram-private-api');
 const instagramDirectRepo = require('../repositories/instagramDirectRepository');
 const leadRepository = require('../repositories/leadRepository');
 const whatsappRepo = require('../repositories/whatsappRepository');
+const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const aiService = require('./aiService');
+const planService = require('./planService');
 const { broadcastToTenant } = require('./websocketService');
 const logger = require('../utils/logger');
+const { encrypt, decrypt } = require('../utils/encryption');
 const { query } = require('../config/db');
 
 // Map of active IgApiClient instances per tenantId
 const activeClients = new Map(); // tenantId -> { ig, username, accountId, status, poller }
 const processedMessageIds = new Set();
 
-// Simple encode/decode for storing credentials (not plaintext in DB)
+/**
+ * Stores the Instagram login so a dropped session can be re-established
+ * without asking the agency to type its password again.
+ *
+ * This is real AES encryption via utils/encryption, the same helper the Gmail
+ * refresh tokens use. The previous version base64-encoded the password and
+ * called that "not plaintext" - base64 is an encoding, not a secret, and
+ * anyone with a read of this table could decode every tenant's Instagram
+ * password in one line.
+ *
+ * Legacy base64 rows are still readable so existing connections keep working;
+ * they are re-encrypted the next time the credentials are written.
+ */
 function encodeCreds(username, password) {
-  return Buffer.from(JSON.stringify({ u: username, p: password })).toString('base64');
+  return encrypt(JSON.stringify({ u: username, p: password }));
 }
-function decodeCreds(encoded) {
+
+function decodeCreds(stored) {
+  if (!stored) return null;
+
+  // AES payloads from utils/encryption are "iv:tag:ciphertext".
+  if (stored.includes(':')) {
+    try {
+      const parsed = JSON.parse(decrypt(stored));
+      return { username: parsed.u, password: parsed.p };
+    } catch (err) {
+      logger.warn({ err }, '[instagramDirect] Could not decrypt stored credentials');
+      return null;
+    }
+  }
+
+  // Legacy base64 row written before encryption was introduced.
   try {
-    const parsed = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
+    const parsed = JSON.parse(Buffer.from(stored, 'base64').toString('utf8'));
     return { username: parsed.u, password: parsed.p };
   } catch {
     return null;
@@ -73,9 +108,16 @@ async function deserializeIgState(ig, sessionDataStr, accountId = null) {
 /**
  * Performs a full fresh login. Returns { ig, accountId } or throws.
  */
-async function performFreshLogin(username, password) {
+/** A client seeded from the username, which is how instagram-private-api
+ *  derives a stable device fingerprint for an account. */
+function createIgClient(username) {
   const ig = new IgApiClient();
   ig.state.generateDevice(username);
+  return ig;
+}
+
+async function performFreshLogin(username, password, existingIg = null) {
+  const ig = existingIg || createIgClient(username);
 
   // Pre-login flow to appear like a real device
   try {
@@ -85,7 +127,17 @@ async function performFreshLogin(username, password) {
     logger.debug({ err: e.message }, '[instagramDirectService] preLoginFlow partial');
   }
 
-  const user = await ig.account.login(username, password);
+  let user;
+  try {
+    user = await ig.account.login(username, password);
+  } catch (err) {
+    // 2FA and checkpoint challenges are continued on THIS client - the one
+    // holding the session and challenge state that the failed login just
+    // established. Starting a fresh client to answer the challenge, as this
+    // used to, throws that state away and the verification can never complete.
+    err.ig = ig;
+    throw err;
+  }
 
   // Wait before making any API calls to avoid rate-limits
   await new Promise(r => setTimeout(r, 3000));
@@ -139,9 +191,8 @@ async function loginWithCredentials(tenantId, username, password) {
       const twoFactorInfo = err.response.body.two_factor_info;
       logger.warn({ tenantId, username: cleanUsername }, '[instagramDirectService] 2FA Code required');
 
-      // We still need to save creds for later re-login after 2FA
-      const ig = new IgApiClient();
-      ig.state.generateDevice(cleanUsername);
+      // Continue on the client that raised the challenge.
+      const ig = err.ig || createIgClient(cleanUsername);
 
       activeClients.set(tenantId, {
         ig,
@@ -166,10 +217,13 @@ async function loginWithCredentials(tenantId, username, password) {
     } else if (err instanceof IgCheckpointError) {
       logger.warn({ tenantId, username: cleanUsername }, '[instagramDirectService] Security Checkpoint required');
       
-      const ig = new IgApiClient();
-      ig.state.generateDevice(cleanUsername);
-      
-      try { await ig.challenge.auto(true); } catch (_) {}
+      const ig = err.ig || createIgClient(cleanUsername);
+
+      try {
+        await ig.challenge.auto(true);
+      } catch (challengeErr) {
+        logger.warn({ err: challengeErr.message, tenantId }, '[instagramDirectService] Could not start Instagram challenge');
+      }
       const challengeState = ig.state.challenge;
 
       activeClients.set(tenantId, {
@@ -273,7 +327,13 @@ function startInboxPoller(tenantId) {
   logger.info({ tenantId }, '[instagramDirectService] Starting direct inbox DM poller');
 
   let consecutiveErrors = 0;
-  const BASE_INTERVAL = 20000; // 20 seconds
+
+  // Instagram rate-limits (error 467) an unofficial client that polls hard,
+  // especially right after a login from a new device. 20s between inbox
+  // fetches - two API calls each - was enough to get every cycle rejected, so
+  // no DM ever arrived. A minute is still responsive for a CRM inbox and stays
+  // under the limit. Both are overridable if an account needs it tuned.
+  const BASE_INTERVAL = Number(process.env.IG_POLL_INTERVAL_MS) || 60000;
   const MAX_INTERVAL = 300000; // 5 minutes max backoff
 
   async function poll() {
@@ -303,12 +363,13 @@ function startInboxPoller(tenantId) {
     client.poller = setTimeout(poll, delay);
   }
 
-  // Start first poll after a small delay
+  // A freshly logged-in session needs to settle before its first request.
+  // Polling five seconds after login is what Instagram was rejecting.
+  const firstDelay = Number(process.env.IG_FIRST_POLL_DELAY_MS) || 45000;
+  logger.info({ tenantId, firstDelayMs: firstDelay, intervalMs: BASE_INTERVAL }, '[instagramDirectService] Poller scheduled');
+
   const client = activeClients.get(tenantId) || {};
-  client.poller = setTimeout(poll, 5000);
-  if (existing) {
-    existing.poller = client.poller;
-  }
+  client.poller = setTimeout(poll, firstDelay);
 }
 
 /**
@@ -395,12 +456,23 @@ async function pollInbox(tenantId) {
     threads = await directInbox.records();
   } catch (err) {
     const errMsg = String(err.message || '');
-    // 467 = Instagram temporary rate-limit. Don't disconnect or re-login, just let backoff handle it.
-    if (errMsg.includes('467')) {
-      throw err; // Re-throw so poller backoff kicks in
+
+    // Only a genuinely expired session justifies logging in again. Reacting to
+    // every error with a fresh login - which the previous version did - meant
+    // a rate-limited inbox (a 400 or 467, not an auth problem) triggered
+    // repeated logins from the same device, which is exactly the pattern that
+    // gets an Instagram account throttled harder and eventually checkpointed.
+    const isAuthError =
+      err instanceof IgLoginRequiredError ||
+      errMsg.includes('login_required') ||
+      errMsg.includes('401');
+
+    if (!isAuthError) {
+      logger.warn({ tenantId, err: errMsg }, '[instagramDirectService] Inbox fetch rejected - backing off, session kept');
+      throw err; // Let the poller's backoff handle it
     }
-    // Other errors: try re-login
-    logger.warn({ tenantId, err: errMsg }, '[instagramDirectService] Session error - attempting auto re-login');
+
+    logger.warn({ tenantId, err: errMsg }, '[instagramDirectService] Session expired - attempting auto re-login');
     const success = await attemptReLogin(tenantId);
     if (success) {
       const newClient = activeClients.get(tenantId);
@@ -519,9 +591,17 @@ async function pollInbox(tenantId) {
       message: saved.message,
     });
 
-    // AI Auto-Reply
-    const chatManagedBy = saved.chat?.managed_by || 'ai';
-    if (chatManagedBy === 'ai') {
+    // AI auto-reply, on exactly the same terms as WhatsApp.
+    //
+    // This used to read saved.chat.managed_by and fall back to 'ai' when it
+    // was missing - but that column no longer exists on whatsapp_chats, so the
+    // fallback fired every time and every Instagram DM got an automated reply
+    // regardless of the agency's settings. AI is opt-in per chat, the plan has
+    // to allow it, and an escalated chat stays with a human.
+    const planAllowsAi = await planService.checkFeatureAccess(tenantId, 'canUseAi');
+    const chatAiEnabled = saved.chat?.ai_enabled === true && saved.chat?.needs_human !== true;
+
+    if (planAllowsAi && chatAiEnabled) {
       try {
         broadcastToTenant(tenantId, {
           type: 'WHATSAPP_AI_TYPING',
@@ -535,37 +615,35 @@ async function pollInbox(tenantId) {
           { onHistoryError: (histErr) => logger.warn({ err: histErr }, 'Error loading history for IG DM') }
         );
 
-        let replyText = aiReplyResult?.reply ? aiReplyResult.reply.trim() : null;
+        const replyText = (aiReplyResult?.reply || '').trim();
 
-        if (!replyText || replyText === '[FALLBACK_HUMAN_NEEDED]') {
-          replyText = `🙏 Thank you for contacting us on Instagram! Our team has received your message and will reply shortly.`;
-          await query(
-            `UPDATE whatsapp_chats SET managed_by = 'human', updated_at = NOW() WHERE tenant_id = $1 AND id = $2`,
-            [tenantId, saved.chat.id]
+        if (!replyText || replyText.includes('[FALLBACK_HUMAN_NEEDED]')) {
+          // Nothing is sent on a handoff. The old code posted a canned "our
+          // team will reply shortly" here, which is exactly the reassurance a
+          // customer should get from a person, not a bot that just gave up.
+          await whatsappWebRepository.flagChatForHuman(saved.chat.id, 'AI escalated: needs a human');
+          logger.info({ tenantId, handle }, '[instagramDirectService] AI escalated this Instagram chat to a human');
+        } else {
+          await ig.entity.directThread(thread.thread_id).broadcastText(replyText);
+
+          const outboundSaved = await whatsappRepo.saveMessage(
+            tenantId,
+            `IG_${handle}`,
+            'outbound',
+            replyText,
+            `${senderName} (@${handle})`,
+            0,
+            `out_ig_${Date.now()}`
           );
+
+          broadcastToTenant(tenantId, {
+            type: 'WHATSAPP_MESSAGE_RECEIVED',
+            chat: outboundSaved.chat,
+            message: outboundSaved.message,
+          });
+
+          logger.info({ tenantId, handle, replyText: replyText.substring(0, 80) }, '[instagramDirectService] Sent AI Auto-Reply DM');
         }
-
-        // Send Direct Message via Instagram API
-        await ig.entity.directThread(thread.thread_id).broadcastText(replyText);
-
-        const outboundSaved = await whatsappRepo.saveMessage(
-          tenantId,
-          `IG_${handle}`,
-          'outbound',
-          replyText,
-          `${senderName} (@${handle})`,
-          0,
-          `out_ig_${Date.now()}`
-        );
-
-        broadcastToTenant(tenantId, {
-          type: 'WHATSAPP_MESSAGE_RECEIVED',
-          chat: outboundSaved.chat,
-          message: outboundSaved.message,
-        });
-
-        logger.info({ tenantId, handle, replyText: replyText.substring(0, 80) }, '[instagramDirectService] Sent AI Auto-Reply DM');
-
       } catch (aiErr) {
         logger.error({ err: aiErr.message }, '[instagramDirectService] Failed to process AI auto-reply for Instagram DM');
       } finally {

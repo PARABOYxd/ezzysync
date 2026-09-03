@@ -12,11 +12,13 @@ const {
   isJidNewsletter,
   isLidUser,
   jidNormalizedUser,
+  downloadMediaMessage,
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const logger = require('../utils/logger');
 const aiService = require('./aiService');
+const r2Service = require('./r2Service');
 const planService = require('./planService');
 
 // aiService emits this exact token instead of a reply when the model decides a
@@ -90,6 +92,13 @@ async function resolvePhoneFromJid(sock, jid) {
   return rawDigits;
 }
 
+/** Chat-list preview text for a message that carries no caption. */
+function mediaPreview(messageType) {
+  if (messageType === 'image') return '📷 Photo';
+  if (messageType === 'document') return '📄 Attachment';
+  return '';
+}
+
 function extractMessageText(msg) {
   if (!msg.message) return '';
   const m = msg.message;
@@ -104,6 +113,57 @@ function extractMessageText(msg) {
     m.templateButtonReplyMessage?.selectedId ||
     ''
   );
+}
+
+
+/**
+ * Describes any media on an inbound message.
+ *
+ * Returns null for a plain text message. Video and audio are recognised so
+ * they are recorded as attachments rather than silently dropped, even though
+ * the inbox renders them as a generic file.
+ */
+function extractMediaInfo(msg) {
+  const m = msg.message || {};
+
+  if (m.imageMessage) {
+    return { type: 'image', mimetype: m.imageMessage.mimetype || 'image/jpeg', fileName: 'photo.jpg' };
+  }
+  if (m.documentMessage) {
+    return {
+      type: 'document',
+      mimetype: m.documentMessage.mimetype || 'application/octet-stream',
+      fileName: m.documentMessage.fileName || 'document',
+    };
+  }
+  if (m.videoMessage) {
+    return { type: 'document', mimetype: m.videoMessage.mimetype || 'video/mp4', fileName: 'video.mp4' };
+  }
+  if (m.audioMessage) {
+    return { type: 'document', mimetype: m.audioMessage.mimetype || 'audio/ogg', fileName: 'audio.ogg' };
+  }
+  return null;
+}
+
+/**
+ * Pulls an inbound attachment off WhatsApp and into our own storage.
+ *
+ * WhatsApp's own media links are short-lived and encrypted, so a URL from the
+ * message itself would be useless to the inbox an hour later. Failure is not
+ * fatal - the message is still recorded, just without a preview.
+ */
+async function storeInboundMedia(sock, msg, media) {
+  try {
+    const buffer = await downloadMediaMessage(msg, 'buffer', {}, {
+      logger: sock.logger,
+      reuploadRequest: sock.updateMediaMessage,
+    });
+    if (!buffer?.length) return null;
+    return await r2Service.uploadFile(buffer, media.fileName, media.mimetype);
+  } catch (err) {
+    logger.warn({ err }, 'Could not download inbound WhatsApp media');
+    return null;
+  }
 }
 
 /**
@@ -200,12 +260,34 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
 
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+      // 440 (connectionReplaced) means something else has taken over this
+      // session - a second server instance, or WhatsApp Web in a browser.
+      // Reconnecting here just takes it back, the other side takes it again,
+      // and the two spin against each other forever (observed at one cycle
+      // every six seconds). Whoever connected last should keep it, so this
+      // one stands down and waits for a person to reconnect deliberately.
+      const wasReplaced = statusCode === DisconnectReason.connectionReplaced;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut && !wasReplaced;
 
       logger.warn(
-        { tenantId, statusCode, shouldReconnect },
+        { tenantId, statusCode, shouldReconnect, wasReplaced },
         'WhatsApp Web socket connection closed'
       );
+
+      if (wasReplaced) {
+        try {
+          sock.ev.removeAllListeners();
+          sock.end();
+        } catch (e) {}
+        activeSockets.delete(tenantId);
+        await whatsappWebRepository.setSessionStatus(tenantId, 'disconnected');
+        logger.error(
+          { tenantId },
+          'WhatsApp session was taken over by another client. Not reconnecting - check for a second server instance or WhatsApp Web open elsewhere.'
+        );
+        return;
+      }
 
       if (statusCode === DisconnectReason.loggedOut) {
         try {
@@ -267,8 +349,11 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       const messageText = extractMessageText(msg);
       const pushName = msg.pushName || 'WhatsApp Contact';
       const messageId = msg.key.id;
+      const media = extractMediaInfo(msg);
 
-      if (!messageText) continue;
+      // A photo with no caption is a real message. Only skip when there is
+      // neither text nor an attachment - reactions, receipts and the like.
+      if (!messageText && !media) continue;
 
       // A message the linked account sent itself. That is either the agent
       // replying from their own phone - which the CRM was dropping entirely,
@@ -276,7 +361,14 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       // just sent, which the message_id conflict swallows.
       if (msg.key.fromMe) {
         try {
-          await recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId });
+          const mediaUrl = media ? await storeInboundMedia(sock, msg, media) : null;
+          await recordOwnOutgoingMessage(tenantId, {
+            senderPhone,
+            messageText,
+            messageId,
+            messageType: media ? media.type : 'text',
+            mediaUrl,
+          });
         } catch (err) {
           logger.error({ err, tenantId, senderPhone }, 'Error recording message sent from the phone');
         }
@@ -284,6 +376,8 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       }
 
       try {
+        const mediaUrl = media ? await storeInboundMedia(sock, msg, media) : null;
+
         await processInboundMessage(tenantId, {
           senderJid,
           senderPhone,
@@ -291,6 +385,8 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
           messageText,
           messageId,
           sock,
+          messageType: media ? media.type : 'text',
+          mediaUrl,
         });
       } catch (err) {
         logger.error({ err, tenantId, senderPhone }, 'Error processing inbound WhatsApp message');
@@ -330,7 +426,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
  * for every number they message from their phone would fill the CRM with
  * people who are not customers.
  */
-async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId }) {
+async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId, messageType = 'text', mediaUrl = null }) {
   const chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone);
   if (!chat) return;
 
@@ -341,6 +437,8 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
     sender: 'agent',
     messageText,
     status: 'sent',
+    messageType,
+    mediaUrl,
   });
 
   // Nothing inserted means this was the echo of a message the server sent, so
@@ -349,7 +447,7 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 
   // A human answering from their phone is a human takeover, same as replying
   // in the app - so autopilot stands down and any escalation is cleared.
-  await whatsappWebRepository.recordHumanReplyOnChat(chat.id, messageText);
+  await whatsappWebRepository.recordHumanReplyOnChat(chat.id, messageText || mediaPreview(messageType));
 
   logger.info({ tenantId, chatId: chat.id }, 'Recorded a reply sent from the linked phone');
 }
@@ -357,7 +455,10 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 /**
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
-async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock }) {
+async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null }) {
+  // What the chat list shows. A caption when there is one, otherwise a short
+  // stand-in so an attachment-only message is not a blank row.
+  const preview = messageText || mediaPreview(messageType);
   let chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone);
 
   if (!chat) {
@@ -386,7 +487,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
       jid: senderJid,
       customerName: pushName,
       leadId,
-      lastMessage: messageText,
+      lastMessage: preview,
       aiEnabled: aiDefault,
     });
   } else {
@@ -394,7 +495,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     // column existed (or one whose addressing WhatsApp has since migrated to
     // @lid) picks up a routable address the first time the customer writes in.
     await whatsappWebRepository.recordInboundOnChat(chat.id, {
-      lastMessage: messageText,
+      lastMessage: preview,
       pushName,
       jid: senderJid,
     });
@@ -407,6 +508,8 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     sender: 'customer',
     messageText,
     status: 'delivered',
+    messageType,
+    mediaUrl,
   });
 
   // This chat's own switch is the only thing that decides. The tenant-level
@@ -501,35 +604,82 @@ async function generateAiReplyForChat(tenantId, phone, message) {
   return { reply: text, needsHuman: false };
 }
 
+/**
+ * Sends an agent's message - text, an attachment, or both.
+ *
+ * An attachment with no caption is a normal thing to send, so messageText is
+ * optional whenever there is media. The uploaded copy is kept in our own
+ * storage as well, because the socket only hands back a WhatsApp media
+ * reference and the CRM has to be able to render the thread later.
+ */
 async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, messageText, mediaBuffer, fileName, mimeType }) {
-  const socketData = activeSockets.get(tenantId);
-  const sock = socketData?.sock;
+  let socketData = activeSockets.get(tenantId);
 
-  if (!sock || socketData?.status !== 'connected') {
-    throw new Error('WhatsApp is not connected. Please scan the QR code first.');
+  // A stored session whose socket is not live yet - after a server restart, or
+  // once WhatsApp has dropped the connection - is worth one resume attempt
+  // before giving up. Failing straight to "scan the QR code" made the agent
+  // re-pair a session that only needed reconnecting.
+  if (!socketData?.sock?.user) {
+    const stored = await whatsappWebRepository.getSession(tenantId);
+    if (stored?.status === 'connected' || stored?.status === 'connecting') {
+      logger.info({ tenantId }, 'Send requested with no live socket - attempting resume');
+      try {
+        await initWhatsAppSession(tenantId);
+      } catch (err) {
+        logger.warn({ err, tenantId }, 'Resume before send failed');
+      }
+      socketData = activeSockets.get(tenantId);
+    }
+  }
+
+  const sock = socketData?.sock;
+  if (!sock?.user) {
+    throw new Error('WhatsApp is not connected right now. Open the chat page and scan the QR code to reconnect.');
+  }
+
+  const caption = (messageText || '').trim();
+  const hasMedia = Boolean(mediaBuffer && mimeType);
+
+  if (!hasMedia && !caption) {
+    throw new Error('Nothing to send. Type a message or attach a file.');
   }
 
   // Prefer the address the customer actually wrote in from. Deriving it from
   // the phone number only works for plain @s.whatsapp.net chats.
   const jid = storedJid || getJidFromPhone(phone);
-  let sentResult;
 
-  if (mediaBuffer && mimeType) {
-    if (mimeType.includes('pdf') || mimeType.includes('document')) {
+  let sentResult;
+  let messageType = 'text';
+  let mediaUrl = null;
+
+  if (hasMedia) {
+    const isImage = mimeType.startsWith('image/');
+    messageType = isImage ? 'image' : 'document';
+
+    // Stored before sending: if WhatsApp rejects the media we still want the
+    // upload to have failed loudly here rather than leaving a message row
+    // pointing at nothing.
+    try {
+      mediaUrl = await r2Service.uploadFile(mediaBuffer, fileName || 'attachment', mimeType);
+    } catch (err) {
+      logger.error({ err, tenantId, chatId }, 'Could not store outgoing attachment');
+    }
+
+    if (isImage) {
+      sentResult = await sock.sendMessage(jid, { image: mediaBuffer, caption });
+    } else {
+      // Everything that is not an image goes as a document, which is what
+      // WhatsApp does for arbitrary files. The previous version only handled
+      // pdf/document and silently sent nothing for anything else.
       sentResult = await sock.sendMessage(jid, {
         document: mediaBuffer,
         mimetype: mimeType,
-        fileName: fileName || 'Document.pdf',
-        caption: messageText || '',
-      });
-    } else if (mimeType.includes('image')) {
-      sentResult = await sock.sendMessage(jid, {
-        image: mediaBuffer,
-        caption: messageText || '',
+        fileName: fileName || 'Attachment',
+        caption,
       });
     }
   } else {
-    sentResult = await sock.sendMessage(jid, { text: messageText });
+    sentResult = await sock.sendMessage(jid, { text: caption });
   }
 
   const messageId = sentResult?.key?.id || `out_${Date.now()}`;
@@ -539,15 +689,19 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
     messageId,
     direction: 'outbound',
     sender: 'agent',
-    messageText,
+    messageText: caption,
     status: 'sent',
+    messageType,
+    mediaUrl,
   });
 
   // An agent replying is the escalation being handled, so the flag clears here
   // rather than needing a separate "mark as done" step.
-  await whatsappWebRepository.recordHumanReplyOnChat(chatId, messageText);
+  // The chat list needs something readable when only a file was sent.
+  const preview = caption || (messageType === 'image' ? '📷 Photo' : `📄 ${fileName || 'Document'}`);
+  await whatsappWebRepository.recordHumanReplyOnChat(chatId, preview);
 
-  return { messageId, status: 'sent' };
+  return { messageId, status: 'sent', mediaUrl, messageType };
 }
 
 async function disconnectSession(tenantId) {
@@ -583,7 +737,9 @@ async function disconnectSession(tenantId) {
 async function sendAiCatchUpMessage(tenantId, chatId) {
   const socketData = activeSockets.get(tenantId);
   const sock = socketData?.sock;
-  if (!sock || socketData.status !== 'connected') return { sent: false, reason: 'not_connected' };
+  // Same liveness test as sendManualMessage - a stored 'connected' row is not
+  // a socket that can actually deliver.
+  if (!sock?.user) return { sent: false, reason: 'not_connected' };
 
   const chat = await whatsappWebRepository.findChatById(tenantId, chatId);
   if (!chat) return { sent: false, reason: 'chat_not_found' };
@@ -629,16 +785,39 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
   }
 }
 
+/**
+ * The session's real state, as opposed to what the database remembers.
+ *
+ * Only a live socket can actually send, so 'connected' is reported only when
+ * one exists. The stored row is a resume hint, not proof of a connection -
+ * reporting it directly meant the inbox showed "Connected" while every send
+ * failed with "WhatsApp is not connected", which is the worst of both. A
+ * stored session with no live socket is 'connecting': we intend to resume it.
+ */
 async function getSessionStatus(tenantId) {
   const dbSession = await whatsappWebRepository.getSession(tenantId);
   const inMemory = activeSockets.get(tenantId);
+  const hasLiveSocket = Boolean(inMemory?.sock?.user);
+
+  let status;
+  if (hasLiveSocket) {
+    status = 'connected';
+  } else if (inMemory?.status && inMemory.status !== 'connected') {
+    // Mid-handshake states the socket itself reported: qrcode, connecting.
+    status = inMemory.status;
+  } else if (dbSession?.status === 'connected' || dbSession?.status === 'connecting') {
+    status = 'connecting';
+  } else {
+    status = dbSession?.status || 'disconnected';
+  }
 
   return {
-    status: inMemory?.status || dbSession?.status || 'disconnected',
+    status,
+    canSend: hasLiveSocket,
     qrCode: inMemory?.qr || dbSession?.qr_code_data || null,
     phoneNumber: dbSession?.phone_number || inMemory?.sock?.user?.id || '',
     connectedAt: dbSession?.connected_at || null,
-    aiAutopilotEnabled: dbSession?.ai_autopilot_enabled !== false,
+    aiAutopilotEnabled: dbSession?.ai_autopilot_enabled === true,
   };
 }
 

@@ -225,14 +225,17 @@ async function getChatWithContext(tenantId, chatId) {
  * Messages
  * ------------------------------------------------------------------ */
 
-async function insertMessage(tenantId, { chatId, messageId, direction, sender, messageText, status }) {
+async function insertMessage(
+  tenantId,
+  { chatId, messageId, direction, sender, messageText, status, messageType = 'text', mediaUrl = null }
+) {
   const { rows, rowCount } = await query(
     `INSERT INTO whatsapp_messages
-       (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_timestamp)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+       (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_type, media_url, message_timestamp)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
      ON CONFLICT (message_id) DO NOTHING
      RETURNING id`,
-    [tenantId, chatId, messageId, direction, sender, messageText, status]
+    [tenantId, chatId, messageId, direction, sender, messageText, status, messageType, mediaUrl]
   );
   // rowCount 0 means this id is already stored - the echo of a message this
   // server sent, which WhatsApp also delivers back over the socket.
@@ -317,6 +320,38 @@ async function createLeadFromWhatsapp(tenantId, { customerName, phone }) {
   return { id: rows[0]?.id || null, leadCode };
 }
 
+/* ------------------------------------------------------------------ *
+ * Quick replies
+ * ------------------------------------------------------------------ */
+
+/**
+ * Canned replies for the composer's "/" picker.
+ *
+ * Read from whatsapp_templates, which is what the Settings screen writes to.
+ * A separate whatsapp_quick_replies table briefly existed for this and meant
+ * a shortcut saved in Settings never appeared in the chat - two stores for
+ * one idea. Settings owns creating and editing them; this is read-only.
+ *
+ * Only type = 'text' entries qualify: 'template' rows are Meta-approved
+ * WABA templates, which cannot be sent as free text.
+ */
+async function listQuickReplies(tenantId) {
+  const { rows } = await query(
+    `SELECT id, name, body FROM whatsapp_templates
+     WHERE tenant_id = $1 AND type = 'text'
+     ORDER BY name ASC`,
+    [tenantId]
+  );
+
+  // The Settings form lets people type the shortcut with or without the
+  // leading slash, so it is normalised here rather than at every call site.
+  return rows.map((r) => ({
+    id: r.id,
+    shortcut: String(r.name || '').replace(/^\//, '').toLowerCase(),
+    message: r.body,
+  }));
+}
+
 module.exports = {
   getSession,
   getAutopilotDefault,
@@ -345,4 +380,5 @@ module.exports = {
   updateMessageStatus,
   findLeadIdByPhone,
   createLeadFromWhatsapp,
+  listQuickReplies,
 };
