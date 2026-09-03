@@ -21,6 +21,18 @@ export default function sitemap() {
       priority: 0.9,
     },
     {
+      url: 'https://www.ezzysync.com/compare/telecrm',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: 'https://www.ezzysync.com/compare/zoho',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
       url: 'https://www.ezzysync.com/about',
       lastModified,
       changeFrequency: 'yearly',

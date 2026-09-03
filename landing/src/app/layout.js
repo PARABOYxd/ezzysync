@@ -104,6 +104,34 @@ export default function RootLayout({ children }) {
         "target": "https://www.ezzysync.com/blog?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "EzzySync Travel CRM",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All (Web-based Cloud CRM)",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR",
+        "description": "30-Day Free Trial"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "142",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "description": "All-in-one Travel CRM software with direct WhatsApp lead capture, AI day-wise itinerary builder, GST invoice generator, and booking management for travel agencies.",
+      "featureList": [
+        "Direct WhatsApp Web QR Multi-Device Integration",
+        "AI Day-Wise Travel Itinerary Generator with PDF",
+        "GST-Compliant Travel Invoice & Quotation Designer",
+        "Lead Management & Follow-up Tracking Pipeline",
+        "Group Tour & Batch Departure Management"
+      ]
     }
   ];
 

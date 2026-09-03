@@ -685,170 +685,52 @@ export default function SettingsPage() {
           return (
             <div className="max-w-3xl mx-auto space-y-6">
 
-              {/* 🚀 1-Click Automated Meta Connect Banner (When Not Connected) */}
-              {!hasOwnWA && (
-                <div className="card space-y-5 border-2 border-brand-500/30 bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 shadow-xl shadow-brand-500/5">
-                  <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1877F2] to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
-                      <Sparkles size={20} />
+              {/* 🟢 WhatsApp Live Engine & QR Status Card */}
+              <div className="card space-y-5 border-2 border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 shadow-xl shadow-emerald-500/5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                      <MessageSquare size={20} />
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                        1-Click Automated WhatsApp Connect
-                        <span className="text-[10px] font-extrabold uppercase bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-200">Instant</span>
+                        WhatsApp Live Chat & QR Scanner
+                        <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Active System
+                        </span>
                       </h3>
-                      <p className="text-xs text-slate-500">Connect your agency's WhatsApp Business number directly via Meta login.</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/80 border border-blue-100 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-5">
-                    <div className="space-y-1.5 text-left">
-                      <h4 className="font-bold text-slate-800 text-sm">Automate Inbound Leads & Live Chat</h4>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        Incoming messages from customers will automatically create Leads in your CRM without any manual configuration.
+                      <p className="text-xs text-slate-500">
+                        Connect directly via WhatsApp Web QR code for real-time customer chats, AI auto-replies, and automatic lead creation.
                       </p>
                     </div>
-
-                    <button
-                      type="button"
-                      disabled={connectingWA}
-                      onClick={handleLaunchEmbeddedSignup}
-                      className="shrink-0 flex items-center justify-center gap-2.5 px-6 py-3 bg-[#1877F2] hover:bg-[#166fe5] active:scale-[0.98] text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/25 transition cursor-pointer"
-                    >
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                      </svg>
-                      {connectingWA ? 'Connecting with Meta...' : 'Connect with Facebook'}
-                    </button>
                   </div>
-                </div>
-              )}
 
-              {/* Current Status Card */}
-              <div className="card space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
-                  <div>
-                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                      <MessageSquare size={18} className="text-brand-600" />
-                      Active Connection
-                    </h3>
-                    <p className="text-xs text-slate-400">Current routing for messages and lead capture.</p>
-                  </div>
+                  <a
+                    href="/whatsapp-chat"
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-500/20 shrink-0"
+                  >
+                    Open Live Chat & Scanner ➔
+                  </a>
                 </div>
 
-                {hasOwnWA ? (
-                  /* Own number connected */
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
-                          <MessageSquare size={22} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-base text-slate-900">{settings.whatsappNumber || 'Custom Business WhatsApp'}</p>
-                          <p className="text-xs text-emerald-800 font-mono mt-0.5">
-                            Phone ID: {settings.whatsappPhoneNumberId}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/80 px-3 py-1.5 rounded-lg shrink-0">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Connected & Live
-                        </span>
-                        <button
-                          type="button"
-                          disabled={disconnectingWA}
-                          onClick={handleDisconnectWA}
-                          className="px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition"
-                        >
-                          {disconnectingWA ? 'Disconnecting...' : 'Disconnect'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* AI Auto-Reply Toggle */}
-                    <div className="pt-2">
-                      <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border border-slate-200 bg-indigo-50/40 hover:bg-indigo-50 transition text-sm font-medium text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={!!settings.whatsappAiAutoReply}
-                          onChange={(e) => setSettings({ ...settings, whatsappAiAutoReply: e.target.checked })}
-                          className="rounded text-indigo-600 focus:ring-indigo-500/20 border-slate-300 mt-1"
-                        />
-                        <div>
-                          <p className="font-bold text-indigo-950 flex items-center gap-1.5">
-                            Enable WhatsApp AI Auto-Replies (Beta)
-                          </p>
-                          <p className="text-xs text-indigo-700/80 mt-0.5 leading-relaxed">
-                            AI will automatically reply to incoming messages when a chat is set to AI-managed. It utilizes bookings, leads, and itineraries data to answer. If the details are missing or customization is requested, it turns off and notifies the team.
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-
-                    {/* Default Chat Mode for new incoming chats */}
-                    {!!settings.whatsappAiAutoReply && (
-                      <div className="pt-1">
-                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-                          <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            🆕 Default mode for new incoming chats
-                          </p>
-                          <p className="text-[11px] text-slate-500 leading-relaxed -mt-1">
-                            When a new customer messages for the first time, should the chat start in AI or Human mode?
-                          </p>
-                          <div className="flex gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setSettings({ ...settings, whatsappDefaultChatMode: 'ai' })}
-                              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold transition ${
-                                (settings.whatsappDefaultChatMode || 'ai') === 'ai'
-                                  ? 'bg-indigo-600 border-indigo-700 text-white shadow-sm'
-                                  : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${(settings.whatsappDefaultChatMode || 'ai') === 'ai' ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
-                              🤖 AI Auto-Reply
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSettings({ ...settings, whatsappDefaultChatMode: 'human' })}
-                              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold transition ${
-                                settings.whatsappDefaultChatMode === 'human'
-                                  ? 'bg-slate-700 border-slate-800 text-white shadow-sm'
-                                  : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
-                              }`}
-                            >
-                              👤 Human (Manual)
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (                  /* Using EzzySync shared number */
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
-                      <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
-                        <MessageSquare size={18} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-800">EzzySync Shared Number</p>
-                        <p className="text-xs text-slate-500">Messages sent via EzzySync's official WhatsApp pool</p>
-                      </div>
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1 rounded-md shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block"></span>
-                        Default Active
-                      </span>
+                <div className="p-4 rounded-xl border border-emerald-100 bg-white/80 text-xs text-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div>
+                      <p className="font-bold text-slate-900">Multi-Device QR Automation</p>
+                      <p className="text-[11px] text-slate-500">
+                        Zero Meta fees, 24x7 Gemini AI auto-reply, customer itinerary PDFs, and instant lead capture.
+                      </p>
                     </div>
                   </div>
-                )}
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                    Ready & Active
+                  </span>
+                </div>
               </div>
 
               {/* Request Own Number */}
-              {!hasOwnWA && (
-                <div className="card space-y-6">
+              <div className="card space-y-6">
                    <div className="border-b border-slate-100 pb-4">
                     <h3 className="font-bold text-slate-800">Request Dedicated Setup</h3>
                     <p className="text-xs text-slate-400">Want our team to set up and verify a dedicated WhatsApp Business number for your agency?</p>
@@ -887,77 +769,6 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* Advanced: Own credentials */}
-              <div className="card overflow-hidden !p-0">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedWA(v => !v)}
-                  className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-                >
-                  <span className="flex items-center gap-2">
-                    <Settings size={16} className="text-slate-400" />
-                    Advanced: Configure API Credentials Manually
-                  </span>
-                  {showAdvancedWA ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-                </button>
-
-                {showAdvancedWA && (
-                  <div className="px-6 pb-6 pt-2 space-y-5 border-t border-slate-100">
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-                      <strong>Note:</strong> Once a number is linked to API, it cannot be used in the regular WhatsApp app. Use a dedicated SIM.
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                      <Input
-                        label="Phone Number ID"
-                        placeholder="e.g. 517969018813..."
-                        value={settings.whatsappPhoneNumberId || ''}
-                        onChange={(e) => setSettings({ ...settings, whatsappPhoneNumberId: e.target.value })}
-                      />
-                      <Input
-                        label="Display Phone Number"
-                        placeholder="e.g. +91 98765 43210"
-                        value={settings.whatsappNumber || ''}
-                        onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
-                      />
-                      <Input
-                        label="WABA ID"
-                        placeholder="e.g. 104825968132..."
-                        value={settings.whatsappWabaId || ''}
-                        onChange={(e) => setSettings({ ...settings, whatsappWabaId: e.target.value })}
-                      />
-                      <Input
-                        label="Business ID"
-                        placeholder="Meta Business Portfolio ID"
-                        value={settings.whatsappBusinessId || ''}
-                        onChange={(e) => setSettings({ ...settings, whatsappBusinessId: e.target.value })}
-                      />
-                      <div className="sm:col-span-2">
-                        <Input
-                          label="Meta Access Token"
-                          placeholder="EAAGOCSPX-..."
-                          value={settings.whatsappAccessToken || ''}
-                          onChange={(e) => setSettings({ ...settings, whatsappAccessToken: e.target.value })}
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <Input
-                          label="App Secret"
-                          placeholder="Meta App Secret key"
-                          value={settings.whatsappAppSecret || ''}
-                          onChange={(e) => setSettings({ ...settings, whatsappAppSecret: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <div className="pt-2">
-                      <Button type="submit" disabled={saving} className="w-full sm:w-auto text-sm px-6">
-                        {saving ? 'Saving...' : 'Save API Credentials'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* WhatsApp Templates & Quick Replies Management */}
               <div className="card space-y-6">
