@@ -1,0 +1,83 @@
+name: CI
+
+# The gate every branch and pull request goes through. Deploy workflows call
+# this instead of repeating the checks, so "it passed CI" means one thing.
+on:
+  pull_request:
+    branches: [main, dev, develop]
+  workflow_call:
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+
+    # The backend suite creates and drops a real database. Schema bugs in this
+    # project have all had the same shape - fine on a machine whose database
+    # predates the change, broken on a fresh one - and only a real Postgres
+    # catches that.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ezzysync
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            landing/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm --prefix backend ci
+          npm --prefix frontend ci
+          npm --prefix landing ci
+
+      - name: Frontend static checks
+        # Catches undefined component references, blob leaks and stray timers.
+        # A bundler will not: an identifier that does not exist still builds,
+        # and only throws once the browser renders that branch.
+        run: node scripts/check-frontend.js
+
+      - name: Backend tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ezzysync
+          JWT_SECRET: ci-only-secret-value-that-is-long-enough-000000
+          NODE_ENV: test
+        run: npm test
+
+      - name: Backend modules load
+        # Every module actually required, rather than one file parsed. This is
+        # what catches a missing dependency, a broken require, or a module that
+        # throws at load because an environment variable is absent.
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ezzysync
+          JWT_SECRET: ci-only-secret-value-that-is-long-enough-000000
+          TOKEN_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        run: node scripts/check-backend.js
+
+      - name: Build frontend
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: https://api.example.com/api
+          VITE_RAZORPAY_KEY_ID: ${{ secrets.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder' }}
+        run: npm run build
+
+      - name: Build landing
+        working-directory: ./landing
+        run: npm run build

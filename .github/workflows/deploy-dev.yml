@@ -1,74 +1,52 @@
-name: Deploy Development (Render + Vercel Dev)
+name: Deploy Development
 
 on:
   push:
-    branches:
-      - dev
-      - develop
+    branches: [dev, develop]
+  workflow_dispatch:
+
+concurrency:
+  # A newer push supersedes one already deploying, rather than the two racing.
+  group: deploy-dev
+  cancel-in-progress: true
 
 jobs:
-  ci-validate:
-    name: Build & Sanity Checks
-    runs-on: ubuntu-latest
+  verify:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
-
-      - name: Validate & Build Frontend
-        working-directory: ./frontend
-        env:
-          VITE_RAZORPAY_KEY_ID: ${{ secrets.DEV_VITE_RAZORPAY_KEY_ID || 'rzp_test_TVVGy1XT8uURcp' }}
-        run: |
-          npm ci
-          npm run build
-
-      - name: Validate Backend
-        working-directory: ./backend
-        run: |
-          npm ci
-          node --check server.js
-
-  deploy-backend-render:
-    name: Deploy Backend to Render (Dev)
-    needs: ci-validate
+  backend:
+    name: Backend → Render
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Deploy Hook
-        run: |
-          if [ -z "${{ secrets.RENDER_DEV_DEPLOY_HOOK }}" ]; then
-            echo "::warning::RENDER_DEV_DEPLOY_HOOK secret is not set. Skipping Render deployment trigger."
-          else
-            echo "Triggering Render Dev deploy hook..."
-            curl -f -X POST "${{ secrets.RENDER_DEV_DEPLOY_HOOK }}"
-            echo "Render deploy hook triggered successfully!"
-          fi
+      - name: Trigger Render deploy hook
+        # secrets is available to `if`; a step's own `env` block is not, which
+        # is why the previous `if: env.X != ''` was always false and this step
+        # silently never ran while the workflow still reported success.
+        if: ${{ secrets.RENDER_DEV_DEPLOY_HOOK != '' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEV_DEPLOY_HOOK }}"
 
-  deploy-frontend-vercel:
-    name: Deploy Frontend to Vercel (Dev Preview)
-    needs: ci-validate
+      - name: Report missing secret
+        if: ${{ secrets.RENDER_DEV_DEPLOY_HOOK == '' }}
+        run: echo "::warning::RENDER_DEV_DEPLOY_HOOK is not set — backend was not deployed."
+
+  frontend:
+    name: Frontend → Vercel (preview)
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Vercel (Preview)
+      - name: Deploy preview
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         uses: amondnet/vercel-action@v25
-        if: ${{ env.VERCEL_TOKEN != '' }}
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./frontend
-          vercel-args: '--preview'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Report missing secret
+        if: ${{ secrets.VERCEL_TOKEN == '' }}
+        run: echo "::warning::VERCEL_TOKEN is not set — frontend was not deployed."

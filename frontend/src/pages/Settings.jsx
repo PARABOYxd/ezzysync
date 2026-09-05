@@ -279,7 +279,13 @@ export default function SettingsPage() {
     }
     
     setSelectedLogoFile(file);
-    setLogoPreviewUrl(URL.createObjectURL(file));
+    // Release the previous preview before replacing it - picking a
+    // different file each time otherwise leaves every earlier blob
+    // held for the life of the page.
+    setLogoPreviewUrl((prev) => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
   };
 
   useEffect(() => {

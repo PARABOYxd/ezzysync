@@ -1,0 +1,32 @@
+{
+  "name": "ezzysync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EzzySync CRM - backend (Express), frontend (Vite/React) and landing (Next.js)",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:all": "concurrently -n backend,frontend,landing -c cyan,magenta,yellow \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:dev:landing\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:landing": "npm --prefix landing run dev",
+    "build": "npm run build:frontend && npm run build:landing",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:landing": "npm --prefix landing run build",
+    "start": "concurrently -n api,web -c cyan,magenta \"npm:start:backend\" \"npm:start:frontend\"",
+    "start:backend": "npm --prefix backend run start",
+    "start:frontend": "npm --prefix frontend run preview",
+    "test": "npm run test:env && npm run test:backend && npm run test:frontend",
+    "test:env": "node scripts/check-env.js",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "node scripts/check-frontend.js",
+    "check": "npm run test:env && npm run test:frontend && npm run test:backend && npm run build",
+    "install:all": "npm --prefix backend ci && npm --prefix frontend ci && npm --prefix landing ci"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

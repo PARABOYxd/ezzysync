@@ -176,7 +176,13 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
     }
     
     setSelectedBannerFile(file);
-    setBannerPreviewUrl(URL.createObjectURL(file));
+    // Release the previous preview before replacing it - picking a
+    // different file each time otherwise leaves every earlier blob
+    // held for the life of the page.
+    setBannerPreviewUrl((prev) => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
   };
 
   const handleAiItineraryGenerate = async () => {
