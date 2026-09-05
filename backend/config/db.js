@@ -660,7 +660,43 @@ async function ensureSchema() {
     `);
     await query(`ALTER TABLE whatsapp_messages ADD COLUMN IF NOT EXISTS sender TEXT NOT NULL DEFAULT 'customer';`);
     await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_chat ON whatsapp_messages(chat_id, message_timestamp ASC);`);
-    await query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_msg_id ON whatsapp_messages(message_id);`);
+    // message_id must be UNIQUE, not merely indexed: every insert uses
+    // ON CONFLICT (message_id) DO NOTHING to swallow the echo WhatsApp sends
+    // back for messages we sent ourselves, and Postgres rejects ON CONFLICT
+    // without a matching unique constraint. Databases created before this
+    // carried the constraint from an older definition, so the plain index
+    // here went unnoticed - on a fresh database every message insert failed
+    // with "no unique or exclusion constraint matching the ON CONFLICT
+    // specification".
+    //
+    // Any duplicates from before the constraint existed are collapsed first,
+    // keeping the earliest row, or the index creation would fail.
+    try {
+      // Databases that already carry the constraint (under whatever name) are
+      // left alone - IF NOT EXISTS only matches on the index name, so without
+      // this check an older database would end up with two unique indexes on
+      // the same column.
+      const { rows: existingUnique } = await query(`
+        SELECT 1 FROM pg_indexes
+        WHERE tablename = 'whatsapp_messages'
+          AND indexdef LIKE '%UNIQUE%'
+          AND indexdef LIKE '%(message_id)%'
+        LIMIT 1;
+      `);
+
+      if (!existingUnique.length) {
+        await query(`
+          DELETE FROM whatsapp_messages a
+          USING whatsapp_messages b
+          WHERE a.message_id = b.message_id
+            AND a.message_timestamp > b.message_timestamp;
+        `);
+        await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_whatsapp_messages_msg_id_uniq ON whatsapp_messages(message_id);`);
+        logger.info('Added unique index on whatsapp_messages.message_id');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Could not enforce unique message_id - duplicate WhatsApp messages may appear');
+    }
   } catch (err) {
     logger.error({ err }, 'Error creating WhatsApp Web tables');
   }

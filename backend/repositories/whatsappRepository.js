@@ -63,6 +63,23 @@ function normalizePhone(phone = '') {
  */
 async function saveMessage(tenantId, phone, direction, text, customerName = '', incrementUnread = 0, messageId = null, status = 'sent', timestamp = null, messageType = 'text', mediaUrl = null, aiEnabled = false) {
   const cleanPhone = normalizePhone(phone);
+
+  // Meta delivers webhooks at least once, so the same message id genuinely
+  // arrives more than once. Bail out before touching anything: re-running the
+  // body would bump unread_count a second time and, now that message_id is
+  // unique, the insert would throw and the caller would log a false failure.
+  if (messageId) {
+    const existing = await query(
+      `SELECT m.*, c.id AS chat_pk FROM whatsapp_messages m
+       JOIN whatsapp_chats c ON c.id = m.chat_id
+       WHERE m.tenant_id = $1 AND m.message_id = $2`,
+      [tenantId, messageId]
+    );
+    if (existing.rows.length) {
+      const chatRow = await query(`SELECT * FROM whatsapp_chats WHERE id = $1`, [existing.rows[0].chat_pk]);
+      return { chat: chatRow.rows[0], message: existing.rows[0], duplicate: true };
+    }
+  }
   
   // Try to find the chat header first
   let chatRows = await query(
@@ -103,12 +120,20 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
     chat = updateRes.rows[0];
   }
 
+  // Not every caller has a provider message id - an AI handoff notice and some
+  // internal sends have none, and message_id is NOT NULL with a unique index
+  // on it. Those inserts used to fail and get swallowed by the caller's
+  // try/catch, so the message silently never appeared. A synthetic id keeps
+  // the row valid and stays unique.
+  const storedMessageId =
+    messageId || `local_${direction}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
   // Insert the message
   const msgRes = await query(
     `INSERT INTO whatsapp_messages (tenant_id, chat_id, direction, message_text, message_id, status, message_timestamp, message_type, media_url)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [tenantId, chat.id, direction, text, messageId, status, msgTimestamp, messageType, mediaUrl]
+    [tenantId, chat.id, direction, text, storedMessageId, status, msgTimestamp, messageType, mediaUrl]
   );
 
   return { chat, message: msgRes.rows[0] };

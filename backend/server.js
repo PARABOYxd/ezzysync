@@ -103,14 +103,22 @@ app.use('/api/leads', requireActiveSubscription, leadRoutes);
 app.use('/api/dashboard', requireActiveSubscription, dashboardRoutes);
 app.use('/api/invoices', requireActiveSubscription, invoiceRoutes);
 app.use('/api/whatsapp', requireActiveSubscription, whatsappRoutes);
-app.use('/api/whatsapp-web', requireActiveSubscription, whatsappWebRoutes);
+// Feature flags gate the routes themselves, not just the menu. The frontend
+// reads the same flags from /api/public/features to hide the UI, but hiding a
+// button is not disabling a feature - a flag that only the client honours is
+// not a flag.
+if (env.features.whatsappWeb) {
+  app.use('/api/whatsapp-web', requireActiveSubscription, whatsappWebRoutes);
+}
 app.use('/api/settings', requireActiveSubscription, settingsRoutes);
 app.use('/api/upload', requireActiveSubscription, uploadRoutes);
 app.use('/api/users', requireActiveSubscription, userRoutes);
 app.use('/api/quotations', requireActiveSubscription, quotationRoutes);
 app.use('/api/customers', requireActiveSubscription, customerRoutes);
 app.use('/api/follow-ups', requireActiveSubscription, followUpRoutes);
-app.use('/api/ai', requireActiveSubscription, aiRoutes);
+if (env.features.aiAutopilot) {
+  app.use('/api/ai', requireActiveSubscription, aiRoutes);
+}
 app.use('/api/expenses', requireActiveSubscription, expenseRoutes);
 app.use('/api/batches', requireActiveSubscription, batchRoutes);
 app.use('/api/hotels', requireActiveSubscription, hotelRoutes);

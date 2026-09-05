@@ -21,13 +21,15 @@ export default function AttachmentPreviewModal({
   fileName,
   fileSize,
   mimeType,
-  // compose mode: the staged files, previewed one at a time
-  files = [],
-  previewUrls = [],
+  // compose mode: the staged attachments, previewed one at a time.
+  // Each is { id, file, url } - kept together so the file on screen and the
+  // URL rendering it can never drift apart.
+  attachments = [],
   activeIndex = 0,
   onActiveIndexChange,
   onRemoveFile,
   onAddFiles,
+  onDiscardAll,
   maxFiles = 8,
   caption = '',
   onCaptionChange,
@@ -55,11 +57,14 @@ export default function AttachmentPreviewModal({
   // One code path renders both modes: compose looks at the file currently
   // selected in the strip, view at the single attachment it was handed.
   const isCompose = mode === 'compose';
-  const active = isCompose ? files[activeIndex] : null;
-  const shownUrl = isCompose ? previewUrls[activeIndex] : url;
-  const shownName = isCompose ? active?.name : fileName;
-  const shownSize = isCompose ? active?.size : fileSize;
-  const shownMime = isCompose ? active?.type : mimeType;
+  const files = attachments;
+  // activeIndex can briefly point past the end while a removal settles.
+  const safeIndex = Math.max(0, Math.min(activeIndex, files.length - 1));
+  const active = isCompose ? files[safeIndex] : null;
+  const shownUrl = isCompose ? active?.url : url;
+  const shownName = isCompose ? active?.file?.name : fileName;
+  const shownSize = isCompose ? active?.file?.size : fileSize;
+  const shownMime = isCompose ? active?.file?.type : mimeType;
 
   const type = String(shownMime || '');
   const isImage = type.startsWith('image/');
@@ -96,7 +101,7 @@ export default function AttachmentPreviewModal({
                 {shownName || 'Attachment'}
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {[kindLabel, formatSize(shownSize), isCompose && files.length > 1 ? `${activeIndex + 1} of ${files.length}` : ''].filter(Boolean).join(' · ')}
+                {[kindLabel, formatSize(shownSize), isCompose && files.length > 1 ? `${safeIndex + 1} of ${files.length}` : ''].filter(Boolean).join(' · ')}
               </p>
             </div>
           </div>
@@ -127,7 +132,7 @@ export default function AttachmentPreviewModal({
               type="button"
               onClick={onClose}
               disabled={sending}
-              title="Close"
+              title={isCompose ? 'Close preview — attachments stay ready to send' : 'Close'}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -182,20 +187,20 @@ export default function AttachmentPreviewModal({
         {/* Thumbnail strip - only worth showing once there is a choice to make */}
         {isCompose && files.length > 1 && (
           <div className="shrink-0 px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2 overflow-x-auto">
-            {files.map((f, i) => (
-              <div key={i} className="relative shrink-0 group">
+            {files.map((a, i) => (
+              <div key={a.id} className="relative shrink-0 group">
                 <button
                   type="button"
                   onClick={() => onActiveIndexChange?.(i)}
-                  title={f.name}
+                  title={a.file.name}
                   className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors flex items-center justify-center bg-slate-50 dark:bg-slate-800 ${
-                    i === activeIndex
+                    i === safeIndex
                       ? 'border-emerald-500'
                       : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
-                  {f.type?.startsWith('image/') && previewUrls[i] ? (
-                    <img src={previewUrls[i]} alt="" className="w-full h-full object-cover" />
+                  {a.file.type?.startsWith('image/') ? (
+                    <img src={a.url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <FileText className="w-5 h-5 text-slate-400" />
                   )}
@@ -248,6 +253,16 @@ export default function AttachmentPreviewModal({
                 <Plus className="w-4 h-4" />
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={onDiscardAll}
+              disabled={sending}
+              title={files.length > 1 ? 'Discard all attachments' : 'Discard this attachment'}
+              className="shrink-0 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:border-rose-300 dark:hover:border-rose-800 disabled:opacity-50 text-xs font-medium transition-colors"
+            >
+              Discard
+            </button>
 
             <input
               type="text"

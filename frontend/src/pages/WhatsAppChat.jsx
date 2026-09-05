@@ -28,6 +28,7 @@ import {
   Smile,
 } from 'lucide-react';
 import { whatsappWebService } from '../services/whatsappWebService';
+import { useToast } from '../hooks/useToast.jsx';
 import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
 import AttachmentPreviewModal from '../components/whatsapp/AttachmentPreviewModal.jsx';
 
@@ -35,7 +36,13 @@ import AttachmentPreviewModal from '../components/whatsapp/AttachmentPreviewModa
 // number, this is only so the UI can stop the agent before the upload.
 const MAX_ATTACHMENTS = 8;
 
+// Matches multer's per-file limit on the server. Checked here too so an
+// oversized file is rejected before it is uploaded, rather than after.
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+
 export default function WhatsAppChat() {
+  const toast = useToast();
+
   const [session, setSession] = useState({
     status: 'disconnected',
     phoneNumber: '',
@@ -51,7 +58,11 @@ export default function WhatsAppChat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  // File and its preview URL live together. They used to be two separate
+  // states kept in step by an effect, which meant that for one render after
+  // adding or removing a file the arrays were different lengths - the preview
+  // showed the wrong file, and a revoked URL could still be on screen.
+  const [attachments, setAttachments] = useState([]); // [{ id, file, url }]
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [itineraryModalOpen, setItineraryModalOpen] = useState(false);
@@ -63,7 +74,6 @@ export default function WhatsAppChat() {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [quickReplies, setQuickReplies] = useState([]);
   const [quickReplyQuery, setQuickReplyQuery] = useState(null); // null = popup closed
-  const [filePreviewUrls, setFilePreviewUrls] = useState([]);
   const [viewingMedia, setViewingMedia] = useState(null); // a message already in the thread
   const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'whatsapp' | 'instagram'
@@ -143,20 +153,22 @@ export default function WhatsAppChat() {
     scrollToBottom();
   }, [messages]);
 
-  // Object URLs have to be released by hand, otherwise every attachment the
-  // agent picks and cancels leaks its blob for the life of the page.
+  // Blob URLs are created and released alongside the file they belong to, in
+  // the handlers below. The only thing left for an effect is the final sweep
+  // on unmount - navigating away mid-compose would otherwise leak every staged
+  // blob for the life of the tab.
+  //
+  // The ref mirrors state so that cleanup can run once, on unmount, without
+  // re-subscribing on every change - which is what would revoke a live URL out
+  // from under the preview that is still showing it.
+  const attachmentsRef = useRef([]);
   useEffect(() => {
-    if (!selectedFiles.length) {
-      setFilePreviewUrls([]);
-      return;
-    }
-    // One blob URL per staged file, for every type - the preview renders PDFs
-    // and video from these too. All of them are revoked together, otherwise
-    // each attach/cancel cycle leaks a blob for the life of the page.
-    const urls = selectedFiles.map((f) => URL.createObjectURL(f));
-    setFilePreviewUrls(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
-  }, [selectedFiles]);
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+
+  useEffect(() => {
+    return () => attachmentsRef.current.forEach((a) => URL.revokeObjectURL(a.url));
+  }, []);
 
   /**
    * Stored messages keep a coarse message_type ('image' / 'document') and a
@@ -190,20 +202,31 @@ export default function WhatsAppChat() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  /**
+   * Sends the composer's contents. Returns whether it succeeded so the preview
+   * can stay open on failure - closing it would hide the very attachments the
+   * agent needs to retry, while the files are in fact still staged.
+   */
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if ((!inputText.trim() && !selectedFiles.length) || !selectedChat) return;
+    if (sending) return false;
+    if ((!inputText.trim() && !attachments.length) || !selectedChat) return false;
 
     setSending(true);
     try {
-      await whatsappWebService.sendMessage(selectedChat.id, inputText.trim(), selectedFiles);
+      await whatsappWebService.sendMessage(
+        selectedChat.id,
+        inputText.trim(),
+        attachments.map((a) => a.file)
+      );
       setInputText('');
       setQuickReplyQuery(null);
       clearAttachment();
-      // Reload current chat messages
       await loadChatMessages(selectedChat.id);
+      return true;
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to send message.');
+      toast.error(err.response?.data?.message || 'Could not send the message. Please try again.');
+      return false;
     } finally {
       setSending(false);
     }
@@ -227,7 +250,7 @@ export default function WhatsAppChat() {
         loadChats();
       }
     } catch (e) {
-      alert('Failed to update AI toggle for this chat.');
+      toast.error('Could not change the AI setting for this chat.');
     } finally {
       setTogglingAi(false);
     }
@@ -239,7 +262,7 @@ export default function WhatsAppChat() {
       await whatsappWebService.toggleAiAutopilot(newStatus);
       setSession({ ...session, aiAutopilotEnabled: newStatus });
     } catch (e) {
-      alert('Failed to toggle AI Autopilot.');
+      toast.error('Could not change the AI default for new chats.');
     }
   };
 
@@ -259,52 +282,98 @@ export default function WhatsAppChat() {
       });
       if (suggestion) setInputText(suggestion);
     } catch (err) {
-      alert(err.response?.data?.message || 'AI could not draft a reply. Please try again.');
+      toast.error(err.response?.data?.message || 'AI could not draft a reply. Please try again.');
     } finally {
       setAiDrafting(false);
     }
   };
 
-  /** Clears the staged attachment and resets the file input so the same file
-   *  can be picked again straight after removing it. */
+  /**
+   * Discards everything staged and releases the blob URLs.
+   * The file input is reset too, so picking the same file again still fires
+   * a change event - without that, re-attaching the file you just removed
+   * silently does nothing.
+   */
   const clearAttachment = () => {
-    setSelectedFiles([]);
+    attachments.forEach((a) => URL.revokeObjectURL(a.url));
+    setAttachments([]);
     setActiveFileIndex(0);
     setAttachmentPreviewOpen(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  /** Drops one file from the staged set, keeping the preview on a valid index. */
+  /** Drops one file, keeping the preview on a valid index. */
   const removeFileAt = (index) => {
-    setSelectedFiles((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      if (!next.length) {
-        setAttachmentPreviewOpen(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-      setActiveFileIndex((cur) => Math.max(0, Math.min(cur, next.length - 1)));
-      return next;
-    });
+    const target = attachments[index];
+    if (!target) return;
+
+    URL.revokeObjectURL(target.url);
+    const next = attachments.filter((_, i) => i !== index);
+
+    // Computed outside the state updater on purpose. React may call an updater
+    // more than once (StrictMode does, in development), so an updater has to be
+    // pure - side effects like these belong here, where they run once.
+    setAttachments(next);
+    setActiveFileIndex((cur) => Math.max(0, Math.min(cur, next.length - 1)));
+
+    if (!next.length) {
+      setAttachmentPreviewOpen(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
-  /** Appends a picked batch, capped at MAX_ATTACHMENTS in total. */
+  /**
+   * Stages a picked batch.
+   *
+   * Everything is checked here rather than after the upload: the count cap,
+   * the per-file size the backend enforces, and duplicates - picking the same
+   * file twice would otherwise send the customer two copies of it.
+   */
   const addFiles = (picked) => {
     const incoming = Array.from(picked || []);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     if (!incoming.length) return;
 
-    setSelectedFiles((prev) => {
-      const room = MAX_ATTACHMENTS - prev.length;
+    const problems = [];
+    const accepted = [];
+    let room = MAX_ATTACHMENTS - attachments.length;
+
+    for (const file of incoming) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        problems.push(`${file.name} is ${formatFileSize(file.size)} - the limit is ${formatFileSize(MAX_ATTACHMENT_BYTES)}.`);
+        continue;
+      }
+      if (file.size === 0) {
+        problems.push(`${file.name} is empty.`);
+        continue;
+      }
+      const isDuplicate =
+        attachments.some((a) => a.file.name === file.name && a.file.size === file.size) ||
+        accepted.some((a) => a.file.name === file.name && a.file.size === file.size);
+      if (isDuplicate) {
+        problems.push(`${file.name} is already attached.`);
+        continue;
+      }
       if (room <= 0) {
-        alert(`You can attach up to ${MAX_ATTACHMENTS} files in one message.`);
-        return prev;
+        problems.push(`${file.name} was skipped - only ${MAX_ATTACHMENTS} files can be sent at once.`);
+        continue;
       }
-      if (incoming.length > room) {
-        alert(`Only ${room} more file${room === 1 ? '' : 's'} can be added - the limit is ${MAX_ATTACHMENTS}.`);
-      }
-      return [...prev, ...incoming.slice(0, room)];
-    });
-    setAttachmentPreviewOpen(true);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+
+      accepted.push({
+        id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+        file,
+        url: URL.createObjectURL(file),
+      });
+      room -= 1;
+    }
+
+    if (accepted.length) {
+      setAttachments((prev) => [...prev, ...accepted]);
+      setAttachmentPreviewOpen(true);
+    }
+    if (problems.length) {
+      toast.error(problems.join(' '));
+    }
   };
 
   /**
@@ -366,7 +435,7 @@ export default function WhatsAppChat() {
       setItineraryForm({ tripName: '', itineraryText: '' });
       await loadChatMessages(selectedChat.id);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to send itinerary PDF.');
+      toast.error(err.response?.data?.message || 'Could not send the itinerary PDF.');
     } finally {
       setSendingItinerary(false);
     }
@@ -813,57 +882,59 @@ export default function WhatsAppChat() {
 
               {/* Attachment bar. The full-screen preview is the real check -
                   this row just shows what is staged and opens it. */}
-              {selectedFiles.length > 0 && (
+              {attachments.length > 0 && (
                 <div className="px-4 pt-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setAttachmentPreviewOpen(true)}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors text-left"
-                  >
-                    <span className="flex -space-x-2 shrink-0">
-                      {selectedFiles.slice(0, 3).map((f, i) =>
-                        f.type?.startsWith('image/') && filePreviewUrls[i] ? (
-                          <img
-                            key={i}
-                            src={filePreviewUrls[i]}
-                            alt=""
-                            className="w-10 h-10 rounded-lg object-cover border-2 border-white dark:border-slate-800"
-                          />
-                        ) : (
-                          <span
-                            key={i}
-                            className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border-2 border-white dark:border-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center"
-                          >
-                            <FileText className="w-4 h-4 text-slate-400" />
-                          </span>
-                        )
-                      )}
-                    </span>
-
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {selectedFiles.length === 1
-                          ? selectedFiles[0].name
-                          : `${selectedFiles.length} attachments`}
+                  {/* A row of two real buttons rather than one nested inside
+                      the other: a <button> inside a <button> is invalid HTML
+                      and left the remove control unreachable by keyboard. */}
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => setAttachmentPreviewOpen(true)}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left group"
+                      title="Preview attachments"
+                    >
+                      <span className="flex -space-x-2 shrink-0">
+                        {attachments.slice(0, 3).map((a) =>
+                          a.file.type?.startsWith('image/') ? (
+                            <img
+                              key={a.id}
+                              src={a.url}
+                              alt=""
+                              className="w-10 h-10 rounded-lg object-cover border-2 border-white dark:border-slate-800"
+                            />
+                          ) : (
+                            <span
+                              key={a.id}
+                              className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border-2 border-white dark:border-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center"
+                            >
+                              <FileText className="w-4 h-4 text-slate-400" />
+                            </span>
+                          )
+                        )}
                       </span>
-                      <span className="block text-[11px] text-slate-500 dark:text-slate-400">
-                        {formatFileSize(selectedFiles.reduce((sum, f) => sum + f.size, 0))} · Click to preview
-                      </span>
-                    </span>
 
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearAttachment();
-                      }}
-                      title="Remove all attachments"
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          {attachments.length === 1
+                            ? attachments[0].file.name
+                            : `${attachments.length} attachments`}
+                        </span>
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                          {formatFileSize(attachments.reduce((sum, a) => sum + a.file.size, 0))} · Click to preview
+                        </span>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={clearAttachment}
+                      title={attachments.length === 1 ? 'Remove attachment' : 'Remove all attachments'}
                       className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                     >
                       <X className="w-4 h-4" />
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -888,7 +959,7 @@ export default function WhatsAppChat() {
               )}
 
               {/* Message Input Box */}
-              <form onSubmit={handleSendMessage} className={`px-4 pb-4 ${selectedFiles.length ? 'pt-2' : 'pt-4 border-t border-slate-200 dark:border-slate-800'} bg-white dark:bg-slate-900 flex items-center gap-2`}>
+              <form onSubmit={handleSendMessage} className={`px-4 pb-4 ${attachments.length ? 'pt-2' : 'pt-4 border-t border-slate-200 dark:border-slate-800'} bg-white dark:bg-slate-900 flex items-center gap-2`}>
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -901,7 +972,7 @@ export default function WhatsAppChat() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className={`p-2.5 rounded-xl border transition-colors ${
-                    selectedFiles.length
+                    attachments.length
                       ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
                       : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                   }`}
@@ -1044,7 +1115,7 @@ export default function WhatsAppChat() {
 
                 <button
                   type="submit"
-                  disabled={sending || !session.canSend || (!inputText.trim() && !selectedFiles.length)}
+                  disabled={sending || !session.canSend || (!inputText.trim() && !attachments.length)}
                   title={session.canSend ? 'Send' : 'WhatsApp is not connected right now'}
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all"
                 >
@@ -1121,10 +1192,9 @@ export default function WhatsAppChat() {
 
       {/* QR Code Modal */}
       <AttachmentPreviewModal
-        open={attachmentPreviewOpen && selectedFiles.length > 0}
+        open={attachmentPreviewOpen && attachments.length > 0}
         mode="compose"
-        files={selectedFiles}
-        previewUrls={filePreviewUrls}
+        attachments={attachments}
         activeIndex={activeFileIndex}
         onActiveIndexChange={setActiveFileIndex}
         onRemoveFile={removeFileAt}
@@ -1134,9 +1204,12 @@ export default function WhatsAppChat() {
         onCaptionChange={setInputText}
         sending={sending}
         onSend={async () => {
-          await handleSendMessage();
-          setAttachmentPreviewOpen(false);
+          const sent = await handleSendMessage();
+          // clearAttachment() already closes the preview on success; leaving
+          // it open on failure keeps the retry in front of the agent.
+          if (sent) setAttachmentPreviewOpen(false);
         }}
+        onDiscardAll={clearAttachment}
         onClose={() => setAttachmentPreviewOpen(false)}
       />
 
