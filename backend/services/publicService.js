@@ -1,6 +1,8 @@
 const settingsRepository = require('../repositories/settingsRepository');
 const walkthroughRepository = require('../repositories/walkthroughRepository');
 const leadService = require('./leadService');
+const realtimeTravelService = require('./realtimeTravelService');
+const llmService = require('./llmService');
 
 /**
  * Resolves a tenant's rotatable public lead-capture key and records the lead
@@ -20,13 +22,30 @@ async function captureLeadByPublicKey(publicLeadKey, { customerName, email, phon
 
 const aiService = require('./aiService');
 
-async function generateFreeItinerary({ destination, days = 4, tripType = 'Family & Leisure', agencyName, email, phone, name, description }) {
-  // 1. Record lead in background for EzzySync sales funnel
-  if (email || phone) {
+/**
+ * Generates a free day-wise travel itinerary using real-time travel telemetry:
+ * 1. Routing & Highway Transit (OSRM / Maps API)
+ * 2. Live Weather & Rain Forecast (Open-Meteo / Weather API)
+ * 3. Live Attractions & Trek Trailheads (Tavily & Verified Registry)
+ * 4. Accommodations & Pricing (PostgreSQL hotels)
+ * 5. LLM Synthesis (OpenAI GPT / Google Gemini)
+ */
+async function generateFreeItinerary({
+  destination,
+  days = 4,
+  tripType = 'Family Vacation',
+  agencyName = 'EzzySync Partner Agency',
+  email,
+  phone,
+  name,
+  description = '',
+}) {
+  // 1. Capture public lead if contact info provided
+  if (phone || email) {
     try {
-      await walkthroughRepository.insertWalkthroughRequest({
+      await submitWalkthroughRequest({
         name: name || agencyName || 'Free Itinerary User',
-        agencyName: agencyName || `${destination} Itinerary Lead`,
+        agencyName: agencyName || 'Direct Inquiry',
         email: email || `${(phone || 'user').replace(/\D/g, '') || Date.now()}@itinerary-lead.com`,
         phone: phone || '',
       });
@@ -35,81 +54,42 @@ async function generateFreeItinerary({ destination, days = 4, tripType = 'Family
     }
   }
 
-  // 2. Generate Itinerary with Gemini AI
-  const userCommandPrompt = description && description.trim()
-    ? `\nUSER NATURAL-LANGUAGE COMMAND / SPECIFIC REQUEST:
-"""
-${description.trim()}
-"""`
-    : '';
+  // 2. Extract origin, vehicle & overnight intent from description
+  const desc = (description || '').toLowerCase();
+  let origin = 'Delhi';
+  if (desc.includes('from mumbai') || desc.includes('mumbai to')) origin = 'Mumbai';
+  else if (desc.includes('from pune') || desc.includes('pune to')) origin = 'Pune';
+  else if (desc.includes('from bangalore') || desc.includes('bangalore to')) origin = 'Bangalore';
+  else if (desc.includes('from hyderabad') || desc.includes('hyderabad to')) origin = 'Hyderabad';
+  else if (desc.includes('from ahmedabad') || desc.includes('ahmedabad to')) origin = 'Ahmedabad';
+  else if (desc.includes('from chandigarh') || desc.includes('chandigarh to')) origin = 'Chandigarh';
+  else if (desc.includes('from dehradun') || desc.includes('dehradun to')) origin = 'Dehradun';
+  else if (desc.includes('from jaipur') || desc.includes('jaipur to')) origin = 'Jaipur';
+  else if (desc.includes('from kolkata') || desc.includes('kolkata to')) origin = 'Kolkata';
 
-  const prompt = `AI ITINERARY GENERATOR — SYSTEM PROMPT
-You are an expert travel itinerary planner.
-Your job is to convert a user's natural-language travel request into a realistic, geographically logical, time-feasible day-wise travel itinerary.
+  let vehicle = 'AC Tourist Vehicle';
+  if (desc.includes('tempo traveller') || desc.includes('traveller')) vehicle = 'AC Tempo Traveller';
+  else if (desc.includes('innova') || desc.includes('suv')) vehicle = 'AC Innova Crysta / SUV';
+  else if (desc.includes('sedan') || desc.includes('dzire')) vehicle = 'AC Sedan';
+  else if (desc.includes('volvo') || desc.includes('bus')) vehicle = 'AC Luxury Volvo Bus';
 
-INPUT DATA:
-- Main Destination: ${destination}
-- Requested Duration: ${days} Days / ${Math.max(1, Number(days) - 1)} Nights
-- Trip Style / Category: ${tripType}
-- Agency Branding: ${agencyName || 'EzzySync Partner Agency'}
-${userCommandPrompt}
+  // 3. Fetch real-time telemetry from all 4 streams in parallel
+  const enrichedContext = await realtimeTravelService.getEnrichedTravelContext({
+    destination,
+    origin,
+    vehicle,
+  });
 
-CORE RULES & GUIDELINES:
-1. GEOGRAPHICALLY LOGICAL & PRACTICAL ROUTE:
-   - Group nearby attractions together, avoid unnecessary backtracking.
-   - For mountainous, remote, or trekking destinations (e.g., Chopta, Tungnath, Aadrai Jungle Trek, Mussoorie, Kasol, Spiti), use realistic road/rail combinations (cars, private cabs, overnight Volvo buses, trains to nearest railhead like Rishikesh/Haridwar/Dehradun/Kalka).
-   - Never recommend flights to destinations that don't have practical airport connectivity.
-
-2. TREKKING LOGIC:
-   - Treat trekking differently from normal sightseeing. A trek is not just a point on a map.
-   - Distinguish driving from trekking. Identify actual base village / trailhead (e.g., Khireshwar for Aadrai Jungle Trek in Malshej Ghat; Chopta base for Tungnath & Chandrashila; Sari for Deoria Tal).
-   - Account for trek distance, walking duration, elevation, rest, and safe return before dark.
-   - Do not combine multiple heavy treks in one day.
-
-3. DAILY TIME MANAGEMENT:
-   - Account for realistic wake-up time, travel time, sightseeing, meals, and check-in.
-   - Do not create rushed schedules. Include reasonable meal stops and leisure.
-
-4. INCLUSIONS & EXCLUSIONS:
-   - Include practical items tailored to the trip (e.g. hotel/resort stay or alpine camping, meals/breakfast/dinner, private cab/transfers, forest entry permits, trek guide, safety equipment).
-   - Exclusions should mention personal expenses, adventure activities, flights, etc.
-
-Format the response strictly in clean Markdown:
-# ${destination} ${days}D/${Math.max(1, Number(days) - 1)}N Tour Itinerary ✈️
-**Duration:** ${days} Days | **Prepared By:** ${agencyName || 'EzzySync Partner Agency'}
-
----
-
-## Day 1: [Day Title with Route / Start]
-- **Morning:** [Departure / Arrival / Route journey]
-- **Afternoon:** [Check-in / Lunch / First attraction]
-- **Evening:** [Local leisure / Sunset point / Dinner]
-- **Stay:** [Night Stay location & type]
-
-(Continue for all ${days} days with realistic timings and geographically ordered stops)
-
----
-
-## 🎒 Package Inclusions
-- [List 4-6 realistic inclusions like stays, meals, private cab, trek guide, permits]
-
-## ❌ Package Exclusions
-- [List 3-4 realistic exclusions like personal expenses, flights, optional gear]
-
-## 💡 Travel Specialist Tips for ${destination}
-- [3 authentic, local tips regarding terrain, best time, gear, or permits]`;
-
-  let itinerary = '';
-  if (aiService.isConfigured()) {
-    try {
-      itinerary = await aiService.generateContent([{ text: prompt }], {
-        maxOutputTokens: 2500,
-        temperature: 0.7,
-      });
-    } catch (err) {
-      console.warn('[publicService] Gemini itinerary generation failed:', err.message);
-    }
-  }
+  // 4. Synthesize with unified LLM (OpenAI GPT or Google Gemini)
+  let itinerary = await llmService.generateItinerary({
+    destination,
+    days: Number(days) || 4,
+    tripType,
+    agencyName,
+    phone,
+    description,
+    enrichedContext,
+  });
 
   return itinerary;
 }
