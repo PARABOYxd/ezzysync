@@ -1230,7 +1230,7 @@ function synthesizeCustomDestination(destination, days, tripStyle, origin = "", 
 export function parseUserRoughNotes(text, defaultDays = 4, destinationName = "Your Destination") {
   if (!text || !text.trim()) return null;
 
-  const lines = text.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n|\\n/).map(l => l.trim()).filter(Boolean);
   const detectedDays = [];
   const detectedInclusions = [];
   const detectedExclusions = [];
@@ -1245,7 +1245,7 @@ export function parseUserRoughNotes(text, defaultDays = 4, destinationName = "Yo
   for (let line of lines) {
     if (inclusionHeaderPattern.test(line)) {
       currentSection = "inclusions";
-      const parts = line.split(/[:\\-]/);
+      const parts = line.split(/[:-]/);
       if (parts.length > 1 && parts[1].trim()) {
         parts[1].split(/[,;]/).forEach(item => {
           if (item.trim()) detectedInclusions.push(item.trim());
