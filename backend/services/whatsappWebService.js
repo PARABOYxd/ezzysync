@@ -331,7 +331,9 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
         }
       }
     } else if (connection === 'open') {
-      const phoneNumber = cleanPhone(sock.user?.id || '');
+      // sock.user.id is "919136520538:66@s.whatsapp.net" — jidNormalizedUser strips
+      // the device suffix (:66) so cleanPhone only keeps the actual phone digits.
+      const phoneNumber = cleanPhone(jidNormalizedUser(sock.user?.id || '').split('@')[0]);
       logger.info({ tenantId, phoneNumber }, 'WhatsApp Web connected successfully!');
 
       activeSockets.set(tenantId, { sock, qr: null, status: 'connected' });
@@ -862,7 +864,7 @@ async function getSessionStatus(tenantId) {
     status,
     canSend: hasLiveSocket,
     qrCode: inMemory?.qr || dbSession?.qr_code_data || null,
-    phoneNumber: dbSession?.phone_number || inMemory?.sock?.user?.id || '',
+    phoneNumber: dbSession?.phone_number || cleanPhone(jidNormalizedUser(inMemory?.sock?.user?.id || '').split('@')[0]) || '',
     connectedAt: dbSession?.connected_at || null,
     aiAutopilotEnabled: dbSession?.ai_autopilot_enabled === true,
   };
