@@ -47,10 +47,14 @@ async function getTenantPlanLimits(tenantId) {
   }
 
   const plan = await planRepository.getTenantPlan(tenantId);
-  if (!plan) {
+
+  // A paid plan whose month has run out is locked exactly like a lapsed
+  // trial. Until plan_expires_at existed there was nothing to check here: one
+  // payment bought the plan for good.
+  if (!plan || plan.plan_has_expired) {
     return {
       id: 'EXPIRED',
-      name: 'Trial Expired',
+      name: plan ? 'Subscription Expired' : 'Trial Expired',
       maxBookings: 0,
       maxTeamMembers: 0,
       canDownloadInvoice: false,
@@ -61,8 +65,13 @@ async function getTenantPlanLimits(tenantId) {
       canUseAi: false,
       isTrial: false,
       isExpired: true,
+      // Which plan lapsed, so the paywall can offer to renew that one rather
+      // than making them pick again from scratch.
+      lapsedPlanId: plan?.id || null,
+      expiresAt: plan?.plan_expires_at || null,
     };
   }
+
   return {
     id: plan.id,
     name: plan.name,
@@ -74,6 +83,9 @@ async function getTenantPlanLimits(tenantId) {
     canViewAuditLogs: plan.can_view_audit_logs,
     canExportReports: plan.can_export_reports,
     canUseAi: plan.can_use_ai,
+    isTrial: false,
+    isExpired: false,
+    expiresAt: plan.plan_expires_at || null,
   };
 }
 

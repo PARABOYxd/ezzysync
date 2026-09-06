@@ -2,7 +2,6 @@ const path = require('path');
 const fs = require('fs');
 const {
   default: makeWASocket,
-  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   Browsers,
@@ -20,10 +19,16 @@ const logger = require('../utils/logger');
 const aiService = require('./aiService');
 const r2Service = require('./r2Service');
 const planService = require('./planService');
+const whatsappAuthState = require('./whatsappAuthState');
 
 // aiService emits this exact token instead of a reply when the model decides a
 // human should take over. It must never reach the customer.
 const HUMAN_HANDOFF_MARKER = '[FALLBACK_HUMAN_NEEDED]';
+
+// How stale a queued message may be and still get an automatic reply. Older
+// than this and it is left for a person: answering a two-hour-old question as
+// though it just arrived is worse than not answering it.
+const AI_REPLY_MAX_AGE_SECONDS = Number(process.env.AI_REPLY_MAX_AGE_SECONDS) || 15 * 60;
 
 /**
  * Chat ids with an AI reply already being generated.
@@ -40,6 +45,10 @@ const aiInFlight = new Set();
 
 // Map to hold active Baileys socket connections per tenantId
 const activeSockets = new Map();
+
+// Each live session's "write any queued keys now" function, kept so shutdown
+// can persist them instead of losing the last 200ms of key updates.
+const authFlushers = new Map();
 const sessionDirBase = path.join(__dirname, '..', 'sessions');
 
 if (!fs.existsSync(sessionDirBase)) {
@@ -180,9 +189,17 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
     }
   }
 
-  const sessionPath = getSessionPath(tenantId);
+  // A session that predates database storage still has its keys on disk.
+  // Importing them here is what stops this change from logging every already
+  // linked agency out and making them scan a fresh QR code.
+  if (!(await whatsappAuthState.hasStoredCreds(tenantId))) {
+    try {
+      await whatsappAuthState.importFromDisk(tenantId, getSessionPath(tenantId));
+    } catch (err) {
+      logger.warn({ tenantId, err }, 'Could not import the on-disk WhatsApp session; a QR scan may be needed');
+    }
+  }
 
-  // If starting fresh scan and not already connected, clean up stale unlinked session files
   if (forceNew) {
     const existing = activeSockets.get(tenantId);
     if (existing?.sock) {
@@ -193,29 +210,19 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
     }
     activeSockets.delete(tenantId);
 
-    // Only wipe the directory when there is no usable pairing to keep.
+    // Only discard the stored keys when there is no usable pairing to keep.
+    //
     // NOTE: do not test creds.registered here - Baileys only ever sets that
     // flag on the pairing-code path (Socket/messages-recv.js), so for the QR
     // flow it stays false forever and this check would delete a perfectly
     // good session on every reconnect. creds.me.id is what QR pairing fills in.
-    const credsPath = path.join(sessionPath, 'creds.json');
-    let isRegistered = false;
-    if (fs.existsSync(credsPath)) {
-      try {
-        const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-        isRegistered = !!(creds.me?.id || creds.registered);
-      } catch (e) {}
-    }
-
-    if (!isRegistered) {
-      try {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-        fs.mkdirSync(sessionPath, { recursive: true });
-      } catch (e) {}
+    if (!(await whatsappAuthState.isPaired(tenantId))) {
+      await whatsappAuthState.clearAuthState(tenantId);
     }
   }
 
-  const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+  const { state, saveCreds, flush: flushAuth } = await whatsappAuthState.usePostgresAuthState(tenantId);
+  authFlushers.set(tenantId, flushAuth);
   const { version, isLatest } = await fetchLatestBaileysVersion();
   logger.info({ tenantId, version, isLatest }, 'Using Baileys version');
 
@@ -291,8 +298,16 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       }
 
       if (statusCode === DisconnectReason.loggedOut) {
+        // WhatsApp has revoked this device from the phone's side. The keys are
+        // dead, so they go - keeping them would only make the next boot try to
+        // resume a login that no longer exists.
         try {
-          fs.rmSync(sessionPath, { recursive: true, force: true });
+          await whatsappAuthState.clearAuthState(tenantId);
+        } catch (err) {
+          logger.warn({ tenantId, err }, 'Could not clear stored WhatsApp auth after logout');
+        }
+        try {
+          fs.rmSync(getSessionPath(tenantId), { recursive: true, force: true });
         } catch (e) {}
         activeSockets.delete(tenantId);
         await whatsappWebRepository.markLoggedOut(tenantId);
@@ -326,7 +341,16 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
 
   // Handle incoming messages
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
+    // Baileys labels a message 'notify' when it arrives live and 'append' when
+    // WhatsApp is delivering one that queued while this device was offline
+    // (Socket/messages-recv.js: `node.attrs.offline ? 'append' : 'notify'`).
+    //
+    // Only accepting 'notify' meant every message sent while the session was
+    // down - a restart, a dropped socket, a night with the server off - was
+    // thrown away on reconnect. It never reached the inbox, never created a
+    // lead, and the agent had no idea it existed.
+    if (type !== 'notify' && type !== 'append') return;
+    const isOfflineBacklog = type === 'append';
 
     for (const msg of messages) {
       if (!msg.message) continue;
@@ -379,6 +403,22 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       try {
         const mediaUrl = media ? await storeInboundMedia(sock, msg, media) : null;
 
+        // Backlog messages are always recorded, but the AI only answers ones
+        // that are still fresh. Coming back after an hour and firing a reply
+        // at every queued message at once reads as a malfunction to the
+        // customer, and the older ones deserve a person anyway.
+        const ageSeconds = msg.messageTimestamp
+          ? Math.max(0, Math.floor(Date.now() / 1000) - Number(msg.messageTimestamp))
+          : 0;
+        const allowAiReply = !isOfflineBacklog || ageSeconds < AI_REPLY_MAX_AGE_SECONDS;
+
+        if (isOfflineBacklog) {
+          logger.info(
+            { tenantId, senderPhone, ageSeconds, allowAiReply },
+            'Recording a message that arrived while the session was offline'
+          );
+        }
+
         await processInboundMessage(tenantId, {
           senderJid,
           senderPhone,
@@ -388,6 +428,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
           sock,
           messageType: media ? media.type : 'text',
           mediaUrl,
+          allowAiReply,
         });
       } catch (err) {
         logger.error({ err, tenantId, senderPhone }, 'Error processing inbound WhatsApp message');
@@ -456,7 +497,7 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 /**
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
-async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null }) {
+async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true }) {
   // What the chat list shows. A caption when there is one, otherwise a short
   // stand-in so an attachment-only message is not a blank row.
   const preview = messageText || mediaPreview(messageType);
@@ -521,7 +562,8 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
   // needs_human is re-checked here as well as in the toggle: an escalation
   // must survive regardless of how the flags were set, since sending anything
   // on a chat the AI already backed away from is the worst outcome.
-  const chatAiEnabled = chat.ai_enabled === true && chat.needs_human !== true;
+  const chatAiEnabled =
+    allowAiReply && chat.ai_enabled === true && chat.needs_human !== true;
 
   // Autopilot fires from the socket, not an HTTP route, so the plan check has
   // to happen here too - route middleware alone would leave a downgraded
@@ -714,10 +756,13 @@ async function disconnectSession(tenantId) {
     } catch (e) {}
   }
   activeSockets.delete(tenantId);
+  authFlushers.delete(tenantId);
 
-  const sessionPath = getSessionPath(tenantId);
+  // The keys live in Postgres now; the directory is only cleared for tenants
+  // linked before that change, so nothing stale is left behind on disk.
+  await whatsappAuthState.clearAuthState(tenantId);
   try {
-    fs.rmSync(sessionPath, { recursive: true, force: true });
+    fs.rmSync(getSessionPath(tenantId), { recursive: true, force: true });
   } catch (e) {}
 
   await whatsappWebRepository.markLoggedOut(tenantId);
@@ -836,7 +881,54 @@ async function autoInitConnectedSessions() {
   }
 }
 
+/**
+ * Closes every WhatsApp socket cleanly, for shutdown.
+ *
+ * This matters most during a deploy. The platform starts the new container
+ * before stopping the old one, so for a few seconds two processes hold a
+ * socket for the same WhatsApp account - and WhatsApp allows exactly one,
+ * kicking the loser with 440 (connectionReplaced). Letting the outgoing
+ * process hang on until it is killed is what turned an ordinary deploy into a
+ * disconnected inbox.
+ *
+ * `sock.end()`, never `sock.logout()`: end drops the connection, logout
+ * unlinks the device from the phone and would force a fresh QR scan on every
+ * single deploy - the exact opposite of the point.
+ */
+async function shutdownAllSessions() {
+  const tenantIds = [...activeSockets.keys()];
+  if (!tenantIds.length) return;
+
+  logger.info({ sessions: tenantIds.length }, 'Closing WhatsApp sessions for shutdown');
+
+  await Promise.all(
+    tenantIds.map(async (tenantId) => {
+      // Keys first: once the socket is gone there is nothing to persist for.
+      const flushAuth = authFlushers.get(tenantId);
+      if (flushAuth) {
+        try {
+          await flushAuth();
+        } catch (err) {
+          logger.warn({ tenantId, err }, 'Could not flush WhatsApp auth state on shutdown');
+        }
+      }
+
+      const socketData = activeSockets.get(tenantId);
+      try {
+        socketData?.sock?.ev?.removeAllListeners();
+        socketData?.sock?.end();
+      } catch (err) {
+        // Already closing or half-dead; nothing useful to do about it here.
+      }
+    })
+  );
+
+  activeSockets.clear();
+  authFlushers.clear();
+}
+
 module.exports = {
+  shutdownAllSessions,
   initWhatsAppSession,
   getSessionStatus,
   disconnectSession,

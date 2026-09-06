@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, Brain, Bot, FileCheck, ArrowRight, Star, ShieldAlert, Lock } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
 import * as aiService from '../services/aiService';
-import * as paymentService from '../services/paymentService';
 import * as bookingService from '../services/bookingService';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
@@ -11,72 +11,22 @@ import { useAuth } from '../hooks/useAuth.jsx';
 
 export default function AITools() {
   const toast = useToast();
+  const navigate = useNavigate();
   const { user, loginWithToken } = useAuth();
   const [bookings, setBookings] = useState([]);
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
 
-  const handleUpgradePlan = async () => {
-    try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        toast.error('Failed to load payment gateway. Please check your internet connection.');
-        return;
-      }
+  /**
+   * Plans are sold in one place, not three.
+   *
+   * This page used to run its own Razorpay checkout, calling
+   * createSubscriptionOrder() with no plan - so the backend fell through to
+   * its PRO default and charged 2,499 behind a button that read 999, which is
+   * the Solo price. Profile already has a proper plan screen showing both
+   * plans with their real prices, so this simply sends people there.
+   */
+  const goToPlans = () => navigate('/profile?upgrade=1');
 
-      const order = await paymentService.createSubscriptionOrder();
-
-      const options = {
-        key: order.key_id,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'EzzySync Premium',
-        description: 'Unlock AI Travel Tools',
-        order_id: order.id,
-        handler: async function (response) {
-          try {
-            const verifyRes = await paymentService.verifySubscription({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            if (verifyRes.success) {
-              await loginWithToken(verifyRes.token);
-              toast.success('Congratulations! Your plan has been upgraded to PRO. AI Tools are now fully unlocked!');
-            }
-          } catch (err) {
-            toast.error(err.response?.data?.message || 'Payment verification failed.');
-          }
-        },
-        prefill: {
-          name: user?.name || '',
-          email: user?.email || '',
-        },
-        theme: {
-          color: '#0f766e',
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      toast.error('Could not initiate subscription payment.');
-    }
-  };
   
   // 1-Click Itinerary Generator states
   const [tripName, setTripName] = useState('');
@@ -260,10 +210,10 @@ export default function AITools() {
                 Generate highly detailed, customizable day-by-day travel plans for your clients.
               </p>
               <button 
-                onClick={handleUpgradePlan}
+                onClick={goToPlans}
                 className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl shadow-sm transition"
               >
-                Upgrade to Pro (₹999/mo)
+                View plans & upgrade
               </button>
             </div>
           )}
@@ -362,10 +312,10 @@ export default function AITools() {
                 Draft context-aware customer auto-replies referencing actual booking data.
               </p>
               <button 
-                onClick={handleUpgradePlan}
+                onClick={goToPlans}
                 className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl shadow-sm transition"
               >
-                Upgrade to Pro (₹999/mo)
+                View plans & upgrade
               </button>
             </div>
           )}
@@ -491,10 +441,10 @@ export default function AITools() {
         </div>
         {user?.planId !== 'PRO' ? (
           <button
-            onClick={handleUpgradePlan}
+            onClick={goToPlans}
             className="w-full sm:w-auto px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition shadow-sm"
           >
-            Upgrade to Pro (₹999/mo)
+            View plans & upgrade
           </button>
         ) : (
           <div className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3.5 py-1.5 rounded-full border border-emerald-200">

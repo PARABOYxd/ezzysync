@@ -109,6 +109,17 @@ async function login(req, res, next) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
     const valid = await userService.verifyPassword(user, password);
+
+    // null means the account has no password at all - it was created through
+    // Google Sign-In. Saying "invalid password" would send them round in
+    // circles trying passwords that never existed.
+    if (valid === null) {
+      return res.status(401).json({
+        message: 'This account was created with Google. Use "Continue with Google" to sign in.',
+        code: 'USE_GOOGLE_SIGNIN',
+      });
+    }
+
     if (!valid) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }

@@ -39,6 +39,13 @@ const bookingJsonSchema = {
  * tokens count against that same budget, so a 200 cap left only a handful for
  * the reply and returned truncated fragments with finishReason MAX_TOKENS.
  */
+// A rate limit clears in seconds, so a couple of short waits are worth it -
+// but an inbound WhatsApp message is a person waiting for a reply, so the
+// total delay stays well under the point where a bot feels broken.
+const GEMINI_MAX_RETRIES = 2;
+const GEMINI_RETRY_BASE_MS = 1000;
+const GEMINI_MAX_RETRY_DELAY_MS = 8000;
+
 const WHATSAPP_REPLY_CONFIG = {
   maxOutputTokens: 300,
   temperature: 0.7,
@@ -73,11 +80,54 @@ async function generateContent(parts, generationConfig) {
     });
   };
 
+  /**
+   * Retries a rate-limited model before giving up on it.
+   *
+   * Gemini's free tier limits requests per minute, and a busy WhatsApp inbox
+   * reaches that easily - several customers writing at once is enough. A 429
+   * used to drop the model immediately and move to the next one, so a brief
+   * burst could exhaust the whole fallback chain in under a second and the
+   * customer got no reply at all, for a limit that had cleared moments later.
+   *
+   * Only 429 and 5xx are retried: those are the server saying "later". A 400
+   * means the request itself is wrong and will be just as wrong next time.
+   */
+  const callWithBackoff = async (model, config) => {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await call(model, config);
+      } catch (err) {
+        const status = err.response?.status;
+        const worthRetrying = status === 429 || (status >= 500 && status < 600);
+        if (!worthRetrying || attempt >= GEMINI_MAX_RETRIES) throw err;
+
+        // Google sends the wait it wants in RetryInfo; honour it when present,
+        // otherwise back off 1s, 2s, 4s.
+        const retryInfo = err.response?.data?.error?.details?.find((d) =>
+          String(d['@type'] || '').includes('RetryInfo')
+        );
+        const suggestedMs = retryInfo?.retryDelay
+          ? Math.round(parseFloat(String(retryInfo.retryDelay).replace('s', '')) * 1000)
+          : null;
+        const delayMs = Math.min(
+          suggestedMs && suggestedMs > 0 ? suggestedMs : GEMINI_RETRY_BASE_MS * 2 ** attempt,
+          GEMINI_MAX_RETRY_DELAY_MS
+        );
+
+        logger.warn(
+          { model, status, attempt: attempt + 1, delayMs },
+          '[aiService] Gemini rate-limited or unavailable, backing off before retry'
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  };
+
   for (const model of modelsToTry) {
     try {
       let response;
       try {
-        response = await call(model, generationConfig);
+        response = await callWithBackoff(model, generationConfig);
       } catch (err) {
         // Lighter models reject thinkingConfig with a bare 400
         // "Request contains an invalid argument" that names no field, so the
@@ -89,7 +139,7 @@ async function generateContent(parts, generationConfig) {
 
         logger.warn({ model }, '[aiService] Model rejected thinkingConfig, retrying without it');
         const { thinkingConfig, ...rest } = generationConfig;
-        response = await call(model, rest);
+        response = await callWithBackoff(model, rest);
       }
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;

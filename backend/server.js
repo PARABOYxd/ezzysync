@@ -64,22 +64,49 @@ const allowedOrigins = [
   'http://localhost:3000',
 ];
 
+/**
+ * CORS is decided per request, because one endpoint has to behave differently
+ * from every other.
+ *
+ * Agencies paste the lead-capture embed form into their own websites, so the
+ * browser sends whatever origin that site has - a domain we cannot know in
+ * advance and will never have in the allowlist above. The single allowlist
+ * rule therefore rejected every real submission: the visitor filled in the
+ * form, the fetch was blocked before it left the browser, and the lead never
+ * arrived. Nothing was logged, because the request never reached us.
+ *
+ * Opening that one path is safe: it takes no cookies or Authorization header
+ * (`credentials: false`, so a browser will not attach either), it
+ * authenticates by the rotatable key in its URL, it is rate limited, and it
+ * can only ever create a lead for the tenant that key belongs to. Anyone who
+ * can read the embed code can already post to it from a script - CORS was
+ * never what protected it.
+ *
+ * Everything else keeps the strict allowlist, credentials included.
+ */
+const PUBLIC_LEAD_CAPTURE_PATH = '/api/public/leads';
+
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const isAllowed = allowedOrigins.some((o) => {
-        if (!o) return false;
-        return o.replace(/\/$/, '') === origin.replace(/\/$/, '');
-      });
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        logger.warn({ origin }, 'CORS request blocked from origin');
-        callback(new Error(`CORS policy does not allow access from origin ${origin}`));
-      }
-    },
-    credentials: true,
+  cors((req, callback) => {
+    if (req.path.startsWith(PUBLIC_LEAD_CAPTURE_PATH)) {
+      return callback(null, { origin: '*', credentials: false });
+    }
+
+    const origin = req.headers.origin;
+    // Same-origin requests, curl and server-to-server calls send no Origin.
+    if (!origin) return callback(null, { origin: true, credentials: true });
+
+    const isAllowed = allowedOrigins.some((o) => {
+      if (!o) return false;
+      return o.replace(/\/$/, '') === origin.replace(/\/$/, '');
+    });
+
+    if (!isAllowed) {
+      logger.warn({ origin, path: req.path }, 'CORS request blocked from origin');
+      return callback(new Error(`CORS policy does not allow access from origin ${origin}`));
+    }
+
+    callback(null, { origin: true, credentials: true });
   })
 );
 app.use(express.json({ limit: '2mb' }));
@@ -149,6 +176,47 @@ async function start() {
   });
   const websocketService = require('./services/websocketService');
   websocketService.init(server);
+
+  /**
+   * Shuts down in the order that matters, on the platform's own signal.
+   *
+   * Railway sends SIGTERM and then kills the process a short time later. With
+   * no handler, the outgoing container kept its WhatsApp socket open for that
+   * whole window - while the incoming one was already connecting with the same
+   * credentials. WhatsApp permits one connection per account and kicks the
+   * other with 440, so an ordinary deploy could leave the inbox disconnected.
+   *
+   * WhatsApp goes first (and gets its queued keys written), then the HTTP
+   * server stops accepting new work. The timeout is a backstop: if something
+   * hangs, exiting is still better than being killed mid-write.
+   */
+  let shuttingDown = false;
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, 'Shutting down');
+
+    const forceExit = setTimeout(() => {
+      logger.warn('Shutdown took too long; exiting anyway');
+      process.exit(0);
+    }, 10000);
+    forceExit.unref();
+
+    try {
+      await whatsappWebService.shutdownAllSessions();
+    } catch (err) {
+      logger.error({ err }, 'Error while closing WhatsApp sessions');
+    }
+
+    server.close(() => {
+      clearTimeout(forceExit);
+      logger.info('Shutdown complete');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 process.on('unhandledRejection', (err) => {

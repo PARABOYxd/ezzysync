@@ -5,11 +5,9 @@ const planRepository = require('../repositories/planRepository');
 const userRepository = require('../repositories/userRepository');
 const paymentRepository = require('../repositories/paymentRepository');
 const tokenService = require('./tokenService');
-
-const PLAN_PRICES_PAISE = {
-  SOLO: 99900,   // ₹999.00 in paise
-  PRO: 249900,   // ₹2,499.00 in paise
-};
+const logger = require('../utils/logger').child({ module: 'payments' });
+const { getPlanPricePaise, getPurchasablePlanIds, getPlanRank } = require('../config/planCatalog');
+const planService = require('./planService');
 
 function getRazorpayInstance() {
   return new Razorpay({
@@ -18,11 +16,52 @@ function getRazorpayInstance() {
   });
 }
 
-async function createSubscriptionOrder(tenantId, userId, planId = 'PRO', customAmount = null) {
-  const finalPlan = planId === 'SOLO' ? 'SOLO' : 'PRO';
-  const amount = customAmount ? Math.round(Number(customAmount) * 100) : (PLAN_PRICES_PAISE[finalPlan] || 249900);
-  if (amount < 100) {
-    throw new Error('Minimum order amount must be at least 100 paise.');
+/**
+ * Opens a Razorpay order for one of the plans in the catalog.
+ *
+ * The plan id has to name a real plan. It used to be coerced with
+ * `planId === 'SOLO' ? 'SOLO' : 'PRO'`, so anything unrecognised - including
+ * nothing at all - quietly became the most expensive plan. That is how a
+ * button reading "Upgrade for ₹999" ended up opening a ₹2,499 checkout: the
+ * caller sent no planId and this line picked one for it. Now an unusable
+ * planId is refused, loudly, before any money is involved.
+ *
+ * The amount is never taken from the caller either. It is read from the
+ * catalog, which is the same table Razorpay is charged from and the frontend
+ * prints its prices from, so the number on the button and the number on the
+ * card cannot disagree.
+ */
+async function createSubscriptionOrder(tenantId, userId, planId) {
+  const finalPlan = typeof planId === 'string' ? planId.trim().toUpperCase() : '';
+  const amount = getPlanPricePaise(finalPlan);
+
+  if (amount === null) {
+    const err = new Error(
+      `Choose a plan to continue. Available plans: ${getPurchasablePlanIds().join(', ')}.`
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  // A cheaper plan must not quietly replace a better one that is still
+  // running. Upgrade and downgrade used to be the same code path, so a
+  // mis-click on the Solo card took the money and stripped an active Pro
+  // tenant down to one login - which is exactly what happened to this
+  // project's own account.
+  //
+  // Refused before the order exists, so nothing is charged for a change we
+  // are not going to make. An expired plan is not blocked: at that point the
+  // tenant is genuinely choosing again, and picking the cheaper plan is a
+  // decision rather than an accident.
+  const current = await planService.getTenantPlanLimits(tenantId);
+  if (!current.isExpired && getPlanRank(current.id) > getPlanRank(finalPlan)) {
+    const err = new Error(
+      `You're already on ${current.name}, which includes more than this plan. ` +
+        `Switching down would remove features you are currently using, so we don't do it automatically — ` +
+        `email support@ezzysync.com and we'll move you across at the end of your paid month.`
+    );
+    err.status = 409;
+    throw err;
   }
 
   const receipt = `sub_${finalPlan.toLowerCase()}_${tenantId.substring(0, 8)}_${Date.now()}`;
@@ -83,10 +122,44 @@ function verifyWebhookSignature(rawBody, signature, webhookSecret) {
 }
 
 /**
- * Moves the tenant onto the chosen plan (SOLO or PRO), marks payment captured, and mints a fresh token.
+ * Moves the tenant onto the plan they actually paid for, marks the payment
+ * captured, and mints a fresh token carrying the new plan.
+ *
+ * The plan is read back from the order row rather than trusted from the
+ * request. Both are sent by the browser at this point, and they do not have to
+ * agree: a caller could open a ₹999 SOLO order, pay it, and then verify with
+ * `planId: 'PRO'` to land on the ₹2,499 plan. Taking the plan from the order
+ * that Razorpay actually charged closes that. The request's planId is only a
+ * fallback for older order rows that predate the column being populated.
  */
-async function completePaymentAndUpgrade({ tenantId, userId, orderId, paymentId, signature, planId = 'PRO', rawResponse = null }) {
-  const finalPlan = planId === 'SOLO' ? 'SOLO' : 'PRO';
+async function completePaymentAndUpgrade({ tenantId, userId, orderId, paymentId, signature, planId = null, rawResponse = null }) {
+  const paidOrder = orderId ? await paymentRepository.findPaymentByOrderId(orderId) : null;
+  const finalPlan = paidOrder?.plan_id || planId;
+
+  if (!finalPlan || getPlanPricePaise(finalPlan) === null) {
+    const err = new Error('That payment could not be matched to a plan. Please contact support.');
+    err.status = 400;
+    throw err;
+  }
+
+  // The same downgrade guard as at order creation, applied again here because
+  // the two steps are separated by a trip through Razorpay - a tenant can
+  // upgrade in another tab while a cheaper order sits open. The payment is
+  // still recorded; the better plan simply stays, and this logs loudly so the
+  // difference can be refunded or credited by hand.
+  const existing = await planService.getTenantPlanLimits(tenantId);
+  if (!existing.isExpired && getPlanRank(existing.id) > getPlanRank(finalPlan)) {
+    logger.error(
+      { tenantId, paidPlan: finalPlan, currentPlan: existing.id, orderId, paymentId },
+      'Payment for a lower plan arrived while a better plan was active - plan left unchanged, needs manual resolution'
+    );
+    return {
+      unchanged: true,
+      message:
+        `Payment received. You are still on ${existing.name}, which is the better plan — ` +
+        `we have not moved you down. Email support@ezzysync.com and we'll sort out the difference.`,
+    };
+  }
 
   // 1. Update payments table
   if (orderId) {

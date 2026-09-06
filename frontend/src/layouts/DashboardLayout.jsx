@@ -10,6 +10,8 @@ import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import { openRazorpayCheckout } from '../services/paymentService';
+import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
+import { usePlanStatus } from '../hooks/usePlanStatus.js';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
@@ -37,14 +39,15 @@ export default function DashboardLayout() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const toast = useToast();
+  // The paywall prints whatever the server charges - see
+  // backend/config/planCatalog.js.
+  const { plans, loading: catalogLoading, error: catalogError } = usePlanCatalog();
 
-  const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
-  const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
-  const daysPassed = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.max(0, totalTrialDays - daysPassed);
-  const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.planId === 'PRO';
-  const isSolo = user?.planId === 'SOLO';
-  const isExpired = !isPaidPro && !isSolo && daysRemaining === 0;
+  // Whether access has lapsed is the server's answer, not a sum over the JWT.
+  // The old calculation - paid plan id means active, otherwise count days
+  // since signup - could not see an expired paid month at all, so a lapsed
+  // subscriber got the full app while every request inside it returned 403.
+  const { isExpired, lapsedPlanId } = usePlanStatus();
 
   const handlePaywallPayment = (planId, planName) => {
     openRazorpayCheckout({
@@ -102,62 +105,87 @@ export default function DashboardLayout() {
                 <Lock size={26} />
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
-                Your 30-Day Free Trial Has Ended
+                {lapsedPlanId ? 'Your Subscription Has Ended' : 'Your 30-Day Free Trial Has Ended'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-md mx-auto">
-                Thank you for trying EzzySync! Choose a subscription plan below to unlock your workspace and keep managing your travel leads and itineraries.
+                {lapsedPlanId
+                  ? 'Your paid month is over. Renew below to unlock your workspace again — every lead, booking and itinerary is exactly where you left it.'
+                  : 'Thank you for trying EzzySync! Choose a subscription plan below to unlock your workspace and keep managing your travel leads and itineraries.'}
               </p>
             </div>
 
-            {/* Plans Grid */}
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto">
-              {/* Solo Plan */}
-              <div className="p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Solo Agent</h3>
-                    <span className="text-xs font-black text-slate-900 dark:text-zinc-100">₹999 /mo</span>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500" /> 1 Agent Login</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500" /> 200 Client Bookings</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500" /> PDF Itinerary & Invoices</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handlePaywallPayment('SOLO', 'Solo Agent Plan')}
-                  className="mt-5 w-full py-2.5 rounded-xl text-xs font-semibold border border-slate-300 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 transition cursor-pointer"
-                >
-                  Pay & Activate Solo (₹999)
-                </button>
+            {/* Plans Grid - prices and features come from the server */}
+            {catalogError && (
+              <div className="p-6 text-center text-sm text-rose-600 dark:text-rose-400">
+                {catalogError} Please refresh the page, or contact support to renew.
               </div>
+            )}
 
-              {/* Pro Plan */}
-              <div className="p-5 rounded-2xl border-2 border-[#F97316] bg-white dark:bg-zinc-900/90 shadow-lg flex flex-col justify-between relative">
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[9px] uppercase tracking-widest font-black py-0.5 px-3 rounded-full shadow-xs">
-                  Recommended
-                </span>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Agency Growth</h3>
-                    <span className="text-xs font-black text-slate-900 dark:text-zinc-100">₹2,499 /mo</span>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-slate-700 dark:text-zinc-200 font-medium">
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500" /> 5 Team Member Logins</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500" /> Unlimited Bookings & Leads</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500" /> WhatsApp Live Chat & AI Tools</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handlePaywallPayment('PRO', 'Agency Growth Pro Plan')}
-                  className="mt-5 w-full py-2.5 rounded-xl text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-md transition cursor-pointer"
-                >
-                  Pay & Activate Pro (₹2,499)
-                </button>
+            {catalogLoading && (
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className="h-52 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 animate-pulse"
+                  />
+                ))}
               </div>
-            </div>
+            )}
+
+            {!catalogLoading && !catalogError && (
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto">
+                {plans
+                  .filter((plan) => plan.purchasable)
+                  .map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`p-5 rounded-2xl flex flex-col justify-between relative ${
+                        plan.highlight
+                          ? 'border-2 border-[#F97316] bg-white dark:bg-zinc-900/90 shadow-lg'
+                          : 'border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50'
+                      }`}
+                    >
+                      {plan.highlight && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[9px] uppercase tracking-widest font-black py-0.5 px-3 rounded-full shadow-xs">
+                          Recommended
+                        </span>
+                      )}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">{plan.name}</h3>
+                          <span className="text-xs font-black text-slate-900 dark:text-zinc-100">
+                            {plan.priceLabel} /{plan.period === 'month' ? 'mo' : plan.period}
+                          </span>
+                        </div>
+                        {/* The paywall is a decision screen, not a spec sheet -
+                            the first few lines are enough to choose between the
+                            two plans, and the full list is on the Profile page. */}
+                        <ul className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+                          {plan.features
+                            .filter((f) => f.included)
+                            .slice(0, 3)
+                            .map((feature) => (
+                              <li key={feature.label} className="flex gap-2 items-center">
+                                <Check className="w-3.5 h-3.5 text-emerald-500" /> {feature.label}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handlePaywallPayment(plan.id, plan.name)}
+                        className={`mt-5 w-full py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                          plan.highlight
+                            ? 'bg-[#F97316] hover:bg-[#EA580C] text-white shadow-md'
+                            : 'border border-slate-300 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200'
+                        }`}
+                      >
+                        {lapsedPlanId === plan.id ? 'Renew' : 'Pay & Activate'} {plan.name} ({plan.priceLabel})
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
 
             {/* Footer */}
             <div className="p-4 border-t border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex items-center justify-between">

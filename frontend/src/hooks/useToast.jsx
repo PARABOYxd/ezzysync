@@ -15,7 +15,11 @@ export function ToastProvider({ children }) {
     (message, type = 'success') => {
       const id = ++idCounter;
       setToasts((prev) => [...prev, { id, message, type }]);
-      setTimeout(() => remove(id), 3500);
+
+      // Errors stay up longer than confirmations. A server error now carries a
+      // reference id the person is asked to send on, and three and a half
+      // seconds is not enough time to read a UUID, let alone copy it.
+      setTimeout(() => remove(id), type === 'error' ? 10000 : 3500);
     },
     [remove]
   );
@@ -33,7 +37,12 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`rounded-xl px-4 py-3 shadow-soft text-sm font-medium text-white animate-[fadeIn_.2s_ease] ${
+            onClick={() => remove(t.id)}
+            role="status"
+            title="Click to dismiss"
+            // whitespace-pre-line so the reference id lands on its own line;
+            // break-words so a long id cannot push the toast off screen.
+            className={`rounded-xl px-4 py-3 shadow-soft text-sm font-medium text-white animate-[fadeIn_.2s_ease] cursor-pointer whitespace-pre-line break-words ${
               t.type === 'success' ? 'bg-emerald-600' : t.type === 'error' ? 'bg-red-600' : 'bg-slate-800'
             }`}
           >

@@ -9,7 +9,7 @@ import { getFeatures, fetchFeatures } from '../services/featureService';
 import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { connectGoogle } from '../services/googleService';
+import { connectGoogle, getGmailStatus, disconnectGmail } from '../services/googleService';
 import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp, Trash2, Plus, Edit2 } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
@@ -30,6 +30,8 @@ export default function SettingsPage() {
   const templateTextareaRef = useRef(null);
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState(null);
+  const [gmailStatus, setGmailStatus] = useState(null);
+  const [gmailBusy, setGmailBusy] = useState(false);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [walkthroughRequests, setWalkthroughRequests] = useState([]);
@@ -44,6 +46,31 @@ export default function SettingsPage() {
   const [connectingWA, setConnectingWA] = useState(false);
   const [disconnectingWA, setDisconnectingWA] = useState(false);
   const toast = useToast();
+
+  // Gmail linkage is read once on mount and after any change, so the panel
+  // reflects the server rather than whatever the page assumed at load.
+  const refreshGmailStatus = () => {
+    getGmailStatus()
+      .then(setGmailStatus)
+      .catch(() => setGmailStatus(null));
+  };
+
+  useEffect(() => {
+    refreshGmailStatus();
+  }, []);
+
+  const handleDisconnectGmail = async () => {
+    setGmailBusy(true);
+    try {
+      const res = await disconnectGmail();
+      toast.success(res.message || 'Gmail disconnected.');
+      refreshGmailStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not disconnect Gmail.');
+    } finally {
+      setGmailBusy(false);
+    }
+  };
 
   const [features, setFeatures] = useState(getFeatures());
   useEffect(() => {
@@ -380,14 +407,60 @@ export default function SettingsPage() {
   };
 
   const apiBaseUrl = API_BASE_URL;
+  /**
+   * The form an agency pastes into their own website.
+   *
+   * The previous one-liner had two faults that made a working submission look
+   * like a broken one. It ended in `this.reset()&&alert(...)` - `reset()`
+   * returns undefined, so the confirmation never appeared even when the lead
+   * saved perfectly. And it had no `.catch`, so a rejected request (which,
+   * until the CORS fix, was every request from a real website) failed in
+   * complete silence: the visitor saw their details still sitting in the form
+   * and no idea whether anyone had received them.
+   *
+   * This version reports both outcomes in the page, disables the button while
+   * sending, and surfaces the server's own message on failure.
+   */
   const embedSnippet = publicLeadKey
-    ? `<form action="${apiBaseUrl}/public/leads/${publicLeadKey}" method="POST" onsubmit="event.preventDefault(); fetch(this.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(this)))}).then(()=>this.reset()&&alert('Thanks! We will be in touch shortly.'));">
+    ? `<form action="${apiBaseUrl}/public/leads/${publicLeadKey}" method="POST">
   <input name="customerName" placeholder="Your Name" required />
   <input name="phone" placeholder="Phone Number" required />
   <input name="email" placeholder="Email (optional)" type="email" />
   <input name="interest" placeholder="Destination you're interested in" />
   <button type="submit">Submit Enquiry</button>
-</form>`
+  <p data-ezzysync-status role="status"></p>
+</form>
+<script>
+(function () {
+  var form = document.currentScript.previousElementSibling;
+  var status = form.querySelector('[data-ezzysync-status]');
+  var button = form.querySelector('button[type="submit"]');
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    button.disabled = true;
+    status.textContent = 'Sending...';
+    fetch(form.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(new FormData(form)))
+    })
+      .then(function (response) {
+        return response.json().catch(function () { return {}; }).then(function (data) {
+          if (!response.ok) throw new Error(data.message || 'Something went wrong. Please try again.');
+          return data;
+        });
+      })
+      .then(function (data) {
+        form.reset();
+        status.textContent = data.message || 'Thanks! We will be in touch shortly.';
+      })
+      .catch(function (error) {
+        status.textContent = error.message || 'Could not send your enquiry. Please try again.';
+      })
+      .then(function () { button.disabled = false; });
+  });
+})();
+</script>`
     : '';
 
   const handleCopySnippet = () => {
@@ -521,9 +594,30 @@ export default function SettingsPage() {
                 <h3 className="font-bold text-slate-800">Company & Contacts Profile</h3>
                 <p className="text-xs text-slate-400">Basic organizational settings and details</p>
               </div>
-              <Button type="button" onClick={connectGoogle} className="text-sm px-4">
-                Connect Gmail
-              </Button>
+              {/* Gmail state, not just a connect button. Until this showed the
+                  linked address, a tenant had no way to tell whether they were
+                  connected at all - the button read "Connect Gmail" either
+                  way - or which of their accounts we were sending as. */}
+              {gmailStatus?.connected ? (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs text-slate-500 dark:text-zinc-400">
+                    Sending invoices from{' '}
+                    <span className="font-semibold text-slate-700 dark:text-zinc-200">{gmailStatus.googleEmail}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDisconnectGmail}
+                    disabled={gmailBusy}
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    {gmailBusy ? 'Disconnecting...' : 'Disconnect Gmail'}
+                  </button>
+                </div>
+              ) : (
+                <Button type="button" onClick={connectGoogle} className="text-sm px-4">
+                  Connect Gmail
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">

@@ -11,6 +11,7 @@ import Pricing from "../components/sections/Pricing";
 import FAQ from "../components/sections/FAQ";
 import Footer from "../components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { PLAN_PRICE_RUPEES } from "@/data/plans";
 
 export default function Home() {
   const crmUrl = getCrmUrl();
@@ -50,26 +51,23 @@ export default function Home() {
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "INR",
-        "lowPrice": "0",
-        "highPrice": "2499",
-        "offerCount": "3",
+        // No free tier is listed: after the 30-day trial a workspace locks
+        // until a paid plan is chosen, so advertising a ₹0 offer to Google
+        // would be advertising something we don't sell.
+        "lowPrice": PLAN_PRICE_RUPEES.SOLO,
+        "highPrice": PLAN_PRICE_RUPEES.PRO,
+        "offerCount": "2",
         "offers": [
           {
             "@type": "Offer",
-            "name": "Free Starter Plan",
-            "price": "0",
-            "priceCurrency": "INR"
-          },
-          {
-            "@type": "Offer",
             "name": "Solo Agent Plan",
-            "price": "999",
+            "price": PLAN_PRICE_RUPEES.SOLO,
             "priceCurrency": "INR"
           },
           {
             "@type": "Offer",
             "name": "Agency Growth Pro Plan",
-            "price": "2499",
+            "price": PLAN_PRICE_RUPEES.PRO,
             "priceCurrency": "INR"
           }
         ]

@@ -26,6 +26,18 @@ async function changePassword(req, res, next) {
     const { currentPassword, newPassword } = req.body;
     const user = await userService.findUserById(req.user.userId || req.user.tenantId);
     const valid = await userService.verifyPassword(user, currentPassword);
+
+    // A Google-created account has no current password to check against, so
+    // asking for one is impossible to satisfy. It sets the first one instead.
+    if (valid === null) {
+      return res.status(400).json({
+        message:
+          'This account signs in with Google and has no password yet. ' +
+          'Use "Forgot password" to set one.',
+        code: 'NO_PASSWORD_SET',
+      });
+    }
+
     if (!valid) return res.status(401).json({ message: 'Current password is incorrect.' });
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);

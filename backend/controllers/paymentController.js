@@ -3,10 +3,20 @@ const paymentRepository = require('../repositories/paymentRepository');
 
 async function createSubscriptionOrder(req, res, next) {
   try {
-    const { planId, amount } = req.body;
-    const order = await paymentService.createSubscriptionOrder(req.user.tenantId, req.user.userId, planId, amount);
+    // Only the plan comes from the browser. The amount used to come with it,
+    // which meant the customer chose what to pay - the service now prices the
+    // order itself from the plan catalog.
+    const { planId } = req.body;
+    const order = await paymentService.createSubscriptionOrder(req.user.tenantId, req.user.userId, planId);
     res.json(order);
   } catch (err) {
+    // A missing or unknown plan is the caller's mistake and says so plainly;
+    // reporting it as a 500 would hide a fixable message behind "something
+    // went wrong on our side".
+    if (err.status && err.status < 500) {
+      return res.status(err.status).json({ message: err.message });
+    }
+
     const errDesc = err.error?.description || err.response?.data?.error?.description || err.message;
     req.log?.error({ err, apiResponse: err.response?.data || err.error }, 'Error creating subscription order');
     
@@ -60,6 +70,14 @@ async function verifySubscription(req, res, next) {
 
     if (!upgrade) {
       return res.status(404).json({ message: 'User not found after upgrade.' });
+    }
+
+    // The service refused to move an active tenant onto a lower plan. The
+    // payment is captured and recorded; nothing about their access changed,
+    // so there is no new token to hand back.
+    if (upgrade.unchanged) {
+      req.log?.warn({ razorpay_order_id, plan: targetPlan }, 'Downgrade payment received; plan left unchanged');
+      return res.json({ success: true, message: upgrade.message, planChanged: false });
     }
 
     req.log?.info({ razorpay_order_id, razorpay_payment_id, plan: targetPlan }, 'Tenant plan upgraded successfully');

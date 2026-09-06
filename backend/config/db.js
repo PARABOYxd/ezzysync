@@ -353,6 +353,32 @@ async function ensureSchema() {
   }
 
   try {
+    // When the paid month runs out. A paid plan used to have no end date at
+    // all, so one payment bought the plan permanently - the tenant kept full
+    // access for as long as the account existed and was never asked to renew.
+    //
+    // NULL means "no paid period", which is every tenant on the trial. Tenants
+    // who already paid under the old behaviour are handled in the backfill
+    // below rather than being cut off by this migration.
+    await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ;`);
+
+    // Existing paying tenants bought a plan that, as sold, never expired.
+    // Ending that retroactively would lock them out of an account they paid
+    // for, so they get a month from the day this ships and a normal renewal
+    // cycle from there. Runs once: after the first pass nobody matches.
+    await query(`
+      UPDATE tenants
+         SET plan_expires_at = NOW() + INTERVAL '1 month'
+       WHERE plan_expires_at IS NULL
+         AND plan_id IN ('SOLO', 'PRO', 'PRO_ACTIVE');
+    `);
+
+    await query(`CREATE INDEX IF NOT EXISTS idx_tenants_plan_expires_at ON tenants(plan_expires_at);`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding plan_expires_at column');
+  }
+
+  try {
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;`);
   } catch (err) {
     logger.warn({ err }, 'Note adding google_id column');
@@ -555,6 +581,29 @@ async function ensureSchema() {
         ai_autopilot_enabled BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    // Baileys' own login keys, so a WhatsApp link survives a restart.
+    //
+    // These used to live only in backend/sessions/ on the container's disk,
+    // which on Railway is wiped by every deploy and every restart. The row in
+    // whatsapp_sessions still said 'connected', so on boot the app tried to
+    // resume a session whose keys no longer existed - and the agency was told
+    // to scan the QR again, sometimes daily.
+    //
+    // `category` is 'creds' for the single credentials blob, or a Signal key
+    // type ('pre-key', 'session', 'sender-key', 'app-state-sync-key', ...);
+    // `key_id` identifies one entry within that type. Values are JSON encoded
+    // with Baileys' BufferJSON so Buffers survive the round trip.
+    await query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_auth_state (
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        category TEXT NOT NULL,
+        key_id TEXT NOT NULL,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (tenant_id, category, key_id)
       );
     `);
 

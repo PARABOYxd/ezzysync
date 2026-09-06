@@ -25,7 +25,10 @@ const forgotPasswordValidators = [
 ];
 
 const resetPasswordValidators = [
-  body('email').isEmail(),
+  // Without withMessage this reported express-validator's default, "Invalid
+  // value" - the one message on this page that named neither the field nor
+  // the problem.
+  body('email').isEmail().withMessage('A valid email is required.'),
   body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits.'),
   body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters.'),
 ];

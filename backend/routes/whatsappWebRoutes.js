@@ -3,6 +3,8 @@ const multer = require('multer');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { requireFeature } = require('../middleware/planMiddleware');
 const ctrl = require('../controllers/whatsappWebController');
+const { validate } = require('../middleware/validate');
+const { toggleValidators } = require('../validators/whatsappWebValidators');
 
 const router = express.Router();
 // One customer message may carry several attachments. The count cap is
@@ -20,11 +22,11 @@ router.use(requireAuth);
 router.get('/status', ctrl.getStatus);
 router.post('/connect', ctrl.startSession);
 router.post('/disconnect', ctrl.disconnect);
-router.post('/toggle-autopilot', requireFeature('canUseAi'), ctrl.toggleAiAutopilot);
+router.post('/toggle-autopilot', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleAiAutopilot);
 router.get('/chats', ctrl.listChats);
 router.get('/chats/:chatId/messages', ctrl.getChatMessages);
 router.post('/chats/:chatId/send', upload.array('files', MAX_ATTACHMENTS), ctrl.sendMessage);
-router.post('/chats/:chatId/toggle-ai', requireFeature('canUseAi'), ctrl.toggleChatAi);
+router.post('/chats/:chatId/toggle-ai', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleChatAi);
 router.post('/chats/:chatId/ai-suggest', requireFeature('canUseAi'), ctrl.aiSuggest);
 router.post('/send-itinerary-pdf', ctrl.sendItineraryPdf);
 

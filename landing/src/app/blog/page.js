@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { PLAN_PRICE_LABEL } from "@/data/plans";
 
 // Real-world, trending travel agency tech articles with high SEO query match
 const blogPosts = [
@@ -39,7 +40,7 @@ const blogPosts = [
         </div>
         <div className="bg-slate-900 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">
           <span className="text-[9px] font-bold">Built for Indian Travel Operators</span>
-          <span className="text-[9px] font-bold text-orange-400">₹999/mo</span>
+          <span className="text-[9px] font-bold text-orange-400">{PLAN_PRICE_LABEL.SOLO}/mo</span>
         </div>
       </div>
     )
