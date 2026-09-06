@@ -61,10 +61,26 @@ function refreshAccessToken() {
 // On a 401 from a protected endpoint, try one silent token refresh and
 // retry the original request. Only clear auth and bounce to login if the
 // refresh itself fails (refresh token missing, expired, or revoked).
+/**
+ * Server errors carry a requestId that matches the log line for that exact
+ * request. Folding it into the message here means every screen shows it
+ * without each one having to remember - the backend's message ends with
+ * "send us the reference below", and until this existed there was no
+ * reference below to send.
+ */
+function attachRequestReference(response) {
+  const data = response?.data;
+  if (!data || typeof data.message !== 'string' || !data.requestId) return;
+  if (data.message.includes(data.requestId)) return;
+  data.message = `${data.message}\n\nRef: ${data.requestId}`;
+}
+
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const { response, config } = err;
+    attachRequestReference(response);
+
     if (response?.status !== 401 || !config || config._retried || isPublicAuthRoute(config.url)) {
       return Promise.reject(err);
     }

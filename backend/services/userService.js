@@ -90,7 +90,20 @@ async function findOrCreateGoogleUser({ email, name, googleId }) {
   return user;
 }
 
+/**
+ * Checks a password against the stored hash.
+ *
+ * Accounts created through Google Sign-In have no password_hash at all, and
+ * bcrypt.compare throws "Illegal arguments: string, object" when handed null.
+ * That surfaced as a 500 on every login attempt for those users, telling them
+ * nothing - not even that the password was wrong.
+ *
+ * Returns null to mean "this account has no password", which the caller turns
+ * into a message pointing at the right sign-in method.
+ */
 async function verifyPassword(user, plainPassword) {
+  if (!user?.passwordHash) return null;
+  if (!plainPassword) return false;
   return bcrypt.compare(plainPassword, user.passwordHash);
 }
 
