@@ -176,6 +176,47 @@ async function start() {
   });
   const websocketService = require('./services/websocketService');
   websocketService.init(server);
+
+  /**
+   * Shuts down in the order that matters, on the platform's own signal.
+   *
+   * Railway sends SIGTERM and then kills the process a short time later. With
+   * no handler, the outgoing container kept its WhatsApp socket open for that
+   * whole window - while the incoming one was already connecting with the same
+   * credentials. WhatsApp permits one connection per account and kicks the
+   * other with 440, so an ordinary deploy could leave the inbox disconnected.
+   *
+   * WhatsApp goes first (and gets its queued keys written), then the HTTP
+   * server stops accepting new work. The timeout is a backstop: if something
+   * hangs, exiting is still better than being killed mid-write.
+   */
+  let shuttingDown = false;
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, 'Shutting down');
+
+    const forceExit = setTimeout(() => {
+      logger.warn('Shutdown took too long; exiting anyway');
+      process.exit(0);
+    }, 10000);
+    forceExit.unref();
+
+    try {
+      await whatsappWebService.shutdownAllSessions();
+    } catch (err) {
+      logger.error({ err }, 'Error while closing WhatsApp sessions');
+    }
+
+    server.close(() => {
+      clearTimeout(forceExit);
+      logger.info('Shutdown complete');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 process.on('unhandledRejection', (err) => {

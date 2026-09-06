@@ -45,6 +45,10 @@ const aiInFlight = new Set();
 
 // Map to hold active Baileys socket connections per tenantId
 const activeSockets = new Map();
+
+// Each live session's "write any queued keys now" function, kept so shutdown
+// can persist them instead of losing the last 200ms of key updates.
+const authFlushers = new Map();
 const sessionDirBase = path.join(__dirname, '..', 'sessions');
 
 if (!fs.existsSync(sessionDirBase)) {
@@ -217,7 +221,8 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
     }
   }
 
-  const { state, saveCreds } = await whatsappAuthState.usePostgresAuthState(tenantId);
+  const { state, saveCreds, flush: flushAuth } = await whatsappAuthState.usePostgresAuthState(tenantId);
+  authFlushers.set(tenantId, flushAuth);
   const { version, isLatest } = await fetchLatestBaileysVersion();
   logger.info({ tenantId, version, isLatest }, 'Using Baileys version');
 
@@ -751,6 +756,7 @@ async function disconnectSession(tenantId) {
     } catch (e) {}
   }
   activeSockets.delete(tenantId);
+  authFlushers.delete(tenantId);
 
   // The keys live in Postgres now; the directory is only cleared for tenants
   // linked before that change, so nothing stale is left behind on disk.
@@ -875,7 +881,54 @@ async function autoInitConnectedSessions() {
   }
 }
 
+/**
+ * Closes every WhatsApp socket cleanly, for shutdown.
+ *
+ * This matters most during a deploy. The platform starts the new container
+ * before stopping the old one, so for a few seconds two processes hold a
+ * socket for the same WhatsApp account - and WhatsApp allows exactly one,
+ * kicking the loser with 440 (connectionReplaced). Letting the outgoing
+ * process hang on until it is killed is what turned an ordinary deploy into a
+ * disconnected inbox.
+ *
+ * `sock.end()`, never `sock.logout()`: end drops the connection, logout
+ * unlinks the device from the phone and would force a fresh QR scan on every
+ * single deploy - the exact opposite of the point.
+ */
+async function shutdownAllSessions() {
+  const tenantIds = [...activeSockets.keys()];
+  if (!tenantIds.length) return;
+
+  logger.info({ sessions: tenantIds.length }, 'Closing WhatsApp sessions for shutdown');
+
+  await Promise.all(
+    tenantIds.map(async (tenantId) => {
+      // Keys first: once the socket is gone there is nothing to persist for.
+      const flushAuth = authFlushers.get(tenantId);
+      if (flushAuth) {
+        try {
+          await flushAuth();
+        } catch (err) {
+          logger.warn({ tenantId, err }, 'Could not flush WhatsApp auth state on shutdown');
+        }
+      }
+
+      const socketData = activeSockets.get(tenantId);
+      try {
+        socketData?.sock?.ev?.removeAllListeners();
+        socketData?.sock?.end();
+      } catch (err) {
+        // Already closing or half-dead; nothing useful to do about it here.
+      }
+    })
+  );
+
+  activeSockets.clear();
+  authFlushers.clear();
+}
+
 module.exports = {
+  shutdownAllSessions,
   initWhatsAppSession,
   getSessionStatus,
   disconnectSession,
