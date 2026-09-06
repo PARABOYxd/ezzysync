@@ -24,6 +24,8 @@ router.post('/connect', ctrl.startSession);
 router.post('/disconnect', ctrl.disconnect);
 router.post('/toggle-autopilot', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleAiAutopilot);
 router.get('/chats', ctrl.listChats);
+router.post('/start-chat', ctrl.startChat);
+
 router.get('/chats/:chatId/messages', ctrl.getChatMessages);
 router.post('/chats/:chatId/send', upload.array('files', MAX_ATTACHMENTS), ctrl.sendMessage);
 router.post('/chats/:chatId/toggle-ai', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleChatAi);

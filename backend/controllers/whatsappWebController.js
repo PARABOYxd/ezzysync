@@ -278,6 +278,51 @@ async function listQuickReplies(req, res, next) {
   }
 }
 
+async function startChat(req, res, next) {
+  try {
+    const { phone, message } = req.body;
+    if (!phone) return res.status(400).json({ message: 'phone is required.' });
+
+    // Normalize: strip everything except digits, then ensure Indian 91 prefix
+    const digits = String(phone).replace(/\D/g, '');
+    const normalized = digits.length === 10 ? `91${digits}` : digits;
+
+    if (normalized.length < 10) {
+      return res.status(400).json({ message: 'Enter a valid phone number (10 or 12 digits).' });
+    }
+
+    const tenantId = req.user.tenantId;
+
+    // Re-use an existing chat if one already exists for this number
+    let chat = await whatsappWebRepository.findChatByPhone(tenantId, normalized);
+    if (!chat) {
+      // Create a bare chat row so the CRM inbox shows the conversation
+      const autopilotDefault = await whatsappWebRepository.getAutopilotDefault(tenantId);
+      chat = await whatsappWebRepository.createChat(tenantId, {
+        phone: normalized,
+        jid: `${normalized}@s.whatsapp.net`,
+        customerName: '',
+        leadId: null,
+        lastMessage: message || '',
+        aiEnabled: autopilotDefault,
+      });
+    }
+
+    if (message && message.trim()) {
+      await whatsappWebService.sendManualMessage(tenantId, {
+        chatId: chat.id,
+        phone: normalized,
+        jid: `${normalized}@s.whatsapp.net`,
+        messageText: message.trim(),
+      });
+    }
+
+    res.json({ success: true, chatId: chat.id });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getStatus,
   startSession,
@@ -290,4 +335,5 @@ module.exports = {
   sendItineraryPdf,
   aiSuggest,
   listQuickReplies,
+  startChat,
 };

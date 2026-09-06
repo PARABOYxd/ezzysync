@@ -77,6 +77,13 @@ export default function WhatsAppChat() {
   const [viewingMedia, setViewingMedia] = useState(null); // a message already in the thread
   const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'whatsapp' | 'instagram'
+  const [startChatModal, setStartChatModal] = useState(false);
+  const [startChatPhone, setStartChatPhone] = useState('');
+  const [startChatMsg, setStartChatMsg] = useState('');
+  const [startingChat, setStartingChat] = useState(false);
+
+  // True when the search query looks like a phone number (≥8 digits)
+  const isPhoneSearch = /^[\d\s+()-]{8,}$/.test(searchQuery.trim());
 
   const filteredChats = chats.filter((c) => {
     const isIg = c.phone?.startsWith('IG_') || c.chat_id?.startsWith('IG_');
@@ -484,6 +491,23 @@ export default function WhatsAppChat() {
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
+  const handleStartChat = async (e) => {
+    e.preventDefault();
+    if (!startChatPhone.trim()) return;
+    setStartingChat(true);
+    try {
+      const { chatId } = await whatsappWebService.startChat(startChatPhone.trim(), startChatMsg.trim());
+      setStartChatModal(false);
+      setSearchQuery('');
+      await loadChats();
+      await loadChatMessages(chatId);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not start new chat. Make sure WhatsApp is connected.');
+    } finally {
+      setStartingChat(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
       {/* Top Banner: Connection & AI Status Bar */}
@@ -610,9 +634,23 @@ export default function WhatsAppChat() {
               <div className="text-center py-12 px-4 text-slate-400">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
                 <p className="text-xs font-medium">No conversations found.</p>
-                <p className="text-[11px] mt-1 text-slate-500">
-                  Inbound messages from WhatsApp & Instagram DMs will auto-appear here!
-                </p>
+                {isPhoneSearch && session.status === 'connected' ? (
+                  <button
+                    onClick={() => {
+                      setStartChatPhone(searchQuery.trim());
+                      setStartChatMsg('');
+                      setStartChatModal(true);
+                    }}
+                    className="mt-3 flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow transition-colors"
+                  >
+                    <PlusCircle size={13} />
+                    Start New Chat with {searchQuery.trim()}
+                  </button>
+                ) : (
+                  <p className="text-[11px] mt-1 text-slate-500">
+                    Inbound messages from WhatsApp & Instagram DMs will auto-appear here!
+                  </p>
+                )}
               </div>
             ) : (
               filteredChats.map((chat) => {
@@ -1264,6 +1302,64 @@ export default function WhatsAppChat() {
                   className="px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 disabled:opacity-50"
                 >
                   {sendingItinerary ? 'Generating & Sending...' : 'Send PDF via WhatsApp'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ── Start New Chat Modal ── */}
+      {startChatModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                  <MessageSquare size={15} className="text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Start New Chat</h3>
+              </div>
+              <button onClick={() => setStartChatModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleStartChat} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  value={startChatPhone}
+                  onChange={(e) => setStartChatPhone(e.target.value)}
+                  placeholder="e.g. 9136520538 or +919136520538"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Opening Message <span className="font-normal text-slate-400">(optional)</span></label>
+                <textarea
+                  value={startChatMsg}
+                  onChange={(e) => setStartChatMsg(e.target.value)}
+                  placeholder="Hi! I'm reaching out regarding..."
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setStartChatModal(false)}
+                  className="flex-1 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={startingChat || !startChatPhone.trim()}
+                  className="flex-1 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {startingChat ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  {startingChat ? 'Starting...' : 'Start Chat'}
                 </button>
               </div>
             </form>

@@ -68,4 +68,9 @@ export const whatsappWebService = {
     const res = await api.post('/whatsapp-web/send-itinerary-pdf', { chatId, tripName, itineraryText });
     return res.data;
   },
+
+  startChat: async (phone, message = '') => {
+    const res = await api.post('/whatsapp-web/start-chat', { phone, message });
+    return res.data;
+  },
 };
