@@ -52,7 +52,10 @@ async function disconnect(req, res) {
     await instagramService.disconnect(req.user.tenantId);
     res.json({ message: 'Instagram disconnected.' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    // err.message here is whatever Instagram or the HTTP client threw. It is
+    // written for a developer, not an agent, and can name internal hosts.
+    req.log?.error?.({ err }, 'Instagram disconnect failed');
+    res.status(500).json({ message: 'Could not disconnect Instagram. Please try again.' });
   }
 }
 

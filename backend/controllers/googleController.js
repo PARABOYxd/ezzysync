@@ -91,8 +91,10 @@ exports.googleCallback = async (req, res) => {
     } catch (err) {
         req.log.error({ err }, 'Google Gmail connection callback failed');
 
+        // Already logged above with full detail; the browser gets something
+        // a person can act on instead of the raw Google/OAuth error.
         res.status(500).json({
-            message: err.message,
+            message: 'Could not finish connecting Gmail. Please try again from Settings.',
         });
     }
 };

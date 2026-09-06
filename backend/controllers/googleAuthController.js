@@ -73,6 +73,13 @@ exports.googleLoginCallback = async (req, res) => {
     res.redirect(`${env.frontendUrl}/auth/google/callback?token=${token}&refreshToken=${refreshToken}`);
   } catch (err) {
     req.log.error({ err }, 'Google login callback failed');
-    res.redirect(`${env.frontendUrl}/login?error=${encodeURIComponent(err.message || 'Google login failed')}`);
+    // The raw message went into the login page's URL bar, where a person sees
+    // things like "connect ETIMEDOUT" or a Google API trace. Full detail is in
+    // the log line above; the screen gets something actionable.
+    res.redirect(
+      `${env.frontendUrl}/login?error=${encodeURIComponent(
+        'Could not sign in with Google. Please try again, or use your email and password.'
+      )}`
+    );
   }
 };

@@ -25,6 +25,11 @@ const planService = require('./planService');
 // human should take over. It must never reach the customer.
 const HUMAN_HANDOFF_MARKER = '[FALLBACK_HUMAN_NEEDED]';
 
+// How stale a queued message may be and still get an automatic reply. Older
+// than this and it is left for a person: answering a two-hour-old question as
+// though it just arrived is worse than not answering it.
+const AI_REPLY_MAX_AGE_SECONDS = Number(process.env.AI_REPLY_MAX_AGE_SECONDS) || 15 * 60;
+
 /**
  * Chat ids with an AI reply already being generated.
  *
@@ -326,7 +331,16 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
 
   // Handle incoming messages
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
+    // Baileys labels a message 'notify' when it arrives live and 'append' when
+    // WhatsApp is delivering one that queued while this device was offline
+    // (Socket/messages-recv.js: `node.attrs.offline ? 'append' : 'notify'`).
+    //
+    // Only accepting 'notify' meant every message sent while the session was
+    // down - a restart, a dropped socket, a night with the server off - was
+    // thrown away on reconnect. It never reached the inbox, never created a
+    // lead, and the agent had no idea it existed.
+    if (type !== 'notify' && type !== 'append') return;
+    const isOfflineBacklog = type === 'append';
 
     for (const msg of messages) {
       if (!msg.message) continue;
@@ -379,6 +393,22 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       try {
         const mediaUrl = media ? await storeInboundMedia(sock, msg, media) : null;
 
+        // Backlog messages are always recorded, but the AI only answers ones
+        // that are still fresh. Coming back after an hour and firing a reply
+        // at every queued message at once reads as a malfunction to the
+        // customer, and the older ones deserve a person anyway.
+        const ageSeconds = msg.messageTimestamp
+          ? Math.max(0, Math.floor(Date.now() / 1000) - Number(msg.messageTimestamp))
+          : 0;
+        const allowAiReply = !isOfflineBacklog || ageSeconds < AI_REPLY_MAX_AGE_SECONDS;
+
+        if (isOfflineBacklog) {
+          logger.info(
+            { tenantId, senderPhone, ageSeconds, allowAiReply },
+            'Recording a message that arrived while the session was offline'
+          );
+        }
+
         await processInboundMessage(tenantId, {
           senderJid,
           senderPhone,
@@ -388,6 +418,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
           sock,
           messageType: media ? media.type : 'text',
           mediaUrl,
+          allowAiReply,
         });
       } catch (err) {
         logger.error({ err, tenantId, senderPhone }, 'Error processing inbound WhatsApp message');
@@ -456,7 +487,7 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 /**
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
-async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null }) {
+async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true }) {
   // What the chat list shows. A caption when there is one, otherwise a short
   // stand-in so an attachment-only message is not a blank row.
   const preview = messageText || mediaPreview(messageType);
@@ -521,7 +552,8 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
   // needs_human is re-checked here as well as in the toggle: an escalation
   // must survive regardless of how the flags were set, since sending anything
   // on a chat the AI already backed away from is the worst outcome.
-  const chatAiEnabled = chat.ai_enabled === true && chat.needs_human !== true;
+  const chatAiEnabled =
+    allowAiReply && chat.ai_enabled === true && chat.needs_human !== true;
 
   // Autopilot fires from the socket, not an HTTP route, so the plan check has
   // to happen here too - route middleware alone would leave a downgraded
