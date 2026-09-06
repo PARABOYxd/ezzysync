@@ -1577,6 +1577,22 @@ export function formatItineraryForWhatsapp(itinerary) {
 // ==========================================
 // 8. MARKDOWN PARSER
 // ==========================================
+function stripMarkdownBold(str) {
+  if (!str) return "";
+  let s = str.trim();
+  // Strip leading list bullet: - or *
+  s = s.replace(/^[-*•]\s*/, "");
+  // Standardize Morning / Afternoon / Evening / Stay without asterisks
+  s = s.replace(/\*\*(Morning|Afternoon|Evening|Night|Stay|Overnight|Trek|Ascent|Descent|Breakfast|Lunch|Dinner)\*\*[:\s]*/gi, "$1: ");
+  // Remove all other double asterisks from text
+  s = s.replace(/\*\*([^*]+)\*\*/g, "$1");
+  // Remove remaining stray double asterisks
+  s = s.replace(/\*\*/g, "");
+  // Clean duplicate colons like "Morning::"
+  s = s.replace(/:\s*:/g, ":");
+  return s.trim();
+}
+
 export function parseMarkdownToStructuredItinerary(text, meta = {}) {
   if (!text) return null;
   const lines = text.split(/\r?\n/);
@@ -1593,7 +1609,7 @@ export function parseMarkdownToStructuredItinerary(text, meta = {}) {
     if (!trimmed) continue;
 
     if (trimmed.startsWith("# ")) {
-      title = trimmed.replace(/^#\s*/, "");
+      title = stripMarkdownBold(trimmed.replace(/^#\s*/, ""));
       continue;
     }
 
@@ -1601,7 +1617,7 @@ export function parseMarkdownToStructuredItinerary(text, meta = {}) {
       if (currentDay) days.push(currentDay);
       currentDay = {
         dayNumber: days.length + 1,
-        title: trimmed.replace(/^##\s*/, ""),
+        title: stripMarkdownBold(trimmed.replace(/^##\s*/, "")),
         points: [],
       };
       currentSection = "day";
@@ -1628,22 +1644,20 @@ export function parseMarkdownToStructuredItinerary(text, meta = {}) {
     }
 
     if (currentSection === "day" && currentDay) {
-      if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-        currentDay.points.push(trimmed.replace(/^[-*]\s*/, ""));
-      } else if (!trimmed.startsWith("##") && !trimmed.startsWith("---")) {
-        currentDay.points.push(trimmed);
+      if (!trimmed.startsWith("##") && !trimmed.startsWith("---")) {
+        currentDay.points.push(stripMarkdownBold(trimmed));
       }
     } else if (currentSection === "inclusions") {
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-        inclusions.push(trimmed.replace(/^[-*]\s*/, ""));
+        inclusions.push(stripMarkdownBold(trimmed));
       }
     } else if (currentSection === "exclusions") {
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-        exclusions.push(trimmed.replace(/^[-*]\s*/, ""));
+        exclusions.push(stripMarkdownBold(trimmed));
       }
     } else if (currentSection === "tips") {
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-        tips.push(trimmed.replace(/^[-*]\s*/, ""));
+        tips.push(stripMarkdownBold(trimmed));
       }
     }
   }

@@ -127,6 +127,22 @@ export default function FreeItineraryTool({ crmUrl }) {
       });
     }
 
+    // Clean any markdown bold asterisks (e.g. **Morning:** -> Morning:) so inputs display cleanly
+    if (structuredData && structuredData.days) {
+      structuredData.days = structuredData.days.map((d) => ({
+        ...d,
+        title: (d.title || "").replace(/\*\*/g, "").trim(),
+        points: (d.points || []).map((p) => {
+          if (!p) return "";
+          let s = p.trim().replace(/^[-*•]\s*/, "");
+          s = s.replace(/\*\*(Morning|Afternoon|Evening|Night|Stay|Overnight|Trek|Ascent|Descent|Breakfast|Lunch|Dinner)\*\*[:\s]*/gi, "$1: ");
+          s = s.replace(/\*\*([^*]+)\*\*/g, "$1");
+          s = s.replace(/\*\*/g, "");
+          return s.replace(/:\s*:/g, ":").trim();
+        }),
+      }));
+    }
+
     setItinerary(structuredData);
     setStep("preview");
     setLoading(false);
