@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import * as profileService from '../services/profileService';
 import { openRazorpayCheckout } from '../services/paymentService';
 import { useToast } from '../hooks/useToast.jsx';
@@ -21,6 +21,18 @@ export default function Profile() {
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '' });
   const [pwSaving, setPwSaving] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Other pages link here with ?upgrade=1 when someone hits a locked feature,
+  // so they land on the plans rather than having to find them. The parameter
+  // is cleared straight away, or a refresh would reopen the modal.
+  useEffect(() => {
+    if (searchParams.get('upgrade') === '1') {
+      setUpgradeModalOpen(true);
+      searchParams.delete('upgrade');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const toast = useToast();
 
   const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
