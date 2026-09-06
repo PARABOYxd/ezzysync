@@ -36,54 +36,68 @@ async function generateFreeItinerary({ destination, days = 4, tripType = 'Family
   }
 
   // 2. Generate Itinerary with Gemini AI
-  const roughNotesPrompt = description && description.trim()
-    ? `\nIMPORTANT - USER SUPPLIED ROUGH ITINERARY & REQUIREMENTS:
+  const userCommandPrompt = description && description.trim()
+    ? `\nUSER NATURAL-LANGUAGE COMMAND / SPECIFIC REQUEST:
 """
 ${description.trim()}
-"""
-CRITICAL INSTRUCTIONS:
-- You MUST follow the user's rough itinerary sequence, mentioned places, activities, and night stays for each day.
-- Extract any mentioned inclusions (e.g. meals like breakfast/dinner, stay type, private cab/transport, tickets) into the "Package Inclusions" section.
-- Extract any mentioned exclusions into "Package Exclusions".
-- Expand the rough notes into a polished, professional, day-wise travel agency itinerary.`
-    : `Generate realistic, destination-authentic sightseeing, transfers, and stay recommendations specifically for ${destination}.`;
+"""`
+    : '';
 
-  const prompt = `You are an expert travel agency tour designer.
-Create a detailed, beautiful day-wise travel itinerary for:
-- Destination: ${destination}
-- Duration: ${days} Days / ${Math.max(1, Number(days) - 1)} Nights
-- Trip Style: ${tripType}
-- Agency Branding: ${agencyName || 'Your Travel Partner'}
-${roughNotesPrompt}
+  const prompt = `AI ITINERARY GENERATOR — SYSTEM PROMPT
+You are an expert travel itinerary planner.
+Your job is to convert a user's natural-language travel request into a realistic, geographically logical, time-feasible day-wise travel itinerary.
 
-Format the response cleanly in markdown with:
+INPUT DATA:
+- Main Destination: ${destination}
+- Requested Duration: ${days} Days / ${Math.max(1, Number(days) - 1)} Nights
+- Trip Style / Category: ${tripType}
+- Agency Branding: ${agencyName || 'EzzySync Partner Agency'}
+${userCommandPrompt}
+
+CORE RULES & GUIDELINES:
+1. GEOGRAPHICALLY LOGICAL & PRACTICAL ROUTE:
+   - Group nearby attractions together, avoid unnecessary backtracking.
+   - For mountainous, remote, or trekking destinations (e.g., Chopta, Tungnath, Aadrai Jungle Trek, Mussoorie, Kasol, Spiti), use realistic road/rail combinations (cars, private cabs, overnight Volvo buses, trains to nearest railhead like Rishikesh/Haridwar/Dehradun/Kalka).
+   - Never recommend flights to destinations that don't have practical airport connectivity.
+
+2. TREKKING LOGIC:
+   - Treat trekking differently from normal sightseeing. A trek is not just a point on a map.
+   - Distinguish driving from trekking. Identify actual base village / trailhead (e.g., Khireshwar for Aadrai Jungle Trek in Malshej Ghat; Chopta base for Tungnath & Chandrashila; Sari for Deoria Tal).
+   - Account for trek distance, walking duration, elevation, rest, and safe return before dark.
+   - Do not combine multiple heavy treks in one day.
+
+3. DAILY TIME MANAGEMENT:
+   - Account for realistic wake-up time, travel time, sightseeing, meals, and check-in.
+   - Do not create rushed schedules. Include reasonable meal stops and leisure.
+
+4. INCLUSIONS & EXCLUSIONS:
+   - Include practical items tailored to the trip (e.g. hotel/resort stay or alpine camping, meals/breakfast/dinner, private cab/transfers, forest entry permits, trek guide, safety equipment).
+   - Exclusions should mention personal expenses, adventure activities, flights, etc.
+
+Format the response strictly in clean Markdown:
 # ${destination} ${days}D/${Math.max(1, Number(days) - 1)}N Tour Itinerary ✈️
-**Duration:** ${days} Days | **Style:** ${tripType} | **Prepared By:** ${agencyName || 'EzzySync Partner Agency'}
+**Duration:** ${days} Days | **Prepared By:** ${agencyName || 'EzzySync Partner Agency'}
 
 ---
 
-## Day 1: [Day Title]
-- **Morning:** [Arrival & Transfer details]
-- **Afternoon:** [Local sightseeing / check-in]
-- **Evening:** [Attraction / Leisure]
-- **Stay:** [Recommended stay & meal plan]
+## Day 1: [Day Title with Route / Start]
+- **Morning:** [Departure / Arrival / Route journey]
+- **Afternoon:** [Check-in / Lunch / First attraction]
+- **Evening:** [Local leisure / Sunset point / Dinner]
+- **Stay:** [Night Stay location & type]
 
-(Continue for all ${days} days with realistic, exciting local attractions for ${destination})
+(Continue for all ${days} days with realistic timings and geographically ordered stops)
 
 ---
 
 ## 🎒 Package Inclusions
-- Daily Breakfast at Hotel
-- Private AC Vehicle for transfers & sightseeing
-- All Toll, Parking & Driver allowances
-[Include any specific inclusions mentioned in the rough notes such as meals, activities, transfers, stays]
+- [List 4-6 realistic inclusions like stays, meals, private cab, trek guide, permits]
 
 ## ❌ Package Exclusions
-- Flights / Train tickets
-- Personal expenses, adventure activities & entry tickets
+- [List 3-4 realistic exclusions like personal expenses, flights, optional gear]
 
 ## 💡 Travel Specialist Tips for ${destination}
-- [2-3 authentic, useful tips for travelers]`;
+- [3 authentic, local tips regarding terrain, best time, gear, or permits]`;
 
   let itinerary = '';
   if (aiService.isConfigured()) {

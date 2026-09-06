@@ -148,6 +148,166 @@ const DESTINATION_TEMPLATES = {
       "Carry woolens even during summer as Gulmarg and Sonamarg glaciers get chilly."
     ]
   },
+  aadrai: {
+    title: (days) => `🌿 Aadrai Jungle Trek ${days}D/${Math.max(1, days - 1)}N Malshej Ghat Wilderness Adventure`,
+    days: [
+      {
+        title: "Mumbai/Pune Departure, Khireshwar Base & Deep Jungle Trek",
+        points: [
+          "Morning: Early morning pickup from Mumbai / Pune (05:00 AM) by private vehicle. Scenic drive through Kalyan - Malshej Ghat highway with misty Sahyadri mountain views.",
+          "Afternoon: Reach base village Khireshwar (near Pimpalgaon Joga Dam). Traditional breakfast and briefing by certified trek leader. Enter the dense Aadrai rainforest trail — navigate crystal-clear stream crossings, ancient Bhairavnath caves, and lush evergreen canopy.",
+          "Evening: Reach the breathtaking deep gorge viewpoint of Kalu Waterfall (one of highest in Maharashtra). Rest and descend safely back to base village by 04:30 PM. Enjoy hot home-cooked Maharashtrian Pithla Bhakri dinner.",
+          "Stay: Lakeside Alpine Camping or Rustic Homestay near Pimpalgaon Joga Dam / Khireshwar village."
+        ]
+      },
+      {
+        title: "Pimpalgaon Joga Dam Sunrise, Malshej Ghat Waterfalls & Return",
+        points: [
+          "Morning: Wake up to serene lakeside sunrise over Pimpalgaon Joga Dam with birdwatching (flamingos and migratory birds in season). Visit ancient 10th-century Nageshwar Temple in Khireshwar.",
+          "Afternoon: Relish authentic village breakfast. Drive back through Malshej Ghat pass with scenic stops at roadside cascading waterfalls and rock-cut viewing points.",
+          "Evening: Drop-off at Mumbai / Pune with unforgettable Sahyadri jungle trekking memories!"
+        ]
+      },
+      {
+        title: "Harishchandragad Base & Village Exploration",
+        points: [
+          "Morning: Short exploratory hike to the foot of historic Harishchandragad fort and forest trails.",
+          "Afternoon: Riverside relaxation and traditional lunch prepared with locally grown organic ingredients.",
+          "Evening: Scenic evening transfer back to city."
+        ]
+      }
+    ],
+    inclusions: [
+      "Certified Local Mountain & Trek Leader with first-aid support",
+      "Forest Department Entry Permits & Eco-tourism Fees",
+      "Homestay / Alpine Tent Accommodation with bedding",
+      "Traditional Village Meals (Breakfast, Hot Lunch & Dinner)",
+      "Private Vehicle Transport from Mumbai or Pune including tolls and parking",
+      "Safety gear and guided stream crossing support"
+    ],
+    exclusions: [
+      "Personal trekking gear (high-grip trekking shoes, rain poncho, dry bags)",
+      "Personal insurance or medical expenses",
+      "Packaged drinking water, soft drinks, or personal snacks"
+    ],
+    tips: [
+      "Aadrai is an authentic raw jungle trail — wearing high-ankle trekking shoes with strong grip is mandatory.",
+      "Carry waterproof pouches or dry bags for phones and electronics due to stream crossings and monsoons.",
+      "Carry salt or leech repellant sprays and stay with the trek group at all times inside the dense forest."
+    ]
+  },
+  chopta: {
+    title: (days) => `🏔️ Chopta Tungnath & Chandrashila ${days}D/${Math.max(1, days - 1)}N Himalayan Trek`,
+    days: [
+      {
+        title: "Delhi / Haridwar to Chopta via Devprayag & Rudraprayag",
+        points: [
+          "Morning: Early departure from Delhi via Meerut Expressway to Haridwar / Rishikesh. Ascend into the Himalayas along the Alaknanda River.",
+          "Afternoon: Stop at sacred Devprayag to witness the holy confluence of Alaknanda and Bhagirathi rivers forming the Ganga. Continue via Rudraprayag and Kund towards Chopta (8,790 ft).",
+          "Evening: Arrive in Chopta / Sari alpine village. Savor hot Garhwali herbal ginger tea and admire sunset reflections over Chaukhamba peaks.",
+          "Stay: Swiss Alpine Camps or Cozy Mountain Cottage in Chopta / Sari."
+        ]
+      },
+      {
+        title: "The Sacred Tungnath Temple & Chandrashila Peak Summit (13,100 ft)",
+        points: [
+          "Morning (06:00 AM): Light breakfast and drive to Chopta base trailhead. Begin paved stone trek (3.5 km) through rhododendron and pine forests to Tungnath Temple — the highest Shiva shrine in the world (12,073 ft).",
+          "Afternoon: Pray at the historic ancient Tungnath Temple, then begin the steep 1 km ridge climb to Chandrashila Summit (13,100 ft). Experience 360-degree panoramic views of Chaukhamba, Nanda Devi, Trishul, Kedar Dome, and Bandarpunch peaks.",
+          "Evening: Descend back to Chopta base by 03:30 PM. Warm evening bonfire under sparkling clear night skies with hearty dinner.",
+          "Stay: Swiss Alpine Camps in Chopta."
+        ]
+      },
+      {
+        title: "Pristine Deoria Tal Lake Trek & Omkareshwar Ukhimath",
+        points: [
+          "Morning: Drive to Sari village base. Begin 2.5 km gentle scenic trek through dense oak forests to the crystal-clear Deoria Tal (7,998 ft).",
+          "Afternoon: Witness the stunning mirror reflection of snow-capped Chaukhamba peaks in the lake waters. Leisure walk and packed lunch by the lake.",
+          "Evening: Descend to Sari village. Visit ancient Omkareshwar Temple in Ukhimath (winter abode of Lord Kedarnath).",
+          "Stay: Swiss Alpine Camps in Chopta or Riverside Resort in Rudraprayag."
+        ]
+      },
+      {
+        title: "Scenic Downhill Return Journey via Rishikesh to Delhi",
+        points: [
+          "Morning: Hearty breakfast, pack bags, and begin scenic downhill drive following the river valley.",
+          "Afternoon: Halt at Rishikesh for lunch by the Ganges and visit Ram Jhula / Laxman Jhula.",
+          "Evening: Smooth expressway drive back to Delhi. Drop-off at designated point with cherished Himalayan summit memories!"
+        ]
+      }
+    ],
+    inclusions: [
+      "Accommodations in Swiss Alpine Camps / Cottages with attached washrooms",
+      "Daily Nutritious Breakfast & Dinner (MAP Plan)",
+      "Experienced Himalayan Trek Guide for Tungnath & Chandrashila Summit",
+      "Kedarnath Wildlife Sanctuary Forest Entry Permits",
+      "Dedicated Private Cab for entire Delhi-Chopta-Delhi journey including tolls, parking & driver night charges"
+    ],
+    exclusions: [
+      "Personal trekking poles, heavy winter jackets, and thermals",
+      "Pony / mule charges on trek (if hired)",
+      "En-route lunches and personal expenses"
+    ],
+    tips: [
+      "Night temperatures in Chopta drop significantly; carry 3-layer warm clothing (thermal, fleece, windproof jacket).",
+      "Start the Chandrashila summit push early in the morning to enjoy crystal-clear panoramic views before midday clouds roll in.",
+      "Stay well-hydrated throughout the trek to ensure smooth acclimatization."
+    ]
+  },
+  mussoorie: {
+    title: (days) => `🌲 Queen of Hills Mussoorie & Dhanaulti ${days}D/${Math.max(1, days - 1)}N Getaway`,
+    days: [
+      {
+        title: "Arrival via Dehradun & Mussoorie Mall Road Walk",
+        points: [
+          "Morning: Pick-up from Dehradun Airport or Railway Station. Scenic 1.5-hour hill drive ascending to Mussoorie (6,580 ft).",
+          "Afternoon: Check-in to hotel overlooking the Doon Valley. Relax, unpack, and freshen up.",
+          "Evening: Stroll along vibrant Mall Road, Kulri Bazaar, and Library Chowk. Take the ropeway cable car to Gun Hill for sunset panoramas.",
+          "Stay: Deluxe Valley View Hotel in Mussoorie."
+        ]
+      },
+      {
+        title: "Kempty Falls, George Everest Peak & Cloud's End",
+        points: [
+          "Morning: Visit the iconic Kempty Falls cascading down 40 feet with refreshing mountain pools.",
+          "Afternoon: Drive to Sir George Everest House and hike up to George Everest Peak for 360-degree views of the Aglar River Valley and snowy Himalayan ranges.",
+          "Evening: Explore Cloud's End surrounded by dense deodar and oak forests. Return to hotel for dinner.",
+          "Stay: Deluxe Valley View Hotel in Mussoorie."
+        ]
+      },
+      {
+        title: "Landour Charm, Lal Tibba & Dhanaulti Eco Park",
+        points: [
+          "Morning: Drive to tranquil Landour cantonment. Visit historic Char Dukan, savor famous apple pie, and view snow peaks through telescope at Lal Tibba (highest point in Mussoorie).",
+          "Afternoon: Excursion to pristine Dhanaulti (24 km). Walk among towering deodars in Amber & Dhara Eco Parks. Optional visit to Surkanda Devi Temple.",
+          "Evening: Drive back to Mussoorie. Enjoy cafe hopping and shopping for handmade wooden souvenirs.",
+          "Stay: Deluxe Valley View Hotel in Mussoorie."
+        ]
+      },
+      {
+        title: "Company Garden & Return Departure",
+        points: [
+          "Morning: Visit colorful Mussoorie Company Garden with artificial waterfalls, flower nursery, and amusement rides.",
+          "Afternoon: Check-out and private downhill transfer to Dehradun Airport or Railway Station with sweet Himalayan memories!"
+        ]
+      }
+    ],
+    inclusions: [
+      "Deluxe Hotel Stay with Daily Buffet Breakfast & Dinner",
+      "Private AC Sedan / SUV for transfers and all local sightseeing tours",
+      "Full-day excursion to Kempty Falls, George Everest, and Dhanaulti",
+      "Driver beta, toll taxes, parking, and green cess"
+    ],
+    exclusions: [
+      "Airfare or Train tickets to Dehradun",
+      "Ropeway tickets at Gun Hill and adventure activities at Kempty",
+      "Personal shopping, cafe bills, and tips"
+    ],
+    tips: [
+      "Landour roads are narrow; walking or hiring a smaller local cab is recommended for Char Dukan.",
+      "Try authentic Tibetan momos and steamed thukpa on Mall Road.",
+      "Carry light woolens during summer and heavy jackets during winter (Dec-Feb)."
+    ]
+  },
   goa: {
     title: (days) => `Sun, Sand & Sea Goa ${days}D/${Math.max(1, days - 1)}N Beach Holiday`,
     days: [
@@ -724,23 +884,48 @@ export function buildSmartItinerary({
   email = "",
   roughNotes = ""
 }) {
-  const destKey = (destination || "").toLowerCase().trim();
+  let effectiveDest = (destination || "").trim();
+  const lowerCommand = (roughNotes || "").toLowerCase();
+
+  // If destination is empty or simple, infer from command if possible
+  if (!effectiveDest || effectiveDest.toLowerCase() === "destination") {
+    for (let key of Object.keys(DESTINATION_TEMPLATES)) {
+      if (lowerCommand.includes(key)) {
+        if (key === "aadrai") effectiveDest = "Aadrai Jungle Trek";
+        else if (key === "chopta") effectiveDest = "Chopta Tungnath";
+        else if (key === "mussoorie") effectiveDest = "Mussoorie";
+        else effectiveDest = key.charAt(0).toUpperCase() + key.slice(1);
+        break;
+      }
+    }
+    if (!effectiveDest) {
+      // Try to extract from "itinerary of/for [Place]"
+      const match = roughNotes.match(/(?:itinerary\s+(?:of|for)|trip\s+(?:to|for))\s+([a-zA-Z\s]+?)(?:\s+(?:from|with|in|for|\d+|\.|$))/i);
+      if (match && match[1]) {
+        effectiveDest = match[1].trim();
+      } else {
+        effectiveDest = "Custom Tour";
+      }
+    }
+  }
+
+  const destKey = effectiveDest.toLowerCase();
   const numDays = Math.max(1, Number(days) || 4);
 
   // Check if user provided rough notes
-  const roughParsed = parseUserRoughNotes(roughNotes, numDays, destination);
+  const roughParsed = parseUserRoughNotes(roughNotes, numDays, effectiveDest);
 
   // Find destination in preset knowledge base or synthesize
   let baseTemplate = null;
   for (let key of Object.keys(DESTINATION_TEMPLATES)) {
-    if (destKey.includes(key)) {
+    if (destKey.includes(key) || lowerCommand.includes(key)) {
       baseTemplate = DESTINATION_TEMPLATES[key];
       break;
     }
   }
 
   if (!baseTemplate) {
-    baseTemplate = synthesizeCustomDestination(destination, numDays, tripType);
+    baseTemplate = synthesizeCustomDestination(effectiveDest, numDays, tripType);
   }
 
   // Build the day-wise itinerary

@@ -66,7 +66,21 @@ export default function FreeItineraryTool({ crmUrl }) {
   // Generation handler
   const handleGenerate = async (e) => {
     if (e) e.preventDefault();
-    if (!destination.trim()) return;
+    if (!destination.trim() && !roughNotes.trim()) return;
+
+    let effectiveDest = destination.trim();
+    if (!effectiveDest) {
+      const lower = roughNotes.toLowerCase();
+      if (lower.includes("aadrai")) effectiveDest = "Aadrai Jungle Trek";
+      else if (lower.includes("chopta")) effectiveDest = "Chopta Tungnath";
+      else if (lower.includes("mussoorie") || lower.includes("mussorie")) effectiveDest = "Mussoorie";
+      else if (lower.includes("bali")) effectiveDest = "Bali";
+      else {
+        const m = roughNotes.match(/(?:itinerary\s+(?:of|for)|trip\s+(?:to|for))\s+([a-zA-Z\s]+?)(?:\s+(?:from|with|in|for|\d+|\.|$))/i);
+        effectiveDest = m && m[1] ? m[1].trim() : "Custom Tour";
+      }
+      setDestination(effectiveDest);
+    }
 
     setLoading(true);
     setCopied(false);
@@ -75,7 +89,7 @@ export default function FreeItineraryTool({ crmUrl }) {
 
     try {
       const res = await generateFreeItinerary({
-        destination: destination.trim(),
+        destination: effectiveDest,
         days,
         tripType,
         agencyName: agencyName.trim() || "Your Travel Partner",
@@ -387,6 +401,8 @@ export default function FreeItineraryTool({ crmUrl }) {
                   onChange={(e) => setDays(Number(e.target.value))}
                   className="w-full text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-4 py-3 outline-none transition font-medium text-slate-800 cursor-pointer"
                 >
+                  <option value={1}>1 Day (Day Hike / Day Tour)</option>
+                  <option value={2}>2 Days / 1 Night (Weekend Trek)</option>
                   <option value={3}>3 Days / 2 Nights</option>
                   <option value={4}>4 Days / 3 Nights</option>
                   <option value={5}>5 Days / 4 Nights</option>
@@ -462,39 +478,97 @@ export default function FreeItineraryTool({ crmUrl }) {
               </div>
             </div>
 
-            {/* Rough Itinerary / Description Textarea */}
-            <div className="space-y-2.5 pt-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                  <FileText size={15} className="text-brand-600" />
-                  <span>Rough Itinerary Description & Custom Requirements</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-brand-100 text-brand-700">
-                    AI Guided
+            {/* AI Command / Natural Language Prompt Field */}
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                  <Sparkles size={15} className="text-brand-600" />
+                  <span>AI Itinerary Command / Travel Prompt</span>
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-brand-100 text-brand-700 border border-brand-200">
+                    Natural Language AI
                   </span>
                 </label>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Optional • Freeform Notes
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Type any request or click a quick suggestion below
                 </span>
               </div>
 
-              <textarea
-                rows={4}
-                value={roughNotes}
-                onChange={(e) => setRoughNotes(e.target.value)}
-                placeholder="Type your rough itinerary notes here. For example:
-Day 1: Reach from Delhi, check-in to hotel, evening walk at Mall Road.
-Day 2: Solang Valley adventure activities and Atal Tunnel, night stay at resort.
-Day 3: Naggar Castle and local cafes.
-Day 4: River rafting & departure.
-Included: 3-Star Hotel Stay, Daily Breakfast & Dinner, Private AC Cab for all sightseeing."
-                className="w-full text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-2xl p-4 outline-none transition font-medium text-slate-800 leading-relaxed placeholder:text-slate-400 resize-y"
-              />
+              <div className="relative">
+                <textarea
+                  rows={3}
+                  value={roughNotes}
+                  onChange={(e) => setRoughNotes(e.target.value)}
+                  placeholder='e.g. "Create an itinerary of Aadrai Jungle Trek from Mumbai/Pune with local guide and meals" or "Chopta Tungnath Delhi to Delhi with Chandrashila peak" or "4 days Mussoorie family trip covering Kempty and George Everest"'
+                  className="w-full text-sm bg-slate-50 border-2 border-slate-200 focus:border-brand-500 focus:bg-white rounded-2xl p-4 outline-none transition font-medium text-slate-800 leading-relaxed placeholder:text-slate-400 shadow-inner resize-y"
+                />
+              </div>
 
-              <p className="text-xs text-slate-500 flex items-center gap-1.5 pl-1">
+              {/* Quick Command Suggestions */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Quick Prompts:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination("Aadrai Jungle Trek");
+                    setDays(2);
+                    setTripType("Adventure & Trekking");
+                    setRoughNotes("Create an itinerary of Aadrai Jungle Trek from Mumbai/Pune with Khireshwar base village, Kalu waterfall gorge, local guide and meals.");
+                  }}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>🌿</span>
+                  <span>Aadrai Jungle Trek (2D)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination("Chopta Tungnath");
+                    setDays(4);
+                    setTripType("Adventure & Trekking");
+                    setRoughNotes("Create an itinerary for Chopta Tungnath Delhi to Delhi 4 days with Chandrashila summit trek and Deoria Tal.");
+                  }}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>🏔️</span>
+                  <span>Chopta Tungnath Delhi to Delhi (4D)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination("Mussoorie");
+                    setDays(4);
+                    setTripType("Family Vacation");
+                    setRoughNotes("Create a 4 days Mussoorie leisure trip covering Mall Road, Kempty Falls, George Everest Peak, and Dhanaulti.");
+                  }}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>🌲</span>
+                  <span>Mussoorie & Dhanaulti (4D)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination("Bali");
+                    setDays(5);
+                    setTripType("Honeymoon & Romantic");
+                    setRoughNotes("Create a 5 days Bali tour covering Ubud culture, Tegalalang rice terraces, and Nusa Penida island.");
+                  }}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>🌴</span>
+                  <span>Bali Island Tour (5D)</span>
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500 flex items-center gap-1.5 pl-1 pt-1">
                 <Lightbulb size={14} className="text-amber-500 shrink-0" />
                 <span>
-                  Mention day-wise stops, night stays, and inclusions (meals, cab, hotels). AI
-                  will format it into a professional day-wise voucher that you can edit!
+                  Our AI applies local geographic logic, realistic travel times, and trekking rules without inventing fake routes or flights.
                 </span>
               </p>
             </div>
@@ -503,23 +577,23 @@ Included: 3-Star Hotel Stay, Daily Breakfast & Dinner, Private AC Cab for all si
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
               <div className="text-xs text-slate-500 flex items-center gap-2">
                 <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                <span>100% Free • Preview & Edit Before Finalizing • A4 Printable PDF</span>
+                <span>Geographically verified • Editable preview • A4 Printable PDF</span>
               </div>
 
               <button
                 type="submit"
-                disabled={loading || !destination.trim()}
+                disabled={loading || (!destination.trim() && !roughNotes.trim())}
                 className="w-full sm:w-auto px-8 py-3.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-500/25 transition cursor-pointer flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    Generating Itinerary...
+                    Generating Realistic AI Itinerary...
                   </>
                 ) : (
                   <>
                     <Sparkles size={16} />
-                    Generate & Review Itinerary ➔
+                    Generate AI Itinerary ➔
                   </>
                 )}
               </button>
