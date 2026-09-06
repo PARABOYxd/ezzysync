@@ -98,3 +98,37 @@ exports.googleCallback = async (req, res) => {
         });
     }
 };
+/**
+ * Whether this tenant has Gmail linked, and to which address.
+ *
+ * Settings previously showed a "Connect Gmail" button and nothing else, so a
+ * tenant could not tell whether they were connected, or which of their
+ * accounts had been used - and after connecting, the button still said
+ * "Connect Gmail".
+ */
+exports.gmailStatus = async (req, res, next) => {
+    try {
+        const connection = await gmailConnectionService.getConnectionByTenant(req.user.tenantId);
+        res.json({
+            connected: Boolean(connection),
+            googleEmail: connection?.googleEmail || null,
+            connectedAt: connection?.createdAt || null,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+exports.disconnectGmail = async (req, res, next) => {
+    try {
+        const result = await gmailConnectionService.disconnect(req.user.tenantId);
+        res.json({
+            message: result.googleEmail
+                ? `Disconnected ${result.googleEmail}. Invoices will now be sent from EzzySync instead.`
+                : 'Gmail was not connected.',
+            connected: false,
+        });
+    } catch (err) {
+        next(err);
+    }
+};

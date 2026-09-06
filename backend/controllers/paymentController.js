@@ -72,6 +72,14 @@ async function verifySubscription(req, res, next) {
       return res.status(404).json({ message: 'User not found after upgrade.' });
     }
 
+    // The service refused to move an active tenant onto a lower plan. The
+    // payment is captured and recorded; nothing about their access changed,
+    // so there is no new token to hand back.
+    if (upgrade.unchanged) {
+      req.log?.warn({ razorpay_order_id, plan: targetPlan }, 'Downgrade payment received; plan left unchanged');
+      return res.json({ success: true, message: upgrade.message, planChanged: false });
+    }
+
     req.log?.info({ razorpay_order_id, razorpay_payment_id, plan: targetPlan }, 'Tenant plan upgraded successfully');
     res.json({
       success: true,

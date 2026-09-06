@@ -32,6 +32,9 @@ const PLANS = [
   {
     id: 'SOLO',
     name: 'Solo Agent',
+    // Ordering, not just labelling: a paid plan is never silently replaced by
+    // one that ranks lower. See getPlanRank below.
+    rank: 1,
     tagline: 'For independent travel consultants.',
     priceInPaise: 99900,
     period: 'month',
@@ -47,6 +50,7 @@ const PLANS = [
   {
     id: 'PRO',
     name: 'Agency Growth',
+    rank: 2,
     tagline: 'For growing travel agencies & operators.',
     priceInPaise: 249900,
     period: 'month',
@@ -67,6 +71,7 @@ const PLANS = [
     // downstream should special-case the id.
     id: 'ENTERPRISE',
     name: 'Enterprise & DMCs',
+    rank: 3,
     tagline: 'For corporate travel & DMCs.',
     priceInPaise: null,
     priceLabel: 'Custom',
@@ -109,9 +114,27 @@ function getPurchasablePlanIds() {
   return PLANS.filter((p) => p.priceInPaise !== null).map((p) => p.id);
 }
 
+/**
+ * How much plan a tenant has, as a comparable number.
+ *
+ * Used to stop a cheaper purchase from overwriting a better plan that is still
+ * running. That is not hypothetical - it happened to this project's own
+ * account: a SOLO payment replaced an active PRO plan, and nothing anywhere
+ * questioned it, because upgrade and downgrade went through the identical
+ * code path.
+ *
+ * Anything unrecognised ranks 0, below every real plan, so an unknown id can
+ * never be treated as an upgrade.
+ */
+function getPlanRank(planId) {
+  const plan = PLANS.find((p) => p.id === planId);
+  return plan?.rank || 0;
+}
+
 module.exports = {
   getPlanCatalog,
   getPlanPricePaise,
   getPurchasablePlanIds,
+  getPlanRank,
   formatPaise,
 };
