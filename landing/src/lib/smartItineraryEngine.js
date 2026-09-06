@@ -8,32 +8,57 @@
 import { getIndianDestinationRealData } from "./smartItineraryEngine.data.js";
 
 // ==========================================
-// 1. ROUTE & ORIGIN PARSER
+// 1. ROUTE & TRAVEL SPECS PARSER
 // ==========================================
-export function extractRouteAndOrigin(commandText = "", defaultDestination = "") {
+export function extractTravelSpecs(commandText = "", defaultDestination = "") {
+  const text = (commandText || "").trim();
   let origin = "";
   let returnCity = "";
+  let viaCity = "";
+  let vehicle = "Private AC Vehicle";
+  let isOvernight = false;
 
-  const text = (commandText || "").trim();
-  if (!text) return { origin, returnCity };
+  // 1. Overnight transit detection
+  if (/overnight|over\s*night|night\s*(?:drive|journey|travel|departure|start)|raat\s*ko/i.test(text)) {
+    isOvernight = true;
+  }
 
-  // 1. Same city roundtrip (e.g. "Delhi to Delhi", "Delhi se Delhi", "Mumbai to Mumbai")
+  // 2. Vehicle detection
+  if (/tempo\s*traveller|traveller|force\s*traveller|tempo/i.test(text)) {
+    vehicle = "AC Tempo Traveller";
+  } else if (/volvo|luxury\s*bus|ac\s*bus|bus/i.test(text)) {
+    vehicle = "AC Volvo Bus";
+  } else if (/innova\s*crysta|crysta/i.test(text)) {
+    vehicle = "Innova Crysta AC";
+  } else if (/innova|ertiga|scorpio|suv/i.test(text)) {
+    vehicle = "Dedicated AC SUV";
+  } else if (/sedan|dzire|etios/i.test(text)) {
+    vehicle = "Dedicated AC Sedan";
+  } else if (/train|shatabdi|vandebharat|vande\s*bharat/i.test(text)) {
+    vehicle = "Express Train";
+  } else if (/flight|air/i.test(text)) {
+    vehicle = "Flight";
+  }
+
+  // 3. Via / Route cities (e.g. "from Delhi to Haridwar", "via Haridwar", "via Dehradun")
+  const viaMatch = text.match(/\b(?:via|through|hote\s+hue)\s+([a-zA-Z]+)/i) ||
+                   text.match(/\b(?:from|starting\s+from)\s+[a-zA-Z]+\s+to\s+([a-zA-Z]+)(?:\s*,|\s+to|\s+overnight|\s+will|\s+by|\s+with|$)/i);
+  if (viaMatch && viaMatch[1]) {
+    const candidate = viaMatch[1].toLowerCase();
+    const destLower = (defaultDestination || "").toLowerCase();
+    if (!destLower.includes(candidate) && candidate !== "delhi") {
+      viaCity = viaMatch[1].charAt(0).toUpperCase() + viaMatch[1].slice(1).toLowerCase();
+    }
+  }
+
+  // 4. Same city roundtrip (e.g. "Delhi to Delhi")
   const sameCityMatch = text.match(/\b([a-zA-Z]+)\s*(?:to|-|se)\s*\1\b/i);
   if (sameCityMatch) {
     origin = sameCityMatch[1];
     returnCity = sameCityMatch[1];
   }
 
-  // 2. Loop journey: "[City1] to [Dest] to [City2]"
-  if (!origin) {
-    const loopMatch = text.match(/\b([a-zA-Z]+)\s*(?:to|-)\s*[a-zA-Z\s]+\s*(?:to|-)\s*([a-zA-Z]+)\b/i);
-    if (loopMatch) {
-      origin = loopMatch[1];
-      returnCity = loopMatch[2];
-    }
-  }
-
-  // 3. "from [City]" or "[City] se" or "starting from [City]"
+  // 5. "from [City]" or "[City] se"
   if (!origin) {
     const fromMatch = text.match(/(?:from|starting\s+from|departs?\s+from)\s+([a-zA-Z]+)/i) ||
                       text.match(/\b([a-zA-Z]+)\s+se\s+(?:start|shuru|nikal|to)/i) ||
@@ -44,7 +69,7 @@ export function extractRouteAndOrigin(commandText = "", defaultDestination = "")
     }
   }
 
-  // 4. "[Major Hub] to [Destination]"
+  // 6. "[Major Hub] to [Destination]"
   if (!origin) {
     const toMatch = text.match(/\b([a-zA-Z]+)\s+to\s+([a-zA-Z]+)/i);
     if (toMatch) {
@@ -61,11 +86,15 @@ export function extractRouteAndOrigin(commandText = "", defaultDestination = "")
     }
   }
 
-  // Normalize capitalization (e.g. "delhi" -> "Delhi")
   if (origin) origin = origin.charAt(0).toUpperCase() + origin.slice(1).toLowerCase();
   if (returnCity) returnCity = returnCity.charAt(0).toUpperCase() + returnCity.slice(1).toLowerCase();
 
-  return { origin, returnCity };
+  return { origin, returnCity, viaCity, vehicle, isOvernight };
+}
+
+export function extractRouteAndOrigin(commandText = "", defaultDestination = "") {
+  const specs = extractTravelSpecs(commandText, defaultDestination);
+  return { origin: specs.origin, returnCity: specs.returnCity };
 }
 
 // ==========================================
@@ -147,25 +176,77 @@ export function resolveDestination(destinationInput = "", commandInput = "") {
 // ==========================================
 export const DESTINATION_TEMPLATES = {
   mussoorie: {
-    title: (days, origin, returnCity) =>
-      origin
-        ? `🌲 Queen of Hills Mussoorie ${days}D/${Math.max(1, days - 1)}N Holiday (${origin} to ${returnCity || origin})`
-        : `🌲 Queen of Hills Mussoorie & Landour ${days}D/${Math.max(1, days - 1)}N Getaway`,
-    days: (days, origin, returnCity) => {
+    title: (days, origin, returnCity, specs = {}) => {
+      const vehicle = specs.vehicle || "Private AC Cab";
+      const vehicleLabel = vehicle.includes("Tempo") ? "by AC Tempo Traveller" : (vehicle.includes("Volvo") ? "by AC Volvo" : "");
+      return origin
+        ? `🌲 Queen of Hills Mussoorie ${days}D/${Math.max(1, days - 1)}N Tour ${vehicleLabel} (${origin} to ${returnCity || origin})`.replace(/\s+/g, ' ')
+        : `🌲 Queen of Hills Mussoorie & Landour ${days}D/${Math.max(1, days - 1)}N Getaway`;
+    },
+    days: (days, origin, returnCity, specs = {}) => {
       const fromCity = origin || "Delhi";
       const toCity = returnCity || origin || "Delhi";
-      const isShortTrip = days <= 3;
+      const vehicle = specs.vehicle || "Private AC Vehicle";
+      const isOvernight = !!specs.isOvernight;
+      const viaCity = specs.viaCity || "Dehradun";
+
+      const day1Title = isOvernight
+        ? `Overnight Journey from ${fromCity} by ${vehicle} & Arrival in Mussoorie via ${viaCity}`
+        : `Scenic Drive from ${fromCity} to Mussoorie via ${viaCity}`;
+
+      const day1Morning = isOvernight
+        ? `Morning (06:30 AM): Early morning arrival in Mussoorie after a comfortable overnight journey from ${fromCity} by ${vehicle} (departing late evening via Delhi-Meerut Expressway). En-route halt at ${viaCity} for morning freshen-up and hot breakfast.`
+        : `Morning (05:30 AM): Pick-up from ${fromCity} by dedicated ${vehicle}. Drive along the smooth Delhi-Meerut Expressway and Saharanpur/${viaCity} highway (approx 280 km / 6-7 hours).`;
+
+      const day1Afternoon = `Afternoon: En-route stop for lunch at a popular highway eatery. Ascend the scenic hill curves from ${viaCity} to Mussoorie (6,580 ft). Check-in to your valley-view hotel, unpack, and relax. Drive to the iconic Kempty Waterfalls cascading down 40 ft into natural pools. Visit nearby Company Garden.`;
+      const day1Evening = `Evening: Stroll along vibrant Mall Road, Kulri Bazaar, and Library Chowk. Enjoy hot chocolate or hot Tibetan momos and ride the ropeway cable car to Gun Hill for golden-hour sunset panoramas over Doon Valley.`;
 
       const day1 = {
-        title: `Overnight / Early Morning Drive from ${fromCity} to Mussoorie via Dehradun`,
+        title: day1Title,
         points: [
-          `Morning (05:30 AM): Pick-up from ${fromCity} by dedicated private AC vehicle. Drive along the smooth Delhi-Meerut Expressway and Saharanpur/Dehradun highway (approx 280 km from Delhi / 6-7 hours).`,
-          `Afternoon: En-route stop for breakfast/lunch at a popular highway eatery. Ascend the scenic hill curves from Dehradun bypass to Mussoorie (6,580 ft). Check-in to your valley-view hotel overlooking the Doon Valley.`,
-          `Evening: Stroll along vibrant Mall Road, Kulri Bazaar, and Library Chowk. Enjoy hot chocolate or hot Tibetan momos and ride the ropeway cable car to Gun Hill for golden-hour sunset panoramas.`,
+          day1Morning,
+          day1Afternoon,
+          day1Evening,
           `Stay: Deluxe Valley View Hotel in Mussoorie.`
         ]
       };
 
+      // 2 DAYS / 1 NIGHT WEEKEND TRIP
+      if (days === 2) {
+        const day2 = {
+          title: `Landour Heritage, Lal Tibba, George Everest Peak & Return Journey to ${toCity} by ${vehicle}`,
+          points: [
+            `Morning: Early morning scenic drive to colonial Landour cantonment. Visit Lal Tibba (highest point in Mussoorie) for telescope views of Gangotri, Kedarnath, and Badrinath snow peaks. Enjoy hot breakfast at historic Char Dukan (famous waffles, pancakes & ginger lemon tea) and visit St. Paul's Church.`,
+            `Afternoon: Drive to Sir George Everest Peak & House for breathtaking 360-degree views of Great Himalayas and Doon Valley. Walk along Camel's Back Road for nature views.`,
+            `Evening: Check-out from hotel and board your ${vehicle} for comfortable return journey back to ${toCity} via ${viaCity}. Arrive in ${toCity} by late evening with cherished Queen of Hills memories!`
+          ]
+        };
+        return [day1, day2];
+      }
+
+      // 3 DAYS / 2 NIGHTS TRIP
+      if (days === 3) {
+        const day2 = {
+          title: "Kempty Waterfalls, George Everest Peak & Cloud's End",
+          points: [
+            `Morning: Early morning drive to the iconic Kempty Waterfalls cascading down 40 feet. Enjoy mountain pool photography and refreshing mountain breeze before peak crowds.`,
+            `Afternoon: Drive to Sir George Everest House and hike up to George Everest Peak for 360-degree panoramic views of snow-capped Himalayan ranges and the Aglar Valley.`,
+            `Evening: Explore the tranquil pine forest trails of Cloud's End and visit the scenic Company Garden with its flower nursery. Return to hotel for dinner.`,
+            `Stay: Deluxe Valley View Hotel in Mussoorie.`
+          ]
+        };
+        const day3 = {
+          title: `Landour Heritage, Lal Tibba, Char Dukan & Return Drive to ${toCity} by ${vehicle}`,
+          points: [
+            `Morning: Early morning scenic drive to colonial Landour cantonment. Visit historic Char Dukan, taste famous apple pie, ginger lemon tea & pancakes, and view Great Himalayan snow peaks through telescope at Lal Tibba (highest point in Mussoorie).`,
+            `Afternoon: Visit Camel's Back Road for nature views. Check-out from hotel and begin the scenic downhill drive towards ${viaCity}.`,
+            `Evening: Smooth highway drive returning back to ${toCity} by ${vehicle}. Drop-off at your designated point with cherished Queen of Hills memories!`
+          ]
+        };
+        return [day1, day2, day3];
+      }
+
+      // 4+ DAYS TRIP
       const day2 = {
         title: "Kempty Waterfalls, George Everest Peak & Cloud's End",
         points: [
@@ -175,42 +256,29 @@ export const DESTINATION_TEMPLATES = {
           `Stay: Deluxe Valley View Hotel in Mussoorie.`
         ]
       };
-
-      if (isShortTrip) {
-        const day3 = {
-          title: `Landour Heritage, Lal Tibba, Char Dukan & Return Drive to ${toCity}`,
-          points: [
-            `Morning: Early morning scenic drive to colonial Landour cantonment. Visit historic Char Dukan, taste famous apple pie, ginger lemon tea & pancakes, and view Great Himalayan snow peaks through telescope at Lal Tibba (highest point in Mussoorie).`,
-            `Afternoon: Visit Camel's Back Road for nature views. Check-out from hotel and begin the scenic downhill drive towards Dehradun.`,
-            `Evening: Smooth highway drive returning back to ${toCity}. Drop-off at your designated point with cherished Queen of Hills memories!`
-          ]
-        };
-        return [day1, day2, day3];
-      } else {
-        const day3 = {
-          title: "Landour Charm, Lal Tibba & Dhanaulti Eco Park Excursion",
-          points: [
-            `Morning: Drive to tranquil Landour cantonment. Visit historic Char Dukan, taste famous apple pie, and view snow peaks through telescope at Lal Tibba.`,
-            `Afternoon: Excursion to serene Dhanaulti (24 km). Walk among towering deodars in Amber & Dhara Eco Parks and visit the hilltop Surkanda Devi Temple.`,
-            `Evening: Drive back to Mussoorie. Enjoy evening cafe hopping and shopping for handmade wooden souvenirs on Mall Road.`,
-            `Stay: Deluxe Valley View Hotel in Mussoorie.`
-          ]
-        };
-        const day4 = {
-          title: `Camel's Back Road, Company Garden & Return Drive to ${toCity}`,
-          points: [
-            `Morning: Leisurely walk along Camel's Back Road rock formations. Visit Company Garden and Tibetan Monastery.`,
-            `Afternoon: Check-out and begin scenic downhill drive via Dehradun.`,
-            `Evening: Return drive back to ${toCity} with sweet mountain memories!`
-          ]
-        };
-        return [day1, day2, day3, day4];
-      }
+      const day3 = {
+        title: "Landour Charm, Lal Tibba & Dhanaulti Eco Park Excursion",
+        points: [
+          `Morning: Drive to tranquil Landour cantonment. Visit historic Char Dukan, taste famous apple pie, and view snow peaks through telescope at Lal Tibba.`,
+          `Afternoon: Excursion to serene Dhanaulti (24 km). Walk among towering deodars in Amber & Dhara Eco Parks and visit the hilltop Surkanda Devi Temple.`,
+          `Evening: Drive back to Mussoorie. Enjoy evening cafe hopping and shopping for handmade wooden souvenirs on Mall Road.`,
+          `Stay: Deluxe Valley View Hotel in Mussoorie.`
+        ]
+      };
+      const day4 = {
+        title: `Camel's Back Road, Company Garden & Return Drive to ${toCity} by ${vehicle}`,
+        points: [
+          `Morning: Leisurely walk along Camel's Back Road rock formations. Visit Company Garden and Tibetan Monastery.`,
+          `Afternoon: Check-out and begin scenic downhill drive via ${viaCity}.`,
+          `Evening: Return drive back to ${toCity} by ${vehicle} with sweet mountain memories!`
+        ]
+      };
+      return [day1, day2, day3, day4];
     },
     inclusions: [
       "Deluxe Hotel Stay overlooking Doon Valley",
       "Daily Buffet Breakfast & Dinner (MAP Plan)",
-      "Dedicated Private AC Sedan / SUV for entire trip including transfers and local sightseeing",
+      "Dedicated Private AC Transport for entire trip including transfers and local sightseeing",
       "Full-day excursion to Kempty Falls, George Everest, Landour & Lal Tibba",
       "Driver allowances, mountain road tolls, green cess, and parking charges"
     ],
@@ -933,7 +1001,7 @@ DESTINATION_TEMPLATES.harsil = DESTINATION_TEMPLATES.harshil;
 // ==========================================
 // 4. PROCEDURAL INDIAN SYNTHESIS ENGINE
 // ==========================================
-function synthesizeCustomDestination(destination, days, tripStyle, origin = "", returnCity = "", commandText = "") {
+function synthesizeCustomDestination(destination, days, tripStyle, origin = "", returnCity = "", commandText = "", specs = {}) {
   const destClean = destination.trim();
   const startLocation = origin ? origin : "your departure city";
   const endLocation = returnCity ? returnCity : (origin ? origin : startLocation);
@@ -1266,8 +1334,8 @@ export function buildSmartItinerary({
   const rawDest = (destination || "").trim();
   const commandText = (roughNotes || "").trim();
 
-  // 1. Extract route & origin (e.g. "Delhi to Delhi")
-  const { origin, returnCity } = extractRouteAndOrigin(commandText, rawDest);
+  const specs = extractTravelSpecs(commandText, rawDest);
+  const { origin, returnCity, vehicle } = specs;
 
   // 2. Extract duration if mentioned in command
   let numDays = Math.max(1, Number(days) || 4);
@@ -1294,7 +1362,7 @@ export function buildSmartItinerary({
   if (resolved.key && DESTINATION_TEMPLATES[resolved.key]) {
     baseTemplate = DESTINATION_TEMPLATES[resolved.key];
   } else {
-    baseTemplate = synthesizeCustomDestination(effectiveDest, numDays, tripType, origin, returnCity, commandText);
+    baseTemplate = synthesizeCustomDestination(effectiveDest, numDays, tripType, origin, returnCity, commandText, specs);
   }
 
   // 6. Build the day-wise itinerary
@@ -1361,7 +1429,7 @@ export function buildSmartItinerary({
     }
   } else {
     const templateDays = typeof baseTemplate.days === "function"
-      ? baseTemplate.days(numDays, origin, returnCity)
+      ? baseTemplate.days(numDays, origin, returnCity, specs)
       : baseTemplate.days;
 
     for (let i = 1; i <= numDays; i++) {
@@ -1397,7 +1465,18 @@ export function buildSmartItinerary({
   if (roughParsed && roughParsed.inclusions && roughParsed.inclusions.length > 0) {
     roughParsed.inclusions.forEach(inc => finalInclusions.push(inc));
   }
-  const baseIncs = baseTemplate.inclusions || [
+  const vehicleText = (specs && specs.vehicle && specs.vehicle !== "Private AC Vehicle")
+    ? `Dedicated ${specs.vehicle} (Pushback Seats) for entire ${origin || 'roundtrip'} transfers & local sightseeing`
+    : `Dedicated Private AC Vehicle for all transfers and sightseeing`;
+
+  let templateIncs = (baseTemplate.inclusions || []).map(inc => {
+    if (/private ac|dedicated private|sedan|suv/i.test(inc) && specs && specs.vehicle && specs.vehicle !== "Private AC Vehicle") {
+      return `Dedicated ${specs.vehicle} for entire roundtrip & local sightseeing`;
+    }
+    return inc;
+  });
+
+  const baseIncs = templateIncs.length > 0 ? templateIncs : [
     "Accommodations with daily breakfast",
     "Private AC vehicle for all transfers and sightseeing",
     "Toll taxes, parking fees, and driver allowances"
@@ -1430,7 +1509,7 @@ export function buildSmartItinerary({
   ];
 
   const packageTitle = typeof baseTemplate.title === "function"
-    ? baseTemplate.title(numDays, origin, returnCity)
+    ? baseTemplate.title(numDays, origin, returnCity, specs)
     : (typeof baseTemplate.title === "string" && baseTemplate.title
         ? baseTemplate.title
         : `${effectiveDest} ${numDays}D/${Math.max(1, numDays - 1)}N Tour Package`);
