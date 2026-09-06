@@ -31,30 +31,47 @@ export async function submitWalkthroughRequest({ name, agencyName, email, phone 
   }
 }
 
-/** Generates a free day-wise travel itinerary using the CRM public AI endpoint. */
+/** Generates a free day-wise travel itinerary using the internal API or CRM endpoint. */
 export async function generateFreeItinerary({ destination, days, tripType, agencyName, email, phone, name, description, roughNotes }) {
-  const response = await fetch(`${getApiBaseUrl()}/api/public/generate-free-itinerary`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      destination,
-      days,
-      tripType,
-      agencyName,
-      email,
-      phone,
-      name,
-      description: description || roughNotes || "",
-    }),
-  });
+  const payload = {
+    destination,
+    days,
+    tripType,
+    agencyName,
+    email,
+    phone,
+    name,
+    description: description || roughNotes || "",
+  };
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to generate itinerary.");
+  // Try internal Next.js server route first (avoids CORS and external port issues)
+  try {
+    const internalRes = await fetch("/api/generate-itinerary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (internalRes.ok) {
+      return await internalRes.json();
+    }
+  } catch (e) {
+    // Continue to backend fallback
   }
 
-  return response.json();
+  // Fallback to backend API if internal route fails
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/public/generate-free-itinerary`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (e) {
+    // Silently continue to client-side smart engine
+  }
+
+  return null;
 }
 

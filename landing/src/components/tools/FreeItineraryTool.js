@@ -98,9 +98,11 @@ export default function FreeItineraryTool({ crmUrl }) {
         description: roughNotes.trim(),
       });
 
-      if (res?.itinerary && res.itinerary.trim().length > 50) {
+      if (res?.structured && res.structured.days && res.structured.days.length > 0) {
+        structuredData = res.structured;
+      } else if (res?.itinerary && res.itinerary.trim().length > 50) {
         structuredData = parseMarkdownToStructuredItinerary(res.itinerary, {
-          destination: destination.trim(),
+          destination: effectiveDest,
           days,
           tripType,
           agencyName: agencyName.trim() || "Your Travel Partner",
@@ -109,13 +111,13 @@ export default function FreeItineraryTool({ crmUrl }) {
         });
       }
     } catch (err) {
-      console.warn("Backend AI call error, running client smart engine:", err);
+      console.warn("API itinerary error, running client smart engine:", err);
     }
 
-    // If backend unavailable or returned blank, generate high-quality destination-aware itinerary
+    // If API unavailable or returned blank, generate high-quality destination-aware itinerary
     if (!structuredData) {
       structuredData = buildSmartItinerary({
-        destination: destination.trim(),
+        destination: effectiveDest,
         days,
         tripType,
         agencyName: agencyName.trim() || "Your Travel Partner",

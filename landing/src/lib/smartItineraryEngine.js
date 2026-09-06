@@ -148,6 +148,120 @@ const DESTINATION_TEMPLATES = {
       "Carry woolens even during summer as Gulmarg and Sonamarg glaciers get chilly."
     ]
   },
+  harshil: {
+    title: (days) => `🍎 Harsil Valley & Gangotri ${days}D/${Math.max(1, days - 1)}N Himalayan Apple Paradise`,
+    days: [
+      {
+        title: "Scenic Road Journey from Rishikesh to Harsil Valley via Uttarkashi",
+        points: [
+          "Morning (06:00 AM): Early departure from Rishikesh / Haridwar by private vehicle. Scenic hill drive ascending along the Bhagirathi River through Chamba, New Tehri, and Dharasu bend.",
+          "Afternoon: Stop at Uttarkashi town for riverside lunch. Continue driving uphill and take a soothing stop at Gangnani natural thermal hot sulphur springs (Rishi Kund) for a refreshing dip.",
+          "Evening: Cross the scenic Sukhi Top pass descending into the picturesque Harsil Valley (7,860 ft). Check-in to a cozy riverside wooden resort / homestay amidst fragrant apple orchards and dense deodar forests. Evening leisure stroll on Harsil suspension bridge over the roaring Bhagirathi.",
+          "Stay: Wooden Mountain Resort or Apple Orchard Homestay in Harsil Valley."
+        ]
+      },
+      {
+        title: "Historic Gartang Gali Cliff Walk, Gangotri Temple & Mukhba Village",
+        points: [
+          "Morning: Early breakfast and drive to Lanka near Nelang Valley. Experience Gartang Gali — an extraordinary 150-year-old historic wooden bridge clinging to a vertical granite cliff hanging 300 ft over the Jadh Ganga gorge (built by Peshawar Pathans on ancient Indo-Tibetan silk route).",
+          "Afternoon: Continue driving to holy Gangotri Dham Temple (25 km from Harsil). Attend Darshan at the 18th-century temple, see Surya Kund waterfall, and soak in the sacred Himalayan atmosphere.",
+          "Evening: Visit the tranquil Mukhba Village (across Harsil) — the winter abode of Goddess Ganga. Explore historic British officer Wilson's Cottage ruins and walk through fresh apple orchards.",
+          "Stay: Wooden Mountain Resort or Apple Orchard Homestay in Harsil Valley."
+        ]
+      },
+      {
+        title: "Apple Orchards Walk & Return Drive to Rishikesh / Haridwar",
+        points: [
+          "Morning: Wake up to crisp mountain air and golden sunrise on snow-clad peaks. Stroll through the village, visit local craft houses, and purchase authentic Harsil kidney beans (rajma), woolens, and organic apple jams.",
+          "Afternoon: Check-out after a warm Garhwali breakfast. Begin the scenic downhill return drive through Uttarkashi and Chamba.",
+          "Evening: Drop-off at Rishikesh Railway Station / Haridwar with unforgettable memories of the hidden Himalayan apple valley!"
+        ]
+      },
+      {
+        title: "Dharali Village, Sattal Lake Hike & Nature Exploration",
+        points: [
+          "Morning: Short drive to neighboring Dharali village. Begin a gentle 3 km nature hike through dense pine and birch forests to the pristine Sattal (cluster of seven natural high-altitude lakes).",
+          "Afternoon: Picnic lunch by the crystal-clear alpine lake surrounded by Himalayan wildflowers.",
+          "Evening: Return to Harsil for evening bonfire and stargazing under pollution-free night skies.",
+          "Stay: Wooden Mountain Resort or Homestay in Harsil Valley."
+        ]
+      }
+    ],
+    inclusions: [
+      "Accommodations in Cozy Wooden Cottages / Orchard Homestay in Harsil Valley",
+      "Daily Breakfast & Nutritious Dinner (MAP Plan with authentic Garhwali & North Indian food)",
+      "Dedicated Private AC/Heating Vehicle (Innova/Ertiga/Bolero) for entire mountain route from Rishikesh",
+      "Gartang Gali forest permits & Gangotri eco-zone entry permits",
+      "Driver allowances, mountain road tolls, green cess, and parking charges"
+    ],
+    exclusions: [
+      "Travel arrangements prior to Rishikesh pickup",
+      "Gartang Gali entry fee (approx ₹150) and personal camera charges",
+      "En-route lunch meals and personal shopping"
+    ],
+    tips: [
+      "Rishikesh to Harsil is a 7-8 hour scenic mountain drive (approx 215 km); start early by 6 AM to arrive comfortably before sunset.",
+      "Carry valid Government Photo IDs (Aadhaar / Voter ID) as checkposts verify IDs for Gartang Gali and Nelang Valley permits.",
+      "Evenings and nights in Harsil get chilly even in summer; carry thermals and a warm windproof jacket."
+    ]
+  },
+  harsil: {
+    title: (days) => `🍎 Harsil Valley & Gangotri ${days}D/${Math.max(1, days - 1)}N Himalayan Apple Paradise`,
+    days: [
+      {
+        title: "Scenic Road Journey from Rishikesh to Harsil Valley via Uttarkashi",
+        points: [
+          "Morning (06:00 AM): Early departure from Rishikesh / Haridwar by private vehicle. Scenic hill drive ascending along the Bhagirathi River through Chamba, New Tehri, and Dharasu bend.",
+          "Afternoon: Stop at Uttarkashi town for riverside lunch. Continue driving uphill and take a soothing stop at Gangnani natural thermal hot sulphur springs (Rishi Kund) for a refreshing dip.",
+          "Evening: Cross the scenic Sukhi Top pass descending into the picturesque Harsil Valley (7,860 ft). Check-in to a cozy riverside wooden resort / homestay amidst fragrant apple orchards and dense deodar forests. Evening leisure stroll on Harsil suspension bridge over the roaring Bhagirathi.",
+          "Stay: Wooden Mountain Resort or Apple Orchard Homestay in Harsil Valley."
+        ]
+      },
+      {
+        title: "Historic Gartang Gali Cliff Walk, Gangotri Temple & Mukhba Village",
+        points: [
+          "Morning: Early breakfast and drive to Lanka near Nelang Valley. Experience Gartang Gali — an extraordinary 150-year-old historic wooden bridge clinging to a vertical granite cliff hanging 300 ft over the Jadh Ganga gorge (built by Peshawar Pathans on ancient Indo-Tibetan silk route).",
+          "Afternoon: Continue driving to holy Gangotri Dham Temple (25 km from Harsil). Attend Darshan at the 18th-century temple, see Surya Kund waterfall, and soak in the sacred Himalayan atmosphere.",
+          "Evening: Visit the tranquil Mukhba Village (across Harsil) — the winter abode of Goddess Ganga. Explore historic British officer Wilson's Cottage ruins and walk through fresh apple orchards.",
+          "Stay: Wooden Mountain Resort or Apple Orchard Homestay in Harsil Valley."
+        ]
+      },
+      {
+        title: "Apple Orchards Walk & Return Drive to Rishikesh / Haridwar",
+        points: [
+          "Morning: Wake up to crisp mountain air and golden sunrise on snow-clad peaks. Stroll through the village, visit local craft houses, and purchase authentic Harsil kidney beans (rajma), woolens, and organic apple jams.",
+          "Afternoon: Check-out after a warm Garhwali breakfast. Begin the scenic downhill return drive through Uttarkashi and Chamba.",
+          "Evening: Drop-off at Rishikesh Railway Station / Haridwar with unforgettable memories of the hidden Himalayan apple valley!"
+        ]
+      },
+      {
+        title: "Dharali Village, Sattal Lake Hike & Nature Exploration",
+        points: [
+          "Morning: Short drive to neighboring Dharali village. Begin a gentle 3 km nature hike through dense pine and birch forests to the pristine Sattal (cluster of seven natural high-altitude lakes).",
+          "Afternoon: Picnic lunch by the crystal-clear alpine lake surrounded by Himalayan wildflowers.",
+          "Evening: Return to Harsil for evening bonfire and stargazing under pollution-free night skies.",
+          "Stay: Wooden Mountain Resort or Homestay in Harsil Valley."
+        ]
+      }
+    ],
+    inclusions: [
+      "Accommodations in Cozy Wooden Cottages / Orchard Homestay in Harsil Valley",
+      "Daily Breakfast & Nutritious Dinner (MAP Plan with authentic Garhwali & North Indian food)",
+      "Dedicated Private AC/Heating Vehicle (Innova/Ertiga/Bolero) for entire mountain route from Rishikesh",
+      "Gartang Gali forest permits & Gangotri eco-zone entry permits",
+      "Driver allowances, mountain road tolls, green cess, and parking charges"
+    ],
+    exclusions: [
+      "Travel arrangements prior to Rishikesh pickup",
+      "Gartang Gali entry fee (approx ₹150) and personal camera charges",
+      "En-route lunch meals and personal shopping"
+    ],
+    tips: [
+      "Rishikesh to Harsil is a 7-8 hour scenic mountain drive (approx 215 km); start early by 6 AM to arrive comfortably before sunset.",
+      "Carry valid Government Photo IDs (Aadhaar / Voter ID) as checkposts verify IDs for Gartang Gali and Nelang Valley permits.",
+      "Evenings and nights in Harsil get chilly even in summer; carry thermals and a warm windproof jacket."
+    ]
+  },
   aadrai: {
     title: (days) => `🌿 Aadrai Jungle Trek ${days}D/${Math.max(1, days - 1)}N Malshej Ghat Wilderness Adventure`,
     days: [
@@ -774,101 +888,161 @@ export function parseUserRoughNotes(text, defaultDays = 4, destinationName = "Yo
 }
 
 /**
- * Procedurally synthesizes authentic itinerary for any destination if not in standard dictionary
+ * Procedurally synthesizes authentic itinerary for any destination with accurate terrain logic
  */
-function synthesizeCustomDestination(destination, days, tripStyle) {
+function synthesizeCustomDestination(destination, days, tripStyle, origin = "") {
   const destClean = destination.trim();
   const dayCards = [];
 
-  const activityThemes = [
-    {
-      titleSuffix: "Arrival & Orientation",
-      morning: `Arrival at ${destClean} airport / main terminal. Warm meet-and-greet with our local representative and private transfer to your hotel.`,
-      afternoon: `Check-in, relax, and unpack. Take an easy orientation walk around the local central avenue and surrounding neighborhood.`,
-      evening: `Sunset stroll at ${destClean}'s popular waterfront / central square. Enjoy welcome dinner at a celebrated local restaurant.`,
-      stay: `Handpicked Hotel / Resort in central ${destClean}.`
-    },
-    {
-      titleSuffix: "Iconic Sights & Cultural Heritage",
-      morning: `Hearty breakfast. Guided city sightseeing tour covering ${destClean}'s primary historic landmarks, museums, and architectural wonders.`,
-      afternoon: `Visit renowned cultural quarter. Sample regional street delicacies and artisan handicraft workshops for lunch.`,
-      evening: `Scenic viewpoint sunset observation. Leisure stroll through vibrant twilight markets.`,
-      stay: `Handpicked Hotel / Resort in ${destClean}.`
-    },
-    {
-      titleSuffix: "Scenic Excursion & Nature Adventure",
-      morning: `Scenic morning drive to the outskirts of ${destClean} featuring picturesque natural landscapes, hills, or pristine lakeshores.`,
-      afternoon: `Enjoy thrilling outdoor recreational activities, photography stops, and a leisurely lunch overlooking breathtaking panoramic vistas.`,
-      evening: `Return to the main city. Relaxing spa session or cozy evening cafe hopping with live local music.`,
-      stay: `Handpicked Hotel / Resort in ${destClean}.`
-    },
-    {
-      titleSuffix: "Hidden Gems & Gastronomic Food Trail",
-      morning: `Visit popular botanical gardens, historic temples/churches, or royal palaces around ${destClean}.`,
-      afternoon: `Curated authentic food tasting walk discovering authentic regional recipes, spices, and famous local bakeries.`,
-      evening: `Evening river/lake boat ride or rooftop lounge dinner showcasing the sparkling city skyline.`,
-      stay: `Handpicked Hotel / Resort in ${destClean}.`
-    },
-    {
-      titleSuffix: "Day Trip & Countryside Discovery",
-      morning: `Full day excursion to the most famous nearby heritage town or natural sanctuary around ${destClean}.`,
-      afternoon: `Guided heritage walk through scenic cobblestone alleys or nature trails with traditional country-style lunch.`,
-      evening: `Sunset photography stop at an iconic panoramic vantage point before driving back to the hotel.`,
-      stay: `Handpicked Hotel / Resort in ${destClean}.`
-    },
-    {
-      titleSuffix: "Leisure, Souvenirs & Farewell Dinner",
-      morning: `Relaxed morning breakfast. Free time to explore favorite local boutique shops and souvenir bazaars for authentic gifts.`,
-      afternoon: `Special celebratory farewell lunch featuring ${destClean}'s signature dishes.`,
-      evening: `Evening leisure walk and packing with unforgettable memories.`,
-      stay: `Handpicked Hotel / Resort in ${destClean}.`
-    },
-    {
-      titleSuffix: "Last-Minute Shopping & Departure",
-      morning: `Enjoy a lavish breakfast. Check-out and last-minute duty-free shopping.`,
-      afternoon: `Private transfer to ${destClean} airport / station with cherished memories of your unforgettable journey!`
-    }
-  ];
+  const isMountainOrValley = /valley|trek|hill|ghat|peak|lake|pass|kund|giri|tal|pahad|himalay|uttarakhand|himachal|kashmir|ladakh|sikkim|gangotri|kedar|badri|chamba|tehri|mandi|kinnaur|spiti|jibhi|tirthan|solang|rohtang|parvati|kasol|dharamshala|bir|mcleodganj|kasauli|nainital|ranikhet|kausani|mussoorie|dhanaulti|kanatal|shimla|kufri|harsil|harshil/i.test(destClean);
+  const isBeachOrCoastal = /beach|island|coast|sea|ocean|port|bay|cove|lagoon|reef|goa|gokarna|andaman|maldives|bali|phuket|krabi|puri|kovalam|varkala|pondicherry|alibaug|diu/i.test(destClean);
+
+  const startLocation = origin ? origin : (isMountainOrValley ? "Rishikesh / Dehradun / Nearest Railhead" : "your starting city");
 
   for (let i = 1; i <= days; i++) {
+    const isFirstDay = i === 1;
     const isLastDay = i === days;
-    const theme = isLastDay
-      ? activityThemes[activityThemes.length - 1]
-      : activityThemes[(i - 1) % (activityThemes.length - 1)];
 
-    const points = [];
-    if (theme.morning) points.push(`Morning: ${theme.morning}`);
-    if (theme.afternoon) points.push(`Afternoon: ${theme.afternoon}`);
-    if (theme.evening && !isLastDay) points.push(`Evening: ${theme.evening}`);
-    if (theme.stay && !isLastDay) points.push(`Stay: ${theme.stay}`);
-
-    dayCards.push({
-      dayNumber: i,
-      title: `Day ${i}: ${destClean} ${theme.titleSuffix}`,
-      points
-    });
+    if (isMountainOrValley) {
+      if (isFirstDay) {
+        dayCards.push({
+          dayNumber: 1,
+          title: `Day 1: Scenic Mountain Drive from ${startLocation} to ${destClean}`,
+          points: [
+            `Morning (06:00 AM): Early departure from ${startLocation} by private vehicle. Begin scenic ascent along winding river valleys and pine-covered mountain roads.`,
+            `Afternoon: Halt for lunch at a riverside roadside eatery. Continue ascending through scenic mountain passes and forest checkposts.`,
+            `Evening: Reach ${destClean}. Check-in to your valley resort / cozy wooden mountain cottage. Take an evening walk through the local village settlement and enjoy sunset over pine-covered ridges.`,
+            `Stay: Mountain View Resort / Cottage in ${destClean}.`
+          ]
+        });
+      } else if (isLastDay) {
+        dayCards.push({
+          dayNumber: i,
+          title: `Day ${i}: Morning Mountain Sunrise & Return Drive to ${startLocation}`,
+          points: [
+            `Morning: Wake up to crisp mountain air and golden sunrise over snow-dusted ridges. Enjoy hot breakfast with mountain herbal tea.`,
+            `Afternoon: Check-out and begin the scenic downhill return drive, taking brief tea and photo stops along the river gorge.`,
+            `Evening: Drop-off at ${startLocation} with unforgettable memories of ${destClean}!`
+          ]
+        });
+      } else {
+        dayCards.push({
+          dayNumber: i,
+          title: `Day ${i}: ${destClean} Valley Exploration, Local Sights & Nature Trails`,
+          points: [
+            `Morning: Hearty breakfast with panoramic views. Visit top scenic viewpoints, local ancient shrines, and natural cascading streams.`,
+            `Afternoon: Gentle nature walk or hike through pine, deodar, and oak forests. Enjoy traditional local Himalayan dishes for lunch.`,
+            `Evening: Sunset photography from a high-altitude ridge. Return to resort for cozy evening bonfire and dinner under starlit mountain skies.`,
+            `Stay: Mountain View Resort / Cottage in ${destClean}.`
+          ]
+        });
+      }
+    } else if (isBeachOrCoastal) {
+      if (isFirstDay) {
+        dayCards.push({
+          dayNumber: 1,
+          title: `Day 1: Arrival in ${destClean} & Sunset Beach Relaxation`,
+          points: [
+            `Morning: Arrival at ${destClean} via nearest airport / coastal station. Private transfer to your beachside resort.`,
+            `Afternoon: Check-in, relax, and freshen up. Enjoy a dip in the resort pool or take a stroll along the shoreline.`,
+            `Evening: Golden hour sunset walk along the sandy beach. Savor fresh coastal delicacies and dinner at a seaside shack.`,
+            `Stay: Coastal Beach Resort in ${destClean}.`
+          ]
+        });
+      } else if (isLastDay) {
+        dayCards.push({
+          dayNumber: i,
+          title: `Day ${i}: Coastal Souvenirs & Departure`,
+          points: [
+            `Morning: Breakfast by the sea. Quick souvenir shopping for local handicrafts and spices.`,
+            `Afternoon: Check-out and private transfer to airport / station with sun-kissed memories of ${destClean}!`
+          ]
+        });
+      } else {
+        dayCards.push({
+          dayNumber: i,
+          title: `Day ${i}: ${destClean} Coastal Sights, Watersports & Island Excursion`,
+          points: [
+            `Morning: Visit iconic coastal viewpoints, historic forts/lighthouses, or embark on a morning boat cruise.`,
+            `Afternoon: Experience thrilling watersports or relax in hammock cafes with refreshing tropical drinks.`,
+            `Evening: Sunset cruise or seaside dinner with live acoustic music.`,
+            `Stay: Coastal Beach Resort in ${destClean}.`
+          ]
+        });
+      }
+    } else {
+      if (isFirstDay) {
+        dayCards.push({
+          dayNumber: 1,
+          title: `Day 1: Arrival in ${destClean} & City Orientation`,
+          points: [
+            `Morning: Arrival in ${destClean} from ${startLocation}. Warm welcome and private transfer to your hotel.`,
+            `Afternoon: Check-in, unpack, and relax. Stroll around the central avenue and neighborhood market.`,
+            `Evening: Visit prominent local landmark or heritage promenade. Welcome dinner at a celebrated local restaurant.`,
+            `Stay: Premium Hotel in ${destClean}.`
+          ]
+        });
+      } else if (isLastDay) {
+        dayCards.push({
+          dayNumber: i,
+          title: `Day ${i}: Local Bazaars & Departure`,
+          points: [
+            `Morning: Hearty breakfast. Free time for souvenir shopping in the traditional bazaars.`,
+            `Afternoon: Check-out and private transfer to airport / railway station with sweet memories!`
+          ]
+        });
+      } else {
+        dayCards.push({
+          dayNumber: i,
+          title: `Day ${i}: ${destClean} Iconic Landmarks & Cultural Heritage`,
+          points: [
+            `Morning: Guided tour of ${destClean}'s top historic monuments, palaces, or museums.`,
+            `Afternoon: Savor authentic regional cuisine and explore local artisan craft centers.`,
+            `Evening: Scenic viewpoint sunset observation followed by lively night market exploration.`,
+            `Stay: Premium Hotel in ${destClean}.`
+          ]
+        });
+      }
+    }
   }
 
   return {
-    title: `${destClean} ${days}D/${Math.max(1, days - 1)}N ${tripStyle || "Tour Package"}`,
+    title: isMountainOrValley
+      ? `🏔️ ${destClean} ${days}D/${Math.max(1, days - 1)}N Mountain Valley Tour`
+      : isBeachOrCoastal
+      ? `🏖️ ${destClean} ${days}D/${Math.max(1, days - 1)}N Coastal Holiday`
+      : `${destClean} ${days}D/${Math.max(1, days - 1)}N ${tripStyle || "Tour Package"}`,
     days: dayCards,
-    inclusions: [
-      `Accommodations in 3/4-Star Hotels with daily breakfast`,
-      `Private AC vehicle for all airport transfers and city sightseeing in ${destClean}`,
-      `Experienced English / Hindi speaking local driver & tour coordinator`,
-      `All toll taxes, parking charges, fuel, and driver allowances`
-    ],
+    inclusions: isMountainOrValley
+      ? [
+          `Accommodations in Mountain View Resort / Cottage in ${destClean}`,
+          `Daily Breakfast & Dinner (MAP Plan with nutritious local meals)`,
+          `Dedicated Private AC/Heating Vehicle for mountain roads including fuel`,
+          `All mountain road permits, green cess, toll taxes, and driver night allowances`
+        ]
+      : [
+          `Accommodations in 3/4-Star Hotels / Resort with daily breakfast`,
+          `Private AC vehicle for all transfers and city sightseeing in ${destClean}`,
+          `Experienced local driver & tour coordinator`,
+          `All toll taxes, parking charges, fuel, and driver allowances`
+        ],
     exclusions: [
-      `Airfare or Train tickets to and from ${destClean}`,
+      `Transport / Airfare to the starting point`,
       `Personal expenses, tips, porterage, and laundry services`,
       `Monument entry tickets and optional adventure activities`,
       `Any meals not explicitly mentioned in inclusions`
     ],
-    tips: [
-      `Keep local currency and payment apps ready for convenient shopping in ${destClean}.`,
-      `Carry appropriate weather clothing and comfortable walking footwear for sightseeing tours.`,
-      `Pre-book popular attractions in advance during peak travel seasons.`
-    ]
+    tips: isMountainOrValley
+      ? [
+          `Mountain roads require careful driving; journey during daylight hours is strongly advised.`,
+          `Carry layered warm clothing and thermals as high-altitude valleys turn cold after sunset.`,
+          `Keep cash handy as mountain valley ATMs and online UPI networks can occasionally be slow.`
+        ]
+      : [
+          `Keep local currency and payment apps ready for convenient shopping in ${destClean}.`,
+          `Carry appropriate clothing and comfortable walking footwear for sightseeing tours.`,
+          `Pre-book popular attractions in advance during peak travel seasons.`
+        ]
   };
 }
 
@@ -887,6 +1061,26 @@ export function buildSmartItinerary({
   let effectiveDest = (destination || "").trim();
   const lowerCommand = (roughNotes || "").toLowerCase();
 
+  // Extract origin if mentioned (e.g. "Rishikesh se", "from Delhi", "Mumbai se", "Pune se")
+  let origin = "";
+  const originMatch = roughNotes.match(/(?:from|starting\s+from)\s+([a-zA-Z\s]+?)(?:\s+(?:to|se|for|\d+|\.|$))|([a-zA-Z]+)\s+se\s+/i);
+  if (originMatch) {
+    origin = (originMatch[1] || originMatch[2] || "").trim();
+  }
+
+  // Extract duration if mentioned in command (e.g. "2N3D", "3D/2N", "4 days", "2 nights")
+  let numDays = Math.max(1, Number(days) || 4);
+  const durMatch = roughNotes.match(/(\d+)\s*n\s*(\d+)\s*d/i);
+  const durMatch2 = roughNotes.match(/(\d+)\s*d\s*(\d+)\s*n/i);
+  const durMatch3 = roughNotes.match(/(\d+)\s*(?:days?|din)/i);
+  if (durMatch) {
+    numDays = Number(durMatch[2]);
+  } else if (durMatch2) {
+    numDays = Number(durMatch2[1]);
+  } else if (durMatch3 && (!days || days === 4 || days === 5)) {
+    numDays = Number(durMatch3[1]);
+  }
+
   // If destination is empty or simple, infer from command if possible
   if (!effectiveDest || effectiveDest.toLowerCase() === "destination") {
     for (let key of Object.keys(DESTINATION_TEMPLATES)) {
@@ -894,13 +1088,14 @@ export function buildSmartItinerary({
         if (key === "aadrai") effectiveDest = "Aadrai Jungle Trek";
         else if (key === "chopta") effectiveDest = "Chopta Tungnath";
         else if (key === "mussoorie") effectiveDest = "Mussoorie";
+        else if (key === "harshil" || key === "harsil") effectiveDest = "Harsil Valley";
         else effectiveDest = key.charAt(0).toUpperCase() + key.slice(1);
         break;
       }
     }
     if (!effectiveDest) {
       // Try to extract from "itinerary of/for [Place]"
-      const match = roughNotes.match(/(?:itinerary\s+(?:of|for)|trip\s+(?:to|for))\s+([a-zA-Z\s]+?)(?:\s+(?:from|with|in|for|\d+|\.|$))/i);
+      const match = roughNotes.match(/(?:itinerary\s+(?:of|for)|trip\s+(?:to|for))\s+([a-zA-Z\s]+?)(?:\s+(?:from|se|with|in|for|\d+|\.|$))/i);
       if (match && match[1]) {
         effectiveDest = match[1].trim();
       } else {
@@ -910,9 +1105,8 @@ export function buildSmartItinerary({
   }
 
   const destKey = effectiveDest.toLowerCase();
-  const numDays = Math.max(1, Number(days) || 4);
 
-  // Check if user provided rough notes
+  // Check if user provided rough notes with day-wise lines
   const roughParsed = parseUserRoughNotes(roughNotes, numDays, effectiveDest);
 
   // Find destination in preset knowledge base or synthesize
@@ -925,7 +1119,7 @@ export function buildSmartItinerary({
   }
 
   if (!baseTemplate) {
-    baseTemplate = synthesizeCustomDestination(effectiveDest, numDays, tripType);
+    baseTemplate = synthesizeCustomDestination(effectiveDest, numDays, tripType, origin);
   }
 
   // Build the day-wise itinerary
