@@ -10,6 +10,36 @@ import {
   fetchTrekDetails,
 } from "@/lib/realtimeTravel";
 
+import fs from "fs";
+import path from "path";
+
+function resolveApiKey(keyName) {
+  let val = (process.env[keyName] || "").trim();
+  if (val) return val;
+
+  // Dynamically check landing/.env.local and backend/.env without requiring dev-server restart
+  const candidates = [
+    path.resolve(process.cwd(), ".env.local"),
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "../backend/.env"),
+  ];
+
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, "utf-8");
+        const regex = new RegExp(`^\\s*${keyName}\\s*=\\s*(.+)`, "m");
+        const m = raw.match(regex);
+        if (m && m[1]) {
+          val = m[1].trim().replace(/^["']|["']$/g, "");
+          if (val) return val;
+        }
+      }
+    } catch (e) {}
+  }
+  return "";
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -26,15 +56,32 @@ export async function POST(req) {
 
     const commandText = description || roughNotes || "";
 
-    // 1. Extract origin & vehicle from user command
+    // 1. Extract origin & vehicle from user command with typo tolerance
     const lowerCmd = commandText.toLowerCase();
+    const lowerDest = (destination || "").toLowerCase();
+
     let origin = "Delhi";
-    if (lowerCmd.includes("mumbai")) origin = "Mumbai";
-    else if (lowerCmd.includes("pune")) origin = "Pune";
-    else if (lowerCmd.includes("bangalore")) origin = "Bangalore";
-    else if (lowerCmd.includes("hyderabad")) origin = "Hyderabad";
-    else if (lowerCmd.includes("chandigarh")) origin = "Chandigarh";
-    else if (lowerCmd.includes("dehradun")) origin = "Dehradun";
+    if (lowerCmd.includes("mumb") || lowerCmd.includes("bombay")) origin = "Mumbai";
+    else if (lowerCmd.includes("pune") || lowerCmd.includes("poona")) origin = "Pune";
+    else if (lowerCmd.includes("bangal") || lowerCmd.includes("bengal")) origin = "Bangalore";
+    else if (lowerCmd.includes("hyder")) origin = "Hyderabad";
+    else if (lowerCmd.includes("chandi")) origin = "Chandigarh";
+    else if (lowerCmd.includes("dehra")) origin = "Dehradun";
+    else if (lowerCmd.includes("jaipur")) origin = "Jaipur";
+    else if (lowerCmd.includes("kolkat") || lowerCmd.includes("calcut")) origin = "Kolkata";
+    else if (lowerCmd.includes("delh") || lowerCmd.includes("dilli")) origin = "Delhi";
+    else if (
+      lowerDest.includes("harishchandragad") ||
+      lowerDest.includes("aadrai") ||
+      lowerDest.includes("kalsubai") ||
+      lowerDest.includes("devkund") ||
+      lowerDest.includes("sandhan") ||
+      lowerDest.includes("malshej") ||
+      lowerDest.includes("rajmachi")
+    ) {
+      // Default origin for Western Ghats / Sahyadri treks
+      origin = "Mumbai";
+    }
 
     let vehicle = "AC Tourist Vehicle";
     if (lowerCmd.includes("tempo traveller") || lowerCmd.includes("traveller")) vehicle = "AC Tempo Traveller";
@@ -105,7 +152,7 @@ Format strictly in clean markdown:
     let generatedMarkdown = "";
 
     // 3. Check OpenAI API Key first if present
-    const openaiApiKey = (process.env.OPENAI_API_KEY || "").trim();
+    const openaiApiKey = resolveApiKey("OPENAI_API_KEY");
     if (openaiApiKey) {
       try {
         const oRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -137,7 +184,7 @@ Format strictly in clean markdown:
     }
 
     // 4. Check Gemini API Key if OpenAI was not used or failed
-    const geminiApiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const geminiApiKey = resolveApiKey("GEMINI_API_KEY");
     if (!generatedMarkdown && geminiApiKey) {
       const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-pro-latest", "gemini-2.0-flash", "gemini-1.5-flash"];
       for (const model of models) {

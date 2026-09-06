@@ -1076,7 +1076,7 @@ function synthesizeCustomDestination(destination, days, tripStyle, origin = "", 
   }
 
   // 2. Terrain-aware fallback for any other place
-  const isMountainOrValley = /valley|trek|hill|ghat|peak|lake|pass|kund|giri|tal|pahad|himalay|uttarakhand|himachal|kashmir|ladakh|sikkim/i.test(destClean);
+  const isMountainOrValley = /valley|trek|hill|ghat|peak|lake|pass|kund|giri|tal|pahad|himalay|uttarakhand|himachal|kashmir|ladakh|sikkim|fort|gad|bugyal|cliff|plateau|canyon|falls|waterfall|forest|sanctuary/i.test(destClean);
   const isBeachOrCoastal = /beach|island|coast|sea|ocean|port|bay|cove|lagoon|reef|goa|gokarna|andaman/i.test(destClean);
   const dayCards = [];
 

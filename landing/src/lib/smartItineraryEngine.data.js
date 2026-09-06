@@ -325,6 +325,53 @@ export const INDIA_DESTINATIONS_DATA = {
     food: ["Assamese Thali with Khar, Masor Tenga (tangy fish curry), and Joha rice", "Pitha sweets"],
     stay: "Eco-Friendly Jungle Safari Resort near Kohora Gate, Kaziranga",
     route: "Drive from Guwahati Airport (220 km / 4.5 hrs) or Jorhat (90 km / 2 hrs)"
+  },
+
+  // --- Maharashtra & Sahyadri Treks ---
+  harishchandragad: {
+    name: "Harishchandragad",
+    state: "Maharashtra",
+    spots: ["Kokankada sheer vertical concave cliff", "Kedareshwar Cave with water-submerged Shiva Lingam", "Harishchandreshwar 6th-century stone-carved temple", "Taramati Peak (highest point on the fort)", "Saptateertha Pushkarni sacred pond", "Paachnai base village trail"],
+    activities: ["Trekking the historic Paachnai / Khireshwar trail with forest guide", "Witnessing the rare Broken Spectre optical illusion at Kokankada cliff edge", "Sunset over the Konkan horizon", "Stargazing and tent camping under clear Sahyadri night skies"],
+    food: ["Authentic Maharashtrian Pitla Bhakri with spicy Thecha", "Fresh village Kanda Bhajji and hot ginger chai"],
+    stay: "Cliffside Alpine Tents / Rustic Village Guesthouse on Harishchandragad Plateau",
+    route: "Drive from Mumbai / Pune via Kalyan-Malshej Ghat or Igatpuri to Paachnai base village (approx. 160 km / 4.5 hrs)"
+  },
+  kalsubai: {
+    name: "Kalsubai Peak",
+    state: "Maharashtra",
+    spots: ["Highest Peak of Maharashtra (5,400 ft summit)", "Kalsubai Mata Temple with prayer bells", "Bari base village", "Steel ladder rock sections", "Arthur Lake & Wilson Dam view", "Windy ridge trail"],
+    activities: ["Climbing the iconic vertical steel ladders on sheer basalt rock faces", "Catching the golden sunrise cloud inversion from the summit", "360-degree panoramic vista of Bhandardara and surrounding forts"],
+    food: ["Village Pitla Bhakri", "Desi Zunka", "Sweet Jaggery Chai"],
+    stay: "Rustic Village Homestay or Lakeside Campsite in Bari / Bhandardara",
+    route: "Drive from Mumbai via NH-160 / Igatpuri to Bari village (approx. 150 km / 3.5 hrs)"
+  },
+  aadrai: {
+    name: "Aadrai Jungle Trek",
+    state: "Maharashtra",
+    spots: ["Khireshwar base village", "Aadrai hidden waterfall plunge pool", "Dense Malshej rainforest canopy", "Caves of Kalu gorge viewpoint", "Ancient stone Shiva temple", "Forest streams"],
+    activities: ["Trekking through misty primeval rainforest canopy with knee-deep stream crossings", "Natural swimming and freshwater dip in Aadrai forest waterfall pool", "Spotting Malabar giant squirrels and wild Sahyadri flora"],
+    food: ["Local Maharashtrian vegetarian thali with Bhakri and Thecha", "Hot piping Maggi and tea at base huts"],
+    stay: "Jungle Camp or Homestay in Khireshwar near Malshej Ghat",
+    route: "Drive from Mumbai via Kalyan, Murbad, and Malshej Ghat to Khireshwar (approx. 135 km / 3.5 hrs)"
+  },
+  devkund: {
+    name: "Devkund Waterfall",
+    state: "Maharashtra",
+    spots: ["Devkund turquoise plunge pool", "Bhira Dam reservoir backwaters", "Dense Tamhini forest trail", "Riverbed boulder crossings", "Plus Valley viewpoint"],
+    activities: ["Trek along scenic riverbed through dense Tamhini Ghat jungle", "Cliffside view of the cascading origin plunge pool", "Kayaking and lakeside relaxation at Bhira backwaters"],
+    food: ["Maharashtrian Poha and Upma", "Traditional village lunch with fresh Bhakri and Thecha"],
+    stay: "Lakeside Glamping Tents or Riverside Resort in Kolad / Tamhini",
+    route: "Drive from Mumbai via Mumbai-Pune Expressway & Khopoli-Pali road to Bhira (approx. 130 km / 3.5 hrs)"
+  },
+  sandhan: {
+    name: "Sandhan Valley",
+    state: "Maharashtra",
+    spots: ["Valley of Shadows (200 ft deep natural rock canyon)", "Samrad base village", "Reverse waterfall viewpoint", "Rock rappelling patches", "Alang-Madan-Kulang view"],
+    activities: ["Trekking through narrow water-carved volcanic rock canyon where sun barely touches the ground", "Technical rock rappelling down water gorges", "Camping under million stars on canyon bed"],
+    food: ["Samrad village home-cooked Thali", "Campfire barbecue"],
+    stay: "Canyon Bed Tents or Samrad Village Homestay",
+    route: "Drive from Mumbai via Kasara & Igatpuri to Samrad village (approx. 180 km / 4.5 hrs)"
   }
 };
 
