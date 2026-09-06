@@ -2,7 +2,6 @@ const path = require('path');
 const fs = require('fs');
 const {
   default: makeWASocket,
-  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   Browsers,
@@ -20,6 +19,7 @@ const logger = require('../utils/logger');
 const aiService = require('./aiService');
 const r2Service = require('./r2Service');
 const planService = require('./planService');
+const whatsappAuthState = require('./whatsappAuthState');
 
 // aiService emits this exact token instead of a reply when the model decides a
 // human should take over. It must never reach the customer.
@@ -185,9 +185,17 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
     }
   }
 
-  const sessionPath = getSessionPath(tenantId);
+  // A session that predates database storage still has its keys on disk.
+  // Importing them here is what stops this change from logging every already
+  // linked agency out and making them scan a fresh QR code.
+  if (!(await whatsappAuthState.hasStoredCreds(tenantId))) {
+    try {
+      await whatsappAuthState.importFromDisk(tenantId, getSessionPath(tenantId));
+    } catch (err) {
+      logger.warn({ tenantId, err }, 'Could not import the on-disk WhatsApp session; a QR scan may be needed');
+    }
+  }
 
-  // If starting fresh scan and not already connected, clean up stale unlinked session files
   if (forceNew) {
     const existing = activeSockets.get(tenantId);
     if (existing?.sock) {
@@ -198,29 +206,18 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
     }
     activeSockets.delete(tenantId);
 
-    // Only wipe the directory when there is no usable pairing to keep.
+    // Only discard the stored keys when there is no usable pairing to keep.
+    //
     // NOTE: do not test creds.registered here - Baileys only ever sets that
     // flag on the pairing-code path (Socket/messages-recv.js), so for the QR
     // flow it stays false forever and this check would delete a perfectly
     // good session on every reconnect. creds.me.id is what QR pairing fills in.
-    const credsPath = path.join(sessionPath, 'creds.json');
-    let isRegistered = false;
-    if (fs.existsSync(credsPath)) {
-      try {
-        const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-        isRegistered = !!(creds.me?.id || creds.registered);
-      } catch (e) {}
-    }
-
-    if (!isRegistered) {
-      try {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-        fs.mkdirSync(sessionPath, { recursive: true });
-      } catch (e) {}
+    if (!(await whatsappAuthState.isPaired(tenantId))) {
+      await whatsappAuthState.clearAuthState(tenantId);
     }
   }
 
-  const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+  const { state, saveCreds } = await whatsappAuthState.usePostgresAuthState(tenantId);
   const { version, isLatest } = await fetchLatestBaileysVersion();
   logger.info({ tenantId, version, isLatest }, 'Using Baileys version');
 
@@ -296,8 +293,16 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       }
 
       if (statusCode === DisconnectReason.loggedOut) {
+        // WhatsApp has revoked this device from the phone's side. The keys are
+        // dead, so they go - keeping them would only make the next boot try to
+        // resume a login that no longer exists.
         try {
-          fs.rmSync(sessionPath, { recursive: true, force: true });
+          await whatsappAuthState.clearAuthState(tenantId);
+        } catch (err) {
+          logger.warn({ tenantId, err }, 'Could not clear stored WhatsApp auth after logout');
+        }
+        try {
+          fs.rmSync(getSessionPath(tenantId), { recursive: true, force: true });
         } catch (e) {}
         activeSockets.delete(tenantId);
         await whatsappWebRepository.markLoggedOut(tenantId);
@@ -747,9 +752,11 @@ async function disconnectSession(tenantId) {
   }
   activeSockets.delete(tenantId);
 
-  const sessionPath = getSessionPath(tenantId);
+  // The keys live in Postgres now; the directory is only cleared for tenants
+  // linked before that change, so nothing stale is left behind on disk.
+  await whatsappAuthState.clearAuthState(tenantId);
   try {
-    fs.rmSync(sessionPath, { recursive: true, force: true });
+    fs.rmSync(getSessionPath(tenantId), { recursive: true, force: true });
   } catch (e) {}
 
   await whatsappWebRepository.markLoggedOut(tenantId);
