@@ -1536,40 +1536,40 @@ export function formatItineraryForWhatsapp(itinerary) {
   if (!itinerary) return "";
   const { destination, daysCount, tripType, agencyName, phone, days, inclusions, exclusions } = itinerary;
 
-  let text = `✈️ *${destination.toUpperCase()} TOUR ITINERARY (${daysCount}D/${Math.max(1, daysCount - 1)}N)*\\n`;
-  if (agencyName) text += `🏢 *Prepared by:* ${agencyName}\\n`;
-  text += `✨ *Trip Style:* ${tripType}\\n\\n`;
+  let text = `✈️ *${destination.toUpperCase()} TOUR ITINERARY (${daysCount}D/${Math.max(1, daysCount - 1)}N)*\n`;
+  if (agencyName) text += `🏢 *Prepared by:* ${agencyName}\n`;
+  text += `✨ *Trip Style:* ${tripType}\n\n`;
 
-  text += `━━━━━━━━━━━━━━━━━━━━━\\n`;
-  text += `📅 *DAY-WISE ITINERARY*\\n`;
-  text += `━━━━━━━━━━━━━━━━━━━━━\\n\\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `📅 *DAY-WISE ITINERARY*\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
   days.forEach(d => {
-    text += `📍 *${d.title}*\\n`;
+    text += `📍 *${d.title}*\n`;
     d.points.forEach(p => {
-      text += `• ${p}\\n`;
+      text += `• ${p}\n`;
     });
-    text += `\\n`;
+    text += `\n`;
   });
 
   if (inclusions && inclusions.length > 0) {
-    text += `🎒 *PACKAGE INCLUSIONS:*\\n`;
+    text += `🎒 *PACKAGE INCLUSIONS:*\n`;
     inclusions.forEach(i => {
-      text += `✅ ${i}\\n`;
+      text += `✅ ${i}\n`;
     });
-    text += `\\n`;
+    text += `\n`;
   }
 
   if (exclusions && exclusions.length > 0) {
-    text += `❌ *PACKAGE EXCLUSIONS:*\\n`;
+    text += `❌ *PACKAGE EXCLUSIONS:*\n`;
     exclusions.forEach(e => {
-      text += `• ${e}\\n`;
+      text += `• ${e}\n`;
     });
-    text += `\\n`;
+    text += `\n`;
   }
 
-  text += `📞 *For Bookings & Customization:* ${phone || "Contact Agency"}\\n`;
-  text += `_Rates subject to availability at time of confirmation._\\n`;
+  text += `📞 *For Bookings & Customization:* ${phone || "Contact Agency"}\n`;
+  text += `_Rates subject to availability at time of confirmation._\n`;
 
   return text;
 }
@@ -1579,7 +1579,7 @@ export function formatItineraryForWhatsapp(itinerary) {
 // ==========================================
 export function parseMarkdownToStructuredItinerary(text, meta = {}) {
   if (!text) return null;
-  const lines = text.split("\\n");
+  const lines = text.split(/\r?\n/);
   let title = meta.title || `${meta.destination || "Tour"} Itinerary`;
   const days = [];
   const inclusions = [];
