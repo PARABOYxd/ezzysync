@@ -2,6 +2,7 @@ import React from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import LegalContent from "../../components/sections/LegalContent";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "Terms & Conditions — EzzySync",
@@ -19,7 +20,7 @@ export const metadata = {
 };
 
 export default function TermsPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  const crmUrl = getCrmUrl();
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">

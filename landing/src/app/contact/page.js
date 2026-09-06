@@ -2,6 +2,7 @@ import React from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import DemoForm from "../../components/sections/DemoForm";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "Contact EzzySync — Book a Free Travel CRM Walkthrough",
@@ -29,7 +30,7 @@ export const metadata = {
 };
 
 export default function ContactPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  const crmUrl = getCrmUrl();
 
   const pageJsonLd = {
     "@context": "https://schema.org",

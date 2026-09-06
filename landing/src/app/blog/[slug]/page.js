@@ -5,12 +5,9 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import authors from "@/data/authors.json";
+import { getCrmUrl } from "@/lib/crmUrl";
 
-let rawCrmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
-if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("https://")) {
-  rawCrmUrl = `https://${rawCrmUrl}`;
-}
-const globalCrmUrl = rawCrmUrl;
+const globalCrmUrl = getCrmUrl();
 
 const articlesData = {
   "best-travel-agency-crm-software-india-2026": {

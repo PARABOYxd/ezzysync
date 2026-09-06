@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer";
 import Problem from "../../components/sections/Problem";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "About EzzySync — Travel CRM Built for Travel Agencies",
@@ -31,7 +32,7 @@ export const metadata = {
 };
 
 export default function AboutPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
+  const crmUrl = getCrmUrl();
   const generalFaqs = faqData.filter((item) => item.category === "general");
 
   const pageJsonLd = [

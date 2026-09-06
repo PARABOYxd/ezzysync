@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export const metadata = {
   title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
@@ -27,7 +28,7 @@ export const metadata = {
 };
 
 export default function CompareZohoPage() {
-  const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "https://www.ezzysync.com/app";
+  const crmUrl = getCrmUrl();
 
   const faqSchema = {
     "@context": "https://schema.org",

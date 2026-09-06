@@ -10,13 +10,10 @@ import WhyEzzySync from "../components/sections/WhyEzzySync";
 import Pricing from "../components/sections/Pricing";
 import FAQ from "../components/sections/FAQ";
 import Footer from "../components/layout/Footer";
+import { getCrmUrl } from "@/lib/crmUrl";
 
 export default function Home() {
-  let rawCrmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
-  if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("https://")) {
-    rawCrmUrl = `https://${rawCrmUrl}`;
-  }
-  const crmUrl = rawCrmUrl;
+  const crmUrl = getCrmUrl();
 
   const pageJsonLd = [
     {
