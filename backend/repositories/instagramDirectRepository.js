@@ -58,10 +58,23 @@ async function updateStatus(tenantId, status, challengeContext = null) {
   return rows[0];
 }
 
+/**
+ * Disconnects the account and forgets everything we were holding for it.
+ *
+ * `encrypted_creds` holds the tenant's Instagram username and password - the
+ * only way Instagram lets an app sign in on their behalf. It used to survive a
+ * disconnect: `session_data` was cleared but the credentials stayed in the row
+ * indefinitely, so a tenant who unlinked their account still had their
+ * Instagram password sitting in our database. Disconnect now means disconnect.
+ */
 async function clearSession(tenantId) {
   await query(
     `UPDATE instagram_direct_sessions
-     SET status = 'disconnected', session_data = '', challenge_context = NULL, updated_at = NOW()
+     SET status = 'disconnected',
+         session_data = '',
+         encrypted_creds = '',
+         challenge_context = NULL,
+         updated_at = NOW()
      WHERE tenant_id = $1`,
     [tenantId]
   );

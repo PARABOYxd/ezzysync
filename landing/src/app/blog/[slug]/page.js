@@ -6,6 +6,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import authors from "@/data/authors.json";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { PLAN_PRICE_LABEL, PLAN_PRICE_MONTHLY } from "@/data/plans";
 
 const globalCrmUrl = getCrmUrl();
 
@@ -32,7 +33,7 @@ const articlesData = {
                   "name": "Which is the best CRM software for travel agencies in India?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "EzzySync CRM is rated #1 for Indian travel agencies and tour operators in 2026. It features 1-click WhatsApp Business API, AI day-wise itinerary builder, GST invoice generator, multi-agent chat inbox, and supplier cost management starting at ₹999/mo."
+                    "text": `EzzySync CRM is rated #1 for Indian travel agencies and tour operators in 2026. It features 1-click WhatsApp Business API, AI day-wise itinerary builder, GST invoice generator, multi-agent chat inbox, and supplier cost management starting at ${PLAN_PRICE_LABEL.SOLO}/mo.`
                   }
                 },
                 {
@@ -48,7 +49,7 @@ const articlesData = {
                   "name": "How much does a travel CRM cost in India?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Travel CRMs in India range from ₹999/month for solo agents (like EzzySync Solo) to ₹2,499/month for growing agencies with 5+ team logins and unlimited bookings."
+                    "text": `Travel CRMs in India range from ${PLAN_PRICE_MONTHLY.SOLO} for solo agents (like EzzySync Solo) to ${PLAN_PRICE_MONTHLY.PRO} for growing agencies with 5+ team logins and unlimited bookings.`
                   }
                 }
               ]
@@ -87,7 +88,7 @@ const articlesData = {
                 <td className="p-3">Indian Travel Agencies & DMCs</td>
                 <td className="p-3 text-emerald-600 font-bold">✓ Native Multi-Agent</td>
                 <td className="p-3 text-emerald-600 font-bold">✓ Built-in AI</td>
-                <td className="p-3 text-orange-600 font-bold">₹999 /mo</td>
+                <td className="p-3 text-orange-600 font-bold">{PLAN_PRICE_LABEL.SOLO} /mo</td>
               </tr>
               <tr>
                 <td className="p-3 font-semibold">2. TeleCRM</td>

@@ -4,6 +4,7 @@ import * as profileService from '../services/profileService';
 import { openRazorpayCheckout } from '../services/paymentService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
 import Input from '../components/ui/Input.jsx';
 import FormRow from '../components/ui/FormRow.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -21,6 +22,9 @@ export default function Profile() {
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '' });
   const [pwSaving, setPwSaving] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  // Prices and feature lists come from the server, not from this file - see
+  // backend/config/planCatalog.js.
+  const { plans, loading: catalogLoading, error: catalogError } = usePlanCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Other pages link here with ?upgrade=1 when someone hits a locked feature,
@@ -376,104 +380,101 @@ export default function Profile() {
               </button>
             </div>
 
-            {/* Modal Body - 3 Plan Cards */}
-            <div className="p-5 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-              
-              {/* Plan 1: Solo Agent */}
-              <div className={`p-5 rounded-2xl border flex flex-col justify-between transition ${
-                isSolo ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/20' : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40'
-              }`}>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Solo Agent</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">For independent travel consultants.</p>
-                  </div>
-                  <div className="flex items-baseline text-slate-900 dark:text-zinc-100">
-                    <span className="text-2xl font-black">₹999</span>
-                    <span className="ml-1 text-xs text-slate-500">/month</span>
-                  </div>
-                  <ul className="space-y-2 text-xs text-slate-600 dark:text-zinc-300">
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> 1 Dedicated Agent Login</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Up to 200 Client Leads</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> PDF Itinerary Builder</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> GST Tax Invoices</li>
-                    <li className="flex gap-2 items-center text-slate-400"><X className="w-3.5 h-3.5 shrink-0" /> No AI Tools</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleUpgradePayment('SOLO', 'Solo Agent Plan')}
-                  className={`mt-6 w-full py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
-                    isSolo ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200'
-                  }`}
-                >
-                  {isSolo ? 'Current Active Plan' : 'Pay & Activate Solo (₹999)'}
-                </button>
+            {/* Modal Body - plan cards, priced by the server */}
+            {catalogError && (
+              <div className="p-6 text-center text-sm text-rose-600 dark:text-rose-400">
+                {catalogError} Please refresh, or contact support to upgrade.
               </div>
+            )}
 
-              {/* Plan 2: Agency Growth (Most Popular) */}
-              <div className="p-5 rounded-2xl border-2 border-[#F97316] bg-white dark:bg-zinc-900/80 shadow-lg shadow-orange-500/5 flex flex-col justify-between relative">
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[9px] uppercase tracking-widest font-black py-0.5 px-3 rounded-full shadow-xs">
-                  Most Popular
-                </span>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Agency Growth</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">For growing travel agencies & operators.</p>
-                  </div>
-                  <div className="flex items-baseline text-slate-900 dark:text-zinc-100">
-                    <span className="text-2xl font-black">₹2,499</span>
-                    <span className="ml-1 text-xs text-slate-500">/month</span>
-                  </div>
-                  <ul className="space-y-2 text-xs text-slate-700 dark:text-zinc-200 font-medium">
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Up to 5 Team Logins</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Unlimited Bookings & Leads</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> 1-Click WhatsApp Business API</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Multi-Agent Live Chat</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> AI Itinerary Generator ⚡</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Supplier Costing & Group Tours</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleUpgradePayment('PRO', 'Agency Growth Pro Plan')}
-                  className="mt-6 w-full py-2.5 rounded-xl text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-md transition cursor-pointer"
-                >
-                  {isPaidPro ? 'Current Active Plan' : isTrial ? 'Pay & Renew Pro (₹2,499)' : 'Pay & Upgrade to Pro (₹2,499)'}
-                </button>
+            {catalogLoading && (
+              <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-72 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/40 animate-pulse"
+                  />
+                ))}
               </div>
+            )}
 
-              {/* Plan 3: Enterprise */}
-              <div className="p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">Enterprise & DMCs</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">For corporate travel & DMCs.</p>
-                  </div>
-                  <div className="flex items-baseline text-slate-900 dark:text-zinc-100">
-                    <span className="text-2xl font-black">Custom</span>
-                    <span className="ml-1 text-xs text-slate-500">/yearly</span>
-                  </div>
-                  <ul className="space-y-2 text-xs text-slate-600 dark:text-zinc-300">
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Unlimited Agent Logins</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Multi-Branch Management</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Custom WhatsApp Flows</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Dedicated Account Manager</li>
-                    <li className="flex gap-2 items-center"><Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> 24/7 Priority Support</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.open('https://wa.me/919999999999?text=Hi%2C%20I%20want%20to%20discuss%20EzzySync%20Enterprise%20Plan', '_blank');
-                  }}
-                  className="mt-6 w-full py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 transition cursor-pointer"
-                >
-                  Contact Sales Team
-                </button>
+            {!catalogLoading && !catalogError && (
+              <div className="p-5 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+                {plans.map((plan) => {
+                  const isCurrent = user?.planId === plan.id || (plan.id === 'PRO' && isPaidPro);
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`p-5 rounded-2xl border flex flex-col justify-between transition relative ${
+                        plan.highlight
+                          ? 'border-2 border-[#F97316] bg-white dark:bg-zinc-900/80 shadow-lg shadow-orange-500/5'
+                          : isCurrent
+                          ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/20'
+                          : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40'
+                      }`}
+                    >
+                      {plan.badge && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[9px] uppercase tracking-widest font-black py-0.5 px-3 rounded-full shadow-xs">
+                          {plan.badge}
+                        </span>
+                      )}
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-bold text-slate-900 dark:text-zinc-100 text-sm">{plan.name}</h3>
+                          <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">{plan.tagline}</p>
+                        </div>
+                        <div className="flex items-baseline text-slate-900 dark:text-zinc-100">
+                          <span className="text-2xl font-black">{plan.priceLabel}</span>
+                          <span className="ml-1 text-xs text-slate-500">/{plan.period}</span>
+                        </div>
+                        <ul className="space-y-2 text-xs text-slate-600 dark:text-zinc-300">
+                          {plan.features.map((feature) => (
+                            <li
+                              key={feature.label}
+                              className={`flex gap-2 items-center ${feature.included ? '' : 'text-slate-400'}`}
+                            >
+                              {feature.included ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              ) : (
+                                <X className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                              {feature.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {plan.purchasable ? (
+                        <button
+                          type="button"
+                          disabled={isCurrent}
+                          onClick={() => handleUpgradePayment(plan.id, plan.name)}
+                          className={`mt-6 w-full py-2.5 rounded-xl text-xs font-semibold border transition ${
+                            isCurrent
+                              ? 'bg-blue-600 text-white border-blue-600 cursor-default'
+                              : plan.highlight
+                              ? 'bg-[#F97316] hover:bg-[#EA580C] text-white border-transparent shadow-md cursor-pointer'
+                              : 'border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 cursor-pointer'
+                          }`}
+                        >
+                          {isCurrent
+                            ? 'Current Active Plan'
+                            : `Pay & Activate ${plan.name} (${plan.priceLabel})`}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => plan.contactUrl && window.open(plan.contactUrl, '_blank')}
+                          className="mt-6 w-full py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 transition cursor-pointer"
+                        >
+                          Contact Sales Team
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-
-            </div>
+            )}
           </div>
         </div>
       )}

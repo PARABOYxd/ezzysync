@@ -6,6 +6,7 @@ import {
   Shield,
   Layers
 } from "lucide-react";
+import { PLAN_PRICE_MONTHLY } from "./plans";
 
 export const faqData = [
   {
@@ -19,8 +20,8 @@ export const faqData = [
     category: "feature",
   },
   {
-    q: "Is there a free travel agency CRM plan available?",
-    a: "Yes! EzzySync offers a 30-Day Free Trial with 100% full Pro access unlocked (no credit card required) and a permanent Free Starter plan. Paid plans start at just ₹999/month for solo agents with unlimited bookings and AI tools.",
+    q: "Is there a free trial of EzzySync travel CRM?",
+    a: `EzzySync gives you a 30-Day Free Trial with 100% full Pro access unlocked and no credit card required. After the trial you pick a paid plan — they start at ${PLAN_PRICE_MONTHLY.SOLO} for solo agents — and nothing is ever charged automatically.`,
     category: "pricing",
   },
   {

@@ -5,10 +5,11 @@ import Pricing from "../../components/sections/Pricing";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { PLAN_PRICE_RUPEES } from "@/data/plans";
 
 export const metadata = {
   title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
-  description: "EzzySync pricing for travel agencies: a free Starter plan for up to 100 leads, an Agency Growth plan with a 7-day trial, and custom Enterprise pricing for large teams.",
+  description: "EzzySync pricing for travel agencies: a 30-day free trial with full Pro access, a Solo Agent plan, an Agency Growth plan, and custom Enterprise pricing for large teams.",
   alternates: {
     canonical: "/pricing",
   },
@@ -18,7 +19,7 @@ export const metadata = {
   },
   openGraph: {
     title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
-    description: "EzzySync pricing for travel agencies: a free Starter plan for up to 100 leads, an Agency Growth plan with a 7-day trial, and custom Enterprise pricing for large teams.",
+    description: "EzzySync pricing for travel agencies: a 30-day free trial with full Pro access, a Solo Agent plan, an Agency Growth plan, and custom Enterprise pricing for large teams.",
     url: "https://www.ezzysync.com/pricing",
     siteName: "EzzySync",
     locale: "en_US",
@@ -27,7 +28,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
-    description: "EzzySync pricing for travel agencies: a free Starter plan for up to 100 leads, an Agency Growth plan with a 7-day trial, and custom Enterprise pricing for large teams.",
+    description: "EzzySync pricing for travel agencies: a 30-day free trial with full Pro access, a Solo Agent plan, an Agency Growth plan, and custom Enterprise pricing for large teams.",
   },
 };
 
@@ -55,20 +56,21 @@ export default function PricingPage() {
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "INR",
-        "lowPrice": "0",
-        "highPrice": "2499",
-        "offerCount": "3",
+        // See the note on the home page: there is no ₹0 plan to offer.
+        "lowPrice": PLAN_PRICE_RUPEES.SOLO,
+        "highPrice": PLAN_PRICE_RUPEES.PRO,
+        "offerCount": "2",
         "offers": [
           {
             "@type": "Offer",
-            "name": "Free Starter Plan",
-            "price": "0",
+            "name": "Solo Agent Plan",
+            "price": PLAN_PRICE_RUPEES.SOLO,
             "priceCurrency": "INR"
           },
           {
             "@type": "Offer",
             "name": "Agency Growth Plan",
-            "price": "2499",
+            "price": PLAN_PRICE_RUPEES.PRO,
             "priceCurrency": "INR"
           },
           {
@@ -115,11 +117,11 @@ export default function PricingPage() {
                   Travel CRM pricing for every agency size
                 </h1>
                 <p className="load-in text-slate-500 text-base sm:text-lg leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
-                  Start free, upgrade when your booking volume grows. No hidden setup fees or markup charges on any plan.
+                  Try everything free for 30 days, then pick the plan that fits your booking volume. No hidden setup fees or markup charges on any plan.
                 </p>
                 <div className="load-in flex flex-wrap justify-center lg:justify-start gap-2 pt-2" style={{ "--reveal-delay": "160ms" }}>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">7-day free trial</span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">Cancel anytime</span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">30-day free trial</span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">Nothing auto-renews</span>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">No card required</span>
                 </div>
               </div>

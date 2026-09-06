@@ -1,7 +1,10 @@
 import api from './api';
 
-export const createSubscriptionOrder = (planId = 'PRO', amount = null) =>
-  api.post('/payments/create-subscription-order', { planId, amount }).then((r) => r.data);
+// No default plan and no amount. A caller that forgets the plan now gets a
+// clear 400 back instead of silently opening a checkout for the priciest one,
+// and the price is decided by the server from the plan catalog.
+export const createSubscriptionOrder = (planId) =>
+  api.post('/payments/create-subscription-order', { planId }).then((r) => r.data);
 
 export const verifySubscription = (payload) =>
   api.post('/payments/verify-subscription', payload).then((r) => r.data);
@@ -27,8 +30,8 @@ export function loadRazorpayScript() {
  * Initiates Razorpay Standard Web Checkout modal
  */
 export async function openRazorpayCheckout({
-  planId = 'PRO',
-  planName = 'Agency Growth Pro Plan',
+  planId,
+  planName = 'Subscription',
   user,
   onSuccess,
   onError,

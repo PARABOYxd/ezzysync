@@ -26,7 +26,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-white text-slate-900 font-sans">
       <Navbar crmUrl={crmUrl} />
       <main>
-        <LegalContent title="Privacy Policy" updated="30 July 2026">
+        <LegalContent title="Privacy Policy" updated="6 September 2026">
           <p>
             This explains what data EzzySync collects when you use our travel CRM platform, why we
             collect it, and what we do with it. It's written in plain language on purpose — if
@@ -40,6 +40,8 @@ export default function PrivacyPage() {
             <li><strong>CRM data you enter</strong> — leads, bookings, customer names/contacts, itineraries, invoices, and notes you add for your own agency's use.</li>
             <li><strong>Payment info</strong> — handled directly by Razorpay for paid plans; we don't store your card details ourselves.</li>
             <li><strong>Basic usage data</strong> — page views on our marketing site via Vercel Analytics, which doesn't use invasive tracking cookies.</li>
+            <li><strong>Messages from channels you connect</strong> — if you link a WhatsApp number or an Instagram account, the conversations on it (message text, sender phone number or handle, timestamps, and any photos, PDFs, audio or video sent or received) are stored in your workspace so you can read and reply from the CRM.</li>
+            <li><strong>Credentials for channels you connect</strong> — linking WhatsApp by QR code stores the session keys WhatsApp issues to that device. Connecting Instagram Direct stores your Instagram username and password, encrypted, because Instagram provides no other way for an app to sign in on your behalf. Connecting Gmail stores an encrypted Google OAuth token instead of any password.</li>
           </ul>
 
           <h2>2. Why we collect it</h2>
@@ -53,19 +55,27 @@ export default function PrivacyPage() {
           <h2>3. Third-party services we use</h2>
           <p>To provide the platform, we send limited data to:</p>
           <ul>
-            <li><strong>Resend</strong> — sends system emails (OTPs, password resets).</li>
-            <li><strong>Razorpay</strong> — processes subscription payments.</li>
-            <li><strong>Google Gemini</strong> — powers AI features (itinerary generation, chat parsing), if you use them.</li>
+            <li><strong>Resend and our email provider</strong> — send system emails (OTPs, password resets) and, where you haven't connected Gmail, your invoices.</li>
+            <li><strong>Razorpay</strong> — processes plan payments.</li>
+            <li><strong>Google Gemini</strong> — powers AI features, if you use them. This includes itinerary generation from your prompts and, when you switch on AI auto-reply for a chat, the recent messages in that conversation — including what your customer wrote — so a reply can be drafted. AI auto-reply is off by default and is enabled per chat by you.</li>
             <li><strong>Meta WhatsApp Cloud API</strong> — only if you connect your own WhatsApp Business account in Settings.</li>
+            <li><strong>WhatsApp (via QR link)</strong> — if you link a personal or business WhatsApp number by scanning a QR code, we connect to WhatsApp as a linked device on your behalf to send and receive your messages.</li>
+            <li><strong>Instagram</strong> — only if you connect an Instagram account for Direct messages; we sign in as you to read and send those DMs.</li>
+            <li><strong>Cloudflare R2</strong> — stores files: attachments you upload, generated invoice PDFs, and media sent or received in chats.</li>
             <li><strong>Google OAuth / Gmail API</strong> — only if you choose to connect your own Gmail account for sending emails.</li>
           </ul>
           <p>Each of these only receives the specific data needed for the feature you're using.</p>
 
           <h2>4. How your data is stored</h2>
           <p>
-            Everything is stored in a PostgreSQL database. Every agency's data is isolated at the
-            database level — one agency can never read or write another agency's leads, bookings, or
-            customer records. Passwords are hashed with bcrypt; login sessions use signed JWT tokens.
+            Records — leads, bookings, invoices, messages — are stored in a PostgreSQL database. Files
+            (uploads, invoice PDFs, and chat media) are stored in Cloudflare R2 object storage. Every
+            agency's data is isolated — one agency can never read or write another agency's leads,
+            bookings, customer records, or messages. Your EzzySync password is hashed with bcrypt and
+            cannot be read back by anyone, including us. Credentials for channels you connect —
+            WhatsApp session keys, Instagram sign-in details, Gmail OAuth tokens — are encrypted at
+            rest, because unlike a password they have to be usable to keep the channel connected.
+            Login sessions use signed JWT tokens.
           </p>
 
           <h2>5. Your CRM data belongs to you</h2>
@@ -88,6 +98,7 @@ export default function PrivacyPage() {
             <li>Export a copy of your account and CRM data.</li>
             <li>Correct inaccurate account information.</li>
             <li>Delete your account and associated data (subject to what we're legally required to keep, e.g. financial records for tax purposes).</li>
+            <li>Disconnect a linked WhatsApp or Instagram account at any time from Settings, which deletes the stored credentials for it. To disconnect Gmail, remove EzzySync from your Google Account's connected apps, or email us and we'll delete the stored token.</li>
           </ul>
           <p>Email <a href="mailto:support@ezzysync.com">support@ezzysync.com</a> for any of these.</p>
 

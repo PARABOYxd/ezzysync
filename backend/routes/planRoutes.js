@@ -2,8 +2,28 @@ const express = require('express');
 const { requireAuth } = require('../middleware/authMiddleware');
 const planService = require('../services/planService');
 const planRepository = require('../repositories/planRepository');
+const { getPlanCatalog } = require('../config/planCatalog');
 
 const router = express.Router();
+
+/**
+ * What the plans cost and what each one includes.
+ *
+ * Deliberately above `requireAuth`: the trial-expired paywall renders for a
+ * user whose session is technically fine, but the landing site has no session
+ * at all, and pricing is public information either way. Nothing tenant-
+ * specific is in the response - that is what `/me` below is for.
+ *
+ * Every price shown anywhere in the app comes from here, so a card can never
+ * advertise a number that differs from the one Razorpay charges.
+ */
+router.get('/catalog', (req, res) => {
+  // Prices change rarely; a short cache keeps the paywall instant without
+  // pinning a stale price for long after an actual change.
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ plans: getPlanCatalog() });
+});
+
 router.use(requireAuth);
 
 /**

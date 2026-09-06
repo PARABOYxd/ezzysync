@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
+import { PLAN_PRICE_LABEL } from "@/data/plans";
 
 export default function Pricing({ crmUrl }) {
   return (
@@ -45,7 +46,7 @@ export default function Pricing({ crmUrl }) {
                   <p className="text-slate-500 text-xs mt-1">For independent travel consultants & solo planners.</p>
                 </div>
                 <div className="flex items-baseline text-slate-950">
-                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight">₹999</span>
+                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight">{PLAN_PRICE_LABEL.SOLO}</span>
                   <span className="ml-1.5 text-xs text-slate-500 font-medium">/month</span>
                 </div>
                 <ul className="space-y-3 text-sm text-slate-600">
@@ -99,7 +100,7 @@ export default function Pricing({ crmUrl }) {
                   <p className="text-slate-500 text-xs mt-1">For growing travel agencies & tour operators.</p>
                 </div>
                 <div className="flex items-baseline text-slate-950">
-                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight">₹2,499</span>
+                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight">{PLAN_PRICE_LABEL.PRO}</span>
                   <span className="ml-1.5 text-xs text-slate-500 font-medium">/month (after 30 days)</span>
                 </div>
                 <ul className="space-y-3 text-sm text-slate-700">

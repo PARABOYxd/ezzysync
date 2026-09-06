@@ -3,6 +3,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import LegalContent from "../../components/sections/LegalContent";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { PLAN_PRICE_MONTHLY } from "@/data/plans";
 
 export const metadata = {
   title: "Terms & Conditions — EzzySync",
@@ -26,7 +27,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-white text-slate-900 font-sans">
       <Navbar crmUrl={crmUrl} />
       <main>
-        <LegalContent title="Terms & Conditions" updated="30 July 2026">
+        <LegalContent title="Terms & Conditions" updated="6 September 2026">
           <p>
             These terms apply when you or your travel agency ("you") use EzzySync ("we", "us"), the
             travel CRM and booking management platform at ezzysync.com. By creating an account, you
@@ -48,28 +49,33 @@ export default function TermsPage() {
           </p>
 
           <h2>3. Plans and billing</h2>
-          <p>We currently offer three plans:</p>
+          <p>Every new account starts with a 30-day free trial. After that we offer three plans:</p>
           <ul>
-            <li><strong>Starter</strong> — free, for up to 100 client leads.</li>
-            <li><strong>Agency Growth</strong> — ₹2,499/month, billed monthly, with a 7-day free trial before the first charge.</li>
+            <li><strong>Solo Agent</strong> — {PLAN_PRICE_MONTHLY.SOLO}, for one login and up to 200 client leads.</li>
+            <li><strong>Agency Growth</strong> — {PLAN_PRICE_MONTHLY.PRO}, for up to 5 team logins with unlimited bookings and AI tools.</li>
             <li><strong>Enterprise</strong> — custom pricing, agreed separately with our team.</li>
           </ul>
           <p>
-            Paid plans are billed in advance through Razorpay. Prices are in Indian Rupees (INR) and
-            may change with notice on this page or by email before your next billing cycle.
+            Paid plans are charged through Razorpay as a single payment for one month of access, in
+            advance. We do not keep your card on file and nothing renews automatically — you pay again
+            yourself when you want another month. Prices are in Indian Rupees (INR) and may change with
+            notice on this page or by email.
           </p>
 
           <h2>4. Free trial</h2>
           <p>
-            The Agency Growth plan includes a 7-day free trial. You won't be charged during the trial.
-            If you don't cancel before it ends, your card will be charged for the first billing period.
+            Every new account gets 30 days of full Agency Growth access, free, with no card required.
+            You are not charged during the trial and you are not charged when it ends. When the 30 days
+            are up, your workspace is locked until you choose a paid plan — your data stays intact and
+            returns as soon as you subscribe.
           </p>
 
           <h2>5. Cancelling</h2>
           <p>
-            You can cancel anytime by emailing <a href="mailto:support@ezzysync.com">support@ezzysync.com</a>.
-            Cancellation takes effect at the end of your current billing period — you keep access until
-            then, and we don't charge you again after that. See our{" "}
+            Nothing renews on its own, so there is nothing to cancel — simply don't make the next
+            payment. You keep access for the month you have already paid for. If you want your account
+            and data deleted entirely, email{" "}
+            <a href="mailto:support@ezzysync.com">support@ezzysync.com</a>. See our{" "}
             <a href="/refund-policy">Refund Policy</a> for how refunds work.
           </p>
 
@@ -93,9 +99,11 @@ export default function TermsPage() {
 
           <h2>8. Third-party services</h2>
           <p>
-            Some features depend on services you connect yourself — the Meta WhatsApp Cloud API for
-            WhatsApp messaging, and Google OAuth if you choose to send email through your own Gmail
-            account. Your use of those services is also subject to their own terms.
+            Some features depend on accounts you connect yourself — the Meta WhatsApp Cloud API or a
+            personal WhatsApp number linked by QR code, an Instagram account for Direct messages, and
+            Google OAuth if you choose to send email through your own Gmail account. Your use of those
+            services is also subject to their own terms, and linking a personal WhatsApp or Instagram
+            account is your decision and your responsibility under those platforms' rules.
           </p>
 
           <h2>9. Service availability</h2>
