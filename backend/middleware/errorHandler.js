@@ -24,11 +24,15 @@ const MULTER_MESSAGES = {
  * while "that email is already registered" tells them exactly what to change.
  */
 const PG_MESSAGES = {
-  '23505': 'That record already exists. Please check for a duplicate entry.',
-  '23503': 'This is still linked to other records, so it cannot be changed or removed yet.',
-  '23502': 'A required field was left empty.',
-  '22001': 'One of the values is too long for its field.',
-  '22P02': 'One of the values is not in the expected format.',
+  // A genuine conflict with what is already stored.
+  '23505': { status: 409, message: 'That record already exists. Please check for a duplicate entry.' },
+  '23503': { status: 409, message: 'This is still linked to other records, so it cannot be changed or removed yet.' },
+  // The request itself was malformed - a missing field, an over-long value,
+  // or an id that is not a valid UUID. Those are 400s: calling a mistyped id
+  // a "conflict" tells the caller to look in the wrong place.
+  '23502': { status: 400, message: 'A required field was left empty.' },
+  '22001': { status: 400, message: 'One of the values is too long for its field.' },
+  '22P02': { status: 400, message: 'One of the values is not in the expected format.' },
 };
 
 /**
@@ -60,9 +64,10 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ message: 'The request body was not valid JSON.' });
   }
 
-  if (PG_MESSAGES[err?.code]) {
-    log.warn({ err, pgCode: err.code }, 'Database constraint rejected the request');
-    return res.status(409).json({ message: PG_MESSAGES[err.code], requestId });
+  const pg = PG_MESSAGES[err?.code];
+  if (pg) {
+    log.warn({ err, pgCode: err.code }, 'Database rejected the request');
+    return res.status(pg.status).json({ message: pg.message, requestId });
   }
 
   const status = err.status || 500;
