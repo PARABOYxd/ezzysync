@@ -3,8 +3,8 @@ const env = require('../config/env');
 const bookingService = require('./bookingService');
 const logger = require('../utils/logger');
 
-const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-const FALLBACK_GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-3.5-flash', 'gemini-3.7-flash'];
 const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 30000;
 
 // JSON schema for Gemini structured output
@@ -556,6 +556,7 @@ ${task}` }], WHATSAPP_REPLY_CONFIG);
 
 module.exports = {
   isConfigured,
+  generateContent,
   parseTicketOrChat,
   generateItineraryText,
   parseItineraryJson,

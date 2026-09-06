@@ -32,13 +32,22 @@ export async function submitWalkthroughRequest({ name, agencyName, email, phone 
 }
 
 /** Generates a free day-wise travel itinerary using the CRM public AI endpoint. */
-export async function generateFreeItinerary({ destination, days, tripType, agencyName, email, phone, name }) {
+export async function generateFreeItinerary({ destination, days, tripType, agencyName, email, phone, name, description, roughNotes }) {
   const response = await fetch(`${getApiBaseUrl()}/api/public/generate-free-itinerary`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ destination, days, tripType, agencyName, email, phone, name }),
+    body: JSON.stringify({
+      destination,
+      days,
+      tripType,
+      agencyName,
+      email,
+      phone,
+      name,
+      description: description || roughNotes || "",
+    }),
   });
 
   if (!response.ok) {

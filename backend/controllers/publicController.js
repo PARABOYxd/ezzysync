@@ -54,7 +54,7 @@ async function listWalkthroughRequests(req, res, next) {
 
 async function generateFreeItinerary(req, res, next) {
   try {
-    const { destination, days, tripType, agencyName, email, phone, name } = req.body;
+    const { destination, days, tripType, agencyName, email, phone, name, description, roughNotes } = req.body;
     if (!destination) {
       return res.status(400).json({ message: 'Destination is required.' });
     }
@@ -67,6 +67,7 @@ async function generateFreeItinerary(req, res, next) {
       email,
       phone,
       name,
+      description: description || roughNotes || '',
     });
 
     res.json({

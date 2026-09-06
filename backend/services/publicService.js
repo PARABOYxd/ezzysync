@@ -20,7 +20,7 @@ async function captureLeadByPublicKey(publicLeadKey, { customerName, email, phon
 
 const aiService = require('./aiService');
 
-async function generateFreeItinerary({ destination, days = 4, tripType = 'Family & Leisure', agencyName, email, phone, name }) {
+async function generateFreeItinerary({ destination, days = 4, tripType = 'Family & Leisure', agencyName, email, phone, name, description }) {
   // 1. Record lead in background for EzzySync sales funnel
   if (email || phone) {
     try {
@@ -36,12 +36,25 @@ async function generateFreeItinerary({ destination, days = 4, tripType = 'Family
   }
 
   // 2. Generate Itinerary with Gemini AI
+  const roughNotesPrompt = description && description.trim()
+    ? `\nIMPORTANT - USER SUPPLIED ROUGH ITINERARY & REQUIREMENTS:
+"""
+${description.trim()}
+"""
+CRITICAL INSTRUCTIONS:
+- You MUST follow the user's rough itinerary sequence, mentioned places, activities, and night stays for each day.
+- Extract any mentioned inclusions (e.g. meals like breakfast/dinner, stay type, private cab/transport, tickets) into the "Package Inclusions" section.
+- Extract any mentioned exclusions into "Package Exclusions".
+- Expand the rough notes into a polished, professional, day-wise travel agency itinerary.`
+    : `Generate realistic, destination-authentic sightseeing, transfers, and stay recommendations specifically for ${destination}.`;
+
   const prompt = `You are an expert travel agency tour designer.
 Create a detailed, beautiful day-wise travel itinerary for:
 - Destination: ${destination}
 - Duration: ${days} Days / ${Math.max(1, Number(days) - 1)} Nights
 - Trip Style: ${tripType}
 - Agency Branding: ${agencyName || 'Your Travel Partner'}
+${roughNotesPrompt}
 
 Format the response cleanly in markdown with:
 # ${destination} ${days}D/${Math.max(1, Number(days) - 1)}N Tour Itinerary ✈️
@@ -63,6 +76,7 @@ Format the response cleanly in markdown with:
 - Daily Breakfast at Hotel
 - Private AC Vehicle for transfers & sightseeing
 - All Toll, Parking & Driver allowances
+[Include any specific inclusions mentioned in the rough notes such as meals, activities, transfers, stays]
 
 ## ❌ Package Exclusions
 - Flights / Train tickets
