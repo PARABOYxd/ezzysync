@@ -205,11 +205,15 @@ Format strictly in clean markdown:
             const text = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (text && text.trim().length > 50) {
               generatedMarkdown = text;
+              console.log(`[api/generate-itinerary] Successfully generated itinerary using Gemini model: ${model}`);
               break;
             }
+          } else {
+            const errBody = await apiRes.text();
+            console.warn(`[api/generate-itinerary] Gemini model ${model} failed with HTTP ${apiRes.status}:`, errBody.substring(0, 200));
           }
         } catch (mErr) {
-          // Try next model
+          console.warn(`[api/generate-itinerary] Error calling model ${model}:`, mErr.message);
         }
       }
     }
