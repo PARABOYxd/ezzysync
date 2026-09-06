@@ -139,7 +139,7 @@ Format strictly in clean markdown:
     // 4. Check Gemini API Key if OpenAI was not used or failed
     const geminiApiKey = (process.env.GEMINI_API_KEY || "").trim();
     if (!generatedMarkdown && geminiApiKey) {
-      const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
+      const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-pro-latest", "gemini-2.0-flash", "gemini-1.5-flash"];
       for (const model of models) {
         try {
           const apiRes = await fetch(
