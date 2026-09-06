@@ -59,9 +59,14 @@ async function requireActiveSubscription(req, res, next) {
 
     const limits = await planService.getTenantPlanLimits(tenantId);
     if (limits.isExpired) {
+      // A lapsed subscription and a lapsed trial both land here, and telling a
+      // paying customer their "free trial" expired is both wrong and alarming.
+      const lapsedPaidPlan = Boolean(limits.lapsedPlanId);
       return res.status(403).json({
-        message: 'Your 30-day free trial has expired. Please subscribe to a plan to continue using EzzySync.',
-        code: 'TRIAL_EXPIRED',
+        message: lapsedPaidPlan
+          ? 'Your subscription has ended. Renew your plan to continue using EzzySync.'
+          : 'Your 30-day free trial has expired. Please subscribe to a plan to continue using EzzySync.',
+        code: lapsedPaidPlan ? 'SUBSCRIPTION_EXPIRED' : 'TRIAL_EXPIRED',
         expired: true,
       });
     }

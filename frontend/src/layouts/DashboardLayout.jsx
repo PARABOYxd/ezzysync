@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import { openRazorpayCheckout } from '../services/paymentService';
 import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
+import { usePlanStatus } from '../hooks/usePlanStatus.js';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
@@ -42,13 +43,11 @@ export default function DashboardLayout() {
   // backend/config/planCatalog.js.
   const { plans, loading: catalogLoading, error: catalogError } = usePlanCatalog();
 
-  const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
-  const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
-  const daysPassed = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.max(0, totalTrialDays - daysPassed);
-  const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.planId === 'PRO';
-  const isSolo = user?.planId === 'SOLO';
-  const isExpired = !isPaidPro && !isSolo && daysRemaining === 0;
+  // Whether access has lapsed is the server's answer, not a sum over the JWT.
+  // The old calculation - paid plan id means active, otherwise count days
+  // since signup - could not see an expired paid month at all, so a lapsed
+  // subscriber got the full app while every request inside it returned 403.
+  const { isExpired, lapsedPlanId } = usePlanStatus();
 
   const handlePaywallPayment = (planId, planName) => {
     openRazorpayCheckout({
@@ -106,10 +105,12 @@ export default function DashboardLayout() {
                 <Lock size={26} />
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
-                Your 30-Day Free Trial Has Ended
+                {lapsedPlanId ? 'Your Subscription Has Ended' : 'Your 30-Day Free Trial Has Ended'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-md mx-auto">
-                Thank you for trying EzzySync! Choose a subscription plan below to unlock your workspace and keep managing your travel leads and itineraries.
+                {lapsedPlanId
+                  ? 'Your paid month is over. Renew below to unlock your workspace again — every lead, booking and itinerary is exactly where you left it.'
+                  : 'Thank you for trying EzzySync! Choose a subscription plan below to unlock your workspace and keep managing your travel leads and itineraries.'}
               </p>
             </div>
 
@@ -179,7 +180,7 @@ export default function DashboardLayout() {
                             : 'border border-slate-300 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200'
                         }`}
                       >
-                        Pay & Activate {plan.name} ({plan.priceLabel})
+                        {lapsedPlanId === plan.id ? 'Renew' : 'Pay & Activate'} {plan.name} ({plan.priceLabel})
                       </button>
                     </div>
                   ))}

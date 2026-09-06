@@ -380,14 +380,60 @@ export default function SettingsPage() {
   };
 
   const apiBaseUrl = API_BASE_URL;
+  /**
+   * The form an agency pastes into their own website.
+   *
+   * The previous one-liner had two faults that made a working submission look
+   * like a broken one. It ended in `this.reset()&&alert(...)` - `reset()`
+   * returns undefined, so the confirmation never appeared even when the lead
+   * saved perfectly. And it had no `.catch`, so a rejected request (which,
+   * until the CORS fix, was every request from a real website) failed in
+   * complete silence: the visitor saw their details still sitting in the form
+   * and no idea whether anyone had received them.
+   *
+   * This version reports both outcomes in the page, disables the button while
+   * sending, and surfaces the server's own message on failure.
+   */
   const embedSnippet = publicLeadKey
-    ? `<form action="${apiBaseUrl}/public/leads/${publicLeadKey}" method="POST" onsubmit="event.preventDefault(); fetch(this.action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(this)))}).then(()=>this.reset()&&alert('Thanks! We will be in touch shortly.'));">
+    ? `<form action="${apiBaseUrl}/public/leads/${publicLeadKey}" method="POST">
   <input name="customerName" placeholder="Your Name" required />
   <input name="phone" placeholder="Phone Number" required />
   <input name="email" placeholder="Email (optional)" type="email" />
   <input name="interest" placeholder="Destination you're interested in" />
   <button type="submit">Submit Enquiry</button>
-</form>`
+  <p data-ezzysync-status role="status"></p>
+</form>
+<script>
+(function () {
+  var form = document.currentScript.previousElementSibling;
+  var status = form.querySelector('[data-ezzysync-status]');
+  var button = form.querySelector('button[type="submit"]');
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    button.disabled = true;
+    status.textContent = 'Sending...';
+    fetch(form.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(new FormData(form)))
+    })
+      .then(function (response) {
+        return response.json().catch(function () { return {}; }).then(function (data) {
+          if (!response.ok) throw new Error(data.message || 'Something went wrong. Please try again.');
+          return data;
+        });
+      })
+      .then(function (data) {
+        form.reset();
+        status.textContent = data.message || 'Thanks! We will be in touch shortly.';
+      })
+      .catch(function (error) {
+        status.textContent = error.message || 'Could not send your enquiry. Please try again.';
+      })
+      .then(function () { button.disabled = false; });
+  });
+})();
+</script>`
     : '';
 
   const handleCopySnippet = () => {

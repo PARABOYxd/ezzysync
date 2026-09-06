@@ -50,9 +50,13 @@ router.get('/me', async (req, res, next) => {
         id: limits.id,
         name: limits.name,
         isTrial: limits.isTrial === true,
-        // Paid plans have no end date in the schema, so absent means "not
-        // expired" rather than "unknown".
         isExpired: limits.isExpired === true,
+        // When the current paid month runs out. Null on a trial, which ends by
+        // account age rather than by a stored date.
+        expiresAt: limits.expiresAt || null,
+        // Set only when a paid plan has lapsed, so the paywall can offer to
+        // renew the plan they had instead of asking them to choose again.
+        lapsedPlanId: limits.lapsedPlanId || null,
       },
       limits: {
         maxTeamMembers: limits.maxTeamMembers,

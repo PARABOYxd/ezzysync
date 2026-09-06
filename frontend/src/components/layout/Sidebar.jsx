@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { getFeatures } from '../../services/featureService';
+import { usePlanStatus } from '../../hooks/usePlanStatus.js';
 
 export default function Sidebar({ open, onClose }) {
   const { logout, user } = useAuth();
@@ -85,6 +86,17 @@ export default function Sidebar({ open, onClose }) {
   const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.planId === 'PRO' || user?.isSubscribed;
   const isSolo = user?.planId === 'SOLO';
 
+  // When the paid month ends. Comes from the server, since the JWT has no
+  // expiry date in it and would be stale the moment the plan is renewed.
+  const { expiresAt } = usePlanStatus();
+  const expiryDate = expiresAt ? new Date(expiresAt) : null;
+  const renewalDate = expiryDate
+    ? expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+  const daysUntilRenewal = expiryDate
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+
   return (
     <>
       {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
@@ -151,21 +163,31 @@ export default function Sidebar({ open, onClose }) {
           </div>
         )}
 
-        {/* Paid plan card. Trial tenants get the countdown above instead; a
-            paid plan has no end date in the schema, so this deliberately
-            states what the plan IS rather than inventing a days-left number. */}
+        {/* Paid plan card. Trial tenants get the countdown above instead.
+            Paid plans now carry a real expiry date, so this shows when the
+            month runs out rather than implying the plan lasts forever. */}
         {(isPaidPro || isSolo) && (
           <div className="mx-2.5 mb-2 p-2.5 rounded-xl border shadow-xs bg-gradient-to-br from-emerald-50/80 to-sky-50/80 dark:from-zinc-900 dark:to-zinc-800 border-emerald-200/70 dark:border-zinc-700/70">
             <div className="flex items-center justify-between gap-1 mb-1">
               <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
                 ✅ {isSolo ? 'Solo Agent Plan' : 'Agency Growth Pro'}
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-200/90 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-200">
-                Active
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                daysUntilRenewal !== null && daysUntilRenewal <= 5
+                  ? 'bg-amber-200 text-amber-900 dark:bg-amber-900/70 dark:text-amber-100'
+                  : 'bg-emerald-200/90 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-200'
+              }`}>
+                {daysUntilRenewal === null
+                  ? 'Active'
+                  : daysUntilRenewal === 0
+                  ? 'Ends today'
+                  : `${daysUntilRenewal} ${daysUntilRenewal === 1 ? 'day' : 'days'} left`}
               </span>
             </div>
             <p className="text-[10px] text-slate-600 dark:text-zinc-400 mb-2 leading-tight">
-              {isSolo
+              {renewalDate
+                ? `Paid access runs until ${renewalDate}. Renew from Profile to keep it going.`
+                : isSolo
                 ? '1 login · 200 bookings · AI tools included.'
                 : 'Unlimited bookings · 5 team logins · AI tools included.'}
             </p>
