@@ -236,13 +236,18 @@ export default function Dashboard() {
   const load = (member) => {
     setLoading(true);
     const targetMember = member !== undefined ? member : selectedMember;
-    Promise.all([
-      dashboardService.getDashboard(targetMember),
-      dashboardService.getBillingAnalytics({ member: targetMember })
-    ])
-      .then(([dbData, analyticData]) => {
+    const hasBillingAccess = user?.role !== 'TEAM_MEMBER' || user?.permissions?.billing?.read;
+
+    dashboardService.getDashboard(targetMember)
+      .then((dbData) => {
         setData(dbData);
-        setAnalyticsData(analyticData);
+        // Only fetch billing analytics when the user has access; team members without
+        // the billing.read permission would get a 403 and crash the whole dashboard.
+        if (hasBillingAccess) {
+          return dashboardService.getBillingAnalytics({ member: targetMember })
+            .then((analyticData) => setAnalyticsData(analyticData))
+            .catch(() => {}); // analytics failure is non-critical — silently ignore
+        }
       })
       .catch(() => toast.error('Could not load dashboard data.'))
       .finally(() => setLoading(false));
