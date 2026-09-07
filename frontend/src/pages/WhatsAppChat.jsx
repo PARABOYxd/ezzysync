@@ -131,6 +131,16 @@ export default function WhatsAppChat() {
     }
   };
 
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const selectedChatRef = useRef(selectedChat);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
   useEffect(() => {
     loadStatus();
     loadChats();
@@ -139,22 +149,31 @@ export default function WhatsAppChat() {
       .then((d) => setQuickReplies(d.quickReplies || []))
       .catch(() => {});
 
-    // Poll chats and active message updates every 4 seconds
+    // Poll chats and active message updates every 3 seconds
     const interval = setInterval(() => {
       loadStatus();
       loadChats();
-      if (selectedChat?.id) {
-        whatsappWebService.getChatMessages(selectedChat.id).then((data) => {
-          if (data.messages?.length !== messages.length) {
-            setMessages(data.messages || []);
+      const currentChatId = selectedChatRef.current?.id;
+      if (currentChatId) {
+        whatsappWebService.getChatMessages(currentChatId).then((data) => {
+          const incoming = data.messages || [];
+          const current = messagesRef.current;
+          const isDifferentLength = incoming.length !== current.length;
+          const isDifferentLastMsg =
+            incoming.length > 0 &&
+            current.length > 0 &&
+            incoming[incoming.length - 1].id !== current[current.length - 1].id;
+
+          if (isDifferentLength || isDifferentLastMsg) {
+            setMessages(incoming);
             scrollToBottom();
           }
         }).catch(() => {});
       }
-    }, 4000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [selectedChat?.id]);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();

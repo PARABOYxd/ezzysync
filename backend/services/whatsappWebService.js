@@ -108,9 +108,31 @@ function mediaPreview(messageType) {
   return '';
 }
 
+/**
+ * Unwraps nested Baileys message containers (ephemeral, viewOnce, etc.)
+ * to access the underlying message content.
+ */
+function getRawMessage(msg) {
+  if (!msg?.message) return {};
+  let m = msg.message;
+  while (
+    m.ephemeralMessage?.message ||
+    m.viewOnceMessage?.message ||
+    m.viewOnceMessageV2?.message ||
+    m.documentWithCaptionMessage?.message
+  ) {
+    m = (
+      m.ephemeralMessage?.message ||
+      m.viewOnceMessage?.message ||
+      m.viewOnceMessageV2?.message ||
+      m.documentWithCaptionMessage?.message
+    );
+  }
+  return m;
+}
+
 function extractMessageText(msg) {
-  if (!msg.message) return '';
-  const m = msg.message;
+  const m = getRawMessage(msg);
   return (
     m.conversation ||
     m.extendedTextMessage?.text ||
@@ -133,7 +155,7 @@ function extractMessageText(msg) {
  * the inbox renders them as a generic file.
  */
 function extractMediaInfo(msg) {
-  const m = msg.message || {};
+  const m = getRawMessage(msg);
 
   if (m.imageMessage) {
     return { type: 'image', mimetype: m.imageMessage.mimetype || 'image/jpeg', fileName: 'photo.jpg' };
