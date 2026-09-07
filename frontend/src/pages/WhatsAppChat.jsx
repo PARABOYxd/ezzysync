@@ -182,7 +182,7 @@ export default function WhatsAppChat() {
           .getChatMessages(currentChatId)
           .then((data) => {
             if (data?.chat) {
-              setSelectedChat((prev) => (prev?.id === data.chat.id ? { ...prev, ...data.chat } : prev));
+              setSelectedChat((prev) => (prev ? { ...prev, ...data.chat } : data.chat));
             }
             const incoming = data?.messages || [];
             const current = messagesRef.current;

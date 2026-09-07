@@ -397,7 +397,9 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       const senderPhone = await resolvePhoneFromJid(sock, senderJid);
       const messageText = extractMessageText(msg);
       const pushName = msg.pushName || 'WhatsApp Contact';
-      const messageId = msg.key.id;
+      const messageId = (msg.key?.id && String(msg.key.id).trim())
+        ? String(msg.key.id).trim()
+        : `in_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
       const media = extractMediaInfo(msg);
 
       // A photo with no caption is a real message. Only skip when there is

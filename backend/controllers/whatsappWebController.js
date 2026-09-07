@@ -60,8 +60,14 @@ async function getChatMessages(req, res, next) {
     // Reset unread count
     await whatsappWebRepository.clearUnread(req.user.tenantId, chatId);
 
+    let chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chatId);
     const messages = await whatsappWebRepository.listMessages(req.user.tenantId, chatId);
-    const chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chatId);
+
+    // If chat row was merged into another ID, resolve context from messages
+    if (!chat && messages.length > 0) {
+      const canonicalChatId = messages[messages.length - 1].chat_id;
+      chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, canonicalChatId);
+    }
 
     res.json({ chat, messages });
   } catch (err) {

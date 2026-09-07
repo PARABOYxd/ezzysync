@@ -195,6 +195,36 @@ async function clearUnread(tenantId, chatId) {
 
 /** Chat list for the inbox, enriched with the linked lead and booking. */
 async function listChats(tenantId, search) {
+  // Consolidate any duplicate chats sharing the same 10-digit phone number
+  try {
+    const { rows: duplicates } = await query(`
+      SELECT RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) AS suffix,
+             array_agg(id ORDER BY COALESCE(last_message_timestamp, updated_at) DESC) AS ids
+      FROM whatsapp_chats
+      WHERE tenant_id = $1
+        AND phone <> ''
+        AND LENGTH(regexp_replace(phone, '[^0-9]', '', 'g')) >= 7
+      GROUP BY RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10)
+      HAVING count(*) > 1;
+    `, [tenantId]);
+
+    for (const group of duplicates) {
+      const [primaryId, ...redundantIds] = group.ids;
+      if (redundantIds.length > 0) {
+        await query(
+          `UPDATE whatsapp_messages SET chat_id = $1 WHERE chat_id = ANY($2::uuid[])`,
+          [primaryId, redundantIds]
+        );
+        await query(
+          `DELETE FROM whatsapp_chats WHERE id = ANY($1::uuid[])`,
+          [redundantIds]
+        );
+      }
+    }
+  } catch (err) {
+    // Non-fatal cleanup
+  }
+
   let sql = `
     SELECT c.*,
            l.lead_id AS formatted_lead_id, l.stage AS lead_stage, l.interest AS lead_interest,
@@ -242,13 +272,17 @@ async function insertMessage(
   tenantId,
   { chatId, messageId, direction, sender, messageText, status, messageType = 'text', mediaUrl = null }
 ) {
+  const safeMessageId = (messageId && String(messageId).trim())
+    ? String(messageId).trim()
+    : `${direction || 'msg'}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
   const { rows, rowCount } = await query(
     `INSERT INTO whatsapp_messages
        (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_type, media_url, message_timestamp)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
      ON CONFLICT (message_id) DO NOTHING
      RETURNING id`,
-    [tenantId, chatId, messageId, direction, sender, messageText, status, messageType, mediaUrl]
+    [tenantId, chatId, safeMessageId, direction, sender, messageText, status, messageType, mediaUrl]
   );
   // rowCount 0 means this id is already stored - the echo of a message this
   // server sent, which WhatsApp also delivers back over the socket.
@@ -256,24 +290,39 @@ async function insertMessage(
 }
 
 async function listMessages(tenantId, chatId) {
-  const { rows } = await query(
-    `SELECT m.* FROM whatsapp_messages m
-     JOIN whatsapp_chats c ON c.id = m.chat_id
-     WHERE m.tenant_id = $2
-       AND (
-         m.chat_id = $1
-         OR (
-           c.phone <> ''
-           AND RIGHT(regexp_replace(c.phone, '[^0-9]', '', 'g'), 10) = (
-             SELECT RIGHT(regexp_replace(target.phone, '[^0-9]', '', 'g'), 10)
-             FROM whatsapp_chats target WHERE target.id = $1 AND target.tenant_id = $2 LIMIT 1
-           )
-         )
-       )
-     ORDER BY m.message_timestamp ASC
-     LIMIT 300`,
-    [chatId, tenantId]
-  );
+  // 1. Look up target chat to match messages across any sister records with the same phone suffix
+  const targetChat = await findChatById(tenantId, chatId);
+  const rawDigits = String(targetChat?.phone || '').replace(/[^\d]/g, '');
+  const suffix = rawDigits.length >= 7 ? rawDigits.slice(-10) : '';
+
+  let sql = `
+    SELECT m.* FROM whatsapp_messages m
+    WHERE m.tenant_id = $1
+      AND (
+        m.chat_id = $2
+  `;
+  const params = [tenantId, chatId];
+
+  if (suffix) {
+    sql += `
+        OR m.chat_id IN (
+          SELECT id FROM whatsapp_chats
+          WHERE tenant_id = $1
+            AND phone <> ''
+            AND LENGTH(regexp_replace(phone, '[^0-9]', '', 'g')) >= 7
+            AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $3
+        )
+    `;
+    params.push(suffix);
+  }
+
+  sql += `
+      )
+    ORDER BY m.message_timestamp ASC
+    LIMIT 300
+  `;
+
+  const { rows } = await query(sql, params);
   return rows;
 }
 
