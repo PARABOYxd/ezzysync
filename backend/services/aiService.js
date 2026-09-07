@@ -419,13 +419,21 @@ function formatPackagesForPrompt(itineraries, { maxPackages = 8, maxDays = 6 } =
       .join(' | ');
 
     const parts = [`${idx + 1}. ${it.trip_name || it.name}`];
-    parts.push(price ? `₹${price}` : 'price on request');
+    parts.push(price ? `Base Price: ₹${price}` : 'price on request');
     if (days.length) parts.push(`${days.length}d: ${dayTitles}${days.length > maxDays ? ' …' : ''}`);
+
+    const pickups = it.pickup_options || it.pickupOptions;
+    if (Array.isArray(pickups) && pickups.length > 0) {
+      const pickupStrs = pickups
+        .map((p) => (typeof p === 'object' ? `${p.location || p.name} (₹${p.price})` : String(p)))
+        .filter(Boolean);
+      if (pickupStrs.length) parts.push(`Pickups: ${pickupStrs.join(', ')}`);
+    }
 
     const depDays = it.departure_days || it.departureDays;
     if (Array.isArray(depDays) && depDays.length > 0) {
       if (depDays.length === 7) {
-        parts.push('Departures: Daily');
+        parts.push('Departures: Daily (All 7 days)');
       } else {
         parts.push(`Departures: Every ${depDays.join(', ')}`);
       }
@@ -435,6 +443,16 @@ function formatPackagesForPrompt(itineraries, { maxPackages = 8, maxDays = 6 } =
     if (Array.isArray(types) && types.length > 0) {
       const typeLabels = types.map((t) => (t === 'group' ? 'Group Batch' : t === 'customized' ? 'Customized Private' : t));
       parts.push(`Availability: ${typeLabels.join(' & ')}`);
+    }
+
+    const highlights = it.highlights;
+    if (Array.isArray(highlights) && highlights.length > 0) {
+      parts.push(`Key Highlights: ${highlights.slice(0, 6).join(', ')}`);
+    }
+
+    const inclusions = it.inclusions;
+    if (Array.isArray(inclusions) && inclusions.length > 0) {
+      parts.push(`Inclusions: ${inclusions.slice(0, 5).join(', ')}`);
     }
 
     if (it.previewUrl) parts.push(`link: ${it.previewUrl}`);
@@ -572,7 +590,7 @@ Rules for collecting:
 - Ask ONE question at a time. Never ask two or three things in the same message.
 - If the lead has already given some of these in their messages (e.g. "I want to go to Manali with 4 people"), do NOT re-ask for what they already gave — only ask for what's missing, one at a time.
 - Keep each question short and polite. No extra explanation, no "just curious" filler.
-- Once a trip name is known, check the database for that trip's designated pickup point. If the lead later asks about pickup, or says they'll pickup from somewhere else, tell them the exact pickup point on file for that trip. Do not agree to a different pickup point yourself — that requires the trip's actual data or a human.
+- Once a trip name is known, check the package data for that trip's designated 'Pickups' options and prices. If the lead asks where pickup is available or mentions their city (e.g. "Delhi se pickup milega?"), tell them the exact pickup points and pricing on file (e.g. "Yes! We offer pickup from Delhi NCR at ₹6,500/person, and Rishikesh at ₹4,500/person"). Do not hand off to a human for pickup queries that are listed in our packages!
 
 ============================================================
 STEP 3 — WHEN THE LEAD ASKS ABOUT TRIP DETAILS
@@ -587,12 +605,12 @@ If the lead hesitates, says "I'll think about it," "too expensive," or goes quie
 - Don't just accept it and stop. Gently address the hesitation — remind them of a genuine value point from the data (what's included, limited slots/dates if that's true in the data, etc.) and invite them to lock the date.
 - Never invent urgency or scarcity that isn't actually in the data.
 
-If they ask something SPECIFIC (e.g. "what car will we travel in", "how many days is the trip", "when do we return", "where does it depart from", "what's the stay name", "send photos of the stay"):
-- Answer ONLY that specific point, clearly and briefly, using the exact data available.
-- If they ask about departure days (e.g. "which days do you depart?", "is there a weekend batch?", "daily departures?"):
-  Check the package's 'Departures' information. If it says 'Daily', enthusiastically tell them departures are available every single day! If specific days are listed (e.g. 'Every Friday, Saturday'), tell them the exact departure days.
-- If they ask about tour format (e.g. "can I customize this for my family?", "is it a group batch or private?"):
-  Check the package's 'Availability' information. If both are available, explain that we offer exciting fixed group batches as well as 100% customized private tours based on their preference.
+If they ask something SPECIFIC:
+- Pickups & Pricing: Check the package's 'Pickups' list. Share the exact pickup points and rates (e.g. "We provide pickup from Delhi NCR (₹6,500) and Rishikesh (₹4,500)"). If they ask to be picked up from one of those cities, confirm it happily and ask how many members are traveling!
+- Departure Days: Check the package's 'Departures'. If 'Daily (All 7 days)', enthusiastically tell them departures are available every single day! If specific days are listed (e.g. 'Every Friday, Saturday'), state the exact departure days.
+- Tour Format (Group vs Private/Customized): Check the package's 'Availability'. If both are listed, explain that we offer exciting fixed group batches (great for meeting fellow travelers) as well as 100% customized private tours tailored for their family or friend group! DO NOT hand off to human just because they ask about customized or group tours when availability is listed!
+- Sightseeing & Attractions: Use the package's 'Key Highlights' (e.g. Devprayag Sangam, Tungnath Temple, Chandrashila Summit) to describe what they will experience with genuine enthusiasm.
+- Inclusions & Stays: Mention key inclusions (Stays, Meals, Trek Leader, Permits) accurately from the package data.
 - Do NOT resend the whole itinerary again just because they asked one specific thing.
 - If images or links are available in the data for what they asked, share them.
 
@@ -646,15 +664,13 @@ STEP 5 — HUMAN HANDOFF (mandatory, not optional)
 ============================================================
 Immediately hand off to a human agent (respond with tag: [FALLBACK_HUMAN_NEEDED]) if ANY of
 these are true:
-- The specific data needed to answer is not available in the database context (missing
-  price, missing itinerary, missing pickup point, missing dates, missing stay info, etc.)
-- The lead asks for a custom/customized itinerary or heavy modification to an existing trip
-- The lead asks for a discount or price negotiation beyond what's listed
-- The lead wants to make a payment or complete the actual booking transaction
-- The lead is upset, angry, or raises a complaint/dispute/refund issue
-- The lead explicitly asks to speak to a human
-- Anything you are not fully certain about — when in doubt, hand off. Never fill the gap
-  with your own assumption.
+- The customer asks for a pickup city or location that is NOT listed in the package's Pickups options.
+- The lead asks for an entirely custom route or modifications that cannot be served by any of our listed packages.
+- The lead asks for discounts, bargaining, or price negotiation beyond our listed rates.
+- The lead wants to make a payment or asks for bank/UPI details to complete the booking.
+- The lead is upset, angry, or raises a complaint/dispute/refund issue.
+- The lead explicitly asks to speak to a human or agent.
+- DO NOT hand off if the customer asks about pickups, departure days, group vs customized, or highlights that ARE present in the package data! Answer them directly using our real data.
 
 When handing off, tell the lead politely and BRIEFLY that you're connecting them with the
 team for exact details — one short line, no explanation of what data is missing or why —

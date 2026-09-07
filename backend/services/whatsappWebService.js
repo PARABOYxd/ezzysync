@@ -525,7 +525,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
   // What the chat list shows. A caption when there is one, otherwise a short
   // stand-in so an attachment-only message is not a blank row.
   const preview = messageText || mediaPreview(messageType);
-  let chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone);
+  let chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone, senderJid);
 
   if (!chat) {
     let leadId = await whatsappWebRepository.findLeadIdByPhone(tenantId, senderPhone);

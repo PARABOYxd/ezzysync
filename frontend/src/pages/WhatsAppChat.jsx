@@ -178,20 +178,23 @@ export default function WhatsAppChat() {
       loadChats();
       const currentChatId = selectedChatRef.current?.id;
       if (currentChatId) {
-        whatsappWebService.getChatMessages(currentChatId).then((data) => {
-          const incoming = data.messages || [];
-          const current = messagesRef.current;
-          const isDifferentLength = incoming.length !== current.length;
-          const isDifferentLastMsg =
-            incoming.length > 0 &&
-            current.length > 0 &&
-            incoming[incoming.length - 1].id !== current[current.length - 1].id;
+        whatsappWebService
+          .getChatMessages(currentChatId)
+          .then((data) => {
+            if (data?.chat) {
+              setSelectedChat((prev) => (prev?.id === data.chat.id ? { ...prev, ...data.chat } : prev));
+            }
+            const incoming = data?.messages || [];
+            const current = messagesRef.current;
+            const incomingKey = incoming.map((m) => `${m.id}_${m.status}`).join('|');
+            const currentKey = current.map((m) => `${m.id}_${m.status}`).join('|');
 
-          if (isDifferentLength || isDifferentLastMsg) {
-            setMessages(incoming);
-            scrollToBottom();
-          }
-        }).catch(() => {});
+            if (incomingKey !== currentKey) {
+              setMessages(incoming);
+              scrollToBottom();
+            }
+          })
+          .catch(() => {});
       }
     }, 3000);
 

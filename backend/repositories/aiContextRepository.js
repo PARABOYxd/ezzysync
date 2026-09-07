@@ -42,7 +42,7 @@ async function findCustomerContext(tenantId, phone) {
 /** Quotations the AI may quote from. Capped - the model writes two lines, not an itinerary. */
 async function listQuotationsForPrompt(tenantId, limit = 8) {
   const { rows } = await query(
-    `SELECT id, trip_name, price_quote, itinerary_days, departure_days, trip_types
+    `SELECT id, trip_name, price_quote, itinerary_days, departure_days, trip_types, pickup_options, highlights, inclusions, exclusions
      FROM quotations WHERE tenant_id = $1
      ORDER BY created_at DESC LIMIT $2`,
     [tenantId, limit]
@@ -69,15 +69,26 @@ async function listTourBatchesForPrompt(tenantId, limit = 4) {
  * human was handling without repeating what they already said.
  */
 async function getChatHistoryByPhone(tenantId, phone, limit = 10) {
+  const rawDigits = (phone || '').replace(/[^\d]/g, '');
+  const last10 = rawDigits.slice(-10);
+
   const { rows } = await query(
     `SELECT direction, sender, message_text, message_timestamp
      FROM whatsapp_messages
      WHERE tenant_id = $1 AND chat_id = (
-       SELECT id FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2 LIMIT 1
+       SELECT id FROM whatsapp_chats
+       WHERE tenant_id = $1
+         AND (
+           phone = $2
+           OR regexp_replace(phone, '[^0-9]', '', 'g') = $3
+           OR ($4 <> '' AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $4)
+         )
+       ORDER BY last_message_timestamp DESC
+       LIMIT 1
      )
      ORDER BY message_timestamp DESC
-     LIMIT $3`,
-    [tenantId, phone, limit]
+     LIMIT $5`,
+    [tenantId, phone, rawDigits, last10, limit]
   );
   return rows.reverse();
 }

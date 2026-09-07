@@ -93,10 +93,23 @@ async function listResumableTenantIds() {
  * Chats
  * ------------------------------------------------------------------ */
 
-async function findChatByPhone(tenantId, phone) {
+async function findChatByPhone(tenantId, phone, jid = null) {
+  const rawDigits = String(phone || '').replace(/[^\d]/g, '');
+  const last10 = rawDigits.slice(-10);
+  const cleanJid = String(jid || '').trim();
+
   const { rows } = await query(
-    `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
-    [tenantId, phone]
+    `SELECT * FROM whatsapp_chats
+     WHERE tenant_id = $1
+       AND (
+         ($2 <> '' AND jid = $2)
+         OR phone = $3
+         OR ($4 <> '' AND regexp_replace(phone, '[^0-9]', '', 'g') = $4)
+         OR ($5 <> '' AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $5)
+       )
+     ORDER BY COALESCE(last_message_timestamp, updated_at) DESC
+     LIMIT 1`,
+    [tenantId, cleanJid, phone, rawDigits, last10]
   );
   return rows[0] || null;
 }
