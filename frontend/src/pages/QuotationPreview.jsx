@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
-import { Plane, ChevronDown, CheckCircle2, XCircle, MapPin, ShieldCheck, CalendarDays, Sparkles, Navigation } from 'lucide-react';
+import { Plane, ChevronDown, CheckCircle2, XCircle, MapPin, ShieldCheck, Calendar, CalendarDays, Sparkles, Navigation, Users } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
 
 export default function QuotationPreview() {
@@ -98,12 +98,39 @@ export default function QuotationPreview() {
           >
             {quotation.tripName}
           </h1>
-          {days > 0 && (
-            <div className="inline-flex items-center gap-1.5 bg-white text-[13px] font-bold px-4 py-1.5 rounded-full mt-5 shadow-md text-slate-800">
-              <CalendarDays size={14} style={{ color: brandColor }} />
-              {days} Day{days !== 1 ? 's' : ''} Itinerary
-            </div>
-          )}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+            {days > 0 && (
+              <div className="inline-flex items-center gap-1.5 bg-white text-[13px] font-bold px-4 py-1.5 rounded-full shadow-md text-slate-800">
+                <CalendarDays size={14} style={{ color: brandColor }} />
+                {days} Day{days !== 1 ? 's' : ''} Itinerary
+              </div>
+            )}
+
+            {/* Departure Days Badge */}
+            {quotation.departureDays?.length === 7 ? (
+              <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-[13px] font-bold px-4 py-1.5 rounded-full shadow-md">
+                <CheckCircle2 size={14} />
+                Daily Departures
+              </div>
+            ) : quotation.departureDays?.length > 0 ? (
+              <div className="inline-flex items-center gap-1.5 bg-white/95 text-slate-800 text-[13px] font-bold px-4 py-1.5 rounded-full shadow-md backdrop-blur-xs">
+                <Calendar size={14} className="text-blue-600" />
+                Every {quotation.departureDays.join(', ')}
+              </div>
+            ) : null}
+
+            {/* Tour Type Badges */}
+            {quotation.tripTypes?.includes('group') && (
+              <div className="inline-flex items-center gap-1.5 bg-white/95 text-slate-800 text-[12px] font-semibold px-3.5 py-1.5 rounded-full shadow-md">
+                <Users size={13} className="text-brand-600" /> Group Batch
+              </div>
+            )}
+            {quotation.tripTypes?.includes('customized') && (
+              <div className="inline-flex items-center gap-1.5 bg-white/95 text-slate-800 text-[12px] font-semibold px-3.5 py-1.5 rounded-full shadow-md">
+                <Sparkles size={13} className="text-violet-600" /> Customized Tour
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -122,10 +149,49 @@ export default function QuotationPreview() {
             ) : (
               <div className="text-sm text-slate-500 font-medium">Custom quote — contact us for pricing details.</div>
             )}
-
-
           </div>
         </div>
+
+        {/* Departure & Tour Availability Banner */}
+        {((quotation.departureDays && quotation.departureDays.length > 0) || (quotation.tripTypes && quotation.tripTypes.length > 0)) && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-4.5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-brand-50 text-brand-700 shrink-0">
+                <CalendarDays size={18} />
+              </div>
+              <div>
+                <span className="font-bold text-slate-800 block text-xs">
+                  {quotation.departureDays?.length === 7
+                    ? 'Daily Departures Available'
+                    : quotation.departureDays?.length > 0
+                    ? `Departs Weekly on ${quotation.departureDays.join(', ')}`
+                    : 'Custom Departure Dates'}
+                </span>
+                <span className="text-slate-500 text-[11px]">
+                  {quotation.tripTypes?.includes('group') && quotation.tripTypes?.includes('customized')
+                    ? 'Available both as a Fixed Group Batch & 100% Customized Private Tour'
+                    : quotation.tripTypes?.includes('group')
+                    ? 'Fixed Group Batch departures'
+                    : quotation.tripTypes?.includes('customized')
+                    ? '100% Customized Private Tour'
+                    : 'Contact us for departures and customization'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {quotation.departureDays?.length === 7 ? (
+                <span className="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Daily
+                </span>
+              ) : quotation.departureDays?.length > 0 ? (
+                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  {quotation.departureDays.join(', ')}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        )}
 
         {/* Trip Highlights */}
         {quotation.highlights?.length > 0 && (

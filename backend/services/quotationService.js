@@ -31,6 +31,8 @@ function rowToQuotation(row) {
     transportCostPerPax: Number(row.transport_cost_per_pax || 0),
     otherCostPerPax: Number(row.other_cost_per_pax || 0),
     costTemplateId: row.cost_template_id || null,
+    departureDays: row.departure_days || [],
+    tripTypes: row.trip_types || [],
   };
 }
 

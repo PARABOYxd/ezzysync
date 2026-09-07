@@ -11,13 +11,15 @@ import { useAuth } from '../../hooks/useAuth.jsx';
 import {
   MapPin, Plus, Trash, ArrowUp, ArrowDown, X,
   ClipboardList, Sparkles, Wand2, IndianRupee, CheckCircle2, XCircle, Navigation,
-  Home, Plane, Car, Tag
+  Home, Plane, Car, Tag, Calendar, CalendarDays, Users
 } from 'lucide-react';
 
 const emptyForm = {
   tripName: '', priceQuote: '',
   itineraryDays: [{ day: 1, title: '', description: '' }],
   inclusions: [], exclusions: [], highlights: [], pickupOptions: [],
+  departureDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  tripTypes: ['group', 'customized'],
   hotelCostPerPax: 0, flightCostPerPax: 0, transportCostPerPax: 0, otherCostPerPax: 0, costTemplateId: '',
 };
 
@@ -239,6 +241,14 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
           if (Array.isArray(plan.pickupOptions) && plan.pickupOptions.length > 0) {
             updated.pickupOptions = plan.pickupOptions;
           }
+          // Departure Days
+          if (Array.isArray(plan.departureDays) && plan.departureDays.length > 0) {
+            updated.departureDays = plan.departureDays;
+          }
+          // Trip Types
+          if (Array.isArray(plan.tripTypes) && plan.tripTypes.length > 0) {
+            updated.tripTypes = plan.tripTypes;
+          }
           return updated;
         });
 
@@ -301,7 +311,16 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
 
   useEffect(() => {
     if (open) {
-      setForm(quotation ? { ...emptyForm, ...quotation } : emptyForm);
+      setForm(quotation ? {
+        ...emptyForm,
+        ...quotation,
+        departureDays: Array.isArray(quotation.departureDays || quotation.departure_days) && (quotation.departureDays || quotation.departure_days).length > 0
+          ? (quotation.departureDays || quotation.departure_days)
+          : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        tripTypes: Array.isArray(quotation.tripTypes || quotation.trip_types) && (quotation.tripTypes || quotation.trip_types).length > 0
+          ? (quotation.tripTypes || quotation.trip_types)
+          : ['group', 'customized'],
+      } : emptyForm);
       setErrors({});
       setShowAiBuilder(false);
       setAiGeneratedSuccess(false);
@@ -581,6 +600,174 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
             value={form.priceQuote}
             onChange={set('priceQuote')}
           />
+        </div>
+
+        {/* Departure Days & Tour Availability */}
+        <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5">
+            <div>
+              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <Calendar size={14} className="text-brand-600" />
+                <span>Tour Availability & Departure Schedule</span>
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                AI WhatsApp assistant and client preview links use this to answer when the trip departs and whether it can be customized.
+              </p>
+            </div>
+
+            {/* Quick Status Pill */}
+            <div className="flex items-center gap-1">
+              {form.departureDays?.length === 7 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  <CheckCircle2 size={11} className="text-emerald-600" /> Daily Departure
+                </span>
+              ) : form.departureDays?.length > 0 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                  <Calendar size={11} className="text-blue-600" /> Every {form.departureDays.join(', ')}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                  Custom / On Request Dates
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tour Type / Format Checkboxes */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
+                <Users size={13} className="text-slate-500" />
+                <span>Tour Type Availability:</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const exists = form.tripTypes?.includes('group');
+                    const updated = exists
+                      ? form.tripTypes.filter((t) => t !== 'group')
+                      : [...(form.tripTypes || []), 'group'];
+                    setForm({ ...form, tripTypes: updated });
+                  }}
+                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    form.tripTypes?.includes('group')
+                      ? 'bg-brand-50/90 border-brand-500 text-brand-800 ring-1 ring-brand-500/30 shadow-2xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Users size={14} className={form.tripTypes?.includes('group') ? 'text-brand-600' : 'text-slate-400'} />
+                    <span>Fixed Batch / Group</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    readOnly
+                    checked={form.tripTypes?.includes('group') || false}
+                    className="checkbox checkbox-xs checkbox-primary pointer-events-none"
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const exists = form.tripTypes?.includes('customized');
+                    const updated = exists
+                      ? form.tripTypes.filter((t) => t !== 'customized')
+                      : [...(form.tripTypes || []), 'customized'];
+                    setForm({ ...form, tripTypes: updated });
+                  }}
+                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    form.tripTypes?.includes('customized')
+                      ? 'bg-violet-50/90 border-violet-500 text-violet-800 ring-1 ring-violet-500/30 shadow-2xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={14} className={form.tripTypes?.includes('customized') ? 'text-violet-600' : 'text-slate-400'} />
+                    <span>Customized / Private</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    readOnly
+                    checked={form.tripTypes?.includes('customized') || false}
+                    className="checkbox checkbox-xs checkbox-secondary pointer-events-none"
+                  />
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400">Select both if your agency offers both group batch and private options.</p>
+            </div>
+
+            {/* Departure Days Pills */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
+                  <CalendarDays size={13} className="text-slate-500" />
+                  <span>Departure Days:</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, departureDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] })}
+                    className="text-[10px] font-bold text-brand-600 hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                  >
+                    Daily (All 7)
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, departureDays: ['Fri', 'Sat'] })}
+                    className="text-[10px] font-bold text-slate-600 hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                  >
+                    Weekends (Fri-Sat)
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, departureDays: [] })}
+                    className="text-[10px] font-medium text-slate-400 hover:text-rose-600 px-1 py-0.5 rounded cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* 7 Days of the week */}
+              <div className="grid grid-cols-7 gap-1.5">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                  const isSelected = form.departureDays?.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        const days = form.departureDays || [];
+                        const updated = days.includes(day)
+                          ? days.filter((d) => d !== day)
+                          : [...days, day];
+                        setForm({ ...form, departureDays: updated });
+                      }}
+                      className={`h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer border ${
+                        isSelected
+                          ? 'bg-brand-600 text-white border-brand-600 shadow-xs scale-102'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      }`}
+                      title={day}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-slate-400">
+                {form.departureDays?.length === 7
+                  ? 'All 7 days selected: Means Daily Departure (Departs all 7 days of the week).'
+                  : form.departureDays?.length > 0
+                  ? `Selected departures: Every ${form.departureDays.join(', ')}`
+                  : 'No days selected: Departure on custom request.'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Itinerary Builder Header */}

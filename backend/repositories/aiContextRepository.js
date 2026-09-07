@@ -42,7 +42,7 @@ async function findCustomerContext(tenantId, phone) {
 /** Quotations the AI may quote from. Capped - the model writes two lines, not an itinerary. */
 async function listQuotationsForPrompt(tenantId, limit = 8) {
   const { rows } = await query(
-    `SELECT id, trip_name, price_quote, itinerary_days
+    `SELECT id, trip_name, price_quote, itinerary_days, departure_days, trip_types
      FROM quotations WHERE tenant_id = $1
      ORDER BY created_at DESC LIMIT $2`,
     [tenantId, limit]

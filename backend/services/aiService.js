@@ -79,8 +79,18 @@ const quotationPlanJsonSchema = {
         required: ['location', 'price'],
       },
     },
+    departureDays: {
+      type: 'ARRAY',
+      description: 'Days of the week when this tour departs. Use 3-letter codes: "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun". If daily departure, include all 7. If weekend, include ["Fri", "Sat"].',
+      items: { type: 'STRING' },
+    },
+    tripTypes: {
+      type: 'ARRAY',
+      description: 'Available trip formats: "group" (fixed batch/group departure) and/or "customized" (private/customized departure). E.g. ["group", "customized"]',
+      items: { type: 'STRING' },
+    },
   },
-  required: ['tripName', 'estimatedPrice', 'itineraryDays', 'highlights', 'inclusions', 'exclusions', 'pickupOptions'],
+  required: ['tripName', 'estimatedPrice', 'itineraryDays', 'highlights', 'inclusions', 'exclusions', 'pickupOptions', 'departureDays', 'tripTypes'],
 };
 
 /**
@@ -318,6 +328,9 @@ CRITICAL INSTRUCTIONS:
    - If user mentioned specific pickup locations and prices in rough notes (e.g. "Delhi 4500, Rishikesh 3500"), parse and include them with their specified prices!
    - If not explicitly mentioned, provide 2-4 standard pickup hubs for this travel sector with realistic per-person INR package prices (e.g. Delhi NCR: ₹6,500; Rishikesh/Haridwar: ₹4,500; Dehradun: ₹5,000).
    - Each item must have: location (string) and price (integer number).
+7. DEPARTURE DAYS & TRIP TYPES:
+   - departureDays: Array of 3-letter codes ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"). If daily or not restricted, include all 7. If weekend batch specified, include ["Fri", "Sat"].
+   - tripTypes: Array of available formats: ["group", "customized"] or whichever matches the request (default both).
 
 Return ONLY a valid JSON object matching the schema.`;
 
@@ -408,6 +421,22 @@ function formatPackagesForPrompt(itineraries, { maxPackages = 8, maxDays = 6 } =
     const parts = [`${idx + 1}. ${it.trip_name || it.name}`];
     parts.push(price ? `₹${price}` : 'price on request');
     if (days.length) parts.push(`${days.length}d: ${dayTitles}${days.length > maxDays ? ' …' : ''}`);
+
+    const depDays = it.departure_days || it.departureDays;
+    if (Array.isArray(depDays) && depDays.length > 0) {
+      if (depDays.length === 7) {
+        parts.push('Departures: Daily');
+      } else {
+        parts.push(`Departures: Every ${depDays.join(', ')}`);
+      }
+    }
+
+    const types = it.trip_types || it.tripTypes;
+    if (Array.isArray(types) && types.length > 0) {
+      const typeLabels = types.map((t) => (t === 'group' ? 'Group Batch' : t === 'customized' ? 'Customized Private' : t));
+      parts.push(`Availability: ${typeLabels.join(' & ')}`);
+    }
+
     if (it.previewUrl) parts.push(`link: ${it.previewUrl}`);
     return parts.join(' — ');
   });
@@ -560,6 +589,10 @@ If the lead hesitates, says "I'll think about it," "too expensive," or goes quie
 
 If they ask something SPECIFIC (e.g. "what car will we travel in", "how many days is the trip", "when do we return", "where does it depart from", "what's the stay name", "send photos of the stay"):
 - Answer ONLY that specific point, clearly and briefly, using the exact data available.
+- If they ask about departure days (e.g. "which days do you depart?", "is there a weekend batch?", "daily departures?"):
+  Check the package's 'Departures' information. If it says 'Daily', enthusiastically tell them departures are available every single day! If specific days are listed (e.g. 'Every Friday, Saturday'), tell them the exact departure days.
+- If they ask about tour format (e.g. "can I customize this for my family?", "is it a group batch or private?"):
+  Check the package's 'Availability' information. If both are available, explain that we offer exciting fixed group batches as well as 100% customized private tours based on their preference.
 - Do NOT resend the whole itinerary again just because they asked one specific thing.
 - If images or links are available in the data for what they asked, share them.
 

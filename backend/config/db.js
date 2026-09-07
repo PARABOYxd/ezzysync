@@ -430,6 +430,13 @@ async function ensureSchema() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_quotations_tenant ON quotations(tenant_id);`);
 
+  try {
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS departure_days JSONB DEFAULT '[]'::jsonb;`);
+    await query(`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS trip_types JSONB DEFAULT '[]'::jsonb;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding departure_days and trip_types to quotations');
+  }
+
   // Walkthrough requests schema creation
   await query(`
     CREATE TABLE IF NOT EXISTS walkthrough_requests (
