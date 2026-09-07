@@ -14,6 +14,7 @@ import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import { LeadStageBadge, FollowUpStatusBadge } from '../components/common/StatusBadge.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useNavigate } from 'react-router-dom';
 
 function getActivityIcon(type) {
   switch (type) {
@@ -26,6 +27,7 @@ function getActivityIcon(type) {
 }
 
 export default function FollowUps() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isTeamMember = user?.role === 'TEAM_MEMBER';
   const [items, setItems] = useState([]);
@@ -390,15 +392,14 @@ export default function FollowUps() {
                           </a>
                         )}
                         {row.phone && (
-                          <a
-                            href={`https://wa.me/${row.phone.replace(/[^\d]/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="WhatsApp Chat"
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition shrink-0"
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/whatsapp-chat?phone=${encodeURIComponent(row.phone.replace(/[^\d]/g, ''))}`)}
+                            title="Open in WhatsApp Live Chat"
+                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition shrink-0 cursor-pointer"
                           >
                             <MessageSquare size={13} />
-                          </a>
+                          </button>
                         )}
                         {row.type !== 'done' && (
                           <button

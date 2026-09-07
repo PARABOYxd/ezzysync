@@ -32,17 +32,44 @@ async function parseTicketOrChat(req, res, next) {
 
 async function generateItinerary(req, res, next) {
   try {
-    const { tripName, days, notes, format } = req.body;
-    if (!tripName || !days) {
-      return res.status(400).json({ message: 'Trip name and duration (days) are required.' });
+    const { tripName, days, notes, format, fullQuotation } = req.body;
+    if (!tripName && !notes) {
+      return res.status(400).json({ message: 'Trip name or rough notes/details are required.' });
     }
 
     if (!aiService.isConfigured()) {
       return res.status(500).json({ message: 'Gemini API Key is not configured.' });
     }
 
+    const durationDays = Math.max(1, Math.min(15, Number(days) || 3));
+
+    // Full quotation mode generates itinerary days, attraction highlights, inclusions, exclusions, and pickups
+    if (fullQuotation || format === 'full_quotation' || format === 'json') {
+      try {
+        const quotationPlan = await aiService.generateFullQuotationPlan({
+          tripName: tripName || notes,
+          days: durationDays,
+          notes: notes || '',
+        });
+
+        if (quotationPlan) {
+          return res.json({
+            quotationPlan,
+            itinerary: quotationPlan.itineraryDays || [],
+          });
+        }
+      } catch (err) {
+        req.log.warn({ err }, 'generateFullQuotationPlan failed, trying legacy json fallback');
+      }
+    }
+
     const isJson = format === 'json';
-    const responseText = await aiService.generateItineraryText({ tripName, days, notes, isJson });
+    const responseText = await aiService.generateItineraryText({
+      tripName: tripName || notes,
+      days: durationDays,
+      notes,
+      isJson,
+    });
     if (!responseText) {
       return res.status(500).json({ message: 'Failed to generate itinerary.' });
     }

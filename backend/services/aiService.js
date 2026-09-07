@@ -4,8 +4,8 @@ const bookingService = require('./bookingService');
 const settingsService = require('./settingsService');
 const logger = require('../utils/logger');
 
-const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-const FALLBACK_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.7-flash', 'gemini-flash-latest'];
+const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const FALLBACK_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.7-flash', 'gemini-3.6-flash'];
 const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 30000;
 
 // JSON schema for Gemini structured output
@@ -25,6 +25,62 @@ const bookingJsonSchema = {
     notes: { type: 'STRING', description: 'Any special requests, flight timings, hotel configurations or miscellaneous notes' },
   },
   required: ['customerName', 'trip', 'departure'],
+};
+
+// JSON schema for complete commercial quotation generation (itinerary, highlights, inclusions, exclusions, pickups)
+const quotationPlanJsonSchema = {
+  type: 'OBJECT',
+  properties: {
+    tripName: {
+      type: 'STRING',
+      description: 'Refined, commercial travel package title (e.g. "3D/2N Chopta Tungnath & Chandrashila Peak Trek", "5N/6D Scenic Kerala Backwaters & Munnar")',
+    },
+    estimatedPrice: {
+      type: 'INTEGER',
+      description: 'Realistic package price in INR per person. If price is mentioned in prompt/notes, use that exact price. Otherwise give a realistic standard rate in INR.',
+    },
+    itineraryDays: {
+      type: 'ARRAY',
+      description: 'Day-by-day travel timeline nodes',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          day: { type: 'INTEGER', description: 'Day index starting at 1' },
+          title: { type: 'STRING', description: 'Milestone / day heading, e.g. "Day 1: Drive from Rishikesh to Chopta via Devprayag & Rudraprayag"' },
+          description: { type: 'STRING', description: 'Detailed itinerary breakdown covering transit, sightseeing stopovers, meal inclusions (B/L/D), and night stay' },
+        },
+        required: ['day', 'title', 'description'],
+      },
+    },
+    highlights: {
+      type: 'ARRAY',
+      description: '4 to 8 top attraction spots, route stopovers, viewpoints, and signature experiences. E.g. for Chopta: Devprayag Sangam, Rudraprayag, Tungnath Temple, Chandrashila Summit 360° Panorama, Deoriatal Lake, Camping under star-lit skies.',
+      items: { type: 'STRING' },
+    },
+    inclusions: {
+      type: 'ARRAY',
+      description: '5 to 8 tour inclusions (Stay, Meals, Certified Guide/Trek Leader, Permits & entry fees, Transport from pickup, Medical first aid)',
+      items: { type: 'STRING' },
+    },
+    exclusions: {
+      type: 'ARRAY',
+      description: '4 to 7 standard exclusions (Lunch/transit snacks, Personal expenses, Porter/mule charges, 5% GST, Insurance)',
+      items: { type: 'STRING' },
+    },
+    pickupOptions: {
+      type: 'ARRAY',
+      description: '2 to 4 pickup options with total package price per person in INR. If user specified pickups & prices in notes (e.g. "Delhi 4500, Rishikesh 3500"), parse and match them! If not, provide standard pickup points with realistic rates.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          location: { type: 'STRING', description: 'Pickup point name (e.g. "Delhi NCR", "Rishikesh / Haridwar", "Dehradun")' },
+          price: { type: 'INTEGER', description: 'Total package price in INR from this pickup point' },
+        },
+        required: ['location', 'price'],
+      },
+    },
+  },
+  required: ['tripName', 'estimatedPrice', 'itineraryDays', 'highlights', 'inclusions', 'exclusions', 'pickupOptions'],
 };
 
 /**
@@ -229,11 +285,71 @@ async function generateItineraryText({ tripName, days, notes, isJson }) {
   return responseText || null;
 }
 
+/**
+ * Generates a complete commercial quotation plan:
+ * Refined trip title, estimated price, day-by-day itinerary, attraction highlights (e.g. Devprayag, Rudraprayag, Tungnath),
+ * inclusions, exclusions, and pickup options with pricing.
+ */
+async function generateFullQuotationPlan({ tripName, days, notes }) {
+  const prompt = `You are a world-class travel planner and tour operator creating an end-to-end commercial travel quotation and itinerary for clients.
+
+TRIP DETAILS / ROUGH PROMPT:
+- Trip Title / Rough Concept: "${tripName || 'Tour Package'}"
+- Duration: ${days || 3} Days
+- Rough details, client preferences, route, attractions, pickup & pricing instructions: "${notes || 'None'}"
+
+CRITICAL INSTRUCTIONS:
+1. TRIP NAME: Refine or create a polished, attractive tour title (e.g. "3D/2N Chopta Tungnath & Chandrashila Peak Trek" or "5N/6D Enchanting Kerala Backwaters & Hills").
+2. ESTIMATED PRICE: If a price is mentioned in the notes or rough prompt (e.g. 4500, 6500, etc.), use that price. Otherwise, provide a realistic commercial package price per person in INR (e.g. 4500, 7500, 12000 depending on duration and destination).
+3. DAY-BY-DAY ITINERARY: Provide exactly ${days || 3} sequential days. Each day must have:
+   - day: integer (1, 2, 3...)
+   - title: catchy milestone (e.g. "Day 1: Departure to Chopta via Devprayag Sangam & Rudraprayag")
+   - description: comprehensive breakdown of morning journey, scenic stopovers, activities, sightseeing, meal plan (e.g. Dinner included), and night stay details.
+4. TRIP HIGHLIGHTS & ATTRACTIONS:
+   - Identify key route attractions, viewpoints, religious/cultural spots, and natural marvels.
+   - For example, for Chopta/Tungnath: Include Devprayag (Sangam of Alaknanda & Bhagirathi), Rudraprayag, Ukhimath, Tungnath (highest Shiva temple in the world), Chandrashila Peak (360-degree Himalayan panorama), Deoriatal Lake, Camping under star-lit skies.
+   - For Himachal/Spiti/Manali: Include Atal Tunnel, Solang Valley, Rohtang Pass, Kasol, Manikaran, etc.
+   - For Goa/Kerala/Rajasthan/etc.: Include respective iconic attractions and signature experiences.
+   - Provide 4 to 8 crisp, compelling highlights.
+5. INCLUSIONS & EXCLUSIONS:
+   - Inclusions: 5-8 essential inclusions (Accommodation, Meals (Breakfast & Dinner), Trek Guide/Leader, Forest & camping permits, Transport from pickup, First Aid kit).
+   - Exclusions: 4-7 realistic exclusions (Lunch & en-route snacks, Personal expenses & tips, Mules/porters, 5% GST, Insurance).
+6. PICKUP OPTIONS WITH PRICING:
+   - If user mentioned specific pickup locations and prices in rough notes (e.g. "Delhi 4500, Rishikesh 3500"), parse and include them with their specified prices!
+   - If not explicitly mentioned, provide 2-4 standard pickup hubs for this travel sector with realistic per-person INR package prices (e.g. Delhi NCR: ₹6,500; Rishikesh/Haridwar: ₹4,500; Dehradun: ₹5,000).
+   - Each item must have: location (string) and price (integer number).
+
+Return ONLY a valid JSON object matching the schema.`;
+
+  const parsedText = await generateContent([{ text: prompt }], {
+    responseMimeType: 'application/json',
+    responseSchema: quotationPlanJsonSchema,
+  });
+
+  if (!parsedText) return null;
+  return parseItineraryJson(parsedText);
+}
+
 /** The model is asked for bare JSON but sometimes still wraps it in a fenced
  * code block, so strip fences before parsing. Throws on invalid JSON. */
 function parseItineraryJson(responseText) {
-  const cleanJsonText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(cleanJsonText);
+  if (!responseText) return null;
+  const cleanJsonText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+  try {
+    return JSON.parse(cleanJsonText);
+  } catch (err) {
+    const firstBrace = cleanJsonText.indexOf('{');
+    const lastBrace = cleanJsonText.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      return JSON.parse(cleanJsonText.slice(firstBrace, lastBrace + 1));
+    }
+    const firstBracket = cleanJsonText.indexOf('[');
+    const lastBracket = cleanJsonText.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket > firstBracket) {
+      return JSON.parse(cleanJsonText.slice(firstBracket, lastBracket + 1));
+    }
+    throw err;
+  }
 }
 
 /**
@@ -698,6 +814,7 @@ module.exports = {
   generateContent,
   parseTicketOrChat,
   generateItineraryText,
+  generateFullQuotationPlan,
   parseItineraryJson,
   generateWhatsappReply,
   suggestWhatsappDraft,

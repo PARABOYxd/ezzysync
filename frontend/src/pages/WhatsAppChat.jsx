@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   MessageSquare,
   Search,
@@ -42,6 +43,8 @@ const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 
 export default function WhatsAppChat() {
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const phoneParam = searchParams.get('phone');
 
   const [session, setSession] = useState({
     status: 'disconnected',
@@ -130,6 +133,26 @@ export default function WhatsAppChat() {
       setTimeout(scrollToBottom, 100);
     }
   };
+
+  // Auto-open or create chat if navigated with ?phone=...
+  useEffect(() => {
+    if (!phoneParam) return;
+    const cleanPhone = phoneParam.trim();
+    if (!cleanPhone) return;
+
+    whatsappWebService
+      .startChat(cleanPhone, '')
+      .then(async (res) => {
+        if (res?.chatId) {
+          await loadChats();
+          await loadChatMessages(res.chatId);
+          setSearchParams({}, { replace: true });
+        }
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || 'Could not open chat for this phone number.');
+      });
+  }, [phoneParam]);
 
   const messagesRef = useRef(messages);
   useEffect(() => {

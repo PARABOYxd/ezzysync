@@ -158,10 +158,12 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
   const [errors, setErrors] = useState({});
   const toast = useToast();
 
-  const [aiDays, setAiDays] = useState(5);
+  const [aiDays, setAiDays] = useState(3);
+  const [aiRoughIdea, setAiRoughIdea] = useState('');
   const [aiTheme, setAiTheme] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiBuilder, setShowAiBuilder] = useState(false);
+  const [aiGeneratedSuccess, setAiGeneratedSuccess] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [selectedBannerFile, setSelectedBannerFile] = useState(null);
   const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
@@ -180,8 +182,9 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
   };
 
   const handleAiItineraryGenerate = async () => {
-    if (!form.tripName) {
-      toast.error('Please fill in the Trip Name / Package Title first.');
+    const rawTrip = (aiRoughIdea || form.tripName || '').trim();
+    if (!rawTrip) {
+      toast.error('Please enter a destination or rough trip concept in the AI planner.');
       return;
     }
     if (Number(aiDays) < 1 || Number(aiDays) > 15) {
@@ -189,22 +192,67 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
       return;
     }
     setAiLoading(true);
+    setAiGeneratedSuccess(false);
     try {
+      const notesCombined = [
+        aiRoughIdea.trim() ? `Trip Concept & Pickups: ${aiRoughIdea.trim()}` : '',
+        aiTheme.trim() ? `Preferences & Inclusions: ${aiTheme.trim()}` : '',
+      ].filter(Boolean).join(' | ');
+
       const response = await aiService.generateItinerary({
-        tripName: form.tripName,
+        tripName: rawTrip,
         days: Number(aiDays),
-        notes: aiTheme,
-        format: 'json',
+        notes: notesCombined || rawTrip,
+        format: 'full_quotation',
+        fullQuotation: true,
       });
 
-      if (response?.itinerary && Array.isArray(response.itinerary)) {
+      const plan = response?.quotationPlan;
+      if (plan) {
+        setForm((prev) => {
+          const updated = { ...prev };
+          // If trip name is empty or matched previous rough idea, update it with refined AI title
+          if (!prev.tripName?.trim() || prev.tripName.trim() === aiRoughIdea.trim() || prev.tripName.length < 5) {
+            updated.tripName = plan.tripName || prev.tripName || rawTrip;
+          }
+          // If price quote was empty or 0, update with estimated price
+          if ((!prev.priceQuote || Number(prev.priceQuote) === 0) && plan.estimatedPrice) {
+            updated.priceQuote = plan.estimatedPrice;
+          }
+          // Days
+          if (Array.isArray(plan.itineraryDays) && plan.itineraryDays.length > 0) {
+            updated.itineraryDays = plan.itineraryDays;
+          }
+          // Highlights
+          if (Array.isArray(plan.highlights) && plan.highlights.length > 0) {
+            updated.highlights = plan.highlights;
+          }
+          // Inclusions
+          if (Array.isArray(plan.inclusions) && plan.inclusions.length > 0) {
+            updated.inclusions = plan.inclusions;
+          }
+          // Exclusions
+          if (Array.isArray(plan.exclusions) && plan.exclusions.length > 0) {
+            updated.exclusions = plan.exclusions;
+          }
+          // Pickups
+          if (Array.isArray(plan.pickupOptions) && plan.pickupOptions.length > 0) {
+            updated.pickupOptions = plan.pickupOptions;
+          }
+          return updated;
+        });
+
+        setAiGeneratedSuccess(true);
+        toast.success(
+          `✨ Complete Quotation Generated! ${plan.itineraryDays?.length || 0} Days, ${plan.highlights?.length || 0} Highlights, Inclusions & Pickups populated.`
+        );
+      } else if (response?.itinerary && Array.isArray(response.itinerary)) {
         setForm((prev) => ({
           ...prev,
           itineraryDays: response.itinerary,
         }));
-        toast.success(`✨ AI generated and autofilled a ${aiDays}-day itinerary successfully!`);
-        setShowAiBuilder(false);
-        setAiTheme('');
+        setAiGeneratedSuccess(true);
+        toast.success(`✨ Generated a ${aiDays}-day itinerary schedule!`);
       } else {
         toast.error('AI generated invalid structured data format.');
       }
@@ -256,6 +304,10 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
       setForm(quotation ? { ...emptyForm, ...quotation } : emptyForm);
       setErrors({});
       setShowAiBuilder(false);
+      setAiGeneratedSuccess(false);
+      setAiRoughIdea(quotation?.tripName || '');
+      setAiTheme('');
+      setAiDays(quotation?.itineraryDays?.length || 3);
       setBannerPreviewUrl(quotation?.bannerUrl || '');
       setSelectedBannerFile(null);
       
@@ -364,20 +416,38 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
     <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Itinerary' : 'Create Itinerary'}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* AI Auto-Planner Widget */}
-        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
-          <button
-            type="button"
-            onClick={() => setShowAiBuilder(!showAiBuilder)}
-            className="flex items-center justify-between w-full text-left font-semibold text-slate-800 text-xs focus:outline-none"
-          >
-            <span className="flex items-center gap-2 text-violet-700 font-bold">
-              <Wand2 size={15} className="animate-pulse text-violet-600" />
-              <span>✨ AI Tour Planner: Auto-generate detailed day-by-day itineraries</span>
-            </span>
-            <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+        <div className="bg-gradient-to-br from-violet-50/90 via-indigo-50/70 to-purple-50/80 border border-violet-200/80 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              onClick={() => setShowAiBuilder(!showAiBuilder)}
+              className="flex items-center gap-2.5 text-left focus:outline-none flex-1 group cursor-pointer"
+            >
+              <div className="p-2 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white shadow-sm shrink-0 group-hover:scale-105 transition">
+                <Wand2 size={16} className="animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800">
+                    AI Tour Planner: 1-Click Complete Package Generator
+                  </span>
+                  <span className="bg-violet-100 text-violet-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-violet-200/60">
+                    Auto-fills All Fields
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-normal mt-0.5">
+                  Fills Days, Route Attractions (Devprayag, Rudraprayag...), Inclusions, Exclusions & Pickups with price
+                </p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAiBuilder(!showAiBuilder)}
+              className="ml-3 bg-white hover:bg-violet-50 text-violet-700 border border-violet-200 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
+            >
               {showAiBuilder ? 'Hide Planner' : 'Open Planner'}
-            </span>
-          </button>
+            </button>
+          </div>
 
           {showAiBuilder && (
             user?.planId === 'FREE' ? (
@@ -386,8 +456,27 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
                 <p className="text-[10px] text-slate-400">Upgrade to Pro in the AI Tools page to unlock auto-generation.</p>
               </div>
             ) : (
-              <div className="space-y-4 pt-3 mt-3 border-t border-violet-100/60 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+              <div className="space-y-3.5 pt-3.5 mt-3.5 border-t border-violet-200/60 text-xs">
+                {/* Destination & Rough Idea */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Destination / Rough Trip Concept & Pickups <span className="text-rose-500">*</span>
+                  </label>
+                  <Textarea
+                    rows={2}
+                    placeholder="e.g. 3D/2N Chopta Tungnath Trek from Delhi 4500 & Rishikesh 3500 via Devprayag, Rudraprayag with camping & meals"
+                    value={aiRoughIdea}
+                    onChange={(e) => setAiRoughIdea(e.target.value)}
+                    className="w-full text-xs"
+                    inputClassName="bg-white focus:ring-violet-400/20 focus:border-violet-400 border-violet-200 text-xs placeholder:text-slate-400 rounded-xl"
+                  />
+                  <p className="text-[10px] text-violet-700 mt-1 flex items-center gap-1 font-medium">
+                    <span>💡</span> Mention pickup cities and prices (e.g. "Delhi 4500, Rishikesh 3500") and AI will automatically prefill pickup options with those rates!
+                  </p>
+                </div>
+
+                {/* Days & Preferences */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                   <Input
                     className="sm:col-span-1"
                     label="Number of Days"
@@ -396,28 +485,72 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
                     max={15}
                     value={aiDays}
                     onChange={(e) => setAiDays(Math.max(1, Math.min(15, Number(e.target.value))))}
-                    inputClassName="bg-white focus:ring-violet-400/20 focus:border-violet-400 border-violet-200"
+                    inputClassName="bg-white focus:ring-violet-400/20 focus:border-violet-400 border-violet-200 text-xs rounded-xl"
                   />
                   <Input
                     className="sm:col-span-3"
-                    label="Travel Theme & Preferences (Optional)"
+                    label="Travel Style & Preferences (Optional)"
                     type="text"
-                    placeholder="e.g. Include houseboat luxury stay, beach activities, traditional dinners, slow paced travel..."
+                    placeholder="e.g. Luxury alpine tents, bonfire & music, vegetarian meals, sunset photography..."
                     value={aiTheme}
                     onChange={(e) => setAiTheme(e.target.value)}
-                    inputClassName="bg-white focus:ring-violet-400/20 focus:border-violet-400 border-violet-200"
+                    inputClassName="bg-white focus:ring-violet-400/20 focus:border-violet-400 border-violet-200 text-xs placeholder:text-slate-400 rounded-xl"
                   />
                 </div>
 
-                <div className="flex justify-end pt-2 border-t border-violet-100/40">
+                {/* Quick Suggestion Chips */}
+                <div className="space-y-1.5 pt-0.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quick Suggestions:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '🏔️ Chopta Tungnath (3D)', prompt: 'Chopta Tungnath & Chandrashila Peak Trek with Delhi 4500 & Rishikesh 3500 pickup, visiting Devprayag Sangam & Rudraprayag', days: 3 },
+                      { label: '🌊 Kerala Backwaters (5D)', prompt: '5N/6D Kerala Backwaters & Munnar Tea Gardens with luxury houseboat and Cochin pickup 18000', days: 5 },
+                      { label: '❄️ Manali & Kasol (4D)', prompt: '4D/3N Manali, Solang Valley, Atal Tunnel & Kasol with Delhi pickup 6500 and Chandigarh pickup 5500', days: 4 },
+                      { label: '🛕 Kedarnath Yatra (5D)', prompt: '5D/4N Kedarnath Yatra with Guptkashi, Devprayag, Rudraprayag and Haridwar pickup 9500', days: 5 },
+                      { label: '🏜️ Jaisalmer Desert (3D)', prompt: '3D/2N Jaisalmer Desert Safari, Sam Sand Dunes camp, Fort visit with Jodhpur pickup 5500', days: 3 },
+                      { label: '🏖️ Goa Beach Holiday (4D)', prompt: '4D/3N Goa Holiday covering North & South Goa, Calangute, Dudhsagar and Goa airport pickup 8500', days: 4 },
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setAiRoughIdea(item.prompt);
+                          setAiDays(item.days);
+                        }}
+                        className="px-2.5 py-1 bg-white hover:bg-violet-100/70 border border-violet-200 rounded-lg text-[10px] font-semibold text-violet-800 transition shadow-2xs cursor-pointer active:scale-95"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2.5 border-t border-violet-200/60">
+                  <div className="text-[11px] text-slate-500">
+                    {aiLoading ? (
+                      <span className="text-violet-700 font-semibold flex items-center gap-1.5 animate-pulse">
+                        <Sparkles size={14} className="text-violet-600 animate-spin" />
+                        AI is compiling days, attraction spots, inclusions, exclusions & pickup rates...
+                      </span>
+                    ) : aiGeneratedSuccess ? (
+                      <span className="text-emerald-700 font-bold flex items-center gap-1">
+                        <CheckCircle2 size={14} className="text-emerald-600" />
+                        Complete package generated! All fields below have been auto-filled.
+                      </span>
+                    ) : (
+                      'Auto-fills itinerary timeline, attractions, inclusions, exclusions & pickups in seconds.'
+                    )}
+                  </div>
+
                   <button
                     type="button"
                     disabled={aiLoading}
                     onClick={handleAiItineraryGenerate}
-                    className="px-5 h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:opacity-90 text-white font-bold rounded-lg text-xs shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-5 h-10 bg-gradient-to-r from-violet-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                   >
-                    <Sparkles size={13} />
-                    {aiLoading ? 'AI is drafting itinerary...' : 'Generate & Prefill Days'}
+                    <Sparkles size={14} className={aiLoading ? 'animate-spin' : ''} />
+                    {aiLoading ? 'Drafting Full Package...' : '✨ Generate & Prefill Complete Package'}
                   </button>
                 </div>
               </div>
