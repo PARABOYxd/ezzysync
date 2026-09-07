@@ -124,36 +124,37 @@ app.use('/api/plans', planRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// Protected CRM business routes (Gated by active subscription / valid trial)
-app.use('/api/bookings', requireActiveSubscription, bookingRoutes);
-app.use('/api/leads', requireActiveSubscription, leadRoutes);
-app.use('/api/dashboard', requireActiveSubscription, dashboardRoutes);
-app.use('/api/invoices', requireActiveSubscription, invoiceRoutes);
-app.use('/api/whatsapp', requireActiveSubscription, whatsappRoutes);
+// Core CRM business routes (Accessible by tenants; AI is strictly gated by active subscription)
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/leads', leadRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 // Feature flags gate the routes themselves, not just the menu. The frontend
 // reads the same flags from /api/public/features to hide the UI, but hiding a
 // button is not disabling a feature - a flag that only the client honours is
 // not a flag.
 if (env.features.whatsappWeb) {
-  app.use('/api/whatsapp-web', requireActiveSubscription, whatsappWebRoutes);
+  app.use('/api/whatsapp-web', whatsappWebRoutes);
 }
-app.use('/api/settings', requireActiveSubscription, settingsRoutes);
-app.use('/api/upload', requireActiveSubscription, uploadRoutes);
-app.use('/api/users', requireActiveSubscription, userRoutes);
-app.use('/api/quotations', requireActiveSubscription, quotationRoutes);
-app.use('/api/customers', requireActiveSubscription, customerRoutes);
-app.use('/api/follow-ups', requireActiveSubscription, followUpRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/quotations', quotationRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/follow-ups', followUpRoutes);
+// AI Travel Tools strictly require an active subscription
 if (env.features.aiAutopilot) {
   app.use('/api/ai', requireActiveSubscription, aiRoutes);
 }
-app.use('/api/expenses', requireActiveSubscription, expenseRoutes);
-app.use('/api/batches', requireActiveSubscription, batchRoutes);
-app.use('/api/hotels', requireActiveSubscription, hotelRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/batches', batchRoutes);
+app.use('/api/hotels', hotelRoutes);
 if (env.features.instagram) {
-  app.use('/api/instagram', requireActiveSubscription, instagramRoutes);
-  app.use('/api/instagram-direct', requireActiveSubscription, instagramDirectRoutes);
+  app.use('/api/instagram', instagramRoutes);
+  app.use('/api/instagram-direct', instagramDirectRoutes);
 }
-app.use('/api/whatsapp/templates', requireActiveSubscription, whatsappTemplateRoutes);
+app.use('/api/whatsapp/templates', whatsappTemplateRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
 app.use(errorHandler);

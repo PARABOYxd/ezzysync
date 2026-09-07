@@ -628,6 +628,14 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
  * needs a person. Callers must honour that marker rather than send it on.
  */
 async function generateAiReplyForChat(tenantId, phone, message) {
+  try {
+    const limits = await planService.getTenantPlanLimits(tenantId);
+    if (limits?.isExpired) {
+      logger.info({ tenantId }, 'Tenant subscription expired - skipping AI auto-reply');
+      return { reply: null, needsHuman: false };
+    }
+  } catch (e) {}
+
   if (!aiService.isConfigured()) {
     logger.warn({ tenantId }, 'Gemini is not configured - skipping AI reply');
     return { reply: null, needsHuman: false };

@@ -1,8 +1,12 @@
 const env = require('../config/env');
 const bookingService = require('../services/bookingService');
 const settingsService = require('../services/settingsService');
+const invoiceService = require('../services/invoiceService');
 const whatsappService = require('../services/whatsappService');
+const whatsappWebService = require('../services/whatsappWebService');
+const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappRepo = require('../repositories/whatsappRepository');
+const r2Service = require('../services/r2Service');
 const instagramDirectService = require('../services/instagramDirectService');
 const aiService = require('../services/aiService');
 const { query } = require('../config/db');
@@ -25,35 +29,183 @@ async function sendMessage(req, res, next) {
     const booking = await bookingService.getBookingById(req.user.tenantId, req.params.bookingId);
     if (!booking) return res.status(404).json({ message: 'Booking not found.' });
 
+    if (!booking.phone) {
+      return res.status(400).json({ message: 'This booking has no customer phone number on file.' });
+    }
+
     const settings = await settingsService.getSettings(req.user.tenantId);
-    // Optional public link to a hosted invoice PDF, e.g. from your own
-    // /api/invoices/:bookingId/download endpoint if it's publicly reachable,
-    // or a cloud storage signed URL. Falls back to a text-only message.
     const mediaLink = req.body.mediaLink || null;
     const messageText = req.body.messageText || null;
+    const invoiceNumber = `INV-${booking.bookingId}`;
 
-    const result = await whatsappService.sendWhatsAppMessage(booking, settings, mediaLink, messageText);
-    
-    // Save to the database as outbound chat message
+    // 1. Generate official PDF invoice buffer
+    let pdfBuffer = null;
     try {
-      const text = messageText || whatsappService.buildMessageText(booking, settings);
-      const cleanPhone = normalizePhone(booking.phone);
-      const messageId = result?.messages?.[0]?.id || null;
-      const saved = await whatsappRepo.saveMessage(req.user.tenantId, cleanPhone, 'outbound', text, booking.customerName, 0, messageId);
+      pdfBuffer = await invoiceService.generateInvoicePDF({ booking, settings, invoiceNumber });
+    } catch (pdfErr) {
+      logger.warn({ err: pdfErr, bookingId: booking.bookingId }, 'Could not generate invoice PDF buffer for WhatsApp');
+    }
 
-      // Broadcast to WebSocket clients so it refreshes live in the chat interface
+    const text = messageText || whatsappService.buildMessageText(booking, settings);
+    const cleanDigits = normalizePhone(booking.phone);
+
+    // 2. Check WhatsApp connection status
+    // Check WhatsApp Web (QR Scanner / Live Chat engine)
+    let isWebConnected = false;
+    try {
+      const webStatus = await whatsappWebService.getSessionStatus(req.user.tenantId);
+      isWebConnected = Boolean(
+        webStatus?.canSend || 
+        (webStatus?.status === 'connected' && webStatus?.hasLiveSocket !== false)
+      );
+    } catch (wsErr) {
+      logger.warn({ err: wsErr, tenantId: req.user.tenantId }, 'Error checking WhatsApp Web session status');
+    }
+
+    // Check Meta WhatsApp API credentials
+    const hasMetaCredentials = Boolean(
+      settings?.whatsappPhoneNumberId &&
+      settings?.whatsappPhoneNumberId.trim() !== '' &&
+      settings?.whatsappAccessToken &&
+      settings?.whatsappAccessToken.trim() !== ''
+    );
+
+    // 3. If neither WhatsApp channel is connected, guide user to connect WhatsApp
+    if (!isWebConnected && !hasMetaCredentials) {
+      return res.status(400).json({
+        message: 'WhatsApp is not connected. Please connect WhatsApp in WhatsApp Live Chat or Settings to send invoices.',
+        code: 'WHATSAPP_NOT_CONNECTED',
+      });
+    }
+
+    // 4. Primary: If WhatsApp Web (Live Chat) is connected, send PDF invoice and reflect in Live Chat
+    if (isWebConnected) {
+      let chat = await whatsappWebRepository.findChatByPhone(req.user.tenantId, cleanDigits);
+      if (!chat) {
+        chat = await whatsappWebRepository.createChat(req.user.tenantId, {
+          phone: cleanDigits,
+          jid: `${cleanDigits}@s.whatsapp.net`,
+          customerName: booking.customerName || 'Customer',
+          leadId: null,
+          lastMessage: text,
+          aiEnabled: false,
+        });
+      }
+
+      const result = await whatsappWebService.sendManualMessage(req.user.tenantId, {
+        chatId: chat?.id,
+        phone: cleanDigits,
+        jid: chat?.jid || `${cleanDigits}@s.whatsapp.net`,
+        messageText: text,
+        mediaBuffer: pdfBuffer,
+        fileName: `${invoiceNumber}.pdf`,
+        mimeType: 'application/pdf',
+      });
+
+      // Broadcast event so WhatsApp Live Chat updates in real-time
+      broadcastToTenant(req.user.tenantId, {
+        type: 'WHATSAPP_WEB_MESSAGE_SENT',
+        chatId: chat?.id,
+        message: {
+          id: result.messageId,
+          messageId: result.messageId,
+          direction: 'outbound',
+          sender: 'agent',
+          messageText: text,
+          messageType: 'document',
+          mediaUrl: result.mediaUrl,
+          fileName: `${invoiceNumber}.pdf`,
+          status: 'sent',
+          created_at: new Date().toISOString(),
+        },
+      });
+
+      // Save to shared repository for history
+      try {
+        await whatsappRepo.saveMessage(
+          req.user.tenantId,
+          cleanDigits,
+          'outbound',
+          text,
+          booking.customerName,
+          0,
+          result.messageId
+        );
+      } catch (dbErr) {
+        logger.warn({ err: dbErr }, 'Failed to save sent invoice message to history');
+      }
+
+      return res.json({
+        message: `Invoice PDF sent to ${booking.phone} on WhatsApp & shared on Live Chat.`,
+        result,
+        channel: 'whatsapp_web',
+      });
+    }
+
+    // 5. Fallback: If Meta WhatsApp Cloud API is connected
+    let invoiceMediaLink = mediaLink;
+    if (!invoiceMediaLink && pdfBuffer) {
+      try {
+        invoiceMediaLink = await r2Service.uploadFile(
+          pdfBuffer,
+          `${invoiceNumber}.pdf`,
+          'application/pdf',
+          `invoices/${req.user.tenantId}`
+        );
+      } catch (r2Err) {
+        logger.warn({ err: r2Err }, 'Could not upload invoice to R2 for Meta mediaLink');
+      }
+    }
+
+    const result = await whatsappService.sendWhatsAppMessage(
+      booking,
+      settings,
+      invoiceMediaLink,
+      messageText,
+      'document',
+      `${invoiceNumber}.pdf`
+    );
+
+    // Save outbound message to history
+    try {
+      const messageId = result?.messages?.[0]?.id || null;
+      const saved = await whatsappRepo.saveMessage(
+        req.user.tenantId,
+        cleanDigits,
+        'outbound',
+        text,
+        booking.customerName,
+        0,
+        messageId
+      );
+
       broadcastToTenant(req.user.tenantId, {
         type: 'WHATSAPP_MESSAGE_RECEIVED',
         chat: saved.chat,
-        message: saved.message
+        message: saved.message,
       });
     } catch (dbErr) {
-      // eslint-disable-next-line no-console
-      console.error('[WhatsApp Chat History] Failed to save sent message to history:', dbErr);
+      logger.warn({ err: dbErr }, 'Failed to save sent message to history');
     }
 
-    res.json({ message: 'WhatsApp message sent.', result });
+    return res.json({
+      message: `Invoice PDF sent to ${booking.phone} on WhatsApp.`,
+      result,
+      channel: 'meta_api',
+    });
   } catch (err) {
+    const errorText = err.message || '';
+    if (
+      errorText.includes('Unsupported post request') ||
+      errorText.includes('does not exist') ||
+      errorText.includes('permission') ||
+      errorText.includes('not connected')
+    ) {
+      return res.status(400).json({
+        message: 'WhatsApp is not connected. Please connect WhatsApp in WhatsApp Live Chat or Settings to send invoices.',
+        code: 'WHATSAPP_NOT_CONNECTED',
+      });
+    }
     next(err);
   }
 }

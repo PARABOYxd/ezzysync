@@ -5,7 +5,7 @@ import Topbar from '../components/layout/Topbar.jsx';
 import NotificationBell from '../components/layout/NotificationBell.jsx';
 import InstallAppButton from '../components/layout/InstallAppButton.jsx';
 import ThemeToggle from '../components/layout/ThemeToggle.jsx';
-import { Plus, Lock, Check, Crown, Sparkles } from 'lucide-react';
+import { Plus, Lock, Check, Crown, Sparkles, X } from 'lucide-react';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
@@ -25,7 +25,7 @@ const TITLES = {
   '/quotations': 'Itineraries & Quotes',
   '/profile': 'Profile',
   '/settings': 'Settings',
-  '/hotels': 'Hotels',
+  '/hotels': 'Hotels & Stays',
   '/guide': 'User Guide',
   '/team': 'Team',
   '/ai-tools': 'AI Travel Tools',
@@ -36,6 +36,7 @@ const TITLES = {
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
   const toast = useToast();
@@ -44,9 +45,6 @@ export default function DashboardLayout() {
   const { plans, loading: catalogLoading, error: catalogError } = usePlanCatalog();
 
   // Whether access has lapsed is the server's answer, not a sum over the JWT.
-  // The old calculation - paid plan id means active, otherwise count days
-  // since signup - could not see an expired paid month at all, so a lapsed
-  // subscriber got the full app while every request inside it returned 403.
   const { isExpired, lapsedPlanId } = usePlanStatus();
 
   const handlePaywallPayment = (planId, planName) => {
@@ -68,15 +66,12 @@ export default function DashboardLayout() {
     });
   };
 
-  const title = TITLES[location.pathname]
-    || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'EzzySync');
-
   return (
-    <div className="min-h-screen flex bg-[var(--bg-page)] text-[var(--text-main)] transition-colors duration-200">
+    <div className="flex h-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)]">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-page)]">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar 
-          title={title} 
+          title={TITLES[location.pathname] || 'Dashboard'} 
           onMenuClick={() => setSidebarOpen(true)} 
           actions={
             <>
@@ -89,28 +84,63 @@ export default function DashboardLayout() {
             </>
           } 
         />
+
+        {/* Top Grace Notice Banner when Trial/Subscription Expired (Non-blocking) */}
+        {isExpired && (
+          <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold shadow-md shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-black/25 text-white font-black text-[10px] uppercase tracking-wider shrink-0">
+                {lapsedPlanId ? 'Plan Ended' : 'Trial Ended'}
+              </span>
+              <span>
+                {lapsedPlanId
+                  ? 'Your subscription has ended. AI Travel Tools are paused.'
+                  : 'Your 30-day free trial has ended. AI Travel Tools & automation are paused.'}
+                {' '}You can continue viewing your Dashboard, Bookings, Leads & Invoices.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPaywallOpen(true)}
+              className="px-3.5 py-1.5 bg-white text-orange-700 hover:bg-orange-50 font-extrabold rounded-lg transition shadow-xs cursor-pointer shrink-0"
+            >
+              {lapsedPlanId ? 'Renew Subscription ➔' : 'Upgrade Plan ➔'}
+            </button>
+          </div>
+        )}
+
         <main className="flex-1 p-4 md:p-8 bg-[var(--bg-page)] w-full max-w-full overflow-x-hidden">
           <Outlet />
         </main>
       </div>
       <LeadFormDrawer open={addOpen} onClose={() => setAddOpen(false)} />
 
-      {/* Trial Expired Lockout Paywall Screen */}
-      {isExpired && (
+      {/* Trial Expired Upgrade Modal (Dismissible, opens on Upgrade button click) */}
+      {paywallOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[95vh]">
+          <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[95vh] relative">
+            {/* Modal Close Button */}
+            <button
+              type="button"
+              onClick={() => setPaywallOpen(false)}
+              className="absolute top-4 right-4 z-20 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title="Close modal"
+            >
+              <X size={18} />
+            </button>
+
             {/* Header */}
             <div className="p-6 text-center border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-b from-orange-50/50 to-transparent dark:from-orange-950/20">
               <div className="w-12 h-12 rounded-2xl bg-[#F97316]/10 text-[#F97316] flex items-center justify-center mx-auto mb-3">
                 <Lock size={26} />
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
-                {lapsedPlanId ? 'Your Subscription Has Ended' : 'Your 30-Day Free Trial Has Ended'}
+                {lapsedPlanId ? 'Your Subscription Has Ended' : 'Upgrade to Unlock 24x7 AI & Growth Features'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-md mx-auto">
                 {lapsedPlanId
-                  ? 'Your paid month is over. Renew below to unlock your workspace again — every lead, booking and itinerary is exactly where you left it.'
-                  : 'Thank you for trying EzzySync! Choose a subscription plan below to unlock your workspace and keep managing your travel leads and itineraries.'}
+                  ? 'Renew below to re-enable AI Travel Tools, automated WhatsApp replies, and team collaboration.'
+                  : 'Upgrade to keep AI Travel Tools, automated WhatsApp replies, and team growth features active.'}
               </p>
             </div>
 
@@ -190,13 +220,22 @@ export default function DashboardLayout() {
             {/* Footer */}
             <div className="p-4 border-t border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex items-center justify-between">
               <span className="text-xs text-slate-500">Need help or a custom quote? Contact support.</span>
-              <button
-                type="button"
-                onClick={logout}
-                className="text-xs font-semibold text-rose-600 hover:text-rose-700 transition cursor-pointer"
-              >
-                Sign Out
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaywallOpen(false)}
+                  className="text-xs font-semibold text-slate-600 dark:text-zinc-300 hover:underline cursor-pointer"
+                >
+                  Continue to Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-xs font-semibold text-rose-600 hover:text-rose-700 transition cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </div>

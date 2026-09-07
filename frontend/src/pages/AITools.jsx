@@ -8,11 +8,14 @@ import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import * as whatsappService from '../services/whatsappService';
 import { useAuth } from '../hooks/useAuth.jsx';
+import usePlanStatus from '../hooks/usePlanStatus.js';
 
 export default function AITools() {
   const toast = useToast();
   const navigate = useNavigate();
   const { user, loginWithToken } = useAuth();
+  const { isExpired, plan } = usePlanStatus();
+  const isLocked = isExpired || user?.planId === 'FREE' || (plan && !plan.active);
   const [bookings, setBookings] = useState([]);
 
 
@@ -185,6 +188,37 @@ export default function AITools() {
 
   return (
     <div className="max-w-5xl space-y-8 pb-10">
+      {/* Expiry Banner if trial/subscription has ended */}
+      {isExpired && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-300 dark:border-amber-700/50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Lock size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-100">
+                  AI Travel Tools Paused
+                </h4>
+                <span className="text-[10px] uppercase font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                  Trial / Plan Expired
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 mt-0.5 max-w-xl leading-relaxed">
+                Your core CRM, Bookings, Leads and Invoices remain fully accessible. Upgrade your plan to re-enable AI Itinerary creation & WhatsApp auto-replies.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={goToPlans}
+            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 transition"
+          >
+            Upgrade to Unlock AI ➔
+          </button>
+        </div>
+      )}
+
       {/* Premium Hero Header */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center space-y-3">
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-zinc-100">
@@ -200,14 +234,18 @@ export default function AITools() {
         
         {/* Tool 1: 1-Click Itinerary Generator */}
         <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-between space-y-4 overflow-hidden">
-          {user?.planId === 'FREE' && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
+          {isLocked && (
+            <div className="absolute inset-0 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
               <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 flex items-center justify-center mb-3 border border-slate-200/50 dark:border-zinc-700/50">
                 <Lock size={18} />
               </div>
-              <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">Unlock AI Itinerary Planner</h5>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-[220px] mt-1 mb-4 leading-normal">
-                Generate highly detailed, customizable day-by-day travel plans for your clients.
+              <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">
+                {isExpired ? 'Trial / Plan Expired' : 'Unlock AI Itinerary Planner'}
+              </h5>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-[240px] mt-1 mb-4 leading-normal">
+                {isExpired
+                  ? 'Your subscription or trial has ended. Upgrade to continue generating AI itineraries.'
+                  : 'Generate highly detailed, customizable day-by-day travel plans for your clients.'}
               </p>
               <button 
                 onClick={goToPlans}
@@ -302,14 +340,18 @@ export default function AITools() {
 
         {/* Tool 2: AI WhatsApp Auto-Replies (Simulator) */}
         <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-between space-y-4 overflow-hidden">
-          {user?.planId === 'FREE' && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
+          {isLocked && (
+            <div className="absolute inset-0 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-[6px] rounded-2xl flex flex-col items-center justify-center text-center p-6 z-20">
               <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 flex items-center justify-center mb-3 border border-slate-200/50 dark:border-zinc-700/50">
                 <Lock size={18} />
               </div>
-              <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">Unlock AI WhatsApp Agent</h5>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-[220px] mt-1 mb-4 leading-normal">
-                Draft context-aware customer auto-replies referencing actual booking data.
+              <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">
+                {isExpired ? 'Trial / Plan Expired' : 'Unlock AI WhatsApp Agent'}
+              </h5>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-[240px] mt-1 mb-4 leading-normal">
+                {isExpired
+                  ? 'Your subscription or trial has ended. Upgrade to continue using AI auto-replies.'
+                  : 'Draft context-aware customer auto-replies referencing actual booking data.'}
               </p>
               <button 
                 onClick={goToPlans}
@@ -426,20 +468,26 @@ export default function AITools() {
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-100 dark:border-teal-900/50">
-            {user?.planId === 'PRO' ? <Star size={20} className="text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400" /> : <ShieldAlert size={20} className="text-slate-400 dark:text-zinc-500" />}
+            {!isLocked && user?.planId === 'PRO' ? (
+              <Star size={20} className="text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400" />
+            ) : (
+              <ShieldAlert size={20} className="text-amber-500 dark:text-amber-400" />
+            )}
           </div>
           <div>
             <h5 className="font-bold text-slate-800 dark:text-zinc-200 text-sm">
-              Current Plan: {user?.planId === 'PRO' ? 'Premium Pro Tier' : 'Free Beta Tier'}
+              Current Status: {isExpired ? 'Trial / Plan Expired' : user?.planId === 'PRO' ? 'Premium Pro Tier' : 'Free Beta Tier'}
             </h5>
             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-              {user?.planId === 'PRO' 
-                ? 'Your AI tools are fully unlocked. Thank you for subscribing to EzzySync Pro!' 
+              {!isLocked && user?.planId === 'PRO'
+                ? 'Your AI tools are fully unlocked. Thank you for subscribing to EzzySync Pro!'
+                : isExpired
+                ? 'AI tools are currently paused while your core CRM remains accessible. Upgrade anytime to reactivate AI tools.'
                 : 'All AI features are currently locked. Upgrade to unlock the full AI Travel CRM Suite.'}
             </p>
           </div>
         </div>
-        {user?.planId !== 'PRO' ? (
+        {isLocked || user?.planId !== 'PRO' ? (
           <button
             onClick={goToPlans}
             className="w-full sm:w-auto px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition shadow-sm"

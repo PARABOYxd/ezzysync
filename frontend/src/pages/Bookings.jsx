@@ -91,10 +91,11 @@ export default function Bookings() {
 
   const handleSendWhatsApp = async (b) => {
     try {
-      await whatsappService.sendWhatsApp(b.bookingId);
-      toast.success('WhatsApp message sent.');
+      const res = await whatsappService.sendWhatsApp(b.bookingId);
+      toast.success(res?.message || `Invoice PDF sent to ${b.customerName} on WhatsApp & shared to Live Chat.`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'WhatsApp is not configured yet.');
+      const msg = err.response?.data?.message || 'WhatsApp is not connected. Please connect WhatsApp in WhatsApp Live Chat or Settings to send invoices.';
+      toast.error(msg);
     }
   };
 

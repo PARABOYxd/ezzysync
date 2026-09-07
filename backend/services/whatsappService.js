@@ -39,8 +39,8 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
 
   if (!phoneNumberId || !accessToken) {
-    const err = new Error('WhatsApp API is not configured. Please set your credentials in WhatsApp Settings.');
-    err.status = 500;
+    const err = new Error('WhatsApp is not connected. Please connect WhatsApp in WhatsApp Live Chat or Settings to send messages.');
+    err.status = 400;
     throw err;
   }
 
@@ -160,7 +160,22 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
     }
 
     if (err.response) {
-      const errorMsg = err.response.data?.error?.message || err.message;
+      const errData = err.response.data?.error || {};
+      const errorMsg = errData.message || err.message;
+      if (
+        errData.code === 100 ||
+        errData.code === 190 ||
+        errData.code === 200 ||
+        errorMsg.toLowerCase().includes('unsupported post request') ||
+        errorMsg.toLowerCase().includes('does not exist') ||
+        errorMsg.toLowerCase().includes('permission') ||
+        errorMsg.toLowerCase().includes('access token')
+      ) {
+        const friendlyErr = new Error('WhatsApp is not connected or permissions expired. Please reconnect WhatsApp in WhatsApp Live Chat or Settings.');
+        friendlyErr.status = 400;
+        throw friendlyErr;
+      }
+
       const status = err.response.status === 401 ? 400 : (err.response.status || 502);
       const metaErr = new Error(`Meta WhatsApp API: ${errorMsg}`);
       metaErr.status = status;

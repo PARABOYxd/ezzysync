@@ -103,10 +103,10 @@ export default function FreeItineraryBuilderPage() {
       <Navbar crmUrl={crmUrl} />
 
       <main className="relative pt-24 pb-20 sm:pt-32">
-        <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 space-y-16">
+        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-14">
           
           {/* Header */}
-          <div id="generator-hero" className="text-center max-w-[800px] mx-auto space-y-4">
+          <div id="generator-hero" className="text-center max-w-3xl mx-auto space-y-4">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-200">
               ⚡ 100% Free AI Tool for Travel Agents
             </span>

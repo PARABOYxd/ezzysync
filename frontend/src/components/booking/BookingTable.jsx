@@ -70,7 +70,7 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
                     </button>
                   )}
                   {canDownload && <button onClick={() => onSendInvoice(b)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Send Invoice"><FileText size={14} /></button>}
-                  <button onClick={() => onSendWhatsApp(b)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="WhatsApp"><MessageCircle size={14} /></button>
+                  <button onClick={() => onSendWhatsApp(b)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Send Invoice on WhatsApp"><MessageCircle size={14} /></button>
                   {canDelete && (
                     <button onClick={() => onDelete(b)} className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" title="Delete Booking">
                       <Trash2 size={14} />
