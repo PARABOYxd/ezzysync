@@ -606,13 +606,24 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
       const replyData = await generateAiReplyForChat(tenantId, senderPhone, messageText);
 
       if (replyData?.needsHuman) {
-        // Beyond the AI's remit. Send nothing at all - a half-guess here is
-        // worse than silence - and switch autopilot off for this chat so the
-        // next message does not run the same losing decision again. The flag
-        // is what puts it in front of an agent.
+        // If AI included a polite handoff message for the customer, send it first
+        if (replyData.reply) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const sentResult = await sock.sendMessage(senderJid, { text: replyData.reply });
+          const sentMessageId = sentResult?.key?.id || `out_${Date.now()}`;
+          await whatsappWebRepository.insertMessage(tenantId, {
+            chatId: chat.id,
+            messageId: sentMessageId,
+            direction: 'outbound',
+            sender: 'ai_bot',
+            messageText: replyData.reply,
+            status: 'sent',
+          });
+          await whatsappWebRepository.recordAiReplyOnChat(chat.id, replyData.reply);
+        }
         await sock.sendPresenceUpdate('paused', senderJid);
         await whatsappWebRepository.flagChatForHuman(chat.id, 'AI escalated: needs a human');
-        logger.warn({ tenantId, senderPhone, chatId: chat.id }, 'AI escalated this chat to a human - no reply sent');
+        logger.warn({ tenantId, senderPhone, chatId: chat.id }, 'AI escalated this chat to a human');
       } else if (replyData && replyData.reply) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
@@ -673,7 +684,8 @@ async function generateAiReplyForChat(tenantId, phone, message) {
   if (!text) return { reply: null, needsHuman: false };
 
   if (text.includes(HUMAN_HANDOFF_MARKER)) {
-    return { reply: null, needsHuman: true };
+    const politeMessage = text.replace(HUMAN_HANDOFF_MARKER, '').trim();
+    return { reply: politeMessage || null, needsHuman: true };
   }
 
   return { reply: text, needsHuman: false };
