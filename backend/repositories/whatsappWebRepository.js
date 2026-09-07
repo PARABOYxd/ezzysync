@@ -257,9 +257,20 @@ async function insertMessage(
 
 async function listMessages(tenantId, chatId) {
   const { rows } = await query(
-    `SELECT * FROM whatsapp_messages
-     WHERE chat_id = $1 AND tenant_id = $2
-     ORDER BY message_timestamp ASC
+    `SELECT m.* FROM whatsapp_messages m
+     JOIN whatsapp_chats c ON c.id = m.chat_id
+     WHERE m.tenant_id = $2
+       AND (
+         m.chat_id = $1
+         OR (
+           c.phone <> ''
+           AND RIGHT(regexp_replace(c.phone, '[^0-9]', '', 'g'), 10) = (
+             SELECT RIGHT(regexp_replace(target.phone, '[^0-9]', '', 'g'), 10)
+             FROM whatsapp_chats target WHERE target.id = $1 AND target.tenant_id = $2 LIMIT 1
+           )
+         )
+       )
+     ORDER BY m.message_timestamp ASC
      LIMIT 300`,
     [chatId, tenantId]
   );

@@ -753,6 +753,35 @@ async function ensureSchema() {
     } catch (err) {
       logger.error({ err }, 'Could not enforce unique message_id - duplicate WhatsApp messages may appear');
     }
+
+    // Automatically merge any duplicate chats (e.g. phone with vs without 91 / country code)
+    try {
+      const { rows: duplicates } = await query(`
+        SELECT tenant_id, RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) AS suffix,
+               array_agg(id ORDER BY COALESCE(last_message_timestamp, updated_at) DESC) AS ids
+        FROM whatsapp_chats
+        WHERE phone <> '' AND LENGTH(regexp_replace(phone, '[^0-9]', '', 'g')) >= 10
+        GROUP BY tenant_id, RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10)
+        HAVING count(*) > 1;
+      `);
+
+      for (const group of duplicates) {
+        const [primaryId, ...redundantIds] = group.ids;
+        if (redundantIds.length > 0) {
+          await query(
+            `UPDATE whatsapp_messages SET chat_id = $1 WHERE chat_id = ANY($2::uuid[])`,
+            [primaryId, redundantIds]
+          );
+          await query(
+            `DELETE FROM whatsapp_chats WHERE id = ANY($1::uuid[])`,
+            [redundantIds]
+          );
+          logger.info({ primaryId, redundantIds, suffix: group.suffix }, 'Merged duplicate whatsapp_chats');
+        }
+      }
+    } catch (err) {
+      logger.warn({ err }, 'Note merging duplicate whatsapp chats');
+    }
   } catch (err) {
     logger.error({ err }, 'Error creating WhatsApp Web tables');
   }
