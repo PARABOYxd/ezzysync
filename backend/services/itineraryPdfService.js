@@ -1,6 +1,7 @@
 const axios = require('axios');
 const PDFDocument = require('pdfkit');
 const env = require('../config/env');
+const pdfAssets = require('./pdfAssets');
 
 async function fetchPlaceholderImage(isLandscape = true) {
   try {
@@ -68,10 +69,25 @@ function parseDayScheduleItems(block) {
   return items;
 }
 
-function renderPremiumItinerary(doc, { tripName, itineraryText, coverImages, primaryColor }) {
-  // Template 1 Header
-  doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(45).text('TRAVEL', 50, 70);
-  doc.text('ITINERARY', 50, 115);
+function renderPremiumItinerary(doc, { tripName, itineraryText, coverImages, primaryColor, branding, fonts }) {
+  // The agency's name sits above the title, with its logo when it has one, so
+  // the document reads as theirs rather than ours.
+  let titleTop = 70;
+  if (branding.logo) {
+    try {
+      doc.image(branding.logo, 50, 40, { fit: [110, 40] });
+      titleTop = 95;
+    } catch (err) {
+      // A corrupt or unsupported image must not cost them the itinerary.
+    }
+  }
+  if (branding.companyName) {
+    doc.fillColor('#6b7280').font(fonts.bold).fontSize(11)
+      .text(pdfAssets.toDrawableText(branding.companyName, fonts.supportsRupee).toUpperCase(), 50, titleTop - 20, { characterSpacing: 1 });
+  }
+
+  doc.fillColor(primaryColor).font(fonts.bold).fontSize(45).text('TRAVEL', 50, titleTop);
+  doc.text('ITINERARY', 50, titleTop + 45);
 
   // Top right overlapping images
   if (coverImages[0]) {
@@ -124,8 +140,8 @@ function renderPremiumItinerary(doc, { tripName, itineraryText, coverImages, pri
       const xPos = isCol1 ? col1X : col2X;
       const yPos = startY + (rowIdx * 45);
 
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('white').text(item.time, xPos, yPos);
-      doc.font('Helvetica').fontSize(9).fillColor('#e2e8f0').text(item.activity, xPos, yPos + 15, { width: 200, height: 25, lineBreak: true });
+      doc.font(fonts.bold).fontSize(11).fillColor('white').text(pdfAssets.toDrawableText(item.time, fonts.supportsRupee), xPos, yPos);
+      doc.font(fonts.regular).fontSize(9).fillColor('#e2e8f0').text(pdfAssets.toDrawableText(item.activity, fonts.supportsRupee), xPos, yPos + 15, { width: 200, height: 25, lineBreak: true });
     });
 
     // Move to next day
@@ -133,71 +149,129 @@ function renderPremiumItinerary(doc, { tripName, itineraryText, coverImages, pri
   });
 
   doc.moveDown(1);
-  doc.font('Helvetica-Oblique').fontSize(9).fillColor('#a0aec0').text('Powered by EzzySync AI | Premium Experience', 50, doc.y, { align: 'center', width: 495 });
+  // The agency's own footer. This used to read "Powered by EzzySync AI |
+  // Premium Experience" - our brand on a document their customer receives from
+  // them, which is why no agency wanted to send it as it was.
+  doc.font(fonts.regular).fontSize(9).fillColor('#a0aec0')
+    .text(contactLine(branding, fonts), 50, doc.y, { align: 'center', width: 495 });
 }
 
-function renderStandardItinerary(doc, { tripName, itineraryText, primaryColor, darkColor, secondaryColor }) {
-  // Standard Free Header
-  doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(22).text('EzzySync Travel Itinerary', 50, 50);
-  doc.fillColor(secondaryColor).font('Helvetica').fontSize(10).text(`Trip: ${tripName}`, 50, 78);
-  doc.fillColor(secondaryColor).fontSize(9).text(`Generated Date: ${new Date().toLocaleDateString('en-IN')}`, 50, 92);
-  doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#e5e7eb').lineWidth(1).stroke();
+function renderStandardItinerary(doc, { tripName, itineraryText, primaryColor, darkColor, secondaryColor, branding, fonts }) {
+  const draw = (text) => pdfAssets.toDrawableText(text, fonts.supportsRupee);
+
+  // Header carries the agency's identity. It used to say "EzzySync Travel
+  // Itinerary" - our name on a document their own customer opens.
+  let headerLeft = 50;
+  if (branding.logo) {
+    try {
+      doc.image(branding.logo, 50, 44, { fit: [70, 40] });
+      headerLeft = 132;
+    } catch (err) {
+      // Unusable image; the text header alone still identifies them.
+    }
+  }
+
+  doc.fillColor(primaryColor).font(fonts.bold).fontSize(20)
+    .text(draw(branding.companyName || 'Travel Itinerary'), headerLeft, 50);
+  doc.fillColor(secondaryColor).font(fonts.regular).fontSize(10)
+    .text(draw(`Itinerary: ${tripName}`), headerLeft, 76);
+  doc.fillColor(secondaryColor).fontSize(9)
+    .text(`Prepared on ${new Date().toLocaleDateString('en-IN')}`, headerLeft, 90);
+
+  doc.moveTo(50, 112).lineTo(545, 112).strokeColor('#e5e7eb').lineWidth(1).stroke();
   doc.x = 50;
-  doc.y = 130;
+  doc.y = 132;
 
   const lines = itineraryText.split('\n');
   for (const line of lines) {
-    const cleanLine = line.replace(/\*\*/g, '').replace(/[^\x00-\x7F]/g, '').trim();
+    // Markdown emphasis is stripped because it is markup, not content. What is
+    // NOT stripped any more is every non-ASCII character - that rule deleted
+    // the rupee sign from every priced itinerary.
+    const cleanLine = draw(line.replace(/\*\*/g, '')).trim();
 
     if (line.startsWith('# ')) {
       doc.moveDown(1);
-      doc.font('Helvetica-Bold').fontSize(18).fillColor(primaryColor).text(cleanLine, { lineGap: 6 });
+      doc.font(fonts.bold).fontSize(18).fillColor(primaryColor).text(cleanLine, { lineGap: 6 });
       doc.moveDown(0.5);
     } else if (line.startsWith('## ')) {
       doc.moveDown(1);
-      doc.font('Helvetica-Bold').fontSize(14).fillColor(darkColor).text(cleanLine, { lineGap: 5 });
+      doc.font(fonts.bold).fontSize(14).fillColor(darkColor).text(cleanLine, { lineGap: 5 });
       doc.moveDown(0.4);
     } else if (line.startsWith('### ')) {
       doc.moveDown(0.6);
-      doc.font('Helvetica-Bold').fontSize(11).fillColor(darkColor).text(cleanLine, { lineGap: 4 });
+      doc.font(fonts.bold).fontSize(11).fillColor(darkColor).text(cleanLine, { lineGap: 4 });
       doc.moveDown(0.3);
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       const bulletContent = cleanLine.replace(/^[-*]\s*/, '');
-      doc.font('Helvetica').fontSize(10).fillColor(secondaryColor).text(`•  ${bulletContent}`, { indent: 12, lineGap: 4 });
+      doc.font(fonts.regular).fontSize(10).fillColor(secondaryColor).text(draw(`•  ${bulletContent}`), { indent: 12, lineGap: 4 });
     } else if (line.trim() === '') {
       doc.moveDown(0.4);
     } else {
-      doc.font('Helvetica').fontSize(10).fillColor(secondaryColor).text(cleanLine, { lineGap: 4 });
+      doc.font(fonts.regular).fontSize(10).fillColor(secondaryColor).text(cleanLine, { lineGap: 4 });
     }
   }
+
+  const footer = contactLine(branding, fonts);
+  if (footer) {
+    doc.moveDown(1.5);
+    doc.font(fonts.regular).fontSize(8).fillColor('#9ca3af')
+      .text(footer, 50, doc.y, { align: 'center', width: 495 });
+  }
+}
+
+/** The agency's contact strip, assembled from whatever they have filled in. */
+function contactLine(branding, fonts) {
+  const parts = [branding.companyName, branding.phone, branding.address].filter(Boolean);
+  return pdfAssets.toDrawableText(parts.join('  |  '), fonts.supportsRupee);
 }
 
 /** Renders the itinerary PDF and resolves the finished buffer. Premium tenants
  * get the image-led timeline template, free tenants the plain markdown one. */
-function buildItineraryPdf({ tripName, itineraryText, isPremium, coverImages = [] }) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      const chunks = [];
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
+/**
+ * Turns a tenant's saved settings into what the PDF needs to look like theirs.
+ *
+ * Only the accent colour has a fallback that is ours; the name and logo are
+ * taken as they come, because inventing a company name would be worse than
+ * printing none.
+ */
+async function buildBranding(settings = {}) {
+  return {
+    companyName: settings.companyName || '',
+    phone: settings.whatsappNumber || '',
+    address: settings.address || '',
+    accentColor: settings.invoiceAccentColor || '',
+    logo: await pdfAssets.fetchLogo(settings.companyLogoUrl),
+  };
+}
 
-      const primaryColor = isPremium ? '#437370' : '#0f766e'; // Dark teal from Template 1
-      const darkColor = '#111827';
-      const secondaryColor = '#4b5563';
+async function buildItineraryPdf({ tripName, itineraryText, isPremium, coverImages = [], branding = {} }) {
+  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+  const chunks = [];
 
-      if (isPremium) {
-        renderPremiumItinerary(doc, { tripName, itineraryText, coverImages, primaryColor });
-      } else {
-        renderStandardItinerary(doc, { tripName, itineraryText, primaryColor, darkColor, secondaryColor });
-      }
-
-      doc.end();
-    } catch (err) {
-      reject(err);
-    }
+  const finished = new Promise((resolve, reject) => {
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
   });
+
+  // Fonts must be registered before anything is drawn - a font registered
+  // halfway through does not apply to text already on the page.
+  const fonts = await pdfAssets.applyFonts(doc);
+
+  // The agency's own accent colour when they have set one, so an itinerary
+  // looks like the invoices they already send.
+  const primaryColor = branding.accentColor || (isPremium ? '#437370' : '#0f766e');
+  const darkColor = '#111827';
+  const secondaryColor = '#4b5563';
+
+  if (isPremium) {
+    renderPremiumItinerary(doc, { tripName, itineraryText, coverImages, primaryColor, branding, fonts });
+  } else {
+    renderStandardItinerary(doc, { tripName, itineraryText, primaryColor, darkColor, secondaryColor, branding, fonts });
+  }
+
+  doc.end();
+  return finished;
 }
 
 function itineraryFileName(tripName) {
@@ -207,6 +281,7 @@ function itineraryFileName(tripName) {
 
 module.exports = {
   fetchCoverImages,
+  buildBranding,
   buildItineraryPdf,
   itineraryFileName,
 };

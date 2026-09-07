@@ -35,6 +35,28 @@ function getLocalHost() {
 }
 
 /**
+ * Where a file goes in the bucket.
+ *
+ * Every key starts with the environment, so production and development never
+ * share a folder. They used to: the environment prefix was applied *only* when
+ * no subfolder was given, and WhatsApp always gives one - so its media landed
+ * in a top-level `whatsapp/` folder with dev and prod files mixed together,
+ * sitting beside the `production/` folder everything else used. Deleting a
+ * test file meant hunting for it among real customer media.
+ *
+ * Existing objects are deliberately left where they are. The public URL is
+ * stored in full on the message row, so old media keeps resolving from its old
+ * key; only new uploads use this layout.
+ */
+function buildStorageKey(subFolder, filename) {
+  const envFolder = env.nodeEnv === 'production' ? 'production' : 'development';
+  const cleanSubFolder = subFolder ? subFolder.replace(/^\/+|\/+$/g, '') : '';
+  return cleanSubFolder
+    ? `${envFolder}/${cleanSubFolder}/${filename}`
+    : `${envFolder}/${filename}`;
+}
+
+/**
  * Optimizes an image buffer using Sharp.
  * Converts to WebP format, limits maximum width to 1600px while maintaining aspect ratio,
  * and compresses to 82% quality to keep file size small while keeping HD quality (non-blurry).
@@ -88,9 +110,7 @@ async function uploadImage(fileBuffer, originalName, subFolder = '') {
   // Generate unique filename to prevent overwrites
   const hash = crypto.randomBytes(16).toString('hex');
   const filename = `${hash}${ext}`;
-  const envFolder = env.nodeEnv === 'production' ? 'production' : 'development';
-  const cleanSubFolder = subFolder ? subFolder.replace(/^\/+|\/+$/g, '') : '';
-  const key = cleanSubFolder ? `${cleanSubFolder}/${filename}` : `${envFolder}/${filename}`;
+  const key = buildStorageKey(subFolder, filename);
 
   // 2. Upload to R2 if configured
   if (isR2Configured && s3Client) {
@@ -117,18 +137,13 @@ async function uploadImage(fileBuffer, originalName, subFolder = '') {
 
   // 3. Fallback: Save locally in matching folder structure
   const uploadsDir = path.join(__dirname, '..', 'uploads');
-  const targetDir = cleanSubFolder ? path.join(uploadsDir, cleanSubFolder) : uploadsDir;
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-
-  const filePath = path.join(targetDir, filename);
+  const filePath = path.join(uploadsDir, key);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, buffer);
 
-  // Return local static path
+  // Same layout as the bucket, so a file is in the same place either way.
   const host = getLocalHost();
-  const relPath = cleanSubFolder ? `uploads/${cleanSubFolder}/${filename}` : `uploads/${filename}`;
-  return `${host}/${relPath}`;
+  return `${host}/uploads/${key}`;
 }
 
 /**
@@ -158,9 +173,7 @@ async function uploadFile(fileBuffer, originalName, mimeType, subFolder = '') {
   // Generate unique filename to prevent overwrites
   const hash = crypto.randomBytes(16).toString('hex');
   const filename = `${hash}${ext}`;
-  const envFolder = env.nodeEnv === 'production' ? 'production' : 'development';
-  const cleanSubFolder = subFolder ? subFolder.replace(/^\/+|\/+$/g, '') : '';
-  const key = cleanSubFolder ? `${cleanSubFolder}/${filename}` : `${envFolder}/${filename}`;
+  const key = buildStorageKey(subFolder, filename);
 
   // 2. Upload to R2 if configured
   if (isR2Configured && s3Client) {
@@ -187,18 +200,13 @@ async function uploadFile(fileBuffer, originalName, mimeType, subFolder = '') {
 
   // 3. Fallback: Save locally in matching folder structure
   const uploadsDir = path.join(__dirname, '..', 'uploads');
-  const targetDir = cleanSubFolder ? path.join(uploadsDir, cleanSubFolder) : uploadsDir;
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-
-  const filePath = path.join(targetDir, filename);
+  const filePath = path.join(uploadsDir, key);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, buffer);
 
-  // Return local static path
+  // Same layout as the bucket, so a file is in the same place either way.
   const host = getLocalHost();
-  const relPath = cleanSubFolder ? `uploads/${cleanSubFolder}/${filename}` : `uploads/${filename}`;
-  return `${host}/${relPath}`;
+  return `${host}/uploads/${key}`;
 }
 
 module.exports = {

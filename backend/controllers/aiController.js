@@ -1,5 +1,6 @@
 const aiService = require('../services/aiService');
 const itineraryPdfService = require('../services/itineraryPdfService');
+const settingsService = require('../services/settingsService');
 
 async function parseTicketOrChat(req, res, next) {
   try {
@@ -108,11 +109,16 @@ async function downloadItinerary(req, res, next) {
       });
     }
 
+    // The itinerary goes out under the agency's name, not ours.
+    const settings = await settingsService.getSettings(req.user.tenantId);
+    const branding = await itineraryPdfService.buildBranding(settings);
+
     const pdfBuffer = await itineraryPdfService.buildItineraryPdf({
       tripName,
       itineraryText,
       isPremium,
       coverImages,
+      branding,
     });
 
     res.setHeader('Content-Type', 'application/pdf');

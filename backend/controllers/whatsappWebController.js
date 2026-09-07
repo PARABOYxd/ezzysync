@@ -1,6 +1,7 @@
 const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
-const PDFDocument = require('pdfkit');
+const settingsService = require('../services/settingsService');
+const itineraryPdfService = require('../services/itineraryPdfService');
 const aiService = require('../services/aiService');
 
 async function getStatus(req, res, next) {
@@ -162,54 +163,28 @@ async function sendItineraryPdf(req, res, next) {
     const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-    // Generate clean PDF in memory
-    const pdfBuffer = await new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({ size: 'A4', margin: 50 });
-        const chunks = [];
-        doc.on('data', (chunk) => chunks.push(chunk));
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
-        doc.on('error', reject);
+    // One generator, shared with the AI Tools download. This used to be a
+    // second, inline copy that printed "JourneyFlow Travel Itinerary" - a
+    // product name that no longer exists - and stripped every non-ASCII
+    // character, so the rupee sign vanished from any price it quoted. Both
+    // went out to customers on WhatsApp.
+    const settings = await settingsService.getSettings(req.user.tenantId);
+    const branding = await itineraryPdfService.buildBranding(settings);
 
-        doc.fillColor('#0f766e').font('Helvetica-Bold').fontSize(22).text('JourneyFlow Travel Itinerary', 50, 50);
-        doc.fillColor('#4b5563').font('Helvetica').fontSize(11).text(`Trip: ${tripName}`, 50, 78);
-        doc.fillColor('#6b7280').fontSize(9).text(`Generated Date: ${new Date().toLocaleDateString('en-IN')}`, 50, 94);
-        doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#e5e7eb').lineWidth(1).stroke();
-
-        doc.x = 50;
-        doc.y = 130;
-
-        const lines = itineraryText.split('\n');
-        for (const line of lines) {
-          const cleanLine = line.replace(/\*\*/g, '').replace(/[^\x00-\x7F]/g, '').trim();
-          if (line.startsWith('# ')) {
-            doc.moveDown(1);
-            doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f766e').text(cleanLine, { lineGap: 6 });
-          } else if (line.startsWith('## ') || line.startsWith('Day ')) {
-            doc.moveDown(0.8);
-            doc.font('Helvetica-Bold').fontSize(13).fillColor('#111827').text(cleanLine, { lineGap: 5 });
-          } else if (line.startsWith('- ') || line.startsWith('* ')) {
-            doc.font('Helvetica').fontSize(10).fillColor('#374151').text(`•  ${cleanLine.replace(/^[-*]\s*/, '')}`, { indent: 12, lineGap: 4 });
-          } else if (line.trim() === '') {
-            doc.moveDown(0.3);
-          } else {
-            doc.font('Helvetica').fontSize(10).fillColor('#374151').text(cleanLine, { lineGap: 4 });
-          }
-        }
-        doc.end();
-      } catch (err) {
-        reject(err);
-      }
+    const pdfBuffer = await itineraryPdfService.buildItineraryPdf({
+      tripName,
+      itineraryText,
+      isPremium: false,
+      branding,
     });
 
-    const safeName = tripName.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const result = await whatsappWebService.sendManualMessage(req.user.tenantId, {
       chatId,
       phone: chat.phone,
       jid: chat.jid,
       messageText: `Hi! Please find attached the customized travel itinerary for *${tripName}* ✈️`,
       mediaBuffer: pdfBuffer,
-      fileName: `Itinerary-${safeName}.pdf`,
+      fileName: itineraryPdfService.itineraryFileName(tripName),
       mimeType: 'application/pdf',
     });
 
