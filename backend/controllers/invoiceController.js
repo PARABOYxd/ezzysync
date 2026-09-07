@@ -53,7 +53,10 @@ async function sendByEmail(req, res, next) {
       });
     } catch (emailErr) {
       req.log?.error({ err: emailErr, bookingId: booking.bookingId }, 'Failed to send invoice email');
-      return res.status(502).json({ message: 'Could not send the invoice email right now. Please try again in a moment.' });
+      return res.status(502).json({
+        message: 'Could not send email: No email service connected. Please connect your Gmail in Settings > Connect Gmail, or configure SMTP.',
+        details: emailErr.message,
+      });
     }
 
     res.json({ message: `Invoice emailed to ${booking.email}.` });
