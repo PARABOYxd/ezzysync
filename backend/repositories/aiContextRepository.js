@@ -68,23 +68,21 @@ async function listTourBatchesForPrompt(tenantId, limit = 4) {
  * agent's own messages from the AI's - which is what lets AI pick up a chat a
  * human was handling without repeating what they already said.
  */
-async function getChatHistoryByPhone(tenantId, phone, limit = 10) {
+async function getChatHistoryByPhone(tenantId, phone, limit = 20) {
   const rawDigits = (phone || '').replace(/[^\d]/g, '');
   const last10 = rawDigits.slice(-10);
 
   const { rows } = await query(
     `SELECT direction, sender, message_text, message_timestamp
      FROM whatsapp_messages
-     WHERE tenant_id = $1 AND chat_id = (
+     WHERE tenant_id = $1 AND chat_id IN (
        SELECT id FROM whatsapp_chats
        WHERE tenant_id = $1
          AND (
            phone = $2
-           OR regexp_replace(phone, '[^0-9]', '', 'g') = $3
-           OR ($4 <> '' AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $4)
+           OR ($3 <> '' AND regexp_replace(phone, '[^0-9]', '', 'g') = $3)
+           OR ($4 <> '' AND LENGTH(regexp_replace(phone, '[^0-9]', '', 'g')) >= 7 AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $4)
          )
-       ORDER BY last_message_timestamp DESC
-       LIMIT 1
      )
      ORDER BY message_timestamp DESC
      LIMIT $5`,
