@@ -122,11 +122,35 @@ async function findChatById(tenantId, chatId) {
   return rows[0] || null;
 }
 
+/**
+ * The chat for this person, creating it only if it does not exist yet.
+ *
+ * An upsert, not a plain insert, because the caller reaches here after a
+ * separate "is there a chat?" lookup - and two messages arriving together both
+ * pass that check and both try to create one. That check-then-insert is how
+ * the duplicate chats were being produced in the first place; merging them
+ * afterwards was treating the symptom.
+ *
+ * The conflict target is phone_key (the last ten digits, or the handle for
+ * Instagram), so "9664029765" and "919664029765" land on the same row instead
+ * of becoming two.
+ *
+ * On conflict nothing already known is overwritten: an existing name or linked
+ * lead is kept, and a blank jid is filled in rather than replaced. The loser of
+ * the race gets the winner's row back and carries on.
+ */
 async function createChat(tenantId, { phone, jid, customerName, leadId, lastMessage, aiEnabled }) {
   const { rows } = await query(
     `INSERT INTO whatsapp_chats
        (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, unread_count, ai_enabled, created_at, updated_at)
      VALUES ($1, $2, $3, $4, $5, $6, now(), 1, $7, now(), now())
+     ON CONFLICT (tenant_id, phone_key) DO UPDATE SET
+       last_message = EXCLUDED.last_message,
+       last_message_timestamp = now(),
+       updated_at = now(),
+       customer_name = COALESCE(NULLIF(whatsapp_chats.customer_name, ''), EXCLUDED.customer_name),
+       lead_id = COALESCE(whatsapp_chats.lead_id, EXCLUDED.lead_id),
+       jid = COALESCE(NULLIF(whatsapp_chats.jid, ''), EXCLUDED.jid)
      RETURNING *`,
     [tenantId, phone, jid, customerName, leadId, lastMessage, aiEnabled]
   );
@@ -193,38 +217,26 @@ async function clearUnread(tenantId, chatId) {
   );
 }
 
-/** Chat list for the inbox, enriched with the linked lead and booking. */
+/**
+ * Chat list for the inbox, enriched with the linked lead and booking.
+ *
+ * Read-only, deliberately. This used to merge duplicate chats first - moving
+ * their messages and DELETING the losing rows - on every single call. The
+ * inbox polls it every three seconds per open tab, so an agent reading a chat
+ * could have that very row deleted underneath them: the next poll asked for
+ * messages by an id that no longer existed and the thread went blank, then
+ * came back when they reopened it from the list. Which row won was decided by
+ * `last_message_timestamp DESC`, so it flipped as new messages arrived and the
+ * thread emptied again and again.
+ *
+ * Worse, `whatsapp_messages.chat_id` cascades on delete, and the move and the
+ * delete were two separate statements. Any message that arrived in the losing
+ * chat between them was cascade-deleted for good.
+ *
+ * Merging duplicates is a migration, and it runs once at boot in
+ * ensureSchema(), inside a transaction.
+ */
 async function listChats(tenantId, search) {
-  // Consolidate any duplicate chats sharing the same 10-digit phone number
-  try {
-    const { rows: duplicates } = await query(`
-      SELECT RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) AS suffix,
-             array_agg(id ORDER BY COALESCE(last_message_timestamp, updated_at) DESC) AS ids
-      FROM whatsapp_chats
-      WHERE tenant_id = $1
-        AND phone <> ''
-        AND LENGTH(regexp_replace(phone, '[^0-9]', '', 'g')) >= 7
-      GROUP BY RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10)
-      HAVING count(*) > 1;
-    `, [tenantId]);
-
-    for (const group of duplicates) {
-      const [primaryId, ...redundantIds] = group.ids;
-      if (redundantIds.length > 0) {
-        await query(
-          `UPDATE whatsapp_messages SET chat_id = $1 WHERE chat_id = ANY($2::uuid[])`,
-          [primaryId, redundantIds]
-        );
-        await query(
-          `DELETE FROM whatsapp_chats WHERE id = ANY($1::uuid[])`,
-          [redundantIds]
-        );
-      }
-    }
-  } catch (err) {
-    // Non-fatal cleanup
-  }
-
   let sql = `
     SELECT c.*,
            l.lead_id AS formatted_lead_id, l.stage AS lead_stage, l.interest AS lead_interest,
@@ -290,39 +302,18 @@ async function insertMessage(
 }
 
 async function listMessages(tenantId, chatId) {
-  // 1. Look up target chat to match messages across any sister records with the same phone suffix
-  const targetChat = await findChatById(tenantId, chatId);
-  const rawDigits = String(targetChat?.phone || '').replace(/[^\d]/g, '');
-  const suffix = rawDigits.length >= 7 ? rawDigits.slice(-10) : '';
-
-  let sql = `
-    SELECT m.* FROM whatsapp_messages m
-    WHERE m.tenant_id = $1
-      AND (
-        m.chat_id = $2
-  `;
-  const params = [tenantId, chatId];
-
-  if (suffix) {
-    sql += `
-        OR m.chat_id IN (
-          SELECT id FROM whatsapp_chats
-          WHERE tenant_id = $1
-            AND phone <> ''
-            AND LENGTH(regexp_replace(phone, '[^0-9]', '', 'g')) >= 7
-            AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $3
-        )
-    `;
-    params.push(suffix);
-  }
-
-  sql += `
-      )
-    ORDER BY m.message_timestamp ASC
-    LIMIT 300
-  `;
-
-  const { rows } = await query(sql, params);
+  // One chat, one thread. A previous version also pulled in messages from any
+  // other chat sharing the last ten digits, which made the thread disagree
+  // with the chat list beside it and hid the fact that duplicates existed at
+  // all. Duplicates are merged once at boot instead, and findChatByPhone()
+  // already matches on the ten-digit suffix so new ones are not created.
+  const { rows } = await query(
+    `SELECT * FROM whatsapp_messages
+      WHERE chat_id = $1 AND tenant_id = $2
+      ORDER BY message_timestamp ASC
+      LIMIT 300`,
+    [chatId, tenantId]
+  );
   return rows;
 }
 

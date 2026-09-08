@@ -181,7 +181,13 @@ export default function WhatsAppChat() {
         whatsappWebService
           .getChatMessages(currentChatId)
           .then((data) => {
-            if (data?.chat) {
+            // The agent may have opened a different conversation while this
+            // request was in flight. Without this check its messages were
+            // written into whichever chat is open now, so the thread showed
+            // someone else's conversation until the next poll corrected it.
+            if (selectedChatRef.current?.id !== currentChatId) return;
+
+            if (data?.chat && data.chat.id === currentChatId) {
               setSelectedChat((prev) => (prev ? { ...prev, ...data.chat } : data.chat));
             }
             const incoming = data?.messages || [];
