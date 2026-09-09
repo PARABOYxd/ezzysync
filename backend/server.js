@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 const { ensureSchema } = require('./config/db');
 const { initScheduler } = require('./jobs/cronJobs');
+const emailService = require('./services/emailService');
 
 const authRoutes = require('./routes/authRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
@@ -169,6 +170,23 @@ async function start() {
 
   const server = app.listen(env.port, () => {
     logger.info({ port: env.port, env: env.nodeEnv }, 'JourneyFlow API started');
+
+    // Say at boot whether outbound mail can leave at all. Without this the
+    // first sign that RESEND_API_KEY or EMAIL_FROM is missing in an
+    // environment is a 502 on someone's registration - the very first thing a
+    // new customer does - with nothing in the deploy log to point at it.
+    const mail = emailService.getEmailRouteStatus();
+    if (mail.anyUsable) {
+      logger.info(
+        { routes: mail.routes.filter((r) => r.usable).map((r) => `${r.name} (${r.reason})`) },
+        'Email is configured'
+      );
+    } else {
+      logger.error(
+        { routes: mail.routes.map((r) => `${r.name}: ${r.reason}`) },
+        'NO EMAIL ROUTE IS CONFIGURED - registration OTPs and password resets will fail'
+      );
+    }
     initScheduler();
     whatsappWebService.autoInitConnectedSessions();
     if (env.features.instagram) {

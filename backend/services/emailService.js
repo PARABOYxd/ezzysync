@@ -13,6 +13,35 @@ try { nodemailer = require('nodemailer'); } catch (_) { nodemailer = null; }
 // fallback for system-level emails.
 const SMTP_TIMEOUT_MS = 8000;
 
+/**
+ * Which ways out the mail actually has, checked at boot.
+ *
+ * A missing RESEND_API_KEY or EMAIL_FROM is invisible until someone tries to
+ * sign up, and then it surfaces as a 502 on the very first thing a new
+ * customer does. Registration stops working and nothing anywhere says why.
+ * Reporting it at startup turns a silent misconfiguration into a line in the
+ * deploy log.
+ *
+ * Gmail is not listed: it is per-tenant and only used for invoices, so its
+ * absence is normal and says nothing about the platform's own mail.
+ */
+function getEmailRouteStatus() {
+  const env = require('../config/env');
+  const routes = [];
+
+  if (!nodemailer) routes.push({ name: 'smtp', usable: false, reason: 'nodemailer not installed' });
+  else if (!env.smtpHost) routes.push({ name: 'smtp', usable: false, reason: 'SMTP_HOST not set' });
+  else if (!isSmtpConfigured(env)) routes.push({ name: 'smtp', usable: false, reason: 'SMTP_USER/SMTP_PASS incomplete or placeholder' });
+  else routes.push({ name: 'smtp', usable: true, reason: `via ${env.smtpHost}` });
+
+  if (!env.resendApiKey) routes.push({ name: 'resend', usable: false, reason: 'RESEND_API_KEY not set' });
+  else if (!env.emailFrom) routes.push({ name: 'resend', usable: false, reason: 'EMAIL_FROM not set' });
+  else if (env.emailFrom.includes('your-')) routes.push({ name: 'resend', usable: false, reason: 'EMAIL_FROM is still the placeholder' });
+  else routes.push({ name: 'resend', usable: true, reason: `from ${env.emailFrom}` });
+
+  return { routes, anyUsable: routes.some((r) => r.usable) };
+}
+
 function isSmtpConfigured(env) {
   return Boolean(env.smtpHost) && Boolean(env.smtpUser) && !env.smtpUser.includes('your-') && env.smtpPass !== 'your_app_password';
 }
@@ -265,6 +294,7 @@ async function sendWhatsappSetupNotification({ phone, companyName, tenantId, use
 }
 
 module.exports = {
+  getEmailRouteStatus,
   sendMail,
   sendOTPEmail,
   sendRegistrationOTPEmail,
