@@ -1,10 +1,26 @@
 const settingsRepository = require('../repositories/settingsRepository');
-const { rowToSettings, COLUMN_MAP } = require('../models/settingsSchema');
+const { rowToSettings, COLUMN_MAP, SECRET_KEYS, SECRET_PLACEHOLDER } = require('../models/settingsSchema');
 
+/**
+ * Settings as the API returns them: credentials masked.
+ *
+ * Use this for anything that reaches a browser.
+ */
 async function getSettings(tenantId) {
   await settingsRepository.ensureRow(tenantId);
   const row = await settingsRepository.getSettings(tenantId);
   return rowToSettings(row);
+}
+
+/**
+ * Settings including live credentials, for server-side use only - sending to
+ * Meta, syncing templates, downloading media. Never return the result of this
+ * from an HTTP handler.
+ */
+async function getSettingsWithSecrets(tenantId) {
+  await settingsRepository.ensureRow(tenantId);
+  const row = await settingsRepository.getSettings(tenantId);
+  return rowToSettings(row, { includeSecrets: true });
 }
 
 async function updateSettings(tenantId, updates) {
@@ -17,6 +33,13 @@ async function updateSettings(tenantId, updates) {
   for (const [key, value] of Object.entries(updates)) {
     const column = COLUMN_MAP[key];
     if (!column) continue;
+
+    // The form posts back everything it was given, including the masked
+    // placeholder standing in for a stored credential. Writing that through
+    // would replace a working access token with a row of dots, so an
+    // unchanged secret is skipped and the stored value survives.
+    if (SECRET_KEYS.includes(key) && value === SECRET_PLACEHOLDER) continue;
+
     fields.push(`${column} = $${i++}`);
     values.push(value ?? '');
   }
@@ -60,6 +83,7 @@ async function requestWhatsappSetup(tenantId, { phone, companyName }) {
 }
 
 module.exports = {
+  getSettingsWithSecrets,
   getSettings,
   updateSettings,
   getPublicLeadKey,

@@ -6,6 +6,16 @@ const DEFAULT_KEYS = [
 ];
 
 /** camelCase key -> Postgres column name in the `settings` table */
+/**
+ * Credentials that are write-only over the API.
+ *
+ * The settings form posts the whole object back, so a masked value would
+ * otherwise be saved over the real one. updateSettings() treats the
+ * placeholder as "leave this alone", which makes the round trip lossless.
+ */
+const SECRET_KEYS = ['whatsappAccessToken', 'whatsappAppSecret', 'instagramAccessToken'];
+const SECRET_PLACEHOLDER = '••••••••';
+
 const COLUMN_MAP = {
   companyName: 'company_name',
   companyLogoUrl: 'company_logo_url',
@@ -33,7 +43,14 @@ const COLUMN_MAP = {
   whatsappDefaultChatMode: 'whatsapp_default_chat_mode'
 };
 
-function rowToSettings(row) {
+/**
+ * @param {object} row      settings row from the database
+ * @param {object} [opts]
+ * @param {boolean} [opts.includeSecrets]  true only for server-side callers
+ *   that need the live credential (sending to Meta, syncing templates).
+ *   The API must never pass this.
+ */
+function rowToSettings(row, { includeSecrets = false } = {}) {
   const obj = {};
   DEFAULT_KEYS.forEach((k) => {
     const val = row ? row[COLUMN_MAP[k]] : undefined;
@@ -53,9 +70,17 @@ function rowToSettings(row) {
       obj[k] = val || 'INVOICE';
     } else if (k === 'invoiceTerms') {
       obj[k] = val || 'Amounts once paid are subject to cancellation & refund policy shared at the time of booking. Please carry a valid photo ID on the day of departure. For any queries, contact us.';
+    } else if (SECRET_KEYS.includes(k)) {
+      // Never handed back to the browser. These are live credentials - a Meta
+      // access token can send WhatsApp messages as the business, and the app
+      // secret can be used to forge webhooks into its account - and this
+      // endpoint returned them in full to every logged-in user of the tenant,
+      // including restricted team members. The UI only ever tests whether they
+      // are set, so a placeholder serves it just as well.
+      obj[k] = includeSecrets ? (val || '') : (val ? SECRET_PLACEHOLDER : '');
     } else if ([
-      'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
-      'instagramUsername', 'instagramAccountId', 'instagramAccessToken'
+      'whatsappPhoneNumberId', 'whatsappWabaId', 'whatsappBusinessId',
+      'instagramUsername', 'instagramAccountId'
     ].includes(k)) {
       obj[k] = val || '';
     } else {
@@ -65,4 +90,4 @@ function rowToSettings(row) {
   return obj;
 }
 
-module.exports = { DEFAULT_KEYS, COLUMN_MAP, rowToSettings };
+module.exports = { DEFAULT_KEYS, COLUMN_MAP, rowToSettings, SECRET_KEYS, SECRET_PLACEHOLDER };

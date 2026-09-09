@@ -33,7 +33,7 @@ async function sendMessage(req, res, next) {
       return res.status(400).json({ message: 'This booking has no customer phone number on file.' });
     }
 
-    const settings = await settingsService.getSettings(req.user.tenantId);
+    const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
     const mediaLink = req.body.mediaLink || null;
     const messageText = req.body.messageText || null;
     const invoiceNumber = `INV-${booking.bookingId}`;
@@ -266,8 +266,8 @@ async function startNewChat(req, res, next) {
 async function getChatMessages(req, res, next) {
   try {
     const messages = await whatsappRepo.getChatMessages(req.user.tenantId, req.params.chatId);
-    // eslint-disable-next-line no-console
-    console.log('API returning messages for chat:', req.params.chatId, messages);
+    // Was a console.log of every message body - customer conversations printed
+    // to stdout, outside the logger and so outside its redaction rules.
     res.json({ messages });
   } catch (err) {
     next(err);
@@ -296,7 +296,7 @@ async function sendChatMessage(req, res, next) {
       [req.user.tenantId, chatId]
     );
 
-    const settings = await settingsService.getSettings(req.user.tenantId);
+    const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
 
     let templateComponents = null;
     let messageTextToSave = text;
@@ -467,8 +467,14 @@ async function receiveWebhook(req, res) {
     res.status(200).send('EVENT_RECEIVED');
 
     try {
-      if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value) {
-        const value = body.entry[0].changes[0].value;
+      // Meta batches: one POST can carry several entries, each with several
+      // changes, each with several messages and statuses. Reading only
+      // entry[0].changes[0].value[0] silently dropped everything else, and
+      // batching is exactly what happens under load or after an outage.
+      const changes = (body.entry || []).flatMap((entry) => entry?.changes || []);
+      for (const change of changes) {
+        const value = change?.value;
+        if (!value) continue;
         const phoneId = value.metadata?.phone_number_id;
 
         // Resolve Tenant ID
@@ -476,18 +482,21 @@ async function receiveWebhook(req, res) {
           `SELECT tenant_id FROM settings WHERE whatsapp_phone_number_id = $1`,
           [phoneId]
         );
-        let tenantId;
-        if (tenantRows.rows.length > 0) {
-          tenantId = tenantRows.rows[0].tenant_id;
-          logger.info({ phoneId, tenantId }, '[WhatsApp Webhook] Resolved tenant ID from phone_number_id');
-        } else {
-          const fallback = await query(`SELECT id FROM tenants LIMIT 1`);
-          tenantId = fallback.rows[0]?.id;
-          logger.info({ phoneId, fallbackTenantId: tenantId }, '[WhatsApp Webhook] Using fallback tenant ID (phone_number_id not matched)');
+        // An unrecognised phone_number_id is dropped, not guessed at.
+        //
+        // This used to fall back to `SELECT id FROM tenants LIMIT 1` - an
+        // arbitrary business. Someone else's customer conversation was then
+        // written into that tenant's CRM: their inbox, their leads, and their
+        // AI auto-replying to a stranger. A webhook we cannot attribute is not
+        // ours to process.
+        if (!tenantRows.rows.length) {
+          logger.warn({ phoneId }, '[WhatsApp Webhook] No tenant owns this phone_number_id - ignoring event');
+          continue;
         }
+        const tenantId = tenantRows.rows[0].tenant_id;
+        logger.info({ phoneId, tenantId }, '[WhatsApp Webhook] Resolved tenant ID from phone_number_id');
 
-        if (tenantId && value.messages && value.messages[0]) {
-          const message = value.messages[0];
+        for (const message of value.messages || []) {
           const from = message.from; // Sender's phone number
           const contactName = value.contacts?.[0]?.profile?.name || '';
           const messageId = message.id; // wamid from Meta
@@ -504,7 +513,7 @@ async function receiveWebhook(req, res) {
           );
           if (dupCheck.rows.length > 0) {
             logger.info({ messageId, tenantId }, '[WhatsApp Webhook] Duplicate message ID — skipping to avoid double reply');
-            return; // 200 already sent at top of handler
+            continue; // this message only; the rest of the batch still runs
           }
 
 
@@ -513,12 +522,12 @@ async function receiveWebhook(req, res) {
           } else if (message.type === 'image') {
             messageType = 'image';
             text = message.image?.caption || '[Image]';
-            const settings = await settingsService.getSettings(tenantId);
+            const settings = await settingsService.getSettingsWithSecrets(tenantId);
             mediaUrl = await whatsappService.downloadMetaMedia(message.image.id, settings);
           } else if (message.type === 'document') {
             messageType = 'document';
             text = message.document?.caption || message.document?.filename || '[Document]';
-            const settings = await settingsService.getSettings(tenantId);
+            const settings = await settingsService.getSettingsWithSecrets(tenantId);
             mediaUrl = await whatsappService.downloadMetaMedia(message.document.id, settings);
           } else {
             text = `[Unsupported Media: ${message.type}]`;
@@ -593,7 +602,7 @@ async function receiveWebhook(req, res) {
 
           // Trigger Automated AI Reply if enabled
           try {
-            const settings = await settingsService.getSettings(tenantId);
+            const settings = await settingsService.getSettingsWithSecrets(tenantId);
             const chatAiEnabled = saved.chat.ai_enabled === true && saved.chat.needs_human !== true;
 
             if (settings.whatsappAiAutoReply !== false && chatAiEnabled) {
@@ -619,7 +628,7 @@ async function receiveWebhook(req, res) {
                 // A newer message exists — only the LAST message handler should reply.
                 // Let all earlier ones skip; the last one will have no newer msg and will reply.
                 logger.info({ tenantId, from, newerMsgId: newerMsg.rows[0].id }, '[WhatsApp Webhook] Newer message detected — skipping, last message will reply');
-                return; // 200 already sent at top of handler
+                continue; // this message only; the rest of the batch still runs
               }
 
               // This IS the latest message — fetch the most recent inbound text
@@ -763,15 +772,14 @@ async function receiveWebhook(req, res) {
         }
 
         // Handle Status Updates (sent, delivered, read)
-        if (tenantId && value.statuses && value.statuses[0]) {
-          const statusObj = value.statuses[0];
+        for (const statusObj of value.statuses || []) {
           const messageId = statusObj.id;
           const status = statusObj.status; // 'sent', 'delivered', 'read' or 'failed'
 
           logger.info({ tenantId, messageId, status }, '[WhatsApp Webhook] Processing status update');
 
           // Update message status in the DB
-          const updatedMessage = await whatsappRepo.updateMessageStatus(messageId, status);
+          const updatedMessage = await whatsappRepo.updateMessageStatus(tenantId, messageId, status);
           if (updatedMessage) {
             logger.info({ messageId, status, chatId: updatedMessage.chat_id }, '[WhatsApp Webhook] Message status updated in database');
             // Broadcast the status update to WebSocket clients

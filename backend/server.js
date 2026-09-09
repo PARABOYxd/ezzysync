@@ -111,7 +111,16 @@ app.use(
     callback(null, { origin: true, credentials: true });
   })
 );
-app.use(express.json({ limit: '2mb' }));
+app.use(
+  express.json({
+    limit: '2mb',
+    // Meta signs the exact bytes it sent, so the signature check needs them -
+    // a re-serialised req.body would not produce the same HMAC.
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(requestLogger);
 app.use('/api', apiLimiter);
 app.use("/api/google", googleRoutes);

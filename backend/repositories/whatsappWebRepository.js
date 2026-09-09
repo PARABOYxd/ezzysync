@@ -381,8 +381,32 @@ async function getRecentHistory(tenantId, phone, limit = 10) {
   return rows.reverse();
 }
 
-async function updateMessageStatus(messageId, status) {
-  await query(`UPDATE whatsapp_messages SET status = $1 WHERE message_id = $2`, [status, messageId]);
+/**
+ * Advances a message's delivery state, never rewinds it.
+ *
+ * Baileys emits `messages.update` out of order, so a read receipt can land
+ * before the delivery one. A plain `SET status` therefore turned a blue tick
+ * back into a single tick. Scoped to the tenant too: message ids come from
+ * WhatsApp, not from us, and nothing should be able to touch another tenant's
+ * rows by guessing one.
+ */
+const STATUS_RANK = { pending: 0, sent: 1, delivered: 2, read: 3, failed: 4 };
+
+async function updateMessageStatus(tenantId, messageId, status) {
+  if (!(status in STATUS_RANK)) return;
+
+  await query(
+    `UPDATE whatsapp_messages
+        SET status = $1
+      WHERE message_id = $2
+        AND tenant_id = $3
+        AND COALESCE(
+              CASE status
+                WHEN 'pending' THEN 0 WHEN 'sent' THEN 1 WHEN 'delivered' THEN 2
+                WHEN 'read' THEN 3 WHEN 'failed' THEN 4
+              END, -1) < $4`,
+    [status, messageId, tenantId, STATUS_RANK[status]]
+  );
 }
 
 /* ------------------------------------------------------------------ *

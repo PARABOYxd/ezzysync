@@ -81,44 +81,47 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
     }
   }
   
-  // Try to find the chat header first
-  let chatRows = await query(
-    `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
+  // The chat header, found or created in one statement.
+  //
+  // This path and the WhatsApp Web path write to the same whatsapp_chats table
+  // but normalise phone numbers differently - this one forces a 91 prefix,
+  // Baileys stores whatever WhatsApp sends - so the same person can arrive as
+  // "919812345678" here and "9812345678" there. A lookup on `phone = $2` did
+  // not see the other spelling, so it fell through to a plain INSERT, which
+  // now violates the unique index on (tenant_id, phone_key) and threw. The
+  // webhook swallows exceptions, so the customer's message just vanished.
+  //
+  // Conflicting on phone_key - the last ten digits - makes both paths land on
+  // the same row whichever spelling arrives first.
+  const msgTimestamp = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
+
+  const existingChat = await query(
+    `SELECT * FROM whatsapp_chats
+      WHERE tenant_id = $1
+        AND phone_key = CASE
+              WHEN length(regexp_replace($2, '[^0-9]', '', 'g')) >= 10
+                THEN right(regexp_replace($2, '[^0-9]', '', 'g'), 10)
+              ELSE lower($2)
+            END`,
     [tenantId, cleanPhone]
   );
 
-  let chat;
-  const nameToUse = customerName || (chatRows.rows[0]?.customer_name) || cleanPhone;
-  const msgTimestamp = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
+  const nameToUse = customerName || existingChat.rows[0]?.customer_name || cleanPhone;
 
-  if (chatRows.rows.length === 0) {
-    // Create new chat header using the admin-configured default mode
-    // managed_by was dropped from whatsapp_chats; ai_enabled is the flag now.
-    // Writing to the old column made every insert here fail, which is why
-    // Instagram DMs never reached the inbox at all. New chats start human -
-    // an agent opts into AI per chat.
-    const insertRes = await query(
-      `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, ai_enabled)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread, aiEnabled]
-    );
-    chat = insertRes.rows[0];
-  } else {
-    // Update existing chat header
-    const updateRes = await query(
-      `UPDATE whatsapp_chats 
-       SET last_message = $1, 
-           last_message_timestamp = $2, 
-           unread_count = unread_count + $3, 
-           customer_name = $4,
-           updated_at = now()
-       WHERE tenant_id = $5 AND phone = $6
-       RETURNING *`,
-      [text, msgTimestamp, incrementUnread, nameToUse, tenantId, cleanPhone]
-    );
-    chat = updateRes.rows[0];
-  }
+  const upsert = await query(
+    `INSERT INTO whatsapp_chats
+       (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, ai_enabled)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (tenant_id, phone_key) DO UPDATE SET
+       last_message = EXCLUDED.last_message,
+       last_message_timestamp = EXCLUDED.last_message_timestamp,
+       unread_count = whatsapp_chats.unread_count + EXCLUDED.unread_count,
+       customer_name = COALESCE(NULLIF(whatsapp_chats.customer_name, ''), EXCLUDED.customer_name),
+       updated_at = now()
+     RETURNING *`,
+    [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread, aiEnabled]
+  );
+  const chat = upsert.rows[0];
 
   // Not every caller has a provider message id - an AI handoff notice and some
   // internal sends have none, and message_id is NOT NULL with a unique index
@@ -140,17 +143,46 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
 }
 
 /**
- * Update message delivery/read status by Meta's message ID.
+ * How far along a message is. Higher wins.
+ *
+ * Meta delivers status webhooks out of order - "read" routinely arrives before
+ * "delivered" - and each one used to overwrite whatever was stored, so a
+ * message the customer had already read could drop back to "delivered" and the
+ * tick in the UI went backwards. `failed` ranks highest because it is terminal
+ * information the agent must not lose.
  */
-async function updateMessageStatus(messageId, status) {
+const STATUS_RANK = { pending: 0, sent: 1, delivered: 2, read: 3, failed: 4 };
+
+/**
+ * Update message delivery/read status by Meta's message ID.
+ *
+ * Scoped to the tenant. It used to match on message_id alone, so a status
+ * event - which arrives on an unauthenticated webhook - could update a row
+ * belonging to any tenant on the platform.
+ *
+ * A status that is not an advance is ignored, and an unknown status is
+ * rejected outright rather than stored.
+ */
+async function updateMessageStatus(tenantId, messageId, status) {
+  if (!(status in STATUS_RANK)) return null;
+
   const { rows } = await query(
-    `UPDATE whatsapp_messages 
-     SET status = $1 
-     WHERE message_id = $2 
-     RETURNING *`,
-    [status, messageId]
+    `UPDATE whatsapp_messages
+        SET status = $1
+      WHERE message_id = $2
+        AND tenant_id = $3
+        AND COALESCE(
+              CASE status
+                WHEN 'pending' THEN 0 WHEN 'sent' THEN 1 WHEN 'delivered' THEN 2
+                WHEN 'read' THEN 3 WHEN 'failed' THEN 4
+              END, -1) < $4
+      RETURNING *`,
+    [status, messageId, tenantId, STATUS_RANK[status]]
   );
-  return rows[0];
+
+  // No row means either the message is not ours, or it is already at or past
+  // this status. Callers treat both as "nothing to do".
+  return rows[0] || null;
 }
 
 module.exports = {

@@ -2,6 +2,14 @@ const axios = require('axios');
 const env = require('../config/env');
 const { query } = require('../config/db');
 
+// Meta occasionally stalls instead of failing. Without a timeout the request
+// hangs on an open socket - and on the webhook path that means an inbound
+// message sits unprocessed behind it - so every call to Graph is bounded.
+// Media downloads get longer, because they are moving a file rather than JSON.
+const META_TIMEOUT_MS = 15000;
+const META_MEDIA_TIMEOUT_MS = 45000;
+
+
 async function getWabaDetails(settings) {
   const accessToken = settings?.whatsappAccessToken || env.whatsapp?.accessToken;
   const wabaId = settings?.whatsappWabaId || settings?.whatsappBusinessAccountId || settings?.whatsappAccountId || env.whatsapp?.businessAccountId;
@@ -62,7 +70,8 @@ async function createMetaTemplate(settings, templateData) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: META_TIMEOUT_MS,
     });
 
     return {
@@ -94,7 +103,8 @@ async function syncMetaTemplates(settings, tenantId) {
     const res = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`
-      }
+      },
+      timeout: META_TIMEOUT_MS,
     });
 
     const metaTemplates = res.data?.data || [];
@@ -145,7 +155,8 @@ async function lookupMetaTemplate(settings, name) {
     const res = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`
-      }
+      },
+      timeout: META_TIMEOUT_MS,
     });
 
     const metaTemplates = res.data?.data || [];

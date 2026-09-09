@@ -476,7 +476,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
         if (update.update.status === 4) statusStr = 'read'; // Blue Ticks!
 
         try {
-          await whatsappWebRepository.updateMessageStatus(update.key.id, statusStr);
+          await whatsappWebRepository.updateMessageStatus(tenantId, update.key.id, statusStr);
         } catch (err) {
           logger.warn({ err, messageId: update.key.id }, 'Error updating message status');
         }

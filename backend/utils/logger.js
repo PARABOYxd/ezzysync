@@ -50,11 +50,61 @@ function parseLogArgs(inputArgs) {
   return { context: {}, message: inputArgs[0] || '' };
 }
 
+/**
+ * Logs an error without logging the credentials that produced it.
+ *
+ * pino's standard serializer walks an error's own enumerable properties, and
+ * an axios error carries `config`, `request` and `response` - which include
+ * the outgoing `Authorization` header. Every failed Meta, Gemini or Razorpay
+ * call therefore wrote its bearer token into the logs, and these logs are not
+ * ephemeral: warn and above are also inserted into app_logs, and pino-roll
+ * keeps files on disk. Measured on a failing Meta send, one log line repeated
+ * the WhatsApp access token five times.
+ *
+ * Redaction paths could not catch it - the token appears at several depths and
+ * inside the raw `_header` string - so the fix is to not serialise the
+ * transport internals at all. What is actually useful for diagnosis is kept:
+ * the message, the stack, the HTTP status, the URL, and the provider's own
+ * error body.
+ */
+function safeErrSerializer(err) {
+  const base = pino.stdSerializers.err(err);
+  if (!err || typeof err !== 'object') return base;
+
+  // Present on axios errors; absent on ordinary ones.
+  const isHttpClientError = Boolean(err.config || err.request || err.response);
+  if (!isHttpClientError) return base;
+
+  delete base.config;
+  delete base.request;
+  delete base.response;
+
+  base.http = {
+    method: err.config?.method,
+    // Query strings can carry api keys (Gemini puts one there), so only the
+    // path survives.
+    url: typeof err.config?.url === 'string' ? err.config.url.split('?')[0] : undefined,
+    status: err.response?.status,
+    statusText: err.response?.statusText,
+    code: err.code,
+  };
+
+  // The provider's own error body is the useful half and holds no credential
+  // of ours. Truncated so a large HTML error page cannot flood the logs.
+  const data = err.response?.data;
+  if (data !== undefined) {
+    const text = typeof data === 'string' ? data : JSON.stringify(data);
+    base.http.body = text?.length > 2000 ? text.slice(0, 2000) + '...[truncated]' : text;
+  }
+
+  return base;
+}
+
 const logger = pino({
   level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
   serializers: {
-    err: pino.stdSerializers.err,
+    err: safeErrSerializer,
   },
   redact: {
     paths: [
@@ -69,6 +119,13 @@ const logger = pino({
       'req.body.otp',
       'req.headers.authorization',
       'req.headers.cookie',
+      'headers.Authorization',
+      'headers.authorization',
+      'whatsappAccessToken',
+      'whatsappAppSecret',
+      'instagramAccessToken',
+      'apiKey',
+      'client_secret',
     ],
     censor: '[REDACTED]',
   },

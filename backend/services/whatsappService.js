@@ -34,6 +34,13 @@ function normalizePhone(phone = '') {
   return clean;
 }
 
+// Meta occasionally stalls instead of failing. Without a timeout the request
+// hangs on an open socket - and on the webhook path that means an inbound
+// message sits unprocessed behind it - so every call to Graph is bounded.
+// Media downloads get longer, because they are moving a file rather than JSON.
+const META_TIMEOUT_MS = 15000;
+const META_MEDIA_TIMEOUT_MS = 45000;
+
 async function sendWhatsAppMessage(booking, settings, mediaLink, customText, mediaType = 'document', filename = null, templateName = null, languageCode = 'en', templateComponents = null) {
   const phoneNumberId = settings?.whatsappPhoneNumberId || env.whatsapp.phoneNumberId;
   const accessToken = settings?.whatsappAccessToken || env.whatsapp.accessToken;
@@ -124,6 +131,7 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
+      timeout: META_TIMEOUT_MS,
     });
   };
 
@@ -201,6 +209,7 @@ async function downloadMetaMedia(mediaId, settings) {
     // 1. Get direct media URL from Meta Graph API
     const urlRes = await axios.get(`https://graph.facebook.com/${env.whatsapp.apiVersion}/${mediaId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      timeout: META_TIMEOUT_MS,
     });
     const downloadUrl = urlRes.data.url;
     const mimeType = urlRes.data.mime_type;
@@ -209,6 +218,10 @@ async function downloadMetaMedia(mediaId, settings) {
     const fileRes = await axios.get(downloadUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
       responseType: 'arraybuffer',
+      timeout: META_MEDIA_TIMEOUT_MS,
+      // A customer can attach a very large file; cap what we will pull into
+      // memory rather than letting one message exhaust the process.
+      maxContentLength: 30 * 1024 * 1024,
     });
     const buffer = Buffer.from(fileRes.data);
 

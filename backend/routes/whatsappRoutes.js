@@ -1,11 +1,12 @@
 const express = require('express');
 const ctrl = require('../controllers/whatsappController');
 const { requireAuth } = require('../middleware/authMiddleware');
+const { verifyMetaSignature } = require('../middleware/metaWebhookSignature');
 
 const router = express.Router();
 router.post('/:bookingId/send', requireAuth, ctrl.sendMessage);
 router.get('/webhook', ctrl.verifyWebhook);
-router.post('/webhook', ctrl.receiveWebhook);
+router.post('/webhook', verifyMetaSignature, ctrl.receiveWebhook);
 
 // Live Chat screen endpoints
 router.get('/chats', requireAuth, ctrl.getChats);

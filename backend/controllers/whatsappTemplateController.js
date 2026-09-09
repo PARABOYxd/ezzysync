@@ -16,7 +16,7 @@ async function lookupTemplate(req, res, next) {
     const { name } = req.query;
     if (!name) return res.json({ exists: false });
 
-    const settings = await settingsService.getSettings(req.user.tenantId);
+    const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
     const lookup = await whatsappMetaService.lookupMetaTemplate(settings, name);
     res.json(lookup);
   } catch (err) {
@@ -37,7 +37,7 @@ async function createTemplate(req, res, next) {
 
     // If it's a Meta template and submitToMeta is true, attempt direct submission to Meta Graph API
     if (type === 'template' && submitToMeta !== false) {
-      const settings = await settingsService.getSettings(req.user.tenantId);
+      const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
       try {
         const metaRes = await whatsappMetaService.createMetaTemplate(settings, {
           name,
@@ -96,7 +96,7 @@ async function updateTemplate(req, res, next) {
     let wabaTemplateId = existing.waba_template_id;
 
     if (type === 'template' && submitToMeta !== false) {
-      const settings = await settingsService.getSettings(req.user.tenantId);
+      const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
       try {
         const metaRes = await whatsappMetaService.createMetaTemplate(settings, {
           name: existing.name || name,
@@ -138,7 +138,7 @@ async function submitMetaTemplate(req, res, next) {
       return res.status(404).json({ message: 'Template not found.' });
     }
 
-    const settings = await settingsService.getSettings(req.user.tenantId);
+    const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
     const metaRes = await whatsappMetaService.createMetaTemplate(settings, {
       name: template.name,
       category: template.category || 'UTILITY',
@@ -159,7 +159,7 @@ async function submitMetaTemplate(req, res, next) {
 
 async function syncTemplates(req, res, next) {
   try {
-    const settings = await settingsService.getSettings(req.user.tenantId);
+    const settings = await settingsService.getSettingsWithSecrets(req.user.tenantId);
     const result = await whatsappMetaService.syncMetaTemplates(settings, req.user.tenantId);
     const templates = await templateRepo.getTemplates(req.user.tenantId);
 
