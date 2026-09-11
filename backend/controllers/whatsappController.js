@@ -6,6 +6,7 @@ const whatsappService = require('../services/whatsappService');
 const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappRepo = require('../repositories/whatsappRepository');
+const aiPolicy = require('../services/whatsappAiPolicy');
 const r2Service = require('../services/r2Service');
 const instagramDirectService = require('../services/instagramDirectService');
 const aiService = require('../services/aiService');
@@ -557,6 +558,14 @@ async function receiveWebhook(req, res) {
 
           logger.info({ dbMessageId: saved.message.id, chatId: saved.chat.id }, '[WhatsApp Webhook] Inbound message saved successfully');
 
+          // "STOP" has to end it here too. A customer who cannot make the
+          // messages stop blocks and reports the number instead.
+          if (aiPolicy.isOptOutRequest(text)) {
+            await whatsappWebRepository.setChatOptedOut(tenantId, saved.chat.id, true);
+            logger.info({ tenantId, chatId: saved.chat.id }, '[WhatsApp Webhook] Customer opted out');
+            continue;
+          }
+
           // Auto-capture Lead if it doesn't exist in CRM leads or bookings
           try {
             const cleanPhone = normalizePhone(from);
@@ -603,9 +612,19 @@ async function receiveWebhook(req, res) {
           // Trigger Automated AI Reply if enabled
           try {
             const settings = await settingsService.getSettingsWithSecrets(tenantId);
-            const chatAiEnabled = saved.chat.ai_enabled === true && saved.chat.needs_human !== true;
 
-            if (settings.whatsappAiAutoReply !== false && chatAiEnabled) {
+            // The same gates the QR path applies. This used to check only
+            // ai_enabled and needs_human, so on Cloud API a customer's "STOP"
+            // was ignored, a tenant whose plan no longer includes AI still got
+            // automated replies, and a redelivered webhook could answer twice.
+            const verdict = await aiPolicy.canAiReply(tenantId, saved.chat, {
+              messageAgeSeconds: msgTimestamp
+                ? Math.max(0, Math.floor(Date.now() / 1000) - Number(msgTimestamp))
+                : 0,
+              isBacklog: false,
+            });
+
+            if (settings.whatsappAiAutoReply !== false && verdict.allowed && aiPolicy.claim(saved.chat.id)) {
               // ── Human-like delay: wait 5 seconds before replying ──────────────
               // This also acts as a debounce — if the customer sends another
               // message within these 5 seconds we will detect it below and skip.
@@ -758,6 +777,7 @@ async function receiveWebhook(req, res) {
               } catch (aiErr) {
                 logger.error({ err: aiErr }, '[WhatsApp Webhook] Error during AI auto-reply processing');
               } finally {
+                aiPolicy.release(saved.chat.id);
                 // Broadcast AI typing completed
                 broadcastToTenant(tenantId, {
                   type: 'WHATSAPP_AI_TYPING',

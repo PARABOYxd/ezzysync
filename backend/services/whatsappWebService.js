@@ -21,6 +21,7 @@ const r2Service = require('./r2Service');
 const planService = require('./planService');
 const whatsappAuthState = require('./whatsappAuthState');
 const whatsappRateLimiter = require('./whatsappRateLimiter');
+const aiPolicy = require('./whatsappAiPolicy');
 
 // aiService emits this exact token instead of a reply when the model decides a
 // human should take over. It must never reach the customer.
@@ -31,18 +32,6 @@ const HUMAN_HANDOFF_MARKER = '[FALLBACK_HUMAN_NEEDED]';
 // though it just arrived is worse than not answering it.
 const AI_REPLY_MAX_AGE_SECONDS = Number(process.env.AI_REPLY_MAX_AGE_SECONDS) || 15 * 60;
 
-/**
- * Chat ids with an AI reply already being generated.
- *
- * Generation takes several seconds, and every "should I reply?" check happens
- * *before* that wait while the resulting insert happens *after* it. So any
- * second trigger arriving mid-generation - another inbound message, or the
- * agent flipping the autopilot toggle again - re-read a conversation that
- * still looked unanswered and fired its own duplicate reply. This is the lock
- * that closes that window; it is per-process, which is all a single-node
- * deployment needs.
- */
-const aiInFlight = new Set();
 
 // Gap between reconnections when resuming sessions at boot.
 const RESUME_STAGGER_MS = Number(process.env.WHATSAPP_RESUME_STAGGER_MS) || 3000;
@@ -528,25 +517,6 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 /**
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
-/**
- * Whether the customer is asking us to stop.
- *
- * Deliberately narrow: matched against the whole message, trimmed, so "stop"
- * ends it but "stop sending me the Goa one, send Kerala" does not. A false
- * positive silently kills a live conversation, which is worse than missing an
- * unusual phrasing - an agent can always switch the chat off by hand.
- */
-const OPT_OUT_WORDS = new Set([
-  'stop', 'unsubscribe', 'opt out', 'optout', 'remove me',
-  'band karo', 'band karo message', 'mat bhejo', 'message mat bhejo',
-]);
-
-function isOptOutRequest(text) {
-  if (!text) return false;
-  const normalised = String(text).trim().toLowerCase().replace(/[.!]+$/, '');
-  return OPT_OUT_WORDS.has(normalised);
-}
-
 async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true, sentAt = null }) {
   // What the chat list shows. A caption when there is one, otherwise a short
   // stand-in so an attachment-only message is not a blank row.
@@ -618,7 +588,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
   // "STOP" has to end it. A customer who cannot make the messages stop blocks
   // and reports the number instead, and block rate is what actually gets a
   // WhatsApp number banned.
-  if (isOptOutRequest(messageText)) {
+  if (aiPolicy.isOptOutRequest(messageText)) {
     await whatsappWebRepository.setChatOptedOut(tenantId, chat.id, true);
     logger.info({ tenantId, chatId: chat.id }, 'Customer opted out; automated replies disabled for this chat');
     return;
@@ -630,28 +600,18 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     return;
   }
 
-  // This chat's own switch is the only thing that decides. The tenant-level
-  // setting is a default applied when a chat is first created, not a veto
-  // held over every chat afterwards - otherwise turning AI on for one
-  // conversation silently does nothing until a global switch is also found.
-  //
-  // needs_human is re-checked here as well as in the toggle: an escalation
-  // must survive regardless of how the flags were set, since sending anything
-  // on a chat the AI already backed away from is the worst outcome.
-  const chatAiEnabled =
-    allowAiReply && chat.ai_enabled === true && chat.needs_human !== true;
+  // Every gate on an automated reply lives in whatsappAiPolicy, so this path
+  // and the Meta webhook cannot drift apart on what the AI is allowed to do.
+  const verdict = await aiPolicy.canAiReply(tenantId, chat, {
+    messageAgeSeconds: sentAt ? Math.max(0, Math.floor(Date.now() / 1000) - Number(sentAt)) : 0,
+    isBacklog: !allowAiReply,
+  });
 
-  // Autopilot fires from the socket, not an HTTP route, so the plan check has
-  // to happen here too - route middleware alone would leave a downgraded
-  // tenant still being served by AI on chats enabled before the downgrade.
-  const planAllowsAi = chatAiEnabled && (await planService.checkFeatureAccess(tenantId, 'canUseAi'));
-
-  if (planAllowsAi) {
-    if (aiInFlight.has(chat.id)) {
+  if (verdict.allowed) {
+    if (!aiPolicy.claim(chat.id)) {
       logger.info({ tenantId, chatId: chat.id }, 'AI reply already in flight for this chat - skipping duplicate');
       return;
     }
-    aiInFlight.add(chat.id);
 
     try {
       await sock.sendPresenceUpdate('composing', senderJid);
@@ -698,7 +658,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     } catch (aiErr) {
       logger.error({ err: aiErr, tenantId, senderPhone }, 'Error generating AI WhatsApp auto-reply');
     } finally {
-      aiInFlight.delete(chat.id);
+      aiPolicy.release(chat.id);
     }
   }
 }
@@ -903,8 +863,7 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
 
   // Toggling autopilot off and on again while the previous reply is still
   // being written would otherwise send the customer the same message twice.
-  if (aiInFlight.has(chatId)) return { sent: false, reason: 'already_replying' };
-  aiInFlight.add(chatId);
+  if (!aiPolicy.claim(chatId)) return { sent: false, reason: 'already_replying' };
 
   try {
     const replyData = await generateAiReplyForChat(tenantId, chat.phone, last.message_text);
@@ -934,7 +893,7 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
     logger.info({ tenantId, chatId }, 'AI autopilot sent a catch-up reply on takeover');
     return { sent: true, reply: replyData.reply };
   } finally {
-    aiInFlight.delete(chatId);
+    aiPolicy.release(chatId);
   }
 }
 
