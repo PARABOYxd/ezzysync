@@ -5,6 +5,7 @@ import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
 import { Calendar, Users, IndianRupee, MapPin, User, Mail } from 'lucide-react';
 import * as leadService from '../../services/leadService';
+import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
 
 export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) {
@@ -17,6 +18,9 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
     customerName: '',
     paid: 0
   });
+  const [itineraries, setItineraries] = useState([]);
+  const [loadingItineraries, setLoadingItineraries] = useState(false);
+  const [tripOther, setTripOther] = useState(false);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
@@ -31,10 +35,48 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         customerName: lead.customerName || '',
         paid: 0
       });
+      setTripOther(false);
+      setLoadingItineraries(true);
+
+      quotationService
+        .getQuotations({ limit: 150 })
+        .then((data) => {
+          const list = data.quotations || data || [];
+          setItineraries(list);
+          if (lead?.interest) {
+            const found = list.find((q) => (q.trip_name || q.tripName) === lead.interest);
+            if (!found) {
+              setTripOther(true);
+            } else if (found.priceQuote) {
+              setForm((prev) => ({
+                ...prev,
+                pricePerPerson: prev.pricePerPerson || found.priceQuote
+              }));
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingItineraries(false));
     }
   }, [open, lead]);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  const handleTripChange = (e) => {
+    const val = e.target.value;
+    if (val === '__other__') {
+      setTripOther(true);
+      setForm((prev) => ({ ...prev, interest: '' }));
+    } else {
+      setTripOther(false);
+      const selected = itineraries.find((q) => (q.trip_name || q.tripName) === val);
+      setForm((prev) => ({
+        ...prev,
+        interest: val,
+        pricePerPerson: selected?.priceQuote ? selected.priceQuote : prev.pricePerPerson
+      }));
+    }
+  };
 
   const totalAmount = Number(form.members || 1) * Number(form.pricePerPerson || 0);
 
@@ -78,6 +120,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         pricePerPerson: Number(form.pricePerPerson || 0),
         email: form.email,
         interest: form.interest,
+        trip: form.interest,
         customerName: form.customerName,
         paid: Number(form.paid || 0)
       });
@@ -101,13 +144,47 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
           <Input label="Email Address" icon={Mail} required type="email" placeholder="e.g. rahul@gmail.com" value={form.email} onChange={set('email')} />
         </FormRow>
 
-        <Input
-          label="Trip Name"
-          icon={MapPin}
-          placeholder="e.g. Bali Honeymoon Package"
-          value={form.interest}
-          onChange={set('interest')}
-        />
+        <div className="w-full space-y-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            Trip Name / Itinerary
+          </label>
+          <div className="relative">
+            <select
+              className="w-full text-sm bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 dark:text-zinc-300 transition"
+              value={tripOther ? '__other__' : (form.interest || '')}
+              onChange={handleTripChange}
+            >
+              <option value="">
+                {loadingItineraries ? 'Loading itineraries...' : 'Select an itinerary'}
+              </option>
+              {itineraries.map((q) => {
+                const name = q.trip_name || q.tripName || '';
+                const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
+                const dur = q.itineraryDays?.length
+                  ? ` (${q.itineraryDays.length}D${nights > 0 ? `/${nights}N` : ''})`
+                  : '';
+                const price = q.priceQuote ? ` - ₹${Number(q.priceQuote).toLocaleString('en-IN')}` : '';
+                return name ? (
+                  <option key={q.quotation_id || q.id} value={name}>
+                    {name}{dur}{price}
+                  </option>
+                ) : null;
+              })}
+              <option value="__other__">Other (Enter custom trip name)</option>
+            </select>
+          </div>
+          {tripOther && (
+            <div className="pt-1 animate-in fade-in duration-200">
+              <Input
+                icon={MapPin}
+                placeholder="Enter custom trip name (e.g. Bali Honeymoon Package)"
+                value={form.interest}
+                onChange={set('interest')}
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
 
         <FormRow>
           <Input label="Departure Date" icon={Calendar} required type="date" value={form.departure} onChange={set('departure')} />
