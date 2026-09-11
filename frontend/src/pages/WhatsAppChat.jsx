@@ -27,8 +27,15 @@ import {
   Instagram,
   X,
   Smile,
+  Copy,
+  Edit3,
+  Compass,
+  Layers,
 } from 'lucide-react';
 import { whatsappWebService } from '../services/whatsappWebService';
+import * as quotationService from '../services/quotationService';
+import { API_BASE_URL } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
 import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
 import AttachmentPreviewModal from '../components/whatsapp/AttachmentPreviewModal.jsx';
@@ -40,6 +47,18 @@ const MAX_ATTACHMENTS = 8;
 // Matches multer's per-file limit on the server. Checked here too so an
 // oversized file is rejected before it is uploaded, rather than after.
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+
+const getItineraryImage = (bannerUrl) => {
+  if (bannerUrl) {
+    if (bannerUrl.includes('/uploads/')) {
+      const relativePath = bannerUrl.substring(bannerUrl.indexOf('/uploads/'));
+      const backendRoot = API_BASE_URL.replace('/api', '');
+      return `${backendRoot}${relativePath}`;
+    }
+    return bannerUrl;
+  }
+  return 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80';
+};
 
 export default function WhatsAppChat() {
   const toast = useToast();
@@ -69,6 +88,12 @@ export default function WhatsAppChat() {
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [itineraryModalOpen, setItineraryModalOpen] = useState(false);
+  const [itineraryTab, setItineraryTab] = useState('catalog'); // 'catalog' | 'custom'
+  const [catalogQuotations, setCatalogQuotations] = useState([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [sendingQuotationId, setSendingQuotationId] = useState(null);
+  const [sendingActionType, setSendingActionType] = useState(null); // 'link' | 'pdf'
   const [itineraryForm, setItineraryForm] = useState({ tripName: '', itineraryText: '' });
   const [sendingItinerary, setSendingItinerary] = useState(false);
   const [aiDrafting, setAiDrafting] = useState(false);
@@ -478,6 +503,128 @@ export default function WhatsAppChat() {
     setEmojiOpen(false);
   };
 
+  const formatDaysToText = (q) => {
+    let text = '';
+    if (q.priceQuote > 0) {
+      text += `Price Quote: ₹${Number(q.priceQuote).toLocaleString('en-IN')}\n\n`;
+    }
+    if (q.itineraryDays && q.itineraryDays.length > 0) {
+      text += q.itineraryDays
+        .map((d, idx) => {
+          const dayNum = d.day || d.dayNumber || idx + 1;
+          const title = d.title ? `Day ${dayNum}: ${d.title}` : `Day ${dayNum}`;
+          const desc = d.description ? `\n${d.description}` : '';
+          return `${title}${desc}`;
+        })
+        .join('\n\n');
+    }
+    if (q.highlights && q.highlights.length > 0) {
+      text += '\n\n## Trip Highlights\n' + q.highlights.map((h) => `- ${h}`).join('\n');
+    }
+    if (q.inclusions && q.inclusions.length > 0) {
+      text += '\n\n## Inclusions\n' + q.inclusions.map((inc) => `- ${inc}`).join('\n');
+    }
+    return text.trim();
+  };
+
+  const loadCatalogQuotations = async () => {
+    setLoadingCatalog(true);
+    try {
+      const data = await quotationService.getQuotations({ limit: 150 });
+      setCatalogQuotations(data.quotations || []);
+    } catch (err) {
+      console.error('Failed to load catalog quotations', err);
+    } finally {
+      setLoadingCatalog(false);
+    }
+  };
+
+  const handleOpenItineraryModal = () => {
+    setItineraryModalOpen(true);
+    setItineraryTab('catalog');
+    loadCatalogQuotations();
+  };
+
+  const handleSendExistingLink = async (q) => {
+    if (!selectedChat) return;
+    setSendingQuotationId(q.id || q.quotationId);
+    setSendingActionType('link');
+    try {
+      const link = `${window.location.origin}/quote-preview/${q.id}`;
+      const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
+      const duration = `${q.itineraryDays?.length || 1}D / ${nights}N`;
+
+      let msg = `Hi ${selectedChat.customer_name || 'there'}! Here is the customized travel itinerary for *${q.tripName}* (${duration}) ✈️\n\n`;
+      msg += `🌐 *Interactive Itinerary Link:*\n${link}\n`;
+      if (q.priceQuote > 0) {
+        msg += `\n💰 *Price Quote:* ₹${Number(q.priceQuote).toLocaleString('en-IN')}`;
+      }
+      if (q.highlights && q.highlights.length > 0) {
+        msg += `\n\n✨ *Key Highlights:*\n` + q.highlights.slice(0, 4).map((h) => `• ${h}`).join('\n');
+      }
+      msg += `\n\nFeel free to review and let us know if you'd like any customizations!`;
+
+      await whatsappWebService.sendMessage(selectedChat.id, msg);
+      toast.success(`Itinerary link for "${q.tripName}" sent to WhatsApp!`);
+      setItineraryModalOpen(false);
+      await loadChatMessages(selectedChat.id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not send the itinerary link.');
+    } finally {
+      setSendingQuotationId(null);
+      setSendingActionType(null);
+    }
+  };
+
+  const handleInsertExistingLink = (q) => {
+    const link = `${window.location.origin}/quote-preview/${q.id}`;
+    const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
+    const duration = `${q.itineraryDays?.length || 1}D / ${nights}N`;
+
+    let msg = `Hi ${selectedChat?.customer_name || 'there'}! Here is the customized travel itinerary for *${q.tripName}* (${duration}) ✈️\n\n`;
+    msg += `🌐 *Interactive Itinerary Link:*\n${link}\n`;
+    if (q.priceQuote > 0) {
+      msg += `\n💰 *Price Quote:* ₹${Number(q.priceQuote).toLocaleString('en-IN')}`;
+    }
+    if (q.highlights && q.highlights.length > 0) {
+      msg += `\n\n✨ *Key Highlights:*\n` + q.highlights.slice(0, 4).map((h) => `• ${h}`).join('\n');
+    }
+
+    setInputText((prev) => (prev.trim() ? `${prev}\n\n${msg}` : msg));
+    toast.success('Itinerary link and details pasted into chat composer!');
+    setItineraryModalOpen(false);
+  };
+
+  const handleSendExistingPdf = async (q) => {
+    if (!selectedChat) return;
+    const formattedText = formatDaysToText(q);
+    if (!formattedText) {
+      toast.error('This itinerary has no day-by-day details to generate a PDF.');
+      return;
+    }
+    setSendingQuotationId(q.id || q.quotationId);
+    setSendingActionType('pdf');
+    try {
+      await whatsappWebService.sendItineraryPdf(selectedChat.id, q.tripName, formattedText);
+      toast.success(`Itinerary PDF for "${q.tripName}" generated & sent!`);
+      setItineraryModalOpen(false);
+      await loadChatMessages(selectedChat.id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not generate & send the itinerary PDF.');
+    } finally {
+      setSendingQuotationId(null);
+      setSendingActionType(null);
+    }
+  };
+
+  const handleCustomizeExisting = (q) => {
+    setItineraryForm({
+      tripName: q.tripName || '',
+      itineraryText: formatDaysToText(q) || '',
+    });
+    setItineraryTab('custom');
+  };
+
   const handleSendItinerary = async (e) => {
     e.preventDefault();
     if (!itineraryForm.tripName || !itineraryForm.itineraryText || !selectedChat) return;
@@ -855,13 +1002,14 @@ export default function WhatsAppChat() {
                     <span>{AI_STATE_UI[getAiState(selectedChat)].label}</span>
                   </button>
 
-                  {/* Send Itinerary PDF button */}
+                  {/* Send Itinerary button */}
                   <button
-                    onClick={() => setItineraryModalOpen(true)}
+                    onClick={handleOpenItineraryModal}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-sm whitespace-nowrap"
+                    title="Share Itinerary (Select Existing or Create Custom PDF)"
                   >
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    <span>Itinerary PDF</span>
+                    <Compass className="w-3.5 h-3.5 shrink-0" />
+                    <span>Itinerary</span>
                   </button>
                 </div>
               </div>
@@ -1057,6 +1205,16 @@ export default function WhatsAppChat() {
                   title="Attach PDF / Image"
                 >
                   <Paperclip className="w-4 h-4" />
+                </button>
+
+                {/* Quick Share Itinerary button */}
+                <button
+                  type="button"
+                  onClick={handleOpenItineraryModal}
+                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition-colors"
+                  title="Share Itinerary (Select Existing or Create Custom PDF)"
+                >
+                  <Compass className="w-4 h-4" />
                 </button>
 
 
@@ -1309,53 +1467,305 @@ export default function WhatsAppChat() {
         }}
       />
 
-      {/* Send Itinerary Modal */}
+      {/* ── Share Itinerary Modal (Select Existing or Create Custom PDF) ── */}
       {itineraryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3">Send Custom Itinerary PDF to WhatsApp</h3>
-            <form onSubmit={handleSendItinerary} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Trip Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 5 Days Luxury Goa Vacation"
-                  value={itineraryForm.tripName}
-                  onChange={(e) => setItineraryForm({ ...itineraryForm, tripName: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                  required
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+            
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <Compass size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Share Travel Itinerary</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Send interactive link or generated PDF to +{selectedChat?.phone}
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setItineraryModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Day-by-Day Itinerary Text</label>
-                <textarea
-                  rows={6}
-                  placeholder="Day 1: Arrival & Sunset Beach Club&#10;Day 2: Private Yacht Tour..."
-                  value={itineraryForm.itineraryText}
-                  onChange={(e) => setItineraryForm({ ...itineraryForm, itineraryText: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                  required
-                />
-              </div>
+            {/* Mode Switcher Tabs */}
+            <div className="flex border-b border-slate-200 dark:border-slate-800 px-5 pt-2 shrink-0 bg-slate-50/30 dark:bg-slate-900/50 gap-2">
+              <button
+                type="button"
+                onClick={() => setItineraryTab('catalog')}
+                className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                  itineraryTab === 'catalog'
+                    ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                <Layers size={14} />
+                <span>Existing Itineraries</span>
+                <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-400">
+                  {catalogQuotations.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setItineraryTab('custom')}
+                className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                  itineraryTab === 'custom'
+                    ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                <Edit3 size={14} />
+                <span>Create Custom PDF</span>
+              </button>
+            </div>
 
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setItineraryModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={sendingItinerary}
-                  className="px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  {sendingItinerary ? 'Generating & Sending...' : 'Send PDF via WhatsApp'}
-                </button>
+            {/* Modal Body */}
+            {itineraryTab === 'catalog' ? (
+              <div className="flex-1 overflow-hidden flex flex-col p-4 sm:p-5">
+                {/* Search Bar */}
+                <div className="relative mb-3 shrink-0">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search itineraries by trip name..."
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
+                  />
+                  {catalogSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCatalogSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Itinerary List */}
+                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                  {loadingCatalog ? (
+                    <div className="space-y-3 py-4">
+                      {[1, 2, 3].map((n) => (
+                        <div key={n} className="animate-pulse p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex gap-3">
+                          <div className="w-16 h-16 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                          <div className="flex-1 space-y-2 py-1">
+                            <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
+                            <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded w-1/3" />
+                            <div className="h-3 bg-slate-100 dark:bg-slate-800/40 rounded w-3/4" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : catalogQuotations.filter((q) => {
+                      if (!catalogSearch.trim()) return true;
+                      const s = catalogSearch.toLowerCase();
+                      return (
+                        q.tripName?.toLowerCase().includes(s) ||
+                        q.quotationId?.toLowerCase().includes(s) ||
+                        q.customerName?.toLowerCase().includes(s)
+                      );
+                    }).length === 0 ? (
+                    <div className="text-center py-10 px-4 text-slate-400">
+                      <Compass className="w-10 h-10 mx-auto mb-2 opacity-40 text-slate-400" />
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {catalogSearch ? `No itineraries matching "${catalogSearch}"` : 'No itineraries found in catalog'}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
+                        You can create day-by-day plans in the "Itineraries & Quotes" section, or use the "Create Custom PDF" tab right here.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setItineraryTab('custom')}
+                        className="mt-3 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
+                      >
+                        Create Custom Itinerary PDF
+                      </button>
+                    </div>
+                  ) : (
+                    catalogQuotations
+                      .filter((q) => {
+                        if (!catalogSearch.trim()) return true;
+                        const s = catalogSearch.toLowerCase();
+                        return (
+                          q.tripName?.toLowerCase().includes(s) ||
+                          q.quotationId?.toLowerCase().includes(s) ||
+                          q.customerName?.toLowerCase().includes(s)
+                        );
+                      })
+                      .map((q) => {
+                        const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
+                        const durationText = `${q.itineraryDays?.length || 1}D${nights > 0 ? ` / ${nights}N` : ''}`;
+                        const isSendingThis = sendingQuotationId === (q.id || q.quotationId);
+
+                        return (
+                          <div
+                            key={q.quotationId || q.id}
+                            className="p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800/80 bg-white dark:bg-slate-800/40 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between shadow-xs"
+                          >
+                            {/* Image & Details */}
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <img
+                                src={getItineraryImage(q.bannerUrl)}
+                                alt={q.tripName}
+                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 border border-slate-100 dark:border-slate-700 shadow-2xs"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                                    {q.tripName}
+                                  </h4>
+                                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 shrink-0">
+                                    {durationText}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                  {q.priceQuote > 0 && (
+                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                      {formatCurrency(q.priceQuote)}
+                                    </span>
+                                  )}
+                                  <span>•</span>
+                                  <span>{q.itineraryDays?.length || 1} Days Timeline</span>
+                                </div>
+                                {q.highlights && q.highlights.length > 0 && (
+                                  <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                                    ✨ {q.highlights.slice(0, 2).join(' • ')}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Quick Action Buttons */}
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 dark:border-slate-800">
+                              {/* Send Link Button */}
+                              <button
+                                type="button"
+                                disabled={isSendingThis}
+                                onClick={() => handleSendExistingLink(q)}
+                                title="Send interactive preview link directly to customer on WhatsApp"
+                                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                {isSendingThis && sendingActionType === 'link' ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <ExternalLink size={12} />
+                                )}
+                                <span>Send Link</span>
+                              </button>
+
+                              {/* Send as PDF */}
+                              <button
+                                type="button"
+                                disabled={isSendingThis}
+                                onClick={() => handleSendExistingPdf(q)}
+                                title="Generate PDF from this itinerary and send to WhatsApp"
+                                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-teal-600 hover:bg-teal-500 text-white flex items-center gap-1 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                {isSendingThis && sendingActionType === 'pdf' ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <FileText size={12} />
+                                )}
+                                <span>Send PDF</span>
+                              </button>
+
+                              {/* Insert Into Chat */}
+                              <button
+                                type="button"
+                                onClick={() => handleInsertExistingLink(q)}
+                                title="Paste link & highlights into composer so you can edit before sending"
+                                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                              >
+                                <Copy size={14} />
+                              </button>
+
+                              {/* Customize in Custom Tab */}
+                              <button
+                                type="button"
+                                onClick={() => handleCustomizeExisting(q)}
+                                title="Edit day-by-day text in custom PDF generator"
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl transition-colors cursor-pointer"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSendItinerary} className="p-5 space-y-4 flex-1 overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Trip Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 5 Days Luxury Goa Vacation"
+                    value={itineraryForm.tripName}
+                    onChange={(e) => setItineraryForm({ ...itineraryForm, tripName: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Day-by-Day Itinerary Text
+                    </label>
+                    <span className="text-[10px] text-slate-400">Supports "Day 1: Title" & bullet points</span>
+                  </div>
+                  <textarea
+                    rows={7}
+                    placeholder="Day 1: Arrival & Sunset Beach Club&#10;Check-in to resort, welcome drinks and private sunset dinner.&#10;&#10;Day 2: Private Yacht Cruise&#10;Dolphin spotting and secluded island barbecue..."
+                    value={itineraryForm.itineraryText}
+                    onChange={(e) => setItineraryForm({ ...itineraryForm, itineraryText: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setItineraryTab('catalog')}
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Layers size={13} />
+                    <span>Back to Catalog</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setItineraryModalOpen(false)}
+                      className="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sendingItinerary}
+                      className="px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 disabled:opacity-50 flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                    >
+                      {sendingItinerary && <Loader2 size={13} className="animate-spin" />}
+                      <span>{sendingItinerary ? 'Generating & Sending PDF...' : 'Send PDF via WhatsApp'}</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
