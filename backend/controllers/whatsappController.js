@@ -7,6 +7,7 @@ const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappRepo = require('../repositories/whatsappRepository');
 const aiPolicy = require('../services/whatsappAiPolicy');
+const whatsappWindow = require('../services/whatsappWindowService');
 const r2Service = require('../services/r2Service');
 const instagramDirectService = require('../services/instagramDirectService');
 const aiService = require('../services/aiService');
@@ -625,6 +626,24 @@ async function receiveWebhook(req, res) {
                 : 0,
               isBacklog: false,
             });
+
+            // An automated reply is free-form, so Meta will only deliver it
+            // inside the 24-hour window. In practice the window is always
+            // open here - the AI answers a message the customer just sent -
+            // but only because AI_REPLY_MAX_AGE_SECONDS happens to be fifteen
+            // minutes, and that is an environment variable anyone can raise
+            // above 24 hours. Checked rather than assumed: without this, the
+            // send fails at Meta with 131047 and the webhook's catch swallows
+            // it, so the customer gets nothing and the log says nothing.
+            const chatRow = await whatsappWebRepository.findChatById(tenantId, saved.chat.id);
+            const windowState = whatsappWindow.getWindowState(chatRow || saved.chat);
+            if (windowState.applies && !windowState.isOpen) {
+              logger.warn(
+                { tenantId, chatId: saved.chat.id },
+                '[WhatsApp Webhook] Window closed - not sending an automated reply'
+              );
+              continue;
+            }
 
             if (settings.whatsappAiAutoReply !== false && verdict.allowed && aiPolicy.claim(saved.chat.id)) {
               // ── Human-like delay: wait 5 seconds before replying ──────────────
