@@ -20,6 +20,7 @@ const aiService = require('./aiService');
 const r2Service = require('./r2Service');
 const planService = require('./planService');
 const whatsappAuthState = require('./whatsappAuthState');
+const whatsappRateLimiter = require('./whatsappRateLimiter');
 
 // aiService emits this exact token instead of a reply when the model decides a
 // human should take over. It must never reach the customer.
@@ -42,6 +43,9 @@ const AI_REPLY_MAX_AGE_SECONDS = Number(process.env.AI_REPLY_MAX_AGE_SECONDS) ||
  * deployment needs.
  */
 const aiInFlight = new Set();
+
+// Gap between reconnections when resuming sessions at boot.
+const RESUME_STAGGER_MS = Number(process.env.WHATSAPP_RESUME_STAGGER_MS) || 3000;
 
 // Map to hold active Baileys socket connections per tenantId
 const activeSockets = new Map();
@@ -455,6 +459,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
           messageType: media ? media.type : 'text',
           mediaUrl,
           allowAiReply,
+          sentAt: msg.messageTimestamp ? Number(msg.messageTimestamp) : null,
         });
       } catch (err) {
         logger.error({ err, tenantId, senderPhone }, 'Error processing inbound WhatsApp message');
@@ -523,7 +528,26 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 /**
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
-async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true }) {
+/**
+ * Whether the customer is asking us to stop.
+ *
+ * Deliberately narrow: matched against the whole message, trimmed, so "stop"
+ * ends it but "stop sending me the Goa one, send Kerala" does not. A false
+ * positive silently kills a live conversation, which is worse than missing an
+ * unusual phrasing - an agent can always switch the chat off by hand.
+ */
+const OPT_OUT_WORDS = new Set([
+  'stop', 'unsubscribe', 'opt out', 'optout', 'remove me',
+  'band karo', 'band karo message', 'mat bhejo', 'message mat bhejo',
+]);
+
+function isOptOutRequest(text) {
+  if (!text) return false;
+  const normalised = String(text).trim().toLowerCase().replace(/[.!]+$/, '');
+  return OPT_OUT_WORDS.has(normalised);
+}
+
+async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true, sentAt = null }) {
   // What the chat list shows. A caption when there is one, otherwise a short
   // stand-in so an attachment-only message is not a blank row.
   const preview = messageText || mediaPreview(messageType);
@@ -569,7 +593,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     });
   }
 
-  await whatsappWebRepository.insertMessage(tenantId, {
+  const stored = await whatsappWebRepository.insertMessage(tenantId, {
     chatId: chat.id,
     messageId,
     direction: 'inbound',
@@ -578,7 +602,33 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     status: 'delivered',
     messageType,
     mediaUrl,
+    sentAt,
   });
+
+  // WhatsApp redelivers: the same message id arrives again after a reconnect,
+  // and the offline backlog can replay one we already have. The insert is
+  // idempotent, but everything below it is not - without this check a
+  // redelivered message generated a second AI reply and the customer received
+  // the same answer twice.
+  if (!stored.inserted) {
+    logger.debug({ tenantId, messageId }, 'Already-stored message redelivered; nothing further to do');
+    return;
+  }
+
+  // "STOP" has to end it. A customer who cannot make the messages stop blocks
+  // and reports the number instead, and block rate is what actually gets a
+  // WhatsApp number banned.
+  if (isOptOutRequest(messageText)) {
+    await whatsappWebRepository.setChatOptedOut(tenantId, chat.id, true);
+    logger.info({ tenantId, chatId: chat.id }, 'Customer opted out; automated replies disabled for this chat');
+    return;
+  }
+
+  // An earlier opt-out still stands, whatever the flags say.
+  if (chat.opted_out === true) {
+    logger.debug({ tenantId, chatId: chat.id }, 'Chat is opted out; not replying automatically');
+    return;
+  }
 
   // This chat's own switch is the only thing that decides. The tenant-level
   // setting is a default applied when a chat is first created, not a veto
@@ -701,7 +751,13 @@ async function generateAiReplyForChat(tenantId, phone, message) {
  * storage as well, because the socket only hands back a WhatsApp media
  * reference and the CRM has to be able to render the thread later.
  */
-async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, messageText, mediaBuffer, fileName, mimeType }) {
+async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, messageText, mediaBuffer, fileName, mimeType, userId = null }) {
+  // Paced so a linked number never sends faster than a person could type.
+  // This is not an official API, so there is no published limit to respect -
+  // which is precisely why the behaviour has to look human. See
+  // whatsappRateLimiter for the reasoning.
+  await whatsappRateLimiter.acquire(tenantId);
+
   let socketData = activeSockets.get(tenantId);
 
   // A stored session whose socket is not live yet - after a server restart, or
@@ -783,6 +839,9 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
     status: 'sent',
     messageType,
     mediaUrl,
+    // Which team member sent it. A shared inbox that cannot answer that
+    // question is not much use to whoever runs the agency.
+    userId,
   });
 
   // An agent replying is the escalation being handled, so the flag clears here
@@ -802,6 +861,7 @@ async function disconnectSession(tenantId) {
     } catch (e) {}
   }
   activeSockets.delete(tenantId);
+  whatsappRateLimiter.forget(tenantId);
   authFlushers.delete(tenantId);
 
   // The keys live in Postgres now; the directory is only cleared for tenants
@@ -917,10 +977,21 @@ async function getSessionStatus(tenantId) {
 async function autoInitConnectedSessions() {
   try {
     const tenantIds = await whatsappWebRepository.listResumableTenantIds();
-    for (const tenantId of tenantIds) {
-      initWhatsAppSession(tenantId).catch((err) => {
-        logger.warn({ tenantId, err }, 'Failed to auto-resume WhatsApp session');
-      });
+
+    // Spread the reconnections out. Every session used to be dialled at once,
+    // so a restart with fifty linked agencies opened fifty WhatsApp
+    // connections from one IP in the same second - which looks like an attack
+    // rather than a deploy, and spikes memory while every auth state loads
+    // together. A few seconds apart costs nothing and looks like what it is.
+    logger.info({ sessions: tenantIds.length, gapMs: RESUME_STAGGER_MS }, 'Resuming WhatsApp sessions');
+
+    for (let i = 0; i < tenantIds.length; i += 1) {
+      const tenantId = tenantIds[i];
+      setTimeout(() => {
+        initWhatsAppSession(tenantId).catch((err) => {
+          logger.warn({ tenantId, err }, 'Failed to auto-resume WhatsApp session');
+        });
+      }, i * RESUME_STAGGER_MS).unref?.();
     }
   } catch (err) {
     logger.error({ err }, 'Error checking sessions for auto-init');

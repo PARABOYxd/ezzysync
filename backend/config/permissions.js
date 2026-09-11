@@ -10,6 +10,10 @@ const MODULES = {
   customers: ['read'],
   aiTools: ['use'],
   billing: ['read'],
+  // Replying is everyday work for any agent; connecting or disconnecting the
+  // agency's WhatsApp number, and switching autopilot on for new chats, are
+  // owner decisions. Unlinking the number stops every agent working at once.
+  whatsapp: ['reply', 'manage'],
 };
 
 // Defaults chosen to match current real-world behavior, so this ships as a no-op
@@ -25,6 +29,9 @@ const TEAM_MEMBER_DEFAULTS = {
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },
+  // Matches what team members can already do today, so this ships as a no-op
+  // and only tightens if an admin turns 'manage' on for someone.
+  whatsapp: { reply: true, manage: false },
 };
 
 // Legacy flat keys (pre module x action matrix) mapped to their new home.

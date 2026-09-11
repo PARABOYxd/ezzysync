@@ -37,6 +37,7 @@ import * as quotationService from '../services/quotationService';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
+import { useAuth } from '../hooks/useAuth.jsx';
 import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
 import AttachmentPreviewModal from '../components/whatsapp/AttachmentPreviewModal.jsx';
 
@@ -62,6 +63,8 @@ const getItineraryImage = (bannerUrl) => {
 
 export default function WhatsAppChat() {
   const toast = useToast();
+  // Needed to tell this agent's own messages apart from a colleague's.
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const phoneParam = searchParams.get('phone');
 
@@ -1043,7 +1046,20 @@ export default function WhatsAppChat() {
                         {isOutbound && (
                           <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-100/90 mb-0.5">
                             {msg.sender === 'ai_bot' ? <Bot className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                            <span>{msg.sender === 'ai_bot' ? 'Gemini AI Auto-Pilot' : 'Agent (You)'}</span>
+                            {/* Name the person, not the seat. On a shared
+                                inbox every outbound message used to read
+                                "Agent (You)" whoever had actually sent it, so
+                                an owner could not tell which of their staff
+                                replied to a customer. */}
+                            <span>
+                              {msg.sender === 'ai_bot'
+                                ? 'Gemini AI Auto-Pilot'
+                                : msg.agent_name
+                                ? msg.user_id === user?.userId
+                                  ? `${msg.agent_name} (You)`
+                                  : msg.agent_name
+                                : 'Agent'}
+                            </span>
                           </div>
                         )}
 

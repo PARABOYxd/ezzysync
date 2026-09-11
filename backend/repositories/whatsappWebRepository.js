@@ -282,19 +282,26 @@ async function getChatWithContext(tenantId, chatId) {
 
 async function insertMessage(
   tenantId,
-  { chatId, messageId, direction, sender, messageText, status, messageType = 'text', mediaUrl = null }
+  { chatId, messageId, direction, sender, messageText, status, messageType = 'text', mediaUrl = null, sentAt = null, userId = null }
 ) {
   const safeMessageId = (messageId && String(messageId).trim())
     ? String(messageId).trim()
     : `${direction || 'msg'}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+  // When WhatsApp sent it, not when we read it. This was hardcoded to now(),
+  // which is wrong for the case offline sync exists to handle: messages that
+  // queued while the server was down all arrive at once on reconnect, and
+  // stamping them with the moment of reconnection put a 9pm message below an
+  // 11pm one. Threads are ordered by this column.
+  const timestamp = Number(sentAt) > 0 ? new Date(Number(sentAt) * 1000) : null;
+
   const { rows, rowCount } = await query(
     `INSERT INTO whatsapp_messages
-       (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_type, media_url, message_timestamp)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+       (tenant_id, chat_id, message_id, direction, sender, message_text, status, message_type, media_url, message_timestamp, user_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10::timestamptz, now()), $11)
      ON CONFLICT (message_id) DO NOTHING
      RETURNING id`,
-    [tenantId, chatId, safeMessageId, direction, sender, messageText, status, messageType, mediaUrl]
+    [tenantId, chatId, safeMessageId, direction, sender, messageText, status, messageType, mediaUrl, timestamp, userId]
   );
   // rowCount 0 means this id is already stored - the echo of a message this
   // server sent, which WhatsApp also delivers back over the socket.
@@ -308,13 +315,35 @@ async function listMessages(tenantId, chatId) {
   // all. Duplicates are merged once at boot instead, and findChatByPhone()
   // already matches on the ten-digit suffix so new ones are not created.
   const { rows } = await query(
-    `SELECT * FROM whatsapp_messages
-      WHERE chat_id = $1 AND tenant_id = $2
-      ORDER BY message_timestamp ASC
+    `SELECT m.*, u.name AS agent_name
+       FROM whatsapp_messages m
+       LEFT JOIN users u ON u.id = m.user_id
+      WHERE m.chat_id = $1 AND m.tenant_id = $2
+      ORDER BY m.message_timestamp ASC
       LIMIT 300`,
     [chatId, tenantId]
   );
   return rows;
+}
+
+/**
+ * Records that this customer asked to stop being messaged.
+ *
+ * Honouring "STOP" is not politeness. A customer who cannot make the messages
+ * end blocks and reports the number instead, and block rate is the strongest
+ * single signal behind a WhatsApp ban. Switching the AI off at the same time
+ * means nothing automated can answer them again by accident.
+ */
+async function setChatOptedOut(tenantId, chatId, optedOut) {
+  await query(
+    `UPDATE whatsapp_chats
+        SET opted_out = $3,
+            opted_out_at = CASE WHEN $3 THEN now() ELSE NULL END,
+            ai_enabled = CASE WHEN $3 THEN FALSE ELSE ai_enabled END,
+            updated_at = now()
+      WHERE tenant_id = $1 AND id = $2`,
+    [tenantId, chatId, optedOut]
+  );
 }
 
 async function getLastMessage(tenantId, chatId) {
@@ -417,6 +446,7 @@ async function listQuickReplies(tenantId) {
 }
 
 module.exports = {
+  setChatOptedOut,
   getSession,
   getAutopilotDefault,
   saveQrCode,
