@@ -73,4 +73,15 @@ export const whatsappWebService = {
     const res = await api.post('/whatsapp-web/start-chat', { phone, message });
     return res.data;
   },
+
+  /** Ready-made messages, for a chat whose 24-hour window has closed. */
+  listTemplates: async () => {
+    const res = await api.get('/whatsapp-web/templates');
+    return res.data;
+  },
+
+  sendTemplate: async (chatId, templateId) => {
+    const res = await api.post(`/whatsapp-web/chats/${chatId}/send-template`, { templateId });
+    return res.data;
+  },
 };

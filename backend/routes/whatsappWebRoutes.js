@@ -29,6 +29,10 @@ router.post('/start-chat', ctrl.startChat);
 
 router.get('/chats/:chatId/messages', ctrl.getChatMessages);
 router.post('/chats/:chatId/send', upload.array('files', MAX_ATTACHMENTS), ctrl.sendMessage);
+// Ready-made messages, for when the 24-hour window has closed.
+router.get('/templates', ctrl.listSendableTemplates);
+router.post('/chats/:chatId/send-template', ctrl.sendTemplateMessage);
+
 router.post('/chats/:chatId/toggle-ai', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleChatAi);
 router.post('/chats/:chatId/ai-suggest', requireFeature('canUseAi'), ctrl.aiSuggest);
 router.post('/send-itinerary-pdf', ctrl.sendItineraryPdf);

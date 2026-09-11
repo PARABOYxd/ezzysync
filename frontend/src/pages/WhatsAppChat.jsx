@@ -101,6 +101,8 @@ export default function WhatsAppChat() {
   // What WhatsApp will accept in the open chat right now. Null for QR-linked
   // numbers, which have no 24-hour rule - see whatsappWindowService.
   const [chatWindow, setChatWindow] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [sendingTemplateId, setSendingTemplateId] = useState(null);
   const [itineraryModalOpen, setItineraryModalOpen] = useState(false);
   const [itineraryTab, setItineraryTab] = useState('catalog'); // 'catalog' | 'custom'
   const [catalogQuotations, setCatalogQuotations] = useState([]);
@@ -156,6 +158,30 @@ export default function WhatsAppChat() {
       const data = await whatsappWebService.listChats(search);
       setChats(data.chats || []);
     } catch (e) {}
+  };
+
+  // Fetched the first time a closed window is seen, not on every page load -
+  // most agencies are on the QR path and will never need these.
+  useEffect(() => {
+    if (!chatWindow?.applies || chatWindow.isOpen || templates.length) return;
+    whatsappWebService
+      .listTemplates()
+      .then((d) => setTemplates(d.templates || []))
+      .catch(() => {});
+  }, [chatWindow, templates.length]);
+
+  const handleSendTemplate = async (template) => {
+    if (sendingTemplateId) return;
+    setSendingTemplateId(template.id);
+    try {
+      await whatsappWebService.sendTemplate(selectedChat.id, template.id);
+      await loadChatMessages(selectedChat.id);
+      toast.success('Message sent. The chat re-opens as soon as they reply.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not send that message.');
+    } finally {
+      setSendingTemplateId(null);
+    }
   };
 
   const loadChatMessages = async (chatId) => {
@@ -1238,6 +1264,54 @@ export default function WhatsAppChat() {
                 </div>
               )}
 
+              {/* With the window shut, WhatsApp will not deliver anything the
+                  agent types, so the composer is replaced rather than left
+                  there to fail. Each of these carries quick-reply buttons: a
+                  tap counts as a customer message, which is what re-opens the
+                  conversation. */}
+              {chatWindow?.applies && !chatWindow.isOpen ? (
+                <div className="px-4 pb-4 pt-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                    Send a ready-made message to re-open this chat
+                  </p>
+
+                  {templates.length === 0 ? (
+                    <p className="text-xs text-slate-400">Loading your messages…</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto">
+                      {templates.map((tpl) => (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          disabled={!!sendingTemplateId}
+                          onClick={() => handleSendTemplate(tpl)}
+                          className="text-left p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600 disabled:opacity-50 transition-colors"
+                        >
+                          <span className="block text-xs font-semibold text-slate-800 dark:text-slate-100">
+                            {sendingTemplateId === tpl.id ? 'Sending…' : tpl.name.replace(/_/g, ' ')}
+                          </span>
+                          <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                            {tpl.body}
+                          </span>
+                          {Array.isArray(tpl.buttons) && tpl.buttons.length > 0 && (
+                            <span className="flex flex-wrap gap-1 mt-1.5">
+                              {tpl.buttons.map((label) => (
+                                <span
+                                  key={label}
+                                  className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                >
+                                  {label}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+              <>
               {/* Message Input Box */}
               <form onSubmit={handleSendMessage} className={`px-4 pb-4 ${attachments.length ? 'pt-2' : 'pt-4 border-t border-slate-200 dark:border-slate-800'} bg-white dark:bg-slate-900 flex items-center gap-2`}>
                 <input
@@ -1413,6 +1487,8 @@ export default function WhatsAppChat() {
                   <span>Send</span>
                 </button>
               </form>
+              </>
+              )}
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">

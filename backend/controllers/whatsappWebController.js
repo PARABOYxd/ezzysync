@@ -1,6 +1,8 @@
 const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappWindow = require('../services/whatsappWindowService');
+const whatsappSendService = require('../services/whatsappSendService');
+const templateRepo = require('../repositories/whatsappTemplateRepository');
 const PDFDocument = require('pdfkit');
 const aiService = require('../services/aiService');
 
@@ -113,8 +115,8 @@ async function sendMessage(req, res, next) {
 
     if (!files.length) {
       results.push(
-        await whatsappWebService.sendManualMessage(req.user.tenantId, {
-          ...base,
+        await whatsappSendService.sendText(req.user.tenantId, {
+          chat,
           messageText: caption,
           userId: req.user.userId,
         })
@@ -126,8 +128,8 @@ async function sendMessage(req, res, next) {
         }
 
         results.push(
-          await whatsappWebService.sendManualMessage(req.user.tenantId, {
-            ...base,
+          await whatsappSendService.sendText(req.user.tenantId, {
+            chat,
             userId: req.user.userId,
             messageText: index === 0 ? caption : '',
             mediaBuffer: file.buffer,
@@ -343,7 +345,54 @@ async function startChat(req, res, next) {
   }
 }
 
+
+/**
+ * The ready-made messages an agent can send when the 24-hour window has shut.
+ *
+ * Seeded on first use, so an agency that has just connected is not staring at
+ * an empty list at the exact moment it needs one.
+ */
+async function listSendableTemplates(req, res, next) {
+  try {
+    await templateRepo.seedStarterTemplates(req.user.tenantId);
+    const templates = await templateRepo.getTemplates(req.user.tenantId);
+    res.json({ templates });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function sendTemplateMessage(req, res, next) {
+  try {
+    const { chatId } = req.params;
+    const { templateId, variables } = req.body;
+
+    if (!templateId) {
+      return res.status(400).json({ message: 'Choose a message to send.' });
+    }
+
+    const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found.' });
+
+    const template = await templateRepo.getTemplateById(req.user.tenantId, templateId);
+    if (!template) return res.status(404).json({ message: 'That message is no longer available.' });
+
+    const result = await whatsappSendService.sendTemplate(req.user.tenantId, {
+      chat,
+      template,
+      variables: { customer_name: chat.customer_name, ...(variables || {}) },
+      userId: req.user.userId,
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
+  listSendableTemplates,
+  sendTemplateMessage,
   getStatus,
   startSession,
   disconnect,
