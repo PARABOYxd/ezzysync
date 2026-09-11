@@ -85,6 +85,14 @@ function textMessage(id, body, from = '919812000111') {
 }
 
 async function main() {
+  // The script owns its own setup. Run under CI it meets an empty database;
+  // run locally it meets a populated one. Both work, and neither needs a
+  // separate command to have been run first.
+  const { ensureSchema } = backendRequire('./config/db');
+  const { runMigrations } = backendRequire('./config/migrations');
+  await ensureSchema();
+  await runMigrations();
+
   const app = express();
   app.use(express.json({ limit: '2mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
   app.use('/api/whatsapp', whatsappRoutes);
@@ -94,10 +102,30 @@ async function main() {
   const port = server.address().port;
   const url = (p) => `http://127.0.0.1:${port}/api/whatsapp${p}`;
 
-  // Two tenants: one owns the phone id under test, the other must stay clean.
-  const tenants = (await query('SELECT id FROM tenants ORDER BY created_at LIMIT 2')).rows;
-  const tenantA = tenants[0].id;
-  const tenantB = tenants[1]?.id;
+  // Two tenants: one owns the phone id under test, the other must stay clean -
+  // several checks here are about one tenant not being able to touch another's
+  // rows, which needs a second tenant to be meaningful.
+  //
+  // Created if they are not there. On CI the database is empty, and on a
+  // developer machine it should not matter whose data happens to be lying
+  // around; a check that depends on pre-existing rows is a check that passes
+  // for the wrong reason.
+  const existing = (await query('SELECT id FROM tenants ORDER BY created_at LIMIT 2')).rows;
+  const madeHere = [];
+
+  while (existing.length < 2) {
+    const suffix = `${Date.now()}_${existing.length}`;
+    const { rows } = await query(
+      `INSERT INTO tenants (name, email, company_name, plan_id)
+       VALUES ($1, $2, $1, 'PRO') RETURNING id`,
+      [`Audit Tenant ${suffix}`, `audit_${suffix}@example.com`]
+    );
+    existing.push(rows[0]);
+    madeHere.push(rows[0].id);
+  }
+
+  const tenantA = existing[0].id;
+  const tenantB = existing[1].id;
 
   const cleanup = async () => {
     await query(`DELETE FROM whatsapp_messages WHERE message_id LIKE 'AUDIT_%'`);
@@ -300,6 +328,10 @@ async function main() {
   await query(`DELETE FROM whatsapp_chats WHERE phone_key IN ('9812000111','9813000444')`);
   await query(`DELETE FROM leads WHERE phone LIKE '%9812000111%' OR phone LIKE '%9813000444%'`);
   await query(`UPDATE settings SET whatsapp_phone_number_id = '' WHERE tenant_id = $1`, [tenantA]);
+
+  for (const id of madeHere) {
+    await query('DELETE FROM tenants WHERE id = $1', [id]).catch(() => {});
+  }
 
   server.close();
   const failed = results.filter((x) => !x.pass);
