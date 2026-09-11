@@ -99,6 +99,12 @@ export default function sitemap() {
       priority: 0.8,
     },
     {
+      url: 'https://www.ezzysync.com/blog/automate-travel-agency-follow-ups',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
       url: 'https://www.ezzysync.com/blog/agentic-ai-travel-agency-operations',
       lastModified,
       changeFrequency: 'monthly',

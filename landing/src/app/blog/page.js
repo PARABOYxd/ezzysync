@@ -1,9 +1,29 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+
+/**
+ * The index had no metadata of its own because it was marked "use client",
+ * so it served the home page's title, description and `canonical: "/"` -
+ * telling Google it was a duplicate of the home page rather than a page in
+ * its own right. Nothing on it needed to be a client component.
+ */
+export const metadata = {
+  title: "Travel Agency Growth Blog — WhatsApp, AI Itineraries & CRM Tips | EzzySync",
+  description:
+    "Practical guides for Indian travel agencies: converting WhatsApp enquiries, building AI itineraries, GST invoicing, and running a tour business without losing leads.",
+  alternates: { canonical: "/blog" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: "Travel Agency Growth Blog — EzzySync",
+    description:
+      "Practical guides for Indian travel agencies: WhatsApp lead conversion, AI itineraries, GST invoicing and tour operations.",
+    url: "https://www.ezzysync.com/blog",
+    siteName: "EzzySync",
+    type: "website",
+  },
+};
 import { PLAN_PRICE_LABEL } from "@/data/plans";
 
 // Real-world, trending travel agency tech articles with high SEO query match

@@ -7,6 +7,7 @@ const env = require('./config/env');
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 const { ensureSchema } = require('./config/db');
+const { runMigrations } = require('./config/migrations');
 const { initScheduler } = require('./jobs/cronJobs');
 const emailService = require('./services/emailService');
 
@@ -163,6 +164,10 @@ app.use(errorHandler);
 async function start() {
   try {
     await ensureSchema();
+    // Numbered migrations run after the legacy bootstrap, so they can rely on
+    // the tables it creates. A failure here stops the boot rather than serving
+    // traffic on a half-migrated schema.
+    await runMigrations();
   } catch (err) {
     logger.error({ err }, 'Failed to initialize DB schema. Check DATABASE_URL and that Postgres is reachable.');
     process.exit(1);

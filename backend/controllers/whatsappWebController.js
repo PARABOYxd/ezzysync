@@ -105,7 +105,11 @@ async function sendMessage(req, res, next) {
 
     if (!files.length) {
       results.push(
-        await whatsappWebService.sendManualMessage(req.user.tenantId, { ...base, messageText: caption })
+        await whatsappWebService.sendManualMessage(req.user.tenantId, {
+          ...base,
+          messageText: caption,
+          userId: req.user.userId,
+        })
       );
     } else {
       for (const [index, file] of files.entries()) {
@@ -116,6 +120,7 @@ async function sendMessage(req, res, next) {
         results.push(
           await whatsappWebService.sendManualMessage(req.user.tenantId, {
             ...base,
+            userId: req.user.userId,
             messageText: index === 0 ? caption : '',
             mediaBuffer: file.buffer,
             fileName: file.originalname,
@@ -210,6 +215,7 @@ async function sendItineraryPdf(req, res, next) {
 
     const safeName = tripName.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const result = await whatsappWebService.sendManualMessage(req.user.tenantId, {
+      userId: req.user.userId,
       chatId,
       phone: chat.phone,
       jid: chat.jid,

@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { requireFeature } = require('../middleware/planMiddleware');
+const { requirePermission } = require('../middleware/permissionMiddleware');
 const ctrl = require('../controllers/whatsappWebController');
 const { validate } = require('../middleware/validate');
 const { toggleValidators } = require('../validators/whatsappWebValidators');
@@ -20,9 +21,9 @@ const upload = multer({
 router.use(requireAuth);
 
 router.get('/status', ctrl.getStatus);
-router.post('/connect', ctrl.startSession);
-router.post('/disconnect', ctrl.disconnect);
-router.post('/toggle-autopilot', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleAiAutopilot);
+router.post('/connect', requirePermission('whatsapp', 'manage'), ctrl.startSession);
+router.post('/disconnect', requirePermission('whatsapp', 'manage'), ctrl.disconnect);
+router.post('/toggle-autopilot', requirePermission('whatsapp', 'manage'), requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleAiAutopilot);
 router.get('/chats', ctrl.listChats);
 router.post('/start-chat', ctrl.startChat);
 

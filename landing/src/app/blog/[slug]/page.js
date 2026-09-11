@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
@@ -370,6 +368,8 @@ const articlesData = {
   },
   "whatsapp-marketing-for-travel-agents": {
     title: "Why Travel Agents Lose Untracked Bookings in Scattered WhatsApp Chats",
+    metaTitle: "WhatsApp for Travel Agents — Stop Losing Bookings in Scattered Chats",
+    metaDescription: "Most travel agencies lose bookings in personal WhatsApp chats nobody tracks. How to capture every enquiry, follow up on time, and stop leads going cold.",
     date: "July 28, 2026",
     readTime: "5 min read",
     category: "Operations",
@@ -393,6 +393,8 @@ const articlesData = {
   },
   "streamline-travel-agency-billing": {
     title: "The Travel Agency Guide to Secure Billing and Isolated Invoicing",
+    metaTitle: "Travel Agency Billing & GST Invoicing — A Practical Guide (2026)",
+    metaDescription: "GST-ready invoicing for travel agencies: how to issue tax invoices, keep each agency's billing isolated, and stop chasing payments across spreadsheets.",
     date: "July 25, 2026",
     readTime: "4 min read",
     category: "Security",
@@ -416,6 +418,8 @@ const articlesData = {
   },
   "ai-itinerary-builder-efficiency": {
     title: "How to Build Custom Day-Wise Itineraries in Seconds Using AI",
+    metaTitle: "AI Itinerary Builder for Travel Agents — Day-Wise Plans in Seconds",
+    metaDescription: "Build day-wise travel itineraries in under a minute with AI. How Indian travel agents cut quoting time from hours to seconds and reply while the lead is still warm.",
     date: "July 20, 2026",
     readTime: "6 min read",
     category: "Technology",
@@ -865,24 +869,66 @@ const articlesData = {
   }
 };
 
-export default function BlogPostPage({ params }) {
-  const { slug } = React.use(params);
+const SITE = "https://www.ezzysync.com";
+
+/** Every post is pre-rendered, so the HTML a crawler receives is the final one. */
+export function generateStaticParams() {
+  return Object.keys(articlesData).map((slug) => ({ slug }));
+}
+
+/**
+ * Per-post title, description and canonical.
+ *
+ * This page used to be a client component, which in the App Router cannot
+ * export metadata at all - so all nine posts served the root layout's tags:
+ * the same title, the same description, and `canonical: "/"`. That last one
+ * told Google each post was a duplicate of the home page, which is an
+ * instruction not to index it. The posts were excluding themselves from
+ * search while their content sat there perfectly well written.
+ *
+ * The `document.title` assignment that stood in for this ran only in the
+ * browser, after load, and could not set a canonical at all.
+ */
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const article = articlesData[slug];
+
+  if (!article) {
+    return { title: "Article not found — EzzySync", robots: { index: false, follow: true } };
+  }
+
+  const title = article.metaTitle || article.title;
+  const description = article.metaDescription || "";
+  const url = `${SITE}/blog/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/blog/${slug}` },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "EzzySync",
+      type: "article",
+      publishedTime: article.date,
+      ...(article.image && { images: [{ url: article.image }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(article.image && { images: [article.image] }),
+    },
+  };
+}
+
+export default async function BlogPostPage({ params }) {
+  const { slug } = await params;
   const article = articlesData[slug];
   const crmUrl = globalCrmUrl;
   const author = authors["rishab-jain"];
-
-  React.useEffect(() => {
-    if (article) {
-      document.title = article.metaTitle || article.title;
-      let metaDesc = document.querySelector('meta[name="description"]');
-      if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.name = 'description';
-        document.head.appendChild(metaDesc);
-      }
-      metaDesc.content = article.metaDescription || "";
-    }
-  }, [article]);
 
   if (!article) {
     return (

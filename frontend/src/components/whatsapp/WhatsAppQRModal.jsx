@@ -191,10 +191,36 @@ export default function WhatsAppQRModal({ isOpen, onClose, onConnected }) {
                 </ol>
               </div>
 
-              {/* Anti-ban note */}
-              <div className="mt-5 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>100% Free & Unlimited. Normal multi-device WhatsApp connection with human-like delays.</span>
+              {/* What this actually does, and what it costs.
+                  This used to read "100% Free & Unlimited" with a shield icon,
+                  which told an agency the opposite of the truth: linking by QR
+                  uses WhatsApp's multi-device protocol outside its business
+                  terms, and a number can be restricted for it. Someone
+                  connecting the number their business runs on deserves to know
+                  that before they scan, not after. */}
+              <div className="mt-5 space-y-2.5">
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-[11px] text-amber-800 dark:text-amber-200 space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 shrink-0 mt-px" />
+                    <span className="font-semibold">Before you link this number</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    This links your number as a WhatsApp companion device, the same way
+                    WhatsApp Web does. It works well for replying to customers who message
+                    you first — which is all EzzySync does automatically.
+                  </p>
+                  <p className="leading-relaxed">
+                    WhatsApp can restrict numbers used for bulk or unsolicited messaging.
+                    To stay on the safe side: start with your normal daily volume for the
+                    first week, never message people who have not contacted you, and stop
+                    when someone asks you to. EzzySync paces outgoing messages and honours
+                    “STOP” automatically.
+                  </p>
+                  <p className="leading-relaxed">
+                    Handling large volumes or sending campaigns? Use the official WhatsApp
+                    Business API from Settings instead — no restriction risk.
+                  </p>
+                </div>
               </div>
             </div>
           )}

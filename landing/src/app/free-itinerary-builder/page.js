@@ -43,11 +43,15 @@ export default function FreeItineraryBuilderPage() {
       "price": "0",
       "priceCurrency": "INR"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "218"
-    },
+    // No aggregateRating here on purpose.
+    //
+    // Three different counts were being declared for the same product - 142
+    // in the layout, 240 on the home page and 218 on the itinerary builder -
+    // at 4.9 stars, for a product a couple of months old, with no reviews
+    // shown anywhere on the site. Google requires ratings to be genuine and
+    // visible on the page; markup like this is what triggers a "Spammy
+    // structured markup" manual action, which suppresses the whole domain in
+    // search. Put it back only when there are real reviews to point at.
     "description": "Free AI-powered day-wise travel itinerary maker and branded PDF generator for travel agencies."
   };
 

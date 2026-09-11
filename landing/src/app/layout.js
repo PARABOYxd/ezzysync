@@ -117,13 +117,15 @@ export default function RootLayout({ children }) {
         "priceCurrency": "INR",
         "description": "30-Day Free Trial"
       },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "142",
-        "bestRating": "5",
-        "worstRating": "1"
-      },
+      // No aggregateRating here on purpose.
+      //
+      // Three different counts were being declared for the same product - 142
+      // in the layout, 240 on the home page and 218 on the itinerary builder -
+      // at 4.9 stars, for a product a couple of months old, with no reviews
+      // shown anywhere on the site. Google requires ratings to be genuine and
+      // visible on the page; markup like this is what triggers a "Spammy
+      // structured markup" manual action, which suppresses the whole domain in
+      // search. Put it back only when there are real reviews to point at.
       "description": "All-in-one Travel CRM software with direct WhatsApp lead capture, AI day-wise itinerary builder, GST invoice generator, and booking management for travel agencies.",
       "featureList": [
         "Direct WhatsApp Web QR Multi-Device Integration",
