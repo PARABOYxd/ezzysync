@@ -27,8 +27,8 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
   useEffect(() => {
     if (open && lead) {
       setForm({
-        departure: '',
-        members: 1,
+        departure: lead.departureDate || '',
+        members: lead.travelers ? Number(lead.travelers) : 1,
         pricePerPerson: '',
         email: lead.email || '',
         interest: lead.interest || '',

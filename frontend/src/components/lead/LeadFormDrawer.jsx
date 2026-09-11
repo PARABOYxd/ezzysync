@@ -7,7 +7,7 @@ import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
-import { Phone, MapPin, Tag, UserCheck, AlertTriangle, Users, Mail } from 'lucide-react';
+import { Phone, MapPin, Tag, UserCheck, AlertTriangle, Users, Mail, Calendar } from 'lucide-react';
 import { isValidPhone } from '../../utils/validators';
 import * as leadService from '../../services/leadService';
 import * as userService from '../../services/userService';
@@ -22,6 +22,7 @@ const LEAD_STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 const emptyForm = {
   customerName: '', email: '', phone: '', interest: '', source: 'Manual',
   stage: 'New', assignedTo: '', notes: '', batchId: '',
+  departureDate: '', travelers: '',
 };
 
 export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead }) {
@@ -74,7 +75,12 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
     const b = batches.find((x) => x.id === bId);
     if (!b) return;
     setInterestOther(false);
-    setForm((prev) => ({ ...prev, batchId: bId, interest: b.tripName }));
+    setForm((prev) => ({
+      ...prev,
+      batchId: bId,
+      interest: b.tripName,
+      departureDate: b.departureDate ? b.departureDate.slice(0, 10) : prev.departureDate,
+    }));
     if (errors.interest) setErrors((prev) => ({ ...prev, interest: '' }));
   };
 
@@ -236,7 +242,28 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
           />
         </FormRow>
 
-        {/* Row 3: Lead Source */}
+        {/* Row 3: Departure Date & No of Travelers (Optional) */}
+        <FormRow>
+          <Input
+            label="Departure Date (Optional)"
+            icon={Calendar}
+            type="date"
+            value={form.departureDate || ''}
+            onChange={set('departureDate')}
+          />
+          <Input
+            label="No. of Travelers (Optional)"
+            icon={Users}
+            type="number"
+            min={1}
+            max={100}
+            placeholder="e.g. 2"
+            value={form.travelers ?? ''}
+            onChange={set('travelers')}
+          />
+        </FormRow>
+
+        {/* Row 4: Lead Source */}
         <FormRow>
           {!isTeamMember && <Select label="Lead Source" icon={Tag} value={form.source} onChange={set('source')} options={LEAD_SOURCES} />}
         </FormRow>

@@ -23,6 +23,8 @@ function rowToLead(row) {
     deleted: !!row.deleted,
     followUpCount: row.follow_up_count !== undefined ? Number(row.follow_up_count) : null,
     batchId: row.batch_id || null,
+    departureDate: row.departure_date || '',
+    travelers: row.travelers !== null && row.travelers !== undefined ? Number(row.travelers) : '',
   };
 }
 

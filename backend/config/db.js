@@ -574,6 +574,14 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding public_lead_key column to tenants');
   }
 
+  // Optional departure date and travelers count on leads
+  try {
+    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS departure_date TEXT DEFAULT '';`);
+    await query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS travelers INTEGER;`);
+  } catch (err) {
+    logger.warn({ err }, 'Note adding departure_date/travelers to leads');
+  }
+
   // ==========================================
   // WHATSAPP WEB MULTI-DEVICE TABLES
   // ==========================================

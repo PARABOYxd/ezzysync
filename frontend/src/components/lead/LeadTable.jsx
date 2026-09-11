@@ -54,7 +54,15 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
                   {l.phone || '-'}
                 </button>
               </Td>
-              <Td className="text-slate-500 dark:text-zinc-400">{l.interest || '-'}</Td>
+              <Td className="text-slate-500 dark:text-zinc-400">
+                <span className="font-medium text-slate-700 dark:text-zinc-300">{l.interest || '-'}</span>
+                {(l.departureDate || l.travelers) && (
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                    {l.departureDate && <span>📅 {l.departureDate}</span>}
+                    {l.travelers && <span>👥 {l.travelers} pax</span>}
+                  </div>
+                )}
+              </Td>
               {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{l.source}</Td>}
               {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{l.assignedTo || '-'}</Td>}
               <Td>{getFollowUpDisplay(l.nextFollowUpDate)}</Td>

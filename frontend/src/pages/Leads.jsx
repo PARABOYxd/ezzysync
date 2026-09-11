@@ -308,6 +308,12 @@ export default function Leads() {
                                 >
                                   <p className="font-semibold text-slate-800 dark:text-zinc-100 text-sm truncate">{lead.customerName}</p>
                                   <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">{lead.interest || 'General inquiry'}</p>
+                                  {(lead.departureDate || lead.travelers) && (
+                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-brand-600 dark:text-brand-400 font-medium">
+                                      {lead.departureDate && <span>📅 {lead.departureDate}</span>}
+                                      {lead.travelers && <span>👥 {lead.travelers} pax</span>}
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400 dark:text-zinc-500">
                                     <span className="flex items-center gap-1"><Phone size={10} /> {lead.phone}</span>
                                   </div>

@@ -12,14 +12,16 @@ async function insertLead(tenantId, leadId, data, now, createdBy, customerId) {
   const { rows } = await query(
     `INSERT INTO leads (
        tenant_id, lead_id, customer_id, customer_name, email, phone, interest, source, stage,
-       assigned_to, notes, next_follow_up_date, created_by, created_at, updated_at, deleted
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,FALSE)
+       assigned_to, notes, next_follow_up_date, created_by, created_at, updated_at, deleted,
+       departure_date, travelers
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,FALSE,$16,$17)
      RETURNING *`,
     [
       tenantId, leadId, customerId || null, data.customerName, data.email || '', data.phone,
       data.interest || '', data.source || 'Manual', data.stage || 'New',
       data.assignedTo || '', data.notes || '', data.nextFollowUpDate || null,
       createdBy || '', now, now,
+      data.departureDate || '', data.travelers ? Number(data.travelers) : null,
     ]
   );
   return rows[0];
@@ -30,13 +32,15 @@ async function updateLead(tenantId, leadId, merged, updatedAt, customerId) {
     `UPDATE leads SET
        customer_name = $1, email = $2, phone = $3, interest = $4, source = $5, stage = $6,
        assigned_to = $7, notes = $8, next_follow_up_date = $9, updated_at = $10, deleted = $11,
-       converted_booking_id = $12, customer_id = COALESCE($13, customer_id)
-     WHERE tenant_id = $14 AND lead_id = $15
+       converted_booking_id = $12, customer_id = COALESCE($13, customer_id),
+       departure_date = $14, travelers = $15
+     WHERE tenant_id = $16 AND lead_id = $17
      RETURNING *`,
     [
       merged.customerName, merged.email || '', merged.phone, merged.interest || '', merged.source || 'Manual',
       merged.stage || 'New', merged.assignedTo || '', merged.notes || '', merged.nextFollowUpDate || null,
       updatedAt, !!merged.deleted, merged.convertedBookingId || null, customerId,
+      merged.departureDate || '', merged.travelers ? Number(merged.travelers) : null,
       tenantId, leadId,
     ]
   );

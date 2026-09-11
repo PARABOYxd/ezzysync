@@ -158,6 +158,22 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
                 <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Trip Interest</span>
                 <span className="font-semibold text-slate-700">{currentLead.interest || <span className="text-slate-400 italic">Not specified</span>}</span>
               </div>
+              {(currentLead.departureDate || currentLead.travelers) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {currentLead.departureDate && (
+                    <div>
+                      <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Departure Date</span>
+                      <span className="font-semibold text-slate-700">{currentLead.departureDate}</span>
+                    </div>
+                  )}
+                  {currentLead.travelers && (
+                    <div>
+                      <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Travelers</span>
+                      <span className="font-semibold text-slate-700">{currentLead.travelers} Pax</span>
+                    </div>
+                  )}
+                </div>
+              )}
               {currentLead.convertedBookingId && (
                 <div className="col-span-2">
                   <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Converted Booking</span>
