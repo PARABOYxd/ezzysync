@@ -16,7 +16,6 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend — lint, schema, tests
     runs-on: ubuntu-latest
 
     services:
@@ -81,7 +80,6 @@ jobs:
         run: node ../scripts/whatsapp-webhook-audit.js
 
   frontend:
-    name: Frontend — lint and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +103,6 @@ jobs:
         run: npm run build
 
   landing:
-    name: Landing — build and price check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
