@@ -82,7 +82,44 @@ async function updateTemplateRecord(tenantId, id, { type, name, body, languageCo
   return rows[0];
 }
 
+
+/**
+ * Gives a tenant the starter templates, once.
+ *
+ * ON CONFLICT DO NOTHING rather than an upsert: once a tenant edits the
+ * wording - or Meta approves their version - that is theirs, and a later
+ * change to the shipped set must not quietly rewrite what they are sending to
+ * customers.
+ */
+async function seedStarterTemplates(tenantId) {
+  const { STARTER_TEMPLATES } = require('../config/whatsappStarterTemplates');
+
+  const { rowCount } = await query(
+    `INSERT INTO whatsapp_templates
+       (tenant_id, name, body, category, language_code, buttons, variables_map, is_starter, meta_status)
+     SELECT $1, t.name, t.body, t.category, 'en', t.buttons, t.variables_map, TRUE, 'DRAFT'
+       FROM jsonb_to_recordset($2::jsonb)
+         AS t(name text, body text, category text, buttons jsonb, variables_map jsonb)
+     ON CONFLICT (tenant_id, name) DO NOTHING`,
+    [
+      tenantId,
+      JSON.stringify(
+        STARTER_TEMPLATES.map((t) => ({
+          name: t.name,
+          body: t.body,
+          category: t.category,
+          buttons: t.buttons,
+          variables_map: t.variables_map,
+        }))
+      ),
+    ]
+  );
+
+  return rowCount;
+}
+
 module.exports = {
+  seedStarterTemplates,
   getTemplates,
   getTemplateById,
   createTemplate,

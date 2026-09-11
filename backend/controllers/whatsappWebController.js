@@ -1,5 +1,6 @@
 const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
+const whatsappWindow = require('../services/whatsappWindowService');
 const PDFDocument = require('pdfkit');
 const aiService = require('../services/aiService');
 
@@ -69,7 +70,9 @@ async function getChatMessages(req, res, next) {
       chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, canonicalChatId);
     }
 
-    res.json({ chat, messages });
+    // The agent needs to know what WhatsApp will actually accept here before
+    // they type, not after the send silently fails.
+    res.json({ chat, messages, window: chat ? whatsappWindow.toClientWindow(chat) : null });
   } catch (err) {
     next(err);
   }
@@ -99,6 +102,11 @@ async function sendMessage(req, res, next) {
     if (!files.length && !caption) {
       return res.status(400).json({ message: 'Nothing to send. Type a message or attach a file.' });
     }
+
+    // Meta refuses free-form messages outside the 24-hour window with error
+    // 131047, and that refusal never reaches the agent - the message just does
+    // not arrive. Failing here instead means they get told why, and what to do.
+    whatsappWindow.assertCanSendFreeform(chat);
 
     const base = { chatId, phone: chat.phone, jid: chat.jid };
     const results = [];

@@ -61,6 +61,14 @@ const getItineraryImage = (bannerUrl) => {
   return 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80';
 };
 
+/** "18h 20m" / "45m" - short enough to sit inside a one-line banner. */
+function formatWindowRemaining(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export default function WhatsAppChat() {
   const toast = useToast();
   // Needed to tell this agent's own messages apart from a colleague's.
@@ -90,6 +98,9 @@ export default function WhatsAppChat() {
   const [attachments, setAttachments] = useState([]); // [{ id, file, url }]
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  // What WhatsApp will accept in the open chat right now. Null for QR-linked
+  // numbers, which have no 24-hour rule - see whatsappWindowService.
+  const [chatWindow, setChatWindow] = useState(null);
   const [itineraryModalOpen, setItineraryModalOpen] = useState(false);
   const [itineraryTab, setItineraryTab] = useState('catalog'); // 'catalog' | 'custom'
   const [catalogQuotations, setCatalogQuotations] = useState([]);
@@ -152,6 +163,7 @@ export default function WhatsAppChat() {
     try {
       const data = await whatsappWebService.getChatMessages(chatId);
       setSelectedChat(data.chat);
+      setChatWindow(data.window || null);
       setMessages(data.messages || []);
       // Refresh chats to clear unread badge
       loadChats();
@@ -217,6 +229,7 @@ export default function WhatsAppChat() {
 
             if (data?.chat && data.chat.id === currentChatId) {
               setSelectedChat((prev) => (prev ? { ...prev, ...data.chat } : data.chat));
+              setChatWindow(data.window || null);
             }
             const incoming = data?.messages || [];
             const current = messagesRef.current;
@@ -1177,6 +1190,31 @@ export default function WhatsAppChat() {
                       <X className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Only the Cloud API has a 24-hour rule, so this appears only
+                  where it actually applies. Without it, a reply typed outside
+                  the window is refused by Meta and simply never arrives - with
+                  nothing on screen to say so. */}
+              {chatWindow?.applies && !chatWindow.isOpen && (
+                <div className="mx-4 mt-3 px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-start gap-2 text-[11px] text-blue-800 dark:text-blue-300">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  <span className="flex-1">
+                    <strong>This customer hasn&apos;t replied in 24 hours.</strong>{' '}
+                    WhatsApp only allows a ready-made message here. Pick one below — once they
+                    reply, you can chat normally again.
+                  </span>
+                </div>
+              )}
+
+              {chatWindow?.applies && chatWindow.isOpen && chatWindow.secondsRemaining < 4 * 3600 && (
+                <div className="mx-4 mt-3 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-300">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Free replies end in {formatWindowRemaining(chatWindow.secondsRemaining)} — after
+                    that you&apos;ll need a ready-made message.
+                  </span>
                 </div>
               )}
 

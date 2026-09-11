@@ -142,11 +142,12 @@ async function findChatById(tenantId, chatId) {
 async function createChat(tenantId, { phone, jid, customerName, leadId, lastMessage, aiEnabled }) {
   const { rows } = await query(
     `INSERT INTO whatsapp_chats
-       (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, unread_count, ai_enabled, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, now(), 1, $7, now(), now())
+       (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, last_inbound_at, unread_count, ai_enabled, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, now(), now(), 1, $7, now(), now())
      ON CONFLICT (tenant_id, phone_key) DO UPDATE SET
        last_message = EXCLUDED.last_message,
        last_message_timestamp = now(),
+       last_inbound_at = now(),
        updated_at = now(),
        customer_name = COALESCE(NULLIF(whatsapp_chats.customer_name, ''), EXCLUDED.customer_name),
        lead_id = COALESCE(whatsapp_chats.lead_id, EXCLUDED.lead_id),
@@ -157,12 +158,16 @@ async function createChat(tenantId, { phone, jid, customerName, leadId, lastMess
   return rows[0];
 }
 
-/** An inbound message: bumps unread and refreshes the routable jid. */
+/** An inbound message: bumps unread, refreshes the routable jid, and restarts
+ * the customer service window. */
 async function recordInboundOnChat(chatId, { lastMessage, pushName, jid }) {
   await query(
     `UPDATE whatsapp_chats
      SET last_message = $1,
          last_message_timestamp = now(),
+         -- What the 24-hour window is measured from on the Cloud API. Every
+         -- customer message restarts it, including a quick-reply button tap.
+         last_inbound_at = now(),
          unread_count = unread_count + 1,
          customer_name = COALESCE(NULLIF(customer_name, ''), $2),
          jid = $4,
