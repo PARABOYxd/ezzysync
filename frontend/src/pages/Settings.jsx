@@ -45,6 +45,42 @@ export default function SettingsPage() {
   const [waRequest, setWaRequest] = useState({ phone: '', companyName: '', submitted: false, submitting: false });
   const [connectingWA, setConnectingWA] = useState(false);
   const [disconnectingWA, setDisconnectingWA] = useState(false);
+  const [waCreds, setWaCreds] = useState({ whatsappPhoneNumberId: '', whatsappAccessToken: '', whatsappWabaId: '', whatsappBusinessId: '', whatsappAppSecret: '' });
+  const [savingWaCreds, setSavingWaCreds] = useState(false);
+
+  // Mirrors the server's values (access token/app secret arrive masked as
+  // ••••••••, same placeholder updateSettings knows to leave alone) so this
+  // form never starts out of sync with what's actually saved, e.g. right
+  // after the embedded-signup popup finishes.
+  useEffect(() => {
+    if (!settings) return;
+    setWaCreds({
+      whatsappPhoneNumberId: settings.whatsappPhoneNumberId || '',
+      whatsappAccessToken: settings.whatsappAccessToken || '',
+      whatsappWabaId: settings.whatsappWabaId || '',
+      whatsappBusinessId: settings.whatsappBusinessId || '',
+      whatsappAppSecret: settings.whatsappAppSecret || '',
+    });
+  }, [settings]);
+
+  // For pasting in credentials directly - a Meta sandbox/test number's Phone
+  // Number ID and temporary access token (from developers.facebook.com's
+  // WhatsApp > API Setup page) aren't reachable through the embedded-signup
+  // popup at all, since that flow is built for onboarding a verified Business
+  // Manager WABA, not a developer test number. Posts to the same generic
+  // settings endpoint the rest of this page already uses.
+  const handleSaveWaCreds = async () => {
+    setSavingWaCreds(true);
+    try {
+      const res = await settingsService.updateSettings(waCreds);
+      setSettings(res);
+      toast.success('WhatsApp credentials saved.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not save WhatsApp credentials.');
+    } finally {
+      setSavingWaCreds(false);
+    }
+  };
   const toast = useToast();
 
   // Gmail linkage is read once on mount and after any change, so the panel
@@ -821,6 +857,112 @@ export default function SettingsPage() {
                     Ready & Active
                   </span>
                 </div>
+              </div>
+
+              {/* Meta WhatsApp Business Cloud API */}
+              <div className="card space-y-5">
+                <div className="border-b border-slate-100 pb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800">Meta WhatsApp Business API</h3>
+                    <p className="text-xs text-slate-400">Connect a Cloud API number - your own business number, or a Meta sandbox/test number for development.</p>
+                  </div>
+                  {hasOwnWA && (
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 shrink-0">
+                      Connected
+                    </span>
+                  )}
+                </div>
+
+                {hasOwnWA ? (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="text-xs text-slate-600">
+                      <p><span className="font-semibold text-slate-800">Phone Number ID:</span> {settings.whatsappPhoneNumberId}</p>
+                      {settings.whatsappNumber && <p className="mt-0.5"><span className="font-semibold text-slate-800">Number:</span> {settings.whatsappNumber}</p>}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={handleDisconnectWA}
+                      disabled={disconnectingWA}
+                      className="text-xs px-4"
+                    >
+                      {disconnectingWA ? 'Disconnecting...' : 'Disconnect'}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={handleLaunchEmbeddedSignup}
+                      disabled={connectingWA}
+                      className="text-sm px-6"
+                    >
+                      {connectingWA ? 'Connecting...' : 'Connect via Meta'}
+                    </Button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedWA((v) => !v)}
+                      className="text-xs font-semibold text-brand-700 hover:text-brand-800 flex items-center gap-1"
+                    >
+                      {showAdvancedWA ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      Advanced: enter credentials manually
+                    </button>
+
+                    {showAdvancedWA && (
+                      <div className="pt-2 space-y-4 border-t border-slate-100">
+                        <p className="text-xs text-slate-400">
+                          For a Meta sandbox/test number, copy these from developers.facebook.com under your app's WhatsApp &gt; API Setup page.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                          <Input
+                            label="Phone Number ID"
+                            placeholder="e.g. 109876543210987"
+                            value={waCreds.whatsappPhoneNumberId}
+                            onChange={(e) => setWaCreds((c) => ({ ...c, whatsappPhoneNumberId: e.target.value }))}
+                          />
+                          <Input
+                            label="WABA ID"
+                            placeholder="e.g. 123456789012345"
+                            value={waCreds.whatsappWabaId}
+                            onChange={(e) => setWaCreds((c) => ({ ...c, whatsappWabaId: e.target.value }))}
+                          />
+                          <Input
+                            label="Access Token"
+                            type="password"
+                            placeholder="Temporary or permanent token"
+                            hint="Left as-is (shown as dots) means the saved one is kept"
+                            value={waCreds.whatsappAccessToken}
+                            onChange={(e) => setWaCreds((c) => ({ ...c, whatsappAccessToken: e.target.value }))}
+                          />
+                          <Input
+                            label="App Secret"
+                            type="password"
+                            placeholder="From App Dashboard > Settings > Basic"
+                            hint="Only needed to verify incoming webhooks"
+                            value={waCreds.whatsappAppSecret}
+                            onChange={(e) => setWaCreds((c) => ({ ...c, whatsappAppSecret: e.target.value }))}
+                          />
+                          <Input
+                            label="Meta App ID"
+                            placeholder="e.g. 1065519269552814"
+                            hint="Business/App ID, not the WABA ID"
+                            value={waCreds.whatsappBusinessId}
+                            onChange={(e) => setWaCreds((c) => ({ ...c, whatsappBusinessId: e.target.value }))}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleSaveWaCreds}
+                          disabled={savingWaCreds}
+                          className="text-sm px-6"
+                        >
+                          {savingWaCreds ? 'Saving...' : 'Save Credentials'}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Request Own Number */}

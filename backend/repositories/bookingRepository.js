@@ -16,6 +16,92 @@ async function listBookings(tenantId, includeDeleted = false) {
   return rows;
 }
 
+/**
+ * The dashboard's headline numbers, computed by Postgres in one pass instead
+ * of pulling every booking into Node to sum/count in a loop. Mirrors
+ * dashboardStats' old JS exactly: totalBookings counts everything (Cancelled
+ * included), the money fields exclude Cancelled, todaysBookings/revenue30Days
+ * compare against the first 10 characters of booking_timestamp (a TEXT
+ * column storing an ISO string, not a real timestamp) the same way the JS
+ * version did with `.slice(0, 10)`.
+ */
+async function getDashboardCounts(tenantId, { teamMember = null, today, thirtyDaysAgo } = {}) {
+  const values = [tenantId, today, thirtyDaysAgo];
+  let teamClause = '';
+  if (teamMember) {
+    values.push(teamMember);
+    teamClause = `AND team_member = $${values.length}`;
+  }
+
+  const { rows } = await query(
+    `SELECT
+       COUNT(*) AS total_bookings,
+       COUNT(*) FILTER (WHERE travel_status = 'Booked' AND departure >= $2) AS upcoming_trips,
+       COUNT(*) FILTER (WHERE travel_status = 'Completed') AS completed_trips,
+       COUNT(*) FILTER (WHERE travel_status = 'Cancelled') AS cancelled_trips,
+       COUNT(*) FILTER (WHERE LEFT(booking_timestamp, 10) = $2) AS todays_bookings,
+       COALESCE(SUM(total_amount) FILTER (WHERE travel_status != 'Cancelled'), 0) AS total_revenue,
+       COALESCE(SUM(paid) FILTER (WHERE travel_status != 'Cancelled'), 0) AS total_paid,
+       COALESCE(SUM(vendor_hotel_cost + vendor_flight_cost + vendor_transport_cost + vendor_other_cost)
+         FILTER (WHERE travel_status != 'Cancelled'), 0) AS total_cost,
+       COALESCE(SUM(net_profit) FILTER (WHERE travel_status != 'Cancelled'), 0) AS total_profit,
+       COALESCE(SUM(total_amount) FILTER (
+         WHERE travel_status != 'Cancelled' AND LEFT(booking_timestamp, 10) >= $3
+       ), 0) AS revenue_30_days
+     FROM bookings
+     WHERE tenant_id = $1 AND deleted = FALSE ${teamClause}`,
+    values
+  );
+  return rows[0];
+}
+
+/** Most recent N bookings, sorted in SQL rather than sorting the whole table
+ * in JS just to throw all but ten rows away. */
+async function listRecentBookings(tenantId, { teamMember = null, limit = 10 } = {}) {
+  const values = [tenantId];
+  let teamClause = '';
+  if (teamMember) {
+    values.push(teamMember);
+    teamClause = `AND team_member = $${values.length}`;
+  }
+  values.push(limit);
+
+  const { rows } = await query(
+    `SELECT * FROM bookings
+      WHERE tenant_id = $1 AND deleted = FALSE ${teamClause}
+      ORDER BY booking_timestamp DESC
+      LIMIT $${values.length}`,
+    values
+  );
+  return rows;
+}
+
+/**
+ * Candidate rows for the "upcoming departures" panel: not-cancelled bookings
+ * departing today or later. Bounded by `limit` rather than unbounded so a
+ * tenant with years of history doesn't have every past booking pulled in -
+ * bookingService still does the batch-collapsing and final top-10 slice in
+ * JS, since that logic depends on tour_batches data this query doesn't have.
+ */
+async function listUpcomingBookingCandidates(tenantId, { teamMember = null, today, limit = 200 } = {}) {
+  const values = [tenantId, today];
+  let teamClause = '';
+  if (teamMember) {
+    values.push(teamMember);
+    teamClause = `AND team_member = $${values.length}`;
+  }
+  values.push(limit);
+
+  const { rows } = await query(
+    `SELECT * FROM bookings
+      WHERE tenant_id = $1 AND deleted = FALSE AND travel_status != 'Cancelled' AND departure >= $2 ${teamClause}
+      ORDER BY departure ASC
+      LIMIT $${values.length}`,
+    values
+  );
+  return rows;
+}
+
 async function getBookingBySourceQuotation(tenantId, quotationId) {
   const { rows } = await query(
     `SELECT * FROM bookings WHERE tenant_id = $1 AND source_quotation_id = $2`,
@@ -276,6 +362,9 @@ async function getUpcomingDepartures(daysAhead) {
 module.exports = {
   getBookingById,
   listBookings,
+  getDashboardCounts,
+  listRecentBookings,
+  listUpcomingBookingCandidates,
   insertBooking,
   updateBooking,
   listBookingsPaged,

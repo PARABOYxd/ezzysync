@@ -1,6 +1,32 @@
 const { query } = require('../config/db');
 
+/** Confirms a booking/batch id the caller supplied actually belongs to this
+ * tenant, before it gets stored on an expense row. Without this, an expense
+ * can be created under one tenant while pointing at another tenant's booking
+ * or batch - listExpenses' join then discloses that booking's customer name
+ * and code (or the batch's name) to the wrong tenant. */
+async function assertOwnedByTenant(tenantId, { linkType, bookingId, batchId }) {
+  if (linkType === 'booking' && bookingId) {
+    const { rows } = await query('SELECT 1 FROM bookings WHERE tenant_id = $1 AND id = $2', [tenantId, bookingId]);
+    if (!rows.length) {
+      const err = new Error('That booking does not belong to this account.');
+      err.status = 400;
+      throw err;
+    }
+  }
+  if (linkType === 'batch' && batchId) {
+    const { rows } = await query('SELECT 1 FROM tour_batches WHERE tenant_id = $1 AND id = $2', [tenantId, batchId]);
+    if (!rows.length) {
+      const err = new Error('That group tour batch does not belong to this account.');
+      err.status = 400;
+      throw err;
+    }
+  }
+}
+
 async function createExpense(tenantId, { title, amount, category, link_type, booking_id, batch_id, vendor_name, status, created_by }) {
+  await assertOwnedByTenant(tenantId, { linkType: link_type, bookingId: booking_id, batchId: batch_id });
+
   const { rows } = await query(
     `INSERT INTO expenses (
       tenant_id, title, amount, category, link_type, booking_id, batch_id, vendor_name, status, created_by
@@ -19,6 +45,17 @@ async function createExpense(tenantId, { title, amount, category, link_type, boo
     ]
   );
   return rows[0];
+}
+
+/** Expenses for one booking, without the tenant-wide join listExpenses does -
+ * for callers (auto-generated template expenses) that only ever need the
+ * handful of rows tied to a single booking, not the whole tenant's ledger. */
+async function listExpensesByBookingId(tenantId, bookingId) {
+  const { rows } = await query(
+    `SELECT * FROM expenses WHERE tenant_id = $1 AND booking_id = $2`,
+    [tenantId, bookingId]
+  );
+  return rows;
 }
 
 async function listExpenses(tenantId, filters = {}) {
@@ -66,6 +103,8 @@ async function getExpenseById(tenantId, id) {
 }
 
 async function updateExpense(tenantId, id, { title, amount, category, link_type, booking_id, batch_id, vendor_name, status }) {
+  await assertOwnedByTenant(tenantId, { linkType: link_type, bookingId: booking_id, batchId: batch_id });
+
   const { rows } = await query(
     `UPDATE expenses
      SET title = $3, amount = $4, category = $5, link_type = $6, booking_id = $7, batch_id = $8, vendor_name = $9, status = $10, updated_at = now()
@@ -177,6 +216,7 @@ async function getPreferredTemplateByTripName(tenantId, tripName) {
 module.exports = {
   createExpense,
   listExpenses,
+  listExpensesByBookingId,
   listExpenseRowsByTenant,
   getTemplateById,
   getPreferredTemplateByTripName,

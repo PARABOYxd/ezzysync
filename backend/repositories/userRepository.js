@@ -127,6 +127,19 @@ async function updateTeamMember(userId, tenantId, fieldsSql, values, indexPlaceh
   return rows[0];
 }
 
+/** Tenant-scoped lookup for a team member the caller already knows the id
+ * of - unlike findUserById, this never falls back to another tenant's row. */
+async function findUserByIdAndTenant(tenantId, userId) {
+  const { rows } = await query(
+    `SELECT u.*, t.company_name, t.plan_id
+     FROM users u
+     JOIN tenants t ON u.tenant_id = t.id
+     WHERE u.tenant_id = $1 AND u.id = $2`,
+    [tenantId, userId]
+  );
+  return rows[0];
+}
+
 async function deleteTeamMember(tenantId, userId) {
   const { rowCount } = await query(
     `DELETE FROM users WHERE tenant_id = $1 AND id = $2`,
@@ -168,6 +181,7 @@ module.exports = {
   findUserByEmail,
   findUserById,
   findUserWithTenantById,
+  findUserByIdAndTenant,
   insertTenant,
   insertUser,
   updateUserOTP,

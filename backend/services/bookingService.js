@@ -134,61 +134,46 @@ async function softDeleteBooking(tenantId, bookingId, updatedByUser) {
 }
 
 async function dashboardStats(tenantId, teamMemberName = null) {
-  let bookings = await listBookings(tenantId);
-  if (teamMemberName) {
-    bookings = bookings.filter((b) => (b.teamMember || '') === teamMemberName);
-  }
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
 
-  let totalRevenue = 0;
-  let totalPaid = 0;
-  let totalCost = 0;
-  let totalProfit = 0;
-  let revenue30Days = 0;
-
-  bookings.forEach((b) => {
-    if (b.travelStatus !== 'Cancelled') {
-      const rev = Number(b.totalAmount || 0);
-      totalRevenue += rev;
-      totalPaid += Number(b.paid || 0);
-      const cost =
-        Number(b.vendorHotelCost || 0) +
-        Number(b.vendorFlightCost || 0) +
-        Number(b.vendorTransportCost || 0) +
-        Number(b.vendorOtherCost || 0);
-      totalCost += cost;
-      totalProfit += Number(b.netProfit || 0);
-
-      const createdDate = b.bookingTimestamp ? new Date(b.bookingTimestamp).toISOString().slice(0, 10) : '';
-      if (createdDate >= thirtyDaysAgoStr) {
-        revenue30Days += rev;
-      }
-    }
+  // The headline numbers used to come from pulling every booking into Node
+  // and summing/counting them in a loop - fine at a few hundred rows, a full
+  // table scan into application memory on every dashboard load once a tenant
+  // has thousands. Postgres does the same arithmetic in one pass instead.
+  const counts = await bookingRepository.getDashboardCounts(tenantId, {
+    teamMember: teamMemberName,
+    today,
+    thirtyDaysAgo: thirtyDaysAgoStr,
   });
 
   const stats = {
-    totalBookings: bookings.length,
-    upcomingTrips: bookings.filter((b) => b.travelStatus === 'Booked' && b.departure >= today).length,
-    completedTrips: bookings.filter((b) => b.travelStatus === 'Completed').length,
-    cancelledTrips: bookings.filter((b) => b.travelStatus === 'Cancelled').length,
-    todaysBookings: bookings.filter((b) => (b.bookingTimestamp || '').slice(0, 10) === today).length,
-    totalRevenue,
-    revenue30Days,
-    totalPaid,
-    totalCost,
-    totalProfit,
+    totalBookings: Number(counts.total_bookings),
+    upcomingTrips: Number(counts.upcoming_trips),
+    completedTrips: Number(counts.completed_trips),
+    cancelledTrips: Number(counts.cancelled_trips),
+    todaysBookings: Number(counts.todays_bookings),
+    totalRevenue: Number(counts.total_revenue),
+    revenue30Days: Number(counts.revenue_30_days),
+    totalPaid: Number(counts.total_paid),
+    totalCost: Number(counts.total_cost),
+    totalProfit: Number(counts.total_profit),
   };
 
-  const recentBookings = [...bookings]
-    .sort((a, b) => new Date(b.bookingTimestamp) - new Date(a.bookingTimestamp))
-    .slice(0, 10);
+  const recentBookings = (
+    await bookingRepository.listRecentBookings(tenantId, { teamMember: teamMemberName, limit: 10 })
+  ).map(rowToBooking);
 
-  const upcomingBookings = bookings
-    .filter((b) => b.departure >= today && b.travelStatus !== 'Cancelled')
-    .sort((a, b) => a.departure.localeCompare(b.departure));
+  // Only candidates for the panel below (not-cancelled, today or later) -
+  // not every booking the tenant has ever made. The batch-collapsing logic
+  // still runs in JS since it needs tour_batches data this query doesn't have,
+  // but it now runs over at most `limit` rows instead of the tenant's entire
+  // history.
+  const upcomingBookings = (
+    await bookingRepository.listUpcomingBookingCandidates(tenantId, { teamMember: teamMemberName, today, limit: 200 })
+  ).map(rowToBooking);
 
   // Bookings linked to a Group Tour batch collapse into a single "batch"
   // entry showing its total seat count, instead of one dashboard row per
@@ -409,10 +394,10 @@ async function billingAnalytics(tenantId, teamMemberName = null, startDate = nul
 
 async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
   try {
-    const existingExpenses = await expenseRepository.listExpenses(tenantId);
-    
-    // Filter expenses linked to this booking
-    const bookingExpenses = existingExpenses.filter((e) => e.booking_id === booking.id);
+    // Scoped to this one booking - this runs on every create/update that
+    // lands as 'Booked', and listExpenses() would pull and JOIN the tenant's
+    // entire expense ledger just to find the handful of rows that matter here.
+    const bookingExpenses = await expenseRepository.listExpensesByBookingId(tenantId, booking.id);
     const hasManualExpenses = bookingExpenses.some((e) => e.vendor_name !== 'Default Template Vendor');
     
     // Protect manual custom expenses

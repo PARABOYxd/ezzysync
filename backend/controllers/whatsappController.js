@@ -497,6 +497,12 @@ async function receiveWebhook(req, res) {
         const tenantId = tenantRows.rows[0].tenant_id;
         logger.info({ phoneId, tenantId }, '[WhatsApp Webhook] Resolved tenant ID from phone_number_id');
 
+        // Fetched once per tenant per webhook call, not once per message: this
+        // used to be re-fetched (and re-decrypted) for every image/document
+        // message and again for every AI-reply check, so a 5-message batch for
+        // one tenant paid for the same unchanging settings row up to 10 times.
+        const settings = await settingsService.getSettingsWithSecrets(tenantId);
+
         for (const message of value.messages || []) {
           const from = message.from; // Sender's phone number
           const contactName = value.contacts?.[0]?.profile?.name || '';
@@ -523,12 +529,10 @@ async function receiveWebhook(req, res) {
           } else if (message.type === 'image') {
             messageType = 'image';
             text = message.image?.caption || '[Image]';
-            const settings = await settingsService.getSettingsWithSecrets(tenantId);
             mediaUrl = await whatsappService.downloadMetaMedia(message.image.id, settings);
           } else if (message.type === 'document') {
             messageType = 'document';
             text = message.document?.caption || message.document?.filename || '[Document]';
-            const settings = await settingsService.getSettingsWithSecrets(tenantId);
             mediaUrl = await whatsappService.downloadMetaMedia(message.document.id, settings);
           } else {
             text = `[Unsupported Media: ${message.type}]`;
@@ -611,8 +615,6 @@ async function receiveWebhook(req, res) {
 
           // Trigger Automated AI Reply if enabled
           try {
-            const settings = await settingsService.getSettingsWithSecrets(tenantId);
-
             // The same gates the QR path applies. This used to check only
             // ai_enabled and needs_human, so on Cloud API a customer's "STOP"
             // was ignored, a tenant whose plan no longer includes AI still got

@@ -164,7 +164,10 @@ describe('Bookings', () => {
   });
 
   describe('dashboard stats', () => {
-    it('excludes cancelled trips from revenue', async () => {
+    // These now run as a single SQL aggregate (getDashboardCounts) instead of
+    // pulling every booking into JS and summing in a loop - this test is what
+    // pins the arithmetic to the old behaviour across that rewrite.
+    it('excludes cancelled trips from revenue, but still counts them as bookings', async () => {
       await bookingService.createBooking(
         tenant.tenantId, bookingData({ paid: 10000, travelStatus: 'Booked' }), 'agent@test.com'
       );
@@ -176,6 +179,42 @@ describe('Bookings', () => {
       const { stats } = await bookingService.dashboardStats(tenant.tenantId);
       expect(stats.totalRevenue).toBe(10000);
       expect(stats.cancelledTrips).toBe(1);
+      expect(stats.totalBookings).toBe(2);
+    });
+
+    it('only counts another tenant\'s bookings toward their own stats', async () => {
+      const other = await createTenant();
+      await bookingService.createBooking(tenant.tenantId, bookingData({ members: 1, pricePerPerson: 5000 }), 'agent@test.com');
+      await bookingService.createBooking(other.tenantId, bookingData({ members: 1, pricePerPerson: 7000 }), 'agent@test.com');
+
+      const { stats } = await bookingService.dashboardStats(tenant.tenantId);
+      expect(stats.totalBookings).toBe(1);
+      expect(stats.totalRevenue).toBe(5000);
+    });
+
+    it('returns at most the 10 most recent bookings, newest first', async () => {
+      let last;
+      for (let i = 0; i < 12; i += 1) {
+        last = await bookingService.createBooking(tenant.tenantId, bookingData({ notes: `booking ${i}` }), 'agent@test.com');
+      }
+
+      const { recentBookings } = await bookingService.dashboardStats(tenant.tenantId);
+      expect(recentBookings).toHaveLength(10);
+      expect(recentBookings[0].bookingId).toBe(last.bookingId);
+    });
+
+    it('collapses bookings sharing a batch into one upcoming-departure entry', async () => {
+      const batchRepository = appRequire('../repositories/batchRepository');
+      const batch = await batchRepository.insertBatch(tenant.tenantId, unique('BATCH'), {
+        name: 'Goa Group', tripName: 'Goa', departureDate: '2026-12-15', totalCapacity: 20, pricePerPerson: 4000,
+      }, 'agent');
+
+      await bookingService.createBooking(tenant.tenantId, bookingData({ departure: '2026-12-15', batchId: batch.id }), 'agent@test.com');
+      await bookingService.createBooking(tenant.tenantId, bookingData({ departure: '2026-12-15', batchId: batch.id }), 'agent@test.com');
+
+      const { upcomingDepartures } = await bookingService.dashboardStats(tenant.tenantId);
+      const batchEntries = upcomingDepartures.filter((e) => e.type === 'batch' && e.batch.batchId === batch.batch_id);
+      expect(batchEntries).toHaveLength(1);
     });
   });
 });

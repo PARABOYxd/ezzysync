@@ -226,7 +226,19 @@ async function updateTeamMember(tenantId, userId, updates) {
     values.push(passwordHash);
   }
 
-  if (fields.length === 0) return stripSecrets(await findUserById(userId));
+  // Scoped to this tenant even when there is nothing to change: an empty (or
+  // all-falsy) body used to fall through to the global findUserById, which
+  // has no tenant filter at all and returns whichever user that id belongs
+  // to - any tenant's admin could read another tenant's user by id this way.
+  if (fields.length === 0) {
+    const row = await userRepository.findUserByIdAndTenant(tenantId, userId);
+    if (!row) {
+      const err = new Error('User not found.');
+      err.status = 404;
+      throw err;
+    }
+    return stripSecrets(rowToUser(row));
+  }
 
   const row = await userRepository.updateTeamMember(userId, tenantId, fields.join(', '), values, idx, idx + 1);
   if (!row) {
