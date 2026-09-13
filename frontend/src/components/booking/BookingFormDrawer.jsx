@@ -22,7 +22,7 @@ import {
   Tag, Sparkles, Check, ChevronRight, ChevronLeft, ArrowRight
 } from 'lucide-react';
 
-const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled'];
+const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled', 'Refunded'];
 const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'];
 
 const STATUS_HINTS = {
@@ -30,12 +30,13 @@ const STATUS_HINTS = {
   Booked: 'Confirmed booking - all details verified and payment received',
   Completed: 'Trip successfully completed',
   Cancelled: 'Booking cancelled by customer or agency',
+  Refunded: 'Cancelled and the collected amount has been returned to the customer',
 };
 
 const emptyForm = {
   customerName: '', email: '', phone: '', emergencyContact: '', trip: '', departure: '',
   pickup: '', members: 1, pricePerPerson: '', paid: 0, teamMember: '', travelStatus: 'Confirming',
-  paymentStatus: 'Pending', notes: '',
+  paymentStatus: 'Pending', notes: '', refundedAmount: 0,
   vendorHotelCost: 0, vendorFlightCost: 0, vendorTransportCost: 0, vendorOtherCost: 0,
   hotelId: '', roomCategory: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '', sourceQuotationId: '',
   batchId: '', costTemplateId: '',
@@ -693,6 +694,58 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 />
               </FormRow>
 
+              {/* Hotel Booking (optional) */}
+              <FormRow>
+                <div className="w-full">
+                  <Select
+                    label="Hotel"
+                    icon={Home}
+                    hint="Optional - link the hotel this booking is staying at"
+                    value={form.hotelId || ''}
+                    onChange={(e) => {
+                      const hotelId = e.target.value;
+                      setForm((prev) => ({ ...prev, hotelId, roomCategory: '' }));
+                    }}
+                    options={[
+                      { value: '', label: 'No hotel linked' },
+                      ...hotels.map((h) => ({ value: h.id, label: `${h.name}${h.city ? ` - ${h.city}` : ''}` })),
+                    ]}
+                  />
+                </div>
+                <div className="w-full">
+                  <Select
+                    label="Room Category"
+                    disabled={!form.hotelId}
+                    hint={form.hotelId ? 'Room type for this stay' : 'Select a hotel first'}
+                    value={form.roomCategory || ''}
+                    onChange={set('roomCategory')}
+                    options={[
+                      { value: '', label: 'Select room type' },
+                      ...(hotels.find((h) => h.id === form.hotelId)?.rooms_and_rates || [])
+                        .filter((r) => r.roomType)
+                        .map((r) => ({ value: r.roomType, label: r.roomType })),
+                    ]}
+                  />
+                </div>
+              </FormRow>
+
+              {!!form.hotelId && (
+                <FormRow>
+                  <Select
+                    label="Hotel Booking Status"
+                    value={form.hotelBookingStatus || 'Pending'}
+                    onChange={set('hotelBookingStatus')}
+                    options={['Pending', 'Confirmed', 'Cancelled']}
+                  />
+                  <Input
+                    label="Confirmation Number"
+                    placeholder="e.g. Hotel's booking reference"
+                    value={form.hotelConfirmationNo || ''}
+                    onChange={set('hotelConfirmationNo')}
+                  />
+                </FormRow>
+              )}
+
               {/* Row 3: Sharing Type & Travel Status */}
               <FormRow>
                 <Select
@@ -717,6 +770,21 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   options={TRAVEL_STATUSES}
                 />
               </FormRow>
+
+              {(form.travelStatus === 'Cancelled' || form.travelStatus === 'Refunded') && (
+                <FormRow>
+                  <Input
+                    label="Amount Refunded (₹)"
+                    icon={IndianRupee}
+                    type="number"
+                    min={0}
+                    max={form.paid || 0}
+                    hint={`Up to ₹${form.paid || 0} collected on this booking. Leave 0 if nothing has been returned yet.`}
+                    value={form.refundedAmount || 0}
+                    onChange={set('refundedAmount')}
+                  />
+                </FormRow>
+              )}
 
               {/* Row 4: Assigned Team Member */}
               <FormRow>

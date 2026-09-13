@@ -248,6 +248,12 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
                 <span className="text-slate-400">Per person price</span>
               </div>
             )}
+            {booking.refundedAmount > 0 && (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center justify-between text-xs">
+                <span className="font-semibold text-red-700">Refunded to customer</span>
+                <span className="font-extrabold text-red-700">{formatCurrency(booking.refundedAmount)}</span>
+              </div>
+            )}
           </div>
 
 

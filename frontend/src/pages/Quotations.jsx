@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Search, Copy, Check, Trash2, Edit, Files, MapPin } from 'lucide-react';
+import { Plus, Search, Copy, Check, Trash2, Edit, Files, MapPin, CheckCircle } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -98,6 +98,26 @@ export default function Quotations() {
 
     setEditingQuotation(duplicated);
     setFormOpen(true);
+  };
+
+  const [convertingId, setConvertingId] = useState(null);
+
+  // The customer confirming by phone/in person has no other way to become a
+  // booking - previously only the emailed public preview link could accept a
+  // quotation, so an agent had to re-key the whole itinerary into a brand
+  // new Booking by hand. Safe to click more than once: the backend re-syncs
+  // the same booking rather than creating a second one.
+  const handleConvertToBooking = async (q) => {
+    setConvertingId(q.quotationId);
+    try {
+      await quotationService.acceptQuotation(q.quotationId);
+      toast.success(`Booking created/updated from "${q.tripName}".`);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not convert this quotation to a booking.');
+    } finally {
+      setConvertingId(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -224,6 +244,16 @@ export default function Quotations() {
                           title="Edit"
                         >
                           <Edit size={13} />
+                        </button>
+                      )}
+                      {canEdit && q.status !== 'Accepted' && (
+                        <button
+                          onClick={() => handleConvertToBooking(q)}
+                          disabled={convertingId === q.quotationId}
+                          className="p-1 rounded hover:bg-white/10 text-white/90 hover:text-white transition disabled:opacity-50"
+                          title="Convert to Booking - use when the customer confirmed by phone/in person"
+                        >
+                          <CheckCircle size={13} />
                         </button>
                       )}
                       {canDelete && (

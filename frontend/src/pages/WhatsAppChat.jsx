@@ -33,6 +33,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { whatsappWebService } from '../services/whatsappWebService';
+import * as settingsService from '../services/settingsService';
 import * as quotationService from '../services/quotationService';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
@@ -84,6 +85,17 @@ export default function WhatsAppChat() {
     // "Connected" while every send failed.
     canSend: false,
   });
+  // "Start New Chat" used to require a live QR socket (session.status ===
+  // 'connected'), even for a tenant that only ever configured Cloud API and
+  // has no QR session at all - the button simply never appeared for them,
+  // with nothing on screen explaining why. Cloud API needs no socket, just
+  // these credentials being present.
+  const [cloudApiConfigured, setCloudApiConfigured] = useState(false);
+  useEffect(() => {
+    settingsService.getSettings()
+      .then((s) => setCloudApiConfigured(!!s.whatsappPhoneNumberId))
+      .catch(() => {});
+  }, []);
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -874,7 +886,7 @@ export default function WhatsAppChat() {
               <div className="text-center py-12 px-4 text-slate-400">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
                 <p className="text-xs font-medium">No conversations found.</p>
-                {isPhoneSearch && session.status === 'connected' ? (
+                {isPhoneSearch && (session.status === 'connected' || cloudApiConfigured) ? (
                   <button
                     onClick={() => {
                       setStartChatPhone(searchQuery.trim());
@@ -1244,7 +1256,11 @@ export default function WhatsAppChat() {
                 </div>
               )}
 
-              {!session.canSend && (
+              {/* The QR socket being down doesn't affect a Cloud API chat at
+                  all - this banner used to show (and disable Send) on every
+                  chat whenever the QR session was disconnected, regardless
+                  of which transport that particular chat actually uses. */}
+              {!session.canSend && selectedChat?.transport !== 'cloud_api' && (
                 <div className="mx-4 mt-3 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-300">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span className="flex-1">
@@ -1479,8 +1495,8 @@ export default function WhatsAppChat() {
 
                 <button
                   type="submit"
-                  disabled={sending || !session.canSend || (!inputText.trim() && !attachments.length)}
-                  title={session.canSend ? 'Send' : 'WhatsApp is not connected right now'}
+                  disabled={sending || (!session.canSend && selectedChat?.transport !== 'cloud_api') || (!inputText.trim() && !attachments.length)}
+                  title={(session.canSend || selectedChat?.transport === 'cloud_api') ? 'Send' : 'WhatsApp is not connected right now'}
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />

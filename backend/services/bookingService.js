@@ -72,6 +72,18 @@ async function updateBooking(tenantId, bookingId, updates, updatedByUser) {
     }
   }
 
+  // The refund amount is money that actually left the business, so it can
+  // never exceed what the customer actually paid in - the UI enforces this
+  // as a field max, which is only ever a hint, not a guarantee.
+  if (updates.refundedAmount !== undefined) {
+    const paidAmount = updates.paid !== undefined ? Number(updates.paid) : existing.paid;
+    if (Number(updates.refundedAmount) > paidAmount) {
+      const err = new Error(`Cannot refund more than the ₹${paidAmount} collected on this booking.`);
+      err.status = 400;
+      throw err;
+    }
+  }
+
   const merged = { ...existing, ...updates };
   const { totalAmount, remaining } = computeAmounts(merged);
   const updatedAt = new Date().toISOString();

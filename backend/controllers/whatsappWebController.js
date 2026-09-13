@@ -2,6 +2,7 @@ const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappWindow = require('../services/whatsappWindowService');
 const whatsappSendService = require('../services/whatsappSendService');
+const settingsService = require('../services/settingsService');
 const templateRepo = require('../repositories/whatsappTemplateRepository');
 const PDFDocument = require('pdfkit');
 const aiService = require('../services/aiService');
@@ -318,24 +319,42 @@ async function startChat(req, res, next) {
     // Re-use an existing chat if one already exists for this number
     let chat = await whatsappWebRepository.findChatByPhone(tenantId, normalized);
     if (!chat) {
-      // Create a bare chat row so the CRM inbox shows the conversation
-      const autopilotDefault = await whatsappWebRepository.getAutopilotDefault(tenantId);
+      // Create a bare chat row so the CRM inbox shows the conversation.
+      // Starting a brand-new conversation had no inbound message to infer
+      // transport from, so this used to always default to 'web' (QR) even
+      // for a tenant with only Cloud API configured - the send below then
+      // went to a socket that was never connected, and nothing was ever
+      // actually sent to Meta at all.
+      const [autopilotDefault, settings] = await Promise.all([
+        whatsappWebRepository.getAutopilotDefault(tenantId),
+        settingsService.getSettings(tenantId),
+      ]);
+      const transport = settings.whatsappPhoneNumberId ? 'cloud_api' : 'web';
       chat = await whatsappWebRepository.createChat(tenantId, {
         phone: normalized,
         jid: `${normalized}@s.whatsapp.net`,
         customerName: '',
         leadId: null,
-        lastMessage: message || '',
+        // Not the attempted message text - this used to write it here
+        // unconditionally, so a send that Meta then rejected (e.g. a sandbox
+        // recipient not on the allowed list) still left the chat preview
+        // showing "hello" as the last message, with no actual message ever
+        // stored. sendText below sets this for real, only once a message has
+        // actually gone through.
+        lastMessage: '',
         aiEnabled: autopilotDefault,
+        transport,
       });
     }
 
     if (message && message.trim()) {
-      await whatsappWebService.sendManualMessage(tenantId, {
-        chatId: chat.id,
-        phone: normalized,
-        jid: `${normalized}@s.whatsapp.net`,
+      // Transport-aware: routes to Cloud API or the QR socket depending on
+      // chat.transport, instead of always assuming the QR path.
+      whatsappWindow.assertCanSendFreeform(chat);
+      await whatsappSendService.sendText(tenantId, {
+        chat,
         messageText: message.trim(),
+        userId: req.user.userId,
       });
     }
 

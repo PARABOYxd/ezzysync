@@ -148,6 +148,74 @@ describe('Bookings', () => {
     });
   });
 
+  describe('cancelling and refunding', () => {
+    it('records how much was actually returned to the customer', async () => {
+      const booking = await bookingService.createBooking(
+        tenant.tenantId, bookingData({ paid: 10000 }), 'agent@test.com'
+      );
+
+      const cancelled = await bookingService.updateBooking(
+        tenant.tenantId, booking.bookingId,
+        { travelStatus: 'Cancelled', refundedAmount: 6000 },
+        'agent@test.com'
+      );
+
+      expect(cancelled.travelStatus).toBe('Cancelled');
+      expect(cancelled.refundedAmount).toBe(6000);
+      // The collected amount itself is untouched - refundedAmount is a
+      // separate record of what went back, not a correction to `paid`.
+      expect(cancelled.paid).toBe(10000);
+    });
+
+    it('refuses to refund more than was actually collected', async () => {
+      const booking = await bookingService.createBooking(
+        tenant.tenantId, bookingData({ paid: 3000 }), 'agent@test.com'
+      );
+
+      await expect(
+        bookingService.updateBooking(
+          tenant.tenantId, booking.bookingId,
+          { travelStatus: 'Cancelled', refundedAmount: 5000 },
+          'agent@test.com'
+        )
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('supports the dedicated Refunded status', async () => {
+      const booking = await bookingService.createBooking(
+        tenant.tenantId, bookingData({ paid: 4000, travelStatus: 'Cancelled' }), 'agent@test.com'
+      );
+
+      const refunded = await bookingService.updateBooking(
+        tenant.tenantId, booking.bookingId,
+        { travelStatus: 'Refunded', refundedAmount: 4000 },
+        'agent@test.com'
+      );
+      expect(refunded.travelStatus).toBe('Refunded');
+      expect(refunded.refundedAmount).toBe(4000);
+    });
+  });
+
+  describe('linking a hotel', () => {
+    it('round-trips the hotel fields the form now collects', async () => {
+      const hotelRepository = appRequire('../repositories/hotelRepository');
+      const hotel = await hotelRepository.createHotel(tenant.tenantId, {
+        name: 'Lake View Resort', city: 'Udaipur', roomsAndRates: [{ roomType: 'Deluxe', costPrice: 3000, sellingPrice: 4500 }],
+      });
+
+      const booking = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({ hotelId: hotel.id, roomCategory: 'Deluxe', hotelBookingStatus: 'Confirmed', hotelConfirmationNo: 'RES-9981' }),
+        'agent@test.com'
+      );
+
+      expect(booking.hotelId).toBe(hotel.id);
+      expect(booking.roomCategory).toBe('Deluxe');
+      expect(booking.hotelBookingStatus).toBe('Confirmed');
+      expect(booking.hotelConfirmationNo).toBe('RES-9981');
+    });
+  });
+
   describe('deleting a booking', () => {
     it('soft-deletes: hidden from the default list, still readable with includeDeleted', async () => {
       const booking = await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');

@@ -97,15 +97,23 @@ export default function BatchDetailDrawer({ open, onClose, batchId, onChanged })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const handleLink = async (booking) => {
+  const handleLink = async (booking, force = false) => {
     try {
-      await batchService.linkBooking(batchId, booking.bookingId);
+      await batchService.linkBooking(batchId, booking.bookingId, force);
       toast.success(`${booking.customerName} linked to this batch.`);
       setSearch('');
       setSearchResults([]);
       load();
       onChanged?.();
     } catch (err) {
+      // A warning, not a hard stop - the agency decides whether losing the
+      // customer is worse than overbooking the seat.
+      if (err.response?.data?.code === 'BATCH_CAPACITY_EXCEEDED') {
+        if (window.confirm(`${err.response.data.message}\n\nLink anyway?`)) {
+          handleLink(booking, true);
+        }
+        return;
+      }
       toast.error(err.response?.data?.message || 'Could not link booking.');
     }
   };

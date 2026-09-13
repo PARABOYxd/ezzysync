@@ -1,4 +1,4 @@
-const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled'];
+const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled', 'Refunded'];
 const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'];
 
 /** Maps a Postgres `bookings` row (snake_case) to the camelCase shape the frontend expects. */
@@ -40,6 +40,14 @@ function rowToBooking(row) {
     batchCustomId: row.batch_custom_id || null,
     costTemplateId: row.cost_template_id || null,
     sharingType: row.sharing_type || 'Double',
+    // Written by insertBooking/updateBooking for a while but never mapped
+    // back here - the "Linked Hotel" card in BookingViewDrawer always read
+    // undefined, and the form's fields (now wired up) had nothing to load.
+    hotelId: row.hotel_id || null,
+    roomCategory: row.room_category || '',
+    hotelBookingStatus: row.hotel_booking_status || 'Pending',
+    hotelConfirmationNo: row.hotel_confirmation_no || '',
+    refundedAmount: Number(row.refunded_amount || 0),
   };
 }
 

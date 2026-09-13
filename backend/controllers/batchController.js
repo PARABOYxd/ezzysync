@@ -52,12 +52,20 @@ async function remove(req, res, next) {
 
 async function link(req, res, next) {
   try {
-    const { bookingId } = req.body;
+    const { bookingId, force } = req.body;
     if (!bookingId) return res.status(400).json({ message: 'bookingId is required.' });
-    const booking = await batchService.linkBooking(req.user.tenantId, req.params.id, bookingId);
-    await auditService.logAction(req, 'LINK_BOOKING_TO_BATCH', { batchId: req.params.id, bookingId });
+    const booking = await batchService.linkBooking(req.user.tenantId, req.params.id, bookingId, { force: !!force });
+    await auditService.logAction(req, 'LINK_BOOKING_TO_BATCH', { batchId: req.params.id, bookingId, overCapacity: !!force });
     res.json({ booking });
   } catch (err) {
+    if (err.code === 'BATCH_CAPACITY_EXCEEDED') {
+      return res.status(409).json({
+        message: err.message,
+        code: err.code,
+        remainingSeats: err.remainingSeats,
+        requestedSeats: err.requestedSeats,
+      });
+    }
     next(err);
   }
 }

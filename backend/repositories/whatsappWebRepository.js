@@ -139,11 +139,11 @@ async function findChatById(tenantId, chatId) {
  * lead is kept, and a blank jid is filled in rather than replaced. The loser of
  * the race gets the winner's row back and carries on.
  */
-async function createChat(tenantId, { phone, jid, customerName, leadId, lastMessage, aiEnabled }) {
+async function createChat(tenantId, { phone, jid, customerName, leadId, lastMessage, aiEnabled, transport = 'web' }) {
   const { rows } = await query(
     `INSERT INTO whatsapp_chats
-       (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, last_inbound_at, unread_count, ai_enabled, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, now(), now(), 1, $7, now(), now())
+       (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, last_inbound_at, unread_count, ai_enabled, transport, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, now(), now(), 1, $7, $8, now(), now())
      ON CONFLICT (tenant_id, phone_key) DO UPDATE SET
        last_message = EXCLUDED.last_message,
        last_message_timestamp = now(),
@@ -153,7 +153,7 @@ async function createChat(tenantId, { phone, jid, customerName, leadId, lastMess
        lead_id = COALESCE(whatsapp_chats.lead_id, EXCLUDED.lead_id),
        jid = COALESCE(NULLIF(whatsapp_chats.jid, ''), EXCLUDED.jid)
      RETURNING *`,
-    [tenantId, phone, jid, customerName, leadId, lastMessage, aiEnabled]
+    [tenantId, phone, jid, customerName, leadId, lastMessage, aiEnabled, transport]
   );
   return rows[0];
 }

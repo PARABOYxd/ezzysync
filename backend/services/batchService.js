@@ -74,7 +74,7 @@ async function getBatchDetail(tenantId, batchId) {
   };
 }
 
-async function linkBooking(tenantId, batchId, bookingIdText) {
+async function linkBooking(tenantId, batchId, bookingIdText, { force = false } = {}) {
   const batch = await getBatchByBatchId(tenantId, batchId);
   if (!batch) {
     const err = new Error('Tour batch not found.');
@@ -96,6 +96,23 @@ async function linkBooking(tenantId, batchId, bookingIdText) {
   if (!sameTrip || !sameDate) {
     const err = new Error(`This booking's trip/departure date doesn't match the batch's itinerary (${batch.tripName}, ${batch.departureDate}).`);
     err.status = 400;
+    throw err;
+  }
+
+  // A soft warning, not a hard block: an agency would rather overbook a seat
+  // than turn a customer away, so this only stops the link long enough for
+  // the agent to see the numbers and decide - `force` is how they confirm.
+  const incomingMembers = Number(bookingRow.members || 0);
+  const remainingSeats = Math.max(batch.totalCapacity - batch.confirmedSeats, 0);
+  if (!force && incomingMembers > remainingSeats) {
+    const err = new Error(
+      `This batch has ${remainingSeats} seat(s) left and this booking needs ${incomingMembers}. ` +
+        `Link it anyway if the agency is accepting the overbook.`
+    );
+    err.status = 409;
+    err.code = 'BATCH_CAPACITY_EXCEEDED';
+    err.remainingSeats = remainingSeats;
+    err.requestedSeats = incomingMembers;
     throw err;
   }
 

@@ -15,8 +15,8 @@ export const updateBatch = (id, data) =>
 export const deleteBatch = (id) =>
   api.delete(`/batches/${id}`);
 
-export const linkBooking = (batchId, bookingId) =>
-  api.post(`/batches/${batchId}/link`, { bookingId }).then((r) => r.data.booking);
+export const linkBooking = (batchId, bookingId, force = false) =>
+  api.post(`/batches/${batchId}/link`, { bookingId, force }).then((r) => r.data.booking);
 
 export const unlinkBooking = (batchId, bookingId) =>
   api.post(`/batches/${batchId}/unlink`, { bookingId }).then((r) => r.data.booking);

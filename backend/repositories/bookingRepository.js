@@ -183,7 +183,7 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
        vendor_hotel_cost = $19, vendor_flight_cost = $20, vendor_transport_cost = $21, vendor_other_cost = $22, net_profit = $23,
        customer_id = COALESCE($26, customer_id),
        hotel_id = $27, room_category = $28, hotel_booking_status = $29, hotel_confirmation_no = $30,
-       batch_id = $31, cost_template_id = $32, sharing_type = $33
+       batch_id = $31, cost_template_id = $32, sharing_type = $33, refunded_amount = $34
      WHERE tenant_id = $24 AND booking_id = $25
      RETURNING *`,
     [
@@ -194,7 +194,7 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
       hotelCost, flightCost, transportCost, otherCost, netProfit,
       tenantId, bookingId, customerId || null,
       merged.hotelId || null, merged.roomCategory || '', merged.hotelBookingStatus || 'Pending', merged.hotelConfirmationNo || '',
-      merged.batchId || null, merged.costTemplateId || null, merged.sharingType || 'Double'
+      merged.batchId || null, merged.costTemplateId || null, merged.sharingType || 'Double', Number(merged.refundedAmount || 0)
     ]
   );
   return rows[0];
