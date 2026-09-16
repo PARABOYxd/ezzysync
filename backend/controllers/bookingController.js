@@ -270,6 +270,42 @@ async function sendVoucher(req, res, next) {
   }
 }
 
+async function sendReminder(req, res, next) {
+  try {
+    const { type, daysAhead = 1, channel = 'both', customNotes = '' } = req.body;
+    const reminderService = require('../services/reminderService');
+
+    let result;
+    if (type === 'payment' || type === 'payment_due') {
+      result = await reminderService.sendPaymentReminder(req.user.tenantId, req.params.id, {
+        channel,
+        customNotes,
+        force: true, // Manual action from UI is always forced
+        userId: req.user.userId || req.user.id,
+      });
+    } else {
+      result = await reminderService.sendDepartureReminder(req.user.tenantId, req.params.id, {
+        daysAhead: Number(daysAhead) || 1,
+        channel,
+        customNotes,
+        force: true, // Manual action from UI is always forced
+        userId: req.user.userId || req.user.id,
+      });
+    }
+
+    await auditService.logAction(req, 'SEND_BOOKING_REMINDER', {
+      bookingId: req.params.id,
+      type: type || 'departure',
+      channel,
+      success: result.success,
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   list,
   getOne,
@@ -284,4 +320,5 @@ module.exports = {
   removePayment,
   getVoucherPdf,
   sendVoucher,
+  sendReminder,
 };

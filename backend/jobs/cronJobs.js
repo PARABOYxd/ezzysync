@@ -1,11 +1,11 @@
 const cron = require('node-cron');
 const auditRepository = require('../repositories/auditRepository');
-const bookingRepository = require('../repositories/bookingRepository');
 const logRepository = require('../repositories/logRepository');
 const followUpRepository = require('../repositories/followUpRepository');
 const userRepository = require('../repositories/userRepository');
 const leadRepository = require('../repositories/leadRepository');
 const emailService = require('../services/emailService');
+const reminderService = require('../services/reminderService');
 const logger = require('../utils/logger').child({ module: 'cron' });
 
 /**
@@ -67,37 +67,17 @@ function initScheduler() {
     }
   });
 
-  // Job 3: Upcoming Departure Alerts (Runs every morning at 8 AM: 0 8 * * *)
-  // Sends reminder emails for bookings departing in 1 day and 3 days.
-  cron.schedule('0 8 * * *', async () => {
-    logger.info('Checking upcoming departures...');
+  // Job 3: Departure (T-1, T-3) and payment-due reminders, 8:30 AM India time.
+  // The server runs on UTC; without the timezone this fired at 2 PM IST.
+  cron.schedule('30 8 * * *', async () => {
+    logger.info('Executing daily automated travel reminders cron...');
     try {
-      // Alert for 1-day departures
-      const tomorrow = await bookingRepository.getUpcomingDepartures(1);
-      for (const booking of tomorrow) {
-        try {
-          await sendDepartureAlert(booking, 1);
-          logger.info({ tenantId: booking.tenant_id, bookingId: booking.booking_id, email: booking.email }, 'Sent 1-day departure alert');
-        } catch (mailErr) {
-          logger.error({ err: mailErr, tenantId: booking.tenant_id, bookingId: booking.booking_id, email: booking.email }, 'Failed to send 1-day departure alert');
-        }
-      }
-
-      // Alert for 3-day departures
-      const in3Days = await bookingRepository.getUpcomingDepartures(3);
-      for (const booking of in3Days) {
-        try {
-          await sendDepartureAlert(booking, 3);
-          logger.info({ tenantId: booking.tenant_id, bookingId: booking.booking_id, email: booking.email }, 'Sent 3-day departure alert');
-        } catch (mailErr) {
-          logger.error({ err: mailErr, tenantId: booking.tenant_id, bookingId: booking.booking_id, email: booking.email }, 'Failed to send 3-day departure alert');
-        }
-      }
-
-      logger.info({ oneDay: tomorrow.length, threeDay: in3Days.length }, 'Departure alerts complete');
+      const stats = await reminderService.runDailyRemindersCron();
+      logger.info(stats, 'Daily automated travel reminders cron complete');
     } catch (err) {
-      logger.error({ err }, 'Error running departure alert job');
+      logger.error({ err }, 'Error executing daily automated travel reminders cron');
     }
+<<<<<<< HEAD
   });
 
   // Job 4: Lead priority (Hot/Warm/Cold) recompute (Runs hourly at :00).
@@ -118,6 +98,9 @@ function initScheduler() {
   leadRepository.recomputeAllPriorities()
     .then((updated) => logger.info({ updated }, 'Initial lead priority recompute complete'))
     .catch((err) => logger.error({ err }, 'Error running initial lead priority recompute'));
+=======
+  }, { timezone: 'Asia/Kolkata' });
+>>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
 }
 
 /**
@@ -177,6 +160,7 @@ async function sendFollowUpDigestForTenant(tenantId) {
   return sent;
 }
 
+<<<<<<< HEAD
 /**
  * Sends a departure reminder over whichever channels this booking has data
  * for - email if there's an address, WhatsApp if there's a phone. Each
@@ -249,6 +233,8 @@ async function sendDepartureAlert(booking, daysAhead) {
   });
 }
 
+=======
+>>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
 module.exports = {
   initScheduler
 };

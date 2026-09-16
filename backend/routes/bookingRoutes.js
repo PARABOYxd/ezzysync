@@ -25,5 +25,6 @@ router.delete('/:id/payments/:paymentId', requirePermission('bookings', 'update'
 
 router.get('/:id/voucher-pdf', requirePermission('bookings', 'read'), ctrl.getVoucherPdf);
 router.post('/:id/send-voucher', requirePermission('bookings', 'update'), ctrl.sendVoucher);
+router.post('/:id/send-reminder', requirePermission('bookings', 'update'), ctrl.sendReminder);
 
 module.exports = router;

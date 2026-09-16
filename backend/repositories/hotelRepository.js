@@ -77,10 +77,20 @@ async function deleteHotel(tenantId, id) {
   return rows[0];
 }
 
+async function getHotelsByIds(tenantId, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  const { rows } = await query(
+    'SELECT * FROM hotels WHERE tenant_id = $1 AND id::text = ANY($2::text[])',
+    [tenantId, ids.map(String)]
+  );
+  return rows;
+}
+
 module.exports = {
   createHotel,
   listHotels,
   getHotelById,
+  getHotelsByIds,
   updateHotel,
   deleteHotel
 };

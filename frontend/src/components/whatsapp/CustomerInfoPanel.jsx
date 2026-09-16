@@ -2,7 +2,11 @@ import React from 'react';
 import { Briefcase, Calendar, Paperclip, FileText, Loader2, CalendarPlus } from 'lucide-react';
 import { mediaTypeOf, mediaNameOf } from '../../utils/whatsappMessageFormatters';
 
+<<<<<<< HEAD
 export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, onViewMedia, onCreateBooking, creatingBooking }) {
+=======
+export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia }) {
+>>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
   return (
     <div className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
       <div>
@@ -111,6 +115,40 @@ export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendin
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
                 <span>🚗 Cab Voucher{Array.isArray(selectedChat.booking_transports) && selectedChat.booking_transports.length > 1 ? ` (${selectedChat.booking_transports.length})` : ''}</span>
+              )}
+            </button>
+          </div>
+
+          {/* 1-Click WhatsApp Reminders (Departure & Payment Due) */}
+          <div className="pt-1.5 grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              disabled={sendingReminderType !== null}
+              onClick={() => onSendReminder('departure')}
+              className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-[10px] font-bold shadow-2xs transition disabled:opacity-50"
+              title="Send departure briefing & travel alert directly to this chat"
+            >
+              {sendingReminderType === 'departure' ? (
+                <Loader2 className="w-3 h-3 animate-spin text-teal-600" />
+              ) : (
+                <span>✈️ Trip Alert</span>
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={sendingReminderType !== null || Number(selectedChat.remaining || 0) <= 0}
+              onClick={() => onSendReminder('payment')}
+              className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[10px] font-bold shadow-2xs transition disabled:opacity-50 ${
+                Number(selectedChat.remaining || 0) > 0
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700'
+              }`}
+              title={Number(selectedChat.remaining || 0) > 0 ? `Send pending payment alert for ₹${Number(selectedChat.remaining).toLocaleString('en-IN')}` : 'No balance due'}
+            >
+              {sendingReminderType === 'payment' ? (
+                <Loader2 className="w-3 h-3 animate-spin text-white" />
+              ) : (
+                <span>💳 Due Alert</span>
               )}
             </button>
           </div>

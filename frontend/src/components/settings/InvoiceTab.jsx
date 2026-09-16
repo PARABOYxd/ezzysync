@@ -108,6 +108,23 @@ export default function InvoiceTab({
                   />
                   Auto-send Invoice via WhatsApp on new bookings
                 </label>
+
+                <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-amber-50 text-xs font-medium text-amber-900 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.autoRemindersEnabled}
+                    onChange={(e) => setSettings({ ...settings, autoRemindersEnabled: e.target.checked })}
+                    className="mt-0.5 rounded text-amber-600 focus:ring-amber-500/20 border-amber-300"
+                  />
+                  <span>
+                    Automatic trip &amp; payment reminders (8:30 AM daily)
+                    <span className="block font-normal text-amber-800/80 mt-0.5">
+                      For Booked trips: an alert 3 days and 1 day before departure, and a balance reminder 7 and 2 days before.
+                      Sent on WhatsApp and email. On a QR-linked number, automated messages to many customers raise the
+                      risk of WhatsApp banning the number.
+                    </span>
+                  </span>
+                </label>
               </div>
             </div>
 

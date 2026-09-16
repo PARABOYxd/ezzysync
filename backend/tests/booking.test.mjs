@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Buffer } from 'node:buffer';
-import { appRequire, helpers } from './app.mjs';
+import { db, appRequire, helpers } from './app.mjs';
 
 const bookingService = appRequire('../services/bookingService');
 const { createTenant, resetTenantData, unique } = helpers;
@@ -504,4 +504,253 @@ describe('Bookings', () => {
       expect(hotelPdf.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     });
   });
+
+  describe('automated and manual trip reminders', () => {
+    let originalSendText;
+    let whatsappSendService;
+
+    beforeEach(() => {
+      whatsappSendService = appRequire('../services/whatsappSendService');
+      originalSendText = whatsappSendService.sendText;
+      whatsappSendService.sendText = async () => ({ sent: true, via: 'mock' });
+    });
+
+    afterEach(() => {
+      if (originalSendText && whatsappSendService) {
+        whatsappSendService.sendText = originalSendText;
+      }
+    });
+
+    it('sends departure reminder, logs to timeline, and records in remindersSent', async () => {
+      const reminderService = appRequire('../services/reminderService');
+      const booking = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({
+          customerName: 'Rohit Sharma',
+          phone: '9876543210',
+          email: 'rohit@example.com',
+          trip: 'Kashmir Paradise',
+          departure: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+          paid: 2000,
+          pricePerPerson: 5000,
+          members: 2,
+        }),
+        'agent@test.com'
+      );
+
+      const res = await reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, {
+        daysAhead: 1,
+        force: true,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.record.type).toBe('departure_1day');
+
+      // Verify recorded in DB
+      const updated = await bookingService.getBookingById(tenant.tenantId, booking.bookingId);
+      expect(updated.remindersSent).toBeDefined();
+      expect(updated.remindersSent.length).toBeGreaterThanOrEqual(1);
+      expect(updated.remindersSent[0].type).toBe('departure_1day');
+
+      // Verify deduplication: non-forced send today should be skipped
+      const dedupRes = await reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, {
+        daysAhead: 1,
+        force: false,
+      });
+      expect(dedupRes.skipped).toBe(true);
+
+      // Verify follow-up timeline activity logged
+      const logs = await bookingService.getFollowUps(tenant.tenantId, booking.bookingId);
+      expect(logs.some((l) => l.note.includes('Departure alert'))).toBe(true);
+    });
+
+    it('sends payment due reminder when remaining balance exists', async () => {
+      const reminderService = appRequire('../services/reminderService');
+      const booking = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({
+          customerName: 'Sunita Patel',
+          phone: '9811223344',
+          email: 'sunita@example.com',
+          trip: 'Kerala Backwaters',
+          pricePerPerson: 8000,
+          members: 2,
+          paid: 5000, // Remaining: 11000
+        }),
+        'agent@test.com'
+      );
+
+      const res = await reminderService.sendPaymentReminder(tenant.tenantId, booking.bookingId, {
+        force: true,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.record.type).toBe('payment_due');
+      expect(res.record.amountDue).toBe(11000);
+
+      // Verify follow-up timeline activity logged
+      const logs = await bookingService.getFollowUps(tenant.tenantId, booking.bookingId);
+      expect(logs.some((l) => l.note.includes('Payment reminder of ₹11,000'))).toBe(true);
+    });
+
+    it('works for a booking with a hotel, and the timeline note is plain text', async () => {
+      // getHotelsByIds did not exist, so any booking with a hotel threw before
+      // anything was sent; and the timeline note was stored as a JSON object.
+      const reminderService = appRequire('../services/reminderService');
+      const hotelRepository = appRequire('../repositories/hotelRepository');
+      const hotel = await hotelRepository.createHotel(tenant.tenantId, { name: 'Lake View', city: 'Udaipur' });
+      const booking = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({ hotelId: hotel.id, phone: '9876543210' }),
+        'agent@test.com'
+      );
+
+      const res = await reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, {
+        daysAhead: 1, channel: 'whatsapp', force: true,
+      });
+      expect(res.success).toBe(true);
+
+      const logs = await bookingService.getFollowUps(tenant.tenantId, booking.bookingId);
+      const note = logs.find((l) => l.note.includes('Departure alert')).note;
+      expect(note).toBe('Departure alert (1 day before) sent via WhatsApp.');
+    });
+
+    it('sends once when several runs start at the same moment', async () => {
+      const reminderService = appRequire('../services/reminderService');
+      let sends = 0;
+      whatsappSendService.sendText = async () => { sends += 1; return { sent: true }; };
+      const booking = await bookingService.createBooking(
+        tenant.tenantId, bookingData({ phone: '9876543210' }), 'agent@test.com'
+      );
+
+      const results = await Promise.all(
+        Array.from({ length: 4 }, () =>
+          reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, { daysAhead: 3, channel: 'whatsapp' })
+        )
+      );
+
+      expect(sends).toBe(1);
+      expect(results.filter((r) => r.skipped)).toHaveLength(3);
+      const updated = await bookingService.getBookingById(tenant.tenantId, booking.bookingId);
+      expect(updated.remindersSent.map((r) => r.status)).toEqual(['sent']);
+    });
+
+    it('lets a failed reminder be retried the same day', async () => {
+      const reminderService = appRequire('../services/reminderService');
+      whatsappSendService.sendText = async () => { throw new Error('WhatsApp is not connected'); };
+      const booking = await bookingService.createBooking(
+        tenant.tenantId, bookingData({ phone: '9876543210' }), 'agent@test.com'
+      );
+
+      const first = await reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, { daysAhead: 3, channel: 'whatsapp' });
+      expect(first.success).toBe(false);
+
+      whatsappSendService.sendText = async () => ({ sent: true });
+      const second = await reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, { daysAhead: 3, channel: 'whatsapp' });
+      expect(second.success).toBe(true);
+      expect(second.skipped).toBeUndefined();
+    });
+
+    it('finds tomorrow\'s departures by India date and ignores unparseable dates', async () => {
+      const tomorrowIst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' })
+        .format(new Date(Date.now() + 86400000));
+      const bookingRepository = appRequire('../repositories/bookingRepository');
+      await enableAutoReminders(tenant.tenantId);
+      const good = await bookingService.createBooking(
+        tenant.tenantId, bookingData({ departure: tomorrowIst, travelStatus: 'Booked' }), 'agent@test.com'
+      );
+      // Free text used to throw inside DATE() and fail the run for everyone.
+      await bookingService.createBooking(tenant.tenantId, bookingData({ departure: '15 Oct' }), 'agent@test.com');
+
+      const rows = await bookingRepository.getUpcomingDepartures(1);
+      expect(rows.map((r) => r.booking_id)).toContain(good.bookingId);
+    });
+
+    it('escapes customer-entered text in the email', async () => {
+      const reminderService = appRequire('../services/reminderService');
+      const emailService = appRequire('../services/emailService');
+      const originalSendMail = emailService.sendMail;
+      let html = '';
+      emailService.sendMail = async (mail) => { html = mail.html; return { sent: true }; };
+      try {
+        const booking = await bookingService.createBooking(
+          tenant.tenantId,
+          bookingData({ customerName: '<a href="https://evil.test">Pay here</a>', email: 'x@example.com' }),
+          'agent@test.com'
+        );
+        await reminderService.sendDepartureReminder(tenant.tenantId, booking.bookingId, {
+          daysAhead: 1, channel: 'email', force: true, customNotes: '<script>x</script>',
+        });
+      } finally {
+        emailService.sendMail = originalSendMail;
+      }
+      expect(html).not.toContain('<a href="https://evil.test">');
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;a href=');
+    });
+
+    describe('the automated daily run', () => {
+      const tomorrowIst = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' })
+        .format(new Date(Date.now() + 86400000));
+
+      it('sends nothing for a tenant that has not switched reminders on', async () => {
+        const bookingRepository = appRequire('../repositories/bookingRepository');
+        const booking = await bookingService.createBooking(
+          tenant.tenantId, bookingData({ departure: tomorrowIst(), travelStatus: 'Booked' }), 'agent@test.com'
+        );
+
+        const rows = await bookingRepository.getUpcomingDepartures(1);
+        expect(rows.map((r) => r.booking_id)).not.toContain(booking.bookingId);
+      });
+
+      it('skips trips that are not Booked yet', async () => {
+        const bookingRepository = appRequire('../repositories/bookingRepository');
+        await enableAutoReminders(tenant.tenantId);
+        const booking = await bookingService.createBooking(
+          tenant.tenantId, bookingData({ departure: tomorrowIst(), travelStatus: 'Confirming' }), 'agent@test.com'
+        );
+        await db.query(`UPDATE bookings SET travel_status = 'Confirming' WHERE booking_id = $1`, [booking.bookingId]);
+
+        const rows = await bookingRepository.getUpcomingDepartures(1);
+        expect(rows.map((r) => r.booking_id)).not.toContain(booking.bookingId);
+      });
+
+      it('skips a tenant whose plan has expired', async () => {
+        const reminderService = appRequire('../services/reminderService');
+        let sends = 0;
+        whatsappSendService.sendText = async () => { sends += 1; return { sent: true }; };
+        await enableAutoReminders(tenant.tenantId);
+        await bookingService.createBooking(
+          tenant.tenantId, bookingData({ departure: tomorrowIst(), phone: '9876543210', email: '', travelStatus: 'Booked' }), 'agent@test.com'
+        );
+        await db.query(`UPDATE tenants SET plan_expires_at = now() - interval '1 day' WHERE id = $1`, [tenant.tenantId]);
+
+        const stats = await reminderService.runDailyRemindersCron();
+        expect(sends).toBe(0);
+        expect(stats.skippedExpiredPlan).toBeGreaterThanOrEqual(1);
+      });
+
+      it('sends for an active tenant that switched it on', async () => {
+        const reminderService = appRequire('../services/reminderService');
+        let sends = 0;
+        whatsappSendService.sendText = async () => { sends += 1; return { sent: true }; };
+        await enableAutoReminders(tenant.tenantId);
+        await bookingService.createBooking(
+          tenant.tenantId, bookingData({ departure: tomorrowIst(), phone: '9876543210', email: '', travelStatus: 'Booked' }), 'agent@test.com'
+        );
+
+        const stats = await reminderService.runDailyRemindersCron();
+        expect(sends).toBe(1);
+        expect(stats.oneDayAlerts).toBe(1);
+      });
+    });
+  });
 });
+
+async function enableAutoReminders(tenantId) {
+  await db.query(
+    `INSERT INTO settings (tenant_id, auto_reminders_enabled) VALUES ($1, TRUE)
+     ON CONFLICT (tenant_id) DO UPDATE SET auto_reminders_enabled = TRUE`,
+    [tenantId]
+  );
+}

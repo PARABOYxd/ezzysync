@@ -29,6 +29,9 @@ export const downloadVoucherPdf = (bookingId, type = 'hotel') =>
 export const sendVoucherToWhatsApp = (bookingId, payload) =>
   api.post(`/bookings/${bookingId}/send-voucher`, payload).then((r) => r.data);
 
+export const sendBookingReminder = (bookingId, payload) =>
+  api.post(`/bookings/${bookingId}/send-reminder`, payload).then((r) => r.data);
+
 /** Flat booking array for pickers/dropdowns. Tolerates both the wrapped
  * ({ bookings: [...] }) and bare-array response shapes. */
 export const getBookingList = () => api.get('/bookings').then((r) => r.data.bookings || r.data || []);

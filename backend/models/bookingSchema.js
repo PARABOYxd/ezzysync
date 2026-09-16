@@ -61,6 +61,7 @@ function rowToBooking(row) {
     voucherNotes: row.voucher_notes || '',
     transports: Array.isArray(row.transports) ? row.transports : (row.transports ? JSON.parse(row.transports) : []),
     hotelsStay: Array.isArray(row.hotels_stay) ? row.hotels_stay : (row.hotels_stay ? JSON.parse(row.hotels_stay) : []),
+    remindersSent: Array.isArray(row.reminders_sent) ? row.reminders_sent : (row.reminders_sent ? JSON.parse(row.reminders_sent) : []),
   };
 }
 

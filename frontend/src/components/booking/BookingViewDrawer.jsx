@@ -6,7 +6,7 @@ import Input from '../ui/Input.jsx';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { TravelStatusBadge, PaymentStatusBadge } from '../common/StatusBadge.jsx';
 import * as bookingService from '../../services/bookingService';
-import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info, IndianRupee, MapPin, Home, Tag, Download, Send, Car, Check, Loader2 } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info, IndianRupee, MapPin, Home, Tag, Download, Send, Car, Check, Loader2, Bell, AlertCircle } from 'lucide-react';
 import { useToast } from '../../hooks/useToast.jsx';
 import * as hotelService from '../../services/hotelService';
 
@@ -20,6 +20,35 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   const [hotels, setHotels] = useState([]);
   const [downloadingVoucher, setDownloadingVoucher] = useState(null);
   const [sendingVoucher, setSendingVoucher] = useState(null);
+  const [sendingReminder, setSendingReminder] = useState(null);
+
+  const handleSendReminder = async (type) => {
+    if (!booking?.bookingId) return;
+    try {
+      setSendingReminder(type);
+      const res = await bookingService.sendBookingReminder(booking.bookingId, {
+        type,
+        channel: 'both',
+      });
+      if (res.success && !res.skipped) {
+        toast.success(
+          type === 'payment'
+            ? `Payment due reminder dispatched to ${booking.customerName}!`
+            : `Trip departure reminder dispatched to ${booking.customerName}!`
+        );
+        if (onRefresh) onRefresh();
+        loadLogs();
+      } else if (res.skipped) {
+        toast.info(res.reason || 'Reminder was already sent today.');
+      } else {
+        toast.error(res.whatsappError || res.emailError || 'Failed to dispatch reminder.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to dispatch reminder.');
+    } finally {
+      setSendingReminder(null);
+    }
+  };
 
   // The backend already normalizes every booking's hotel(s)/transport(s)
   // into these arrays on every create/update (bookingRepository's
@@ -421,6 +450,75 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
               </div>
             </div>
           )}
+
+          {/* Section 2.7: Automated Alerts & Reminders */}
+          <div className="space-y-3 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-200/60">
+            <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+              <h5 className="text-[11px] uppercase font-bold tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Bell size={13} className="text-amber-500" />
+                <span>Travel Alerts & Reminders</span>
+              </h5>
+              <span className="text-[10px] text-slate-400 font-semibold">
+                WhatsApp & Email
+              </span>
+            </div>
+
+            {/* Reminder History Badges */}
+            {Array.isArray(booking.remindersSent) && booking.remindersSent.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {booking.remindersSent.slice(-4).map((r, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-slate-600 shadow-2xs"
+                  >
+                    <span>{r.type === 'payment_due' ? '💳 Payment Due' : r.type === 'departure_1day' ? '✈️ 1-Day Alert' : '✈️ 3-Day Alert'}</span>
+                    <span className="text-[9px] text-slate-400">· {formatDate(r.sentAt || r.sentDate)}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-400 italic">
+                No reminders sent yet. Automatic reminders run at 8:30 AM for Booked trips when switched on in Settings.
+              </p>
+            )}
+
+            {/* Instant Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                disabled={sendingReminder !== null}
+                onClick={() => handleSendReminder('departure')}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                title="Send departure alert with cab, chauffeur and hotel details to traveler"
+              >
+                {sendingReminder === 'departure' ? (
+                  <Loader2 size={13} className="animate-spin text-teal-600" />
+                ) : (
+                  <Send size={13} className="text-teal-600" />
+                )}
+                <span>Send Trip Alert</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={sendingReminder !== null || Number(booking.remaining || 0) <= 0}
+                onClick={() => handleSendReminder('payment')}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50 ${
+                  Number(booking.remaining || 0) > 0
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                    : 'bg-slate-100 text-slate-400 border border-slate-200'
+                }`}
+                title={Number(booking.remaining || 0) > 0 ? `Send payment due alert for remaining ₹${booking.remaining}` : 'Payment fully settled'}
+              >
+                {sendingReminder === 'payment' ? (
+                  <Loader2 size={13} className="animate-spin text-white" />
+                ) : (
+                  <IndianRupee size={13} />
+                )}
+                <span>Send Due Alert</span>
+              </button>
+            </div>
+          </div>
 
           {/* Section 3: Billing Info */}
           <div className="space-y-4">

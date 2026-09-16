@@ -474,6 +474,7 @@ async function insertFollowUp(tenantId, bookingIdText, note, activityType, nextF
   return fRows[0];
 }
 
+<<<<<<< HEAD
 async function listPayments(tenantId, bookingIdText) {
   const { rows } = await query(
     `SELECT p.*
@@ -557,17 +558,95 @@ async function getUpcomingDepartures(daysAhead) {
   // reminder of any kind, even though the reminder can go out over WhatsApp
   // just as well. daysAhead is parameterized, not interpolated, since it can
   // now come from a settings value rather than only a hardcoded caller.
+=======
+/*
+ * `departure` is free TEXT. DATE(departure) threw on the first row holding
+ * something like "15 Oct", and that one row failed the whole run for every
+ * tenant. Comparing the leading YYYY-MM-DD skips such rows instead.
+ *
+ * "Today" is India's date: at 8:30 AM IST the database's UTC date is the same,
+ * but the job must not depend on when it happens to run.
+ */
+const DEPARTS_IN_DAYS = `
+  b.departure ~ '^\\d{4}-\\d{2}-\\d{2}'
+  AND LEFT(b.departure, 10) = to_char((now() AT TIME ZONE 'Asia/Kolkata')::date + $1::int, 'YYYY-MM-DD')`;
+
+/*
+ * Only for the automated job: tenants who switched reminders on, and only
+ * 'Booked' trips - telling a customer "your trip is tomorrow" while the booking
+ * is still being confirmed is a promise the agency has not made yet.
+ */
+async function getUpcomingDepartures(daysAhead) {
+>>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
   const { rows } = await query(
     `SELECT b.*, t.company_name, t.id as tenant_uuid_id
      FROM bookings b
      JOIN tenants t ON b.tenant_id = t.id
+     JOIN settings s ON s.tenant_id = b.tenant_id AND s.auto_reminders_enabled = TRUE
      WHERE b.deleted = FALSE
        AND b.travel_status = 'Booked'
+<<<<<<< HEAD
        AND DATE(b.departure) = CURRENT_DATE + ($1 * INTERVAL '1 day')
        AND ((b.email IS NOT NULL AND b.email != '') OR (b.phone IS NOT NULL AND b.phone != ''))`,
+=======
+       AND ${DEPARTS_IN_DAYS}`,
+>>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
     [daysAhead]
   );
   return rows;
+}
+
+async function getPendingPaymentBookings(daysAhead) {
+  const { rows } = await query(
+    `SELECT b.*, t.company_name, t.id as tenant_uuid_id
+     FROM bookings b
+     JOIN tenants t ON b.tenant_id = t.id
+     JOIN settings s ON s.tenant_id = b.tenant_id AND s.auto_reminders_enabled = TRUE
+     WHERE b.deleted = FALSE
+       AND b.travel_status = 'Booked'
+       AND b.payment_status != 'Paid'
+       AND b.remaining > 0
+       AND ${DEPARTS_IN_DAYS}`,
+    [daysAhead]
+  );
+  return rows;
+}
+
+/**
+ * Reserves the right to send a reminder, before anything is sent.
+ *
+ * Check-then-send let two runs (a restart, a second instance, a double click)
+ * both see "not sent yet" and both message the customer. The check and the
+ * reservation are one UPDATE here, so only one caller gets a row back.
+ * `force` skips the same-day check for a deliberate manual resend.
+ *
+ * @returns {Promise<boolean>} true if this caller should send
+ */
+async function claimReminder(tenantId, bookingId, record, { force = false } = {}) {
+  const { rowCount } = await query(
+    `UPDATE bookings
+     SET reminders_sent = COALESCE(reminders_sent, '[]'::jsonb) || $3::jsonb
+     WHERE tenant_id = $1 AND booking_id = $2
+       AND ($6::boolean OR NOT EXISTS (
+         SELECT 1 FROM jsonb_array_elements(COALESCE(reminders_sent, '[]'::jsonb)) e
+         WHERE e->>'type' = $4 AND e->>'sentDate' = $5 AND e->>'status' IN ('sending', 'sent')
+       ))`,
+    [tenantId, bookingId, JSON.stringify([record]), record.type, record.sentDate, force]
+  );
+  return rowCount > 0;
+}
+
+/** Replaces a claimed entry with its outcome. A 'failed' entry frees the slot for a retry. */
+async function finishReminder(tenantId, bookingId, claimId, record) {
+  await query(
+    `UPDATE bookings
+     SET reminders_sent = (
+       SELECT COALESCE(jsonb_agg(CASE WHEN e->>'claimId' = $3 THEN $4::jsonb ELSE e END ORDER BY ord), '[]'::jsonb)
+       FROM jsonb_array_elements(COALESCE(reminders_sent, '[]'::jsonb)) WITH ORDINALITY AS t(e, ord)
+     )
+     WHERE tenant_id = $1 AND booking_id = $2`,
+    [tenantId, bookingId, claimId, JSON.stringify(record)]
+  );
 }
 
 module.exports = {
@@ -586,7 +665,13 @@ module.exports = {
   getActiveBookingsByCustomer,
   getUpcomingDepartures,
   existsByPhone,
+<<<<<<< HEAD
   listPayments,
   insertPayment,
   deletePayment,
+=======
+  getPendingPaymentBookings,
+  claimReminder,
+  finishReminder,
+>>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
 };

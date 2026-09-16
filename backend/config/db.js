@@ -460,7 +460,6 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note updating bookings costing columns');
   }
 
-  // Follow-up Logs & Booking enhancements
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS next_follow_up_date TIMESTAMPTZ DEFAULT NULL;`);
   } catch (err) {
