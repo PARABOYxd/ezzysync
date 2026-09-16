@@ -5,11 +5,13 @@ import * as publicService from '../services/publicService';
 import * as instagramService from '../services/instagramService';
 import * as instagramDirectService from '../services/instagramDirectService';
 import * as whatsappTemplateService from '../services/whatsappTemplateService';
+import { whatsappWebService } from '../services/whatsappWebService';
 import { getFeatures, fetchFeatures } from '../services/featureService';
 import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { connectGoogle, getGmailStatus, disconnectGmail } from '../services/googleService';
+import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
 import { Settings, Palette, Eye, FileCheck, Sparkles, Link2, Copy, RefreshCw, MessageSquare, Instagram, ChevronDown, ChevronUp, Trash2, Plus, Edit2 } from 'lucide-react';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
@@ -46,6 +48,12 @@ export default function SettingsPage() {
   const [connectingWA, setConnectingWA] = useState(false);
   const [disconnectingWA, setDisconnectingWA] = useState(false);
   const [waCreds, setWaCreds] = useState({ whatsappPhoneNumberId: '', whatsappAccessToken: '', whatsappWabaId: '', whatsappBusinessId: '', whatsappAppSecret: '' });
+  // The live state of the QR-linked session. This panel used to show a green
+  // "Active System" badge that was hardcoded, so a disconnected number still
+  // read as connected - the one thing an owner opens this page to check.
+  const [qrSession, setQrSession] = useState(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [disconnectingQr, setDisconnectingQr] = useState(false);
   const [savingWaCreds, setSavingWaCreds] = useState(false);
 
   // Mirrors the server's values (access token/app secret arrive masked as
@@ -94,6 +102,27 @@ export default function SettingsPage() {
   useEffect(() => {
     refreshGmailStatus();
   }, []);
+
+  const refreshQrSession = () => {
+    whatsappWebService
+      .getStatus()
+      .then(setQrSession)
+      .catch(() => setQrSession(null));
+  };
+
+  const handleDisconnectQr = async () => {
+    if (!window.confirm('Unlink this WhatsApp number? Your chats stay, but nothing can be sent or received until you scan again.')) return;
+    setDisconnectingQr(true);
+    try {
+      await whatsappWebService.disconnect();
+      toast.success('WhatsApp unlinked.');
+      refreshQrSession();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not unlink WhatsApp.');
+    } finally {
+      setDisconnectingQr(false);
+    }
+  };
 
   const handleDisconnectGmail = async () => {
     setGmailBusy(true);
@@ -324,6 +353,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (activeTab === 'whatsapp') {
+      refreshQrSession();
       setLoadingTemplates(true);
       whatsappTemplateService.getTemplates()
         .then(setTemplates)
@@ -815,47 +845,79 @@ export default function SettingsPage() {
           return (
             <div className="max-w-3xl mx-auto space-y-6">
 
-              {/* 🟢 WhatsApp Live Engine & QR Status Card */}
-              <div className="card space-y-5 border-2 border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 shadow-xl shadow-emerald-500/5">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
-                      <MessageSquare size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                        WhatsApp Live Chat & QR Scanner
-                        <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
-                          Active System
-                        </span>
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Connect directly via WhatsApp Web QR code for real-time customer chats, AI auto-replies, and automatic lead creation.
-                      </p>
-                    </div>
-                  </div>
-
-                  <a
-                    href="/whatsapp-chat"
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-500/20 shrink-0"
-                  >
-                    Open Live Chat & Scanner ➔
-                  </a>
+              {/* How this agency is connected to WhatsApp.
+                  Both channels in one place, each showing what is actually
+                  true. The card this replaces was decorative - a green pulsing
+                  dot, "Active System" and "Ready & Active" were hardcoded, so a
+                  number that had been unlinked for a week still read as
+                  connected, and connecting was a link to a different page. */}
+              <div className="card space-y-4">
+                <div className="border-b border-slate-100 pb-4">
+                  <h3 className="font-bold text-slate-800">WhatsApp connection</h3>
+                  <p className="text-xs text-slate-400">
+                    Two ways to connect. Most agencies start with the QR code and move to the
+                    Business API as volume grows.
+                  </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-emerald-100 bg-white/80 text-xs text-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                {/* Quick connect - QR */}
+                <div className="p-4 rounded-xl border border-slate-200 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-bold text-slate-900">Multi-Device QR Automation</p>
-                      <p className="text-[11px] text-slate-500">
-                        Zero Meta fees, 24x7 Gemini AI auto-reply, customer itinerary PDFs, and instant lead capture.
+                      <div className="flex items-center gap-2">
+                        <MessageSquare size={16} className="text-emerald-600" />
+                        <h4 className="font-semibold text-slate-800 text-sm">Quick connect (QR code)</h4>
+                        {qrSession?.status === 'connected' ? (
+                          <span className="text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
+                            Connected
+                          </span>
+                        ) : qrSession?.status === 'connecting' || qrSession?.status === 'qrcode' ? (
+                          <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                            Connecting
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">
+                            Not connected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Scan once from your phone. Ready in a minute, no fees, no approvals.
+                        Best for replying to customers who message you first.
                       </p>
+                      {qrSession?.status === 'connected' && qrSession?.phoneNumber && (
+                        <p className="text-xs text-slate-600 mt-1.5">
+                          <span className="font-semibold text-slate-800">Linked number:</span> {qrSession.phoneNumber}
+                        </p>
+                      )}
                     </div>
+
+                    {qrSession?.status === 'connected' ? (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        onClick={handleDisconnectQr}
+                        disabled={disconnectingQr}
+                        className="text-xs px-4 shrink-0"
+                      >
+                        {disconnectingQr ? 'Unlinking...' : 'Unlink'}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={() => setQrModalOpen(true)}
+                        className="text-xs px-4 shrink-0"
+                      >
+                        Scan QR
+                      </Button>
+                    )}
                   </div>
-                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                    Ready & Active
-                  </span>
+
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Uses WhatsApp&apos;s companion-device protocol, the same as WhatsApp Web.
+                    Bulk or unsolicited messaging can get a number restricted — for campaigns
+                    and high volume, use the Business API below.
+                  </p>
                 </div>
               </div>
 
@@ -1997,6 +2059,19 @@ export default function SettingsPage() {
             )}
           </div>
         )}
+      {/* Scanning happens here now, rather than sending the owner to the
+          Live Chat page to find it. */}
+      <WhatsAppQRModal
+        isOpen={qrModalOpen}
+        onClose={() => {
+          setQrModalOpen(false);
+          refreshQrSession();
+        }}
+        onConnected={() => {
+          refreshQrSession();
+          toast.success('WhatsApp connected.');
+        }}
+      />
     </div>
   );
 }

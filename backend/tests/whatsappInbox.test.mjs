@@ -195,6 +195,90 @@ describe('WhatsApp inbox', () => {
     });
   });
 
+  describe('messages with nothing to render', () => {
+    // A message carrying neither text nor an attachment used to be skipped on
+    // the assumption it was a receipt. That dropped whole categories people
+    // send constantly, leaving an unexplained gap in the conversation.
+    const service = appRequire('../services/whatsappWebService');
+    const asMessage = (payload) => ({ message: payload });
+
+    const cases = [
+      ['a sticker', { stickerMessage: {} }, /sticker/i],
+      ['a pinned location', { locationMessage: { name: 'Gateway of India' } }, /Gateway of India/],
+      ['a shared contact', { contactMessage: { displayName: 'Ravi' } }, /Ravi/],
+      ['a poll', { pollCreationMessage: { name: 'Which hotel?' } }, /Which hotel/],
+      ['a video note', { ptvMessage: {} }, /video note/i],
+    ];
+
+    for (const [label, payload, expected] of cases) {
+      it(`records ${label} instead of dropping it`, () => {
+        expect(service.extractMessageText(asMessage(payload))).toMatch(expected);
+      });
+    }
+
+    it('still ignores a reaction', () => {
+      expect(service.extractMessageText(asMessage({ reactionMessage: { text: '👍' } }))).toBe('');
+    });
+  });
+
+  describe('thread order', () => {
+    it('interleaves both sides by the time WhatsApp sent them', async () => {
+      // A backlog sync used to stamp every message the agent had sent from
+      // their own phone with the moment of the sync, while the customer's
+      // messages kept their real times - so the thread read as "everything
+      // they said, then everything I said".
+      const chat = await repo.createChat(tenant.tenantId, {
+        phone: '9876500020', jid: 'o@s.whatsapp.net', customerName: 'Order',
+        leadId: null, lastMessage: 'hi', aiEnabled: false,
+      });
+
+      const base = Math.floor(Date.now() / 1000) - 3600;
+      const conversation = [
+        ['IN_1', 'inbound', base],
+        ['OUT_1', 'outbound', base + 60],
+        ['IN_2', 'inbound', base + 120],
+        ['OUT_2', 'outbound', base + 180],
+      ];
+
+      // Inserted out of order on purpose: a sync does not deliver them in
+      // conversation order.
+      for (const [id, direction, at] of [...conversation].reverse()) {
+        await repo.insertMessage(tenant.tenantId, {
+          chatId: chat.id, messageId: id, direction,
+          sender: direction === 'inbound' ? 'customer' : 'agent',
+          messageText: id, status: 'delivered', sentAt: at,
+        });
+      }
+
+      const messages = await repo.listMessages(tenant.tenantId, chat.id);
+      expect(messages.map((m) => m.message_id)).toEqual(['IN_1', 'OUT_1', 'IN_2', 'OUT_2']);
+    });
+
+    it('keeps a burst that shares one second in arrival order', async () => {
+      // WhatsApp timestamps are whole seconds, so three quick messages carry
+      // the same one. Without a tiebreaker their order is undefined, and the
+      // inbox re-reads the thread every three seconds.
+      const chat = await repo.createChat(tenant.tenantId, {
+        phone: '9876500021', jid: 'p@s.whatsapp.net', customerName: 'Burst',
+        leadId: null, lastMessage: 'hi', aiEnabled: false,
+      });
+
+      const sameSecond = Math.floor(Date.now() / 1000) - 600;
+      for (const id of ['B1', 'B2', 'B3', 'B4']) {
+        await repo.insertMessage(tenant.tenantId, {
+          chatId: chat.id, messageId: id, direction: 'inbound',
+          sender: 'customer', messageText: id, status: 'delivered', sentAt: sameSecond,
+        });
+      }
+
+      const first = (await repo.listMessages(tenant.tenantId, chat.id)).map((m) => m.message_id);
+      const second = (await repo.listMessages(tenant.tenantId, chat.id)).map((m) => m.message_id);
+
+      expect(first).toEqual(['B1', 'B2', 'B3', 'B4']);
+      expect(second).toEqual(first);
+    });
+  });
+
   describe('opting out', () => {
     it('recognises a request to stop, but not a sentence containing it', () => {
       expect(aiPolicy.isOptOutRequest('STOP')).toBe(true);

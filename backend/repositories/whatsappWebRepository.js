@@ -324,7 +324,11 @@ async function listMessages(tenantId, chatId) {
        FROM whatsapp_messages m
        LEFT JOIN users u ON u.id = m.user_id
       WHERE m.chat_id = $1 AND m.tenant_id = $2
-      ORDER BY m.message_timestamp ASC
+      -- seq breaks ties. WhatsApp timestamps are whole seconds, so a burst of
+      -- messages shares one, and ordering by the timestamp alone leaves those
+      -- in an order Postgres may change between two identical queries - which
+      -- the inbox runs every three seconds.
+      ORDER BY m.message_timestamp ASC, m.seq ASC
       LIMIT 300`,
     [chatId, tenantId]
   );

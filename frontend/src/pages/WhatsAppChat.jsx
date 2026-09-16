@@ -737,6 +737,40 @@ export default function WhatsAppChat() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  /**
+   * The label on a day divider, the way WhatsApp writes it.
+   *
+   * A thread showed only clock times, so a message at 09:15 gave no hint
+   * whether it arrived this morning or three weeks ago - and an agent scrolling
+   * back had no way to tell where yesterday ended.
+   */
+  const formatDayLabel = (ts) => {
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return '';
+
+    const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const daysApart = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86400000);
+
+    if (daysApart === 0) return 'Today';
+    if (daysApart === 1) return 'Yesterday';
+    // Inside the last week the weekday is more useful than the date.
+    if (daysApart < 7) return d.toLocaleDateString([], { weekday: 'long' });
+    // The year only earns its place once it is not this one.
+    return d.toLocaleDateString([], {
+      day: 'numeric',
+      month: 'short',
+      ...(d.getFullYear() !== new Date().getFullYear() && { year: 'numeric' }),
+    });
+  };
+
+  /** Whether a divider belongs above this message. */
+  const startsNewDay = (msg, previous) => {
+    if (!msg?.message_timestamp) return false;
+    if (!previous?.message_timestamp) return true;
+    return new Date(msg.message_timestamp).toDateString()
+      !== new Date(previous.message_timestamp).toDateString();
+  };
+
   const formatDate = (ts) => {
     if (!ts) return '';
     const d = new Date(ts);
@@ -1082,10 +1116,19 @@ export default function WhatsAppChat() {
               )}
 
               <div className="flex-1 px-6 py-5 overflow-y-auto space-y-2">
-                {messages.map((msg) => {
+                {messages.map((msg, index) => {
                   const isOutbound = msg.direction === 'outbound';
+                  const newDay = startsNewDay(msg, messages[index - 1]);
                   return (
-                    <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+                    <React.Fragment key={msg.id}>
+                      {newDay && (
+                        <div className="flex justify-center my-3">
+                          <span className="px-3 py-1 rounded-full bg-slate-200/80 dark:bg-slate-800 text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                            {formatDayLabel(msg.message_timestamp)}
+                          </span>
+                        </div>
+                      )}
+                    <div className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                       <div
                         className={`max-w-[75%] sm:max-w-md min-w-[88px] rounded-2xl px-3.5 py-2 shadow-sm text-xs leading-relaxed break-words ${
                           isOutbound
@@ -1168,6 +1211,7 @@ export default function WhatsAppChat() {
                         </div>
                       </div>
                     </div>
+                    </React.Fragment>
                   );
                 })}
                 <div ref={messagesEndRef} />

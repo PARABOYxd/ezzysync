@@ -124,6 +124,41 @@ function getRawMessage(msg) {
   return m;
 }
 
+/**
+ * Something readable for a message that carries no text and no attachment.
+ *
+ * A message with neither used to be skipped entirely, on the assumption that
+ * it was a receipt or a reaction. That quietly dropped whole categories people
+ * actually send: stickers, a pinned location, a shared contact, a poll. The
+ * agent saw a gap in the conversation with nothing to explain it, and the CRM
+ * had no record that anything had arrived.
+ *
+ * The content itself is not stored - a sticker is not something the inbox can
+ * render - but the message is, so the thread stays whole and the reply stays
+ * in the right place.
+ */
+function describeUnrenderableMessage(m) {
+  if (m.stickerMessage) return '🩷 Sticker';
+  if (m.locationMessage || m.liveLocationMessage) {
+    const loc = m.locationMessage || m.liveLocationMessage;
+    const name = loc.name || loc.address;
+    return name ? `📍 Location: ${name}` : '📍 Location';
+  }
+  if (m.contactMessage) return `👤 Contact: ${m.contactMessage.displayName || 'shared'}`;
+  if (m.contactsArrayMessage) {
+    const n = m.contactsArrayMessage.contacts?.length || 0;
+    return `👤 ${n || ''} contacts shared`.replace('  ', ' ');
+  }
+  if (m.pollCreationMessage || m.pollCreationMessageV3) {
+    const poll = m.pollCreationMessage || m.pollCreationMessageV3;
+    return `📊 Poll: ${poll.name || 'sent'}`;
+  }
+  if (m.ptvMessage) return '🎥 Video note';
+  if (m.pollUpdateMessage) return '📊 Poll response';
+  if (m.eventMessage) return `📅 Event: ${m.eventMessage.name || 'shared'}`;
+  return '';
+}
+
 function extractMessageText(msg) {
   const m = getRawMessage(msg);
   return (
@@ -135,6 +170,7 @@ function extractMessageText(msg) {
     m.buttonsResponseMessage?.selectedButtonId ||
     m.listResponseMessage?.singleSelectReply?.selectedRowId ||
     m.templateButtonReplyMessage?.selectedId ||
+    describeUnrenderableMessage(m) ||
     ''
   );
 }
@@ -412,6 +448,13 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
             messageId,
             messageType: media ? media.type : 'text',
             mediaUrl,
+            // The time WhatsApp sent it. Without this these were stamped at
+            // ingest, so on a backlog sync every message the agent had sent
+            // from their own phone landed at the moment of the sync - after
+            // all the customer's messages, which do carry real times. The
+            // thread then read as "everything they said, then everything I
+            // said" instead of a conversation.
+            sentAt: msg.messageTimestamp ? Number(msg.messageTimestamp) : null,
           });
         } catch (err) {
           logger.error({ err, tenantId, senderPhone }, 'Error recording message sent from the phone');
@@ -488,7 +531,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
  * for every number they message from their phone would fill the CRM with
  * people who are not customers.
  */
-async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId, messageType = 'text', mediaUrl = null }) {
+async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, messageId, messageType = 'text', mediaUrl = null, sentAt = null }) {
   const chat = await whatsappWebRepository.findChatByPhone(tenantId, senderPhone);
   if (!chat) return;
 
@@ -501,6 +544,7 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
     status: 'sent',
     messageType,
     mediaUrl,
+    sentAt,
   });
 
   // Nothing inserted means this was the echo of a message the server sent, so
@@ -1004,6 +1048,8 @@ async function shutdownAllSessions() {
 }
 
 module.exports = {
+  // Exported for tests: these decide whether a message is recorded at all.
+  extractMessageText,
   shutdownAllSessions,
   initWhatsAppSession,
   getSessionStatus,

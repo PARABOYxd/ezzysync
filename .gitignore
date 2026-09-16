@@ -46,3 +46,10 @@ yarn-debug.log*
 yarn-error.log*
 sessions/
 backend/sessions/
+
+# Media that landed on local disk because R2 was not configured. These are
+# real customer photos and PDFs from WhatsApp chats - 49 MB of them at the
+# time of writing - and they belong in object storage, never in git history,
+# where they cannot be deleted afterwards.
+uploads/
+backend/uploads/
