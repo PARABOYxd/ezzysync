@@ -60,6 +60,10 @@ async function sendWhatsAppMessage(booking, settings, mediaLink, customText, med
 
   const normalizedTo = normalizePhone(booking.phone);
 
+  // A privately stored file has no public URL; Meta gets a signed one to fetch.
+  // Already-public links pass through unchanged.
+  mediaLink = require('./r2Service').resolveMediaUrl(mediaLink);
+
   let payload;
   if (templateName) {
     let cleanName = templateName.trim();
@@ -231,8 +235,8 @@ async function downloadMetaMedia(mediaId, settings) {
     const ext = isImage ? '.webp' : '.pdf'; // Default to webp for images (due to optimization) and pdf for docs
     const filename = `inbound-${mediaId}${ext}`;
 
-    const publicUrl = await r2Service.uploadFile(buffer, filename, mimeType);
-    return publicUrl;
+    // Stored privately: this is whatever the customer sent, passports included.
+    return await r2Service.uploadPrivateFile(buffer, filename, mimeType, 'whatsapp/inbound/cloud_api');
   } catch (err) {
     logger.error({ err, mediaId }, '[whatsappService] Failed to download Meta media file');
     return null;

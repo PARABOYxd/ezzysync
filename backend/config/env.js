@@ -91,6 +91,9 @@ function loadEnv() {
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
       endpoint: process.env.R2_ENDPOINT || (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : ''),
       bucketName: process.env.R2_BUCKET_NAME || process.env.R2_BUCKET || '',
+      // Customer documents (passports, tickets, vouchers). Should have public
+      // access off; falls back to the main bucket when unset.
+      privateBucketName: process.env.R2_PRIVATE_BUCKET_NAME || '',
       publicUrl: process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL || '',
     },
   };

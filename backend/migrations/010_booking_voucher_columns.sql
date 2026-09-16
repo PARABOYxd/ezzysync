@@ -1,0 +1,12 @@
+-- Migration 010: Add Hotel & Transport/Cab Voucher columns to bookings
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS meal_plan TEXT DEFAULT 'CP';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_check_in DATE;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hotel_check_out DATE;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_type TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS driver_name TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS driver_phone TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_number TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS pickup_time TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS pickup_location TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS drop_location TEXT DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS voucher_notes TEXT DEFAULT '';

@@ -10,6 +10,7 @@ const { ensureSchema } = require('./config/db');
 const { runMigrations } = require('./config/migrations');
 const { initScheduler } = require('./jobs/cronJobs');
 const emailService = require('./services/emailService');
+const r2Service = require('./services/r2Service');
 
 const authRoutes = require('./routes/authRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
@@ -127,6 +128,38 @@ app.use("/api/google", googleRoutes);
 const { requireActiveSubscription } = require('./middleware/planMiddleware');
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
+// Public assets (logos, itinerary images) stored on disk when R2 is not set up.
+// File names are random, so they never change and can be cached for good.
+app.use(
+  '/uploads',
+  cors(),
+  express.static(path.join(__dirname, 'uploads'), {
+    maxAge: '7d',
+    immutable: true,
+  })
+);
+
+// Customer documents. No login check - an <img> tag cannot send one - so the
+// signed, expiring link is the permission. See r2Service.resolveMediaUrl.
+app.use('/media', cors(), async (req, res, next) => {
+  try {
+    const key = decodeURIComponent(req.path.replace(/^\/+/, ''));
+    if (!r2Service.verifyMediaLink(key, req.query.exp, req.query.sig)) {
+      return res.status(403).json({ message: 'This link has expired. Reopen the chat to get a fresh one.' });
+    }
+    const file = await r2Service.openPrivateFile(key);
+    if (!file) return res.status(404).json({ message: 'File not found.' });
+
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    file.stream.on('error', next);
+    file.stream.pipe(res);
+  } catch (err) {
+    next(err);
+  }
+});
 app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 // Deliberately not behind requireActiveSubscription - a locked-out tenant
@@ -166,7 +199,6 @@ if (env.features.instagram) {
   app.use('/api/instagram-direct', instagramDirectRoutes);
 }
 app.use('/api/whatsapp/templates', whatsappTemplateRoutes);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(notFoundHandler);
 app.use(errorHandler);
 

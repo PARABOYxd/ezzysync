@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   MessageSquare,
@@ -35,6 +35,7 @@ import {
 import { whatsappWebService } from '../services/whatsappWebService';
 import * as settingsService from '../services/settingsService';
 import * as quotationService from '../services/quotationService';
+import * as bookingService from '../services/bookingService';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -137,6 +138,7 @@ export default function WhatsAppChat() {
   const [startChatPhone, setStartChatPhone] = useState('');
   const [startChatMsg, setStartChatMsg] = useState('');
   const [startingChat, setStartingChat] = useState(false);
+  const [sendingVoucherType, setSendingVoucherType] = useState(null);
 
   // True when the search query looks like a phone number (≥8 digits)
   const isPhoneSearch = /^[\d\s+()-]{8,}$/.test(searchQuery.trim());
@@ -307,6 +309,10 @@ export default function WhatsAppChat() {
     return () => attachmentsRef.current.forEach((a) => URL.revokeObjectURL(a.url));
   }, []);
 
+  const chatMediaFiles = useMemo(() => {
+    return (messages || []).filter((m) => m && m.media_url);
+  }, [messages]);
+
   /**
    * Stored messages keep a coarse message_type ('image' / 'document') and a
    * URL, not the original mime type - so the real type is read back off the
@@ -431,6 +437,30 @@ export default function WhatsAppChat() {
    * a change event - without that, re-attaching the file you just removed
    * silently does nothing.
    */
+  const handleSendChatVoucher = async (type) => {
+    const bookingId = selectedChat?.formatted_booking_id || selectedChat?.booking_uuid || selectedChat?.booking_id;
+    if (!bookingId) {
+      toast.error('No booking linked to this conversation.');
+      return;
+    }
+    setSendingVoucherType(type);
+    try {
+      const res = await bookingService.sendVoucherToWhatsApp(bookingId, { type });
+      if (res.sentToWhatsApp) {
+        toast.success(`Official ${type === 'hotel' ? 'Hotel' : 'Transport'} Voucher PDF dispatched to ${selectedChat.customer_name || 'customer'}!`);
+      } else {
+        toast.success('Voucher PDF generated and ready.');
+      }
+      const data = await whatsappWebService.getChatMessages(selectedChat.id);
+      setMessages(data.messages || []);
+      loadChats();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send voucher via WhatsApp.');
+    } finally {
+      setSendingVoucherType(null);
+    }
+  };
+
   const clearAttachment = () => {
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
     setAttachments([]);
@@ -1158,32 +1188,55 @@ export default function WhatsAppChat() {
                         )}
 
                         {msg.media_url && (
-                          <button
-                            type="button"
-                            onClick={() => setViewingMedia(msg)}
-                            className="block mb-1.5 w-full text-left"
-                            title="Open attachment"
-                          >
-                            {msg.message_type === 'image' ? (
-                              <img
-                                src={msg.media_url}
-                                alt={msg.message_text || 'Attachment'}
-                                className="rounded-xl max-h-64 w-auto object-cover border border-black/5"
-                                loading="lazy"
-                              />
+                          <div className="mb-1.5 w-full">
+                            {msg.message_type === 'audio' || mediaTypeOf(msg).startsWith('audio/') ? (
+                              <div className="py-1 min-w-[220px]" onClick={(e) => e.stopPropagation()}>
+                                <audio controls className="w-full h-8" preload="metadata">
+                                  <source src={msg.media_url} type={mediaTypeOf(msg)} />
+                                  Your browser does not support audio playback.
+                                </audio>
+                              </div>
+                            ) : msg.message_type === 'video' || mediaTypeOf(msg).startsWith('video/') ? (
+                              <div className="relative rounded-xl overflow-hidden max-h-60 max-w-xs border border-black/5 bg-black/10">
+                                <video
+                                  src={msg.media_url}
+                                  className="w-full max-h-60 object-cover rounded-xl"
+                                  controls
+                                  preload="metadata"
+                                />
+                              </div>
                             ) : (
-                              <span
-                                className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border ${
-                                  isOutbound
-                                    ? 'bg-white/15 border-white/20'
-                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                                }`}
+                              <button
+                                type="button"
+                                onClick={() => setViewingMedia(msg)}
+                                className="block w-full text-left"
+                                title="Open attachment"
                               >
-                                <FileText className="w-4 h-4 shrink-0" />
-                                <span className="truncate underline underline-offset-2">Open attachment</span>
-                              </span>
+                                {msg.message_type === 'image' || mediaTypeOf(msg).startsWith('image/') ? (
+                                  <img
+                                    src={msg.media_url}
+                                    alt={msg.message_text || 'Attachment'}
+                                    className="rounded-xl max-h-64 w-auto object-cover border border-black/5 shadow-sm"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <span
+                                    className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-colors ${
+                                      isOutbound
+                                        ? 'bg-white/15 border-white/20 text-white'
+                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/60'
+                                    }`}
+                                  >
+                                    <FileText className="w-4 h-4 shrink-0" />
+                                    <span className="truncate underline underline-offset-2 text-xs font-medium">
+                                      {mediaNameOf(msg)}
+                                    </span>
+                                    <ExternalLink className="w-3.5 h-3.5 opacity-60 ml-auto shrink-0" />
+                                  </span>
+                                )}
+                              </button>
                             )}
-                          </button>
+                          </div>
                         )}
 
                         {msg.message_text && (
@@ -1599,19 +1652,118 @@ export default function WhatsAppChat() {
 
             {/* Active Booking Card */}
             {selectedChat.booking_trip ? (
-              <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
                     {selectedChat.booking_trip}
                   </span>
+                  {selectedChat.formatted_booking_id && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700">
+                      {selectedChat.formatted_booking_id}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-600 dark:text-slate-400 flex justify-between">
-                  <span>Total: ₹{selectedChat.total_amount || 0}</span>
-                  <span className="text-rose-600 font-medium">Pending: ₹{selectedChat.remaining || 0}</span>
+                  <span>Total: ₹{Number(selectedChat.total_amount || 0).toLocaleString('en-IN')}</span>
+                  <span className="text-rose-600 font-medium">Pending: ₹{Number(selectedChat.remaining || 0).toLocaleString('en-IN')}</span>
+                </div>
+
+                {/* Multi-item count badges if present */}
+                {(Array.isArray(selectedChat.booking_hotels_stay) && selectedChat.booking_hotels_stay.length > 1) || (Array.isArray(selectedChat.booking_transports) && selectedChat.booking_transports.length > 1) ? (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {Array.isArray(selectedChat.booking_hotels_stay) && selectedChat.booking_hotels_stay.length > 1 && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-100/80 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200">
+                        🏨 {selectedChat.booking_hotels_stay.length} Hotels
+                      </span>
+                    )}
+                    {Array.isArray(selectedChat.booking_transports) && selectedChat.booking_transports.length > 1 && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100/80 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">
+                        🚗 {selectedChat.booking_transports.length} Cabs
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+
+                {/* 1-Click WhatsApp Voucher Actions */}
+                <div className="pt-2 border-t border-teal-200/60 dark:border-teal-800/60 grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    disabled={sendingVoucherType !== null}
+                    onClick={() => handleSendChatVoucher('hotel')}
+                    className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-bold shadow-sm transition disabled:opacity-50"
+                    title="Generate branded Hotel Voucher PDF & send directly to this chat"
+                  >
+                    {sendingVoucherType === 'hotel' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <span>🏨 Hotel Voucher{Array.isArray(selectedChat.booking_hotels_stay) && selectedChat.booking_hotels_stay.length > 1 ? ` (${selectedChat.booking_hotels_stay.length})` : ''}</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingVoucherType !== null}
+                    onClick={() => handleSendChatVoucher('cab')}
+                    className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shadow-sm transition disabled:opacity-50"
+                    title="Generate branded Cab/Transport Voucher PDF & send directly to this chat"
+                  >
+                    {sendingVoucherType === 'cab' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <span>🚗 Cab Voucher{Array.isArray(selectedChat.booking_transports) && selectedChat.booking_transports.length > 1 ? ` (${selectedChat.booking_transports.length})` : ''}</span>
+                    )}
+                  </button>
                 </div>
               </div>
             ) : null}
+
+            {/* Documents & Media Vault */}
+            <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  <span>Media & Docs</span>
+                </h4>
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  {chatMediaFiles.length}
+                </span>
+              </div>
+
+              {chatMediaFiles.length === 0 ? (
+                <div className="p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                  <p className="text-[11px] text-slate-400">No media or documents shared yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {chatMediaFiles.map((m) => {
+                    const isImg = m.message_type === 'image' || mediaTypeOf(m).startsWith('image/');
+                    return (
+                      <button
+                        key={m.id || m.message_id}
+                        type="button"
+                        onClick={() => setViewingMedia(m)}
+                        className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:opacity-90 transition-opacity"
+                        title={mediaNameOf(m)}
+                      >
+                        {isImg ? (
+                          <img
+                            src={m.media_url}
+                            alt={mediaNameOf(m)}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-1 text-slate-500 hover:text-emerald-600">
+                            <FileText className="w-5 h-5 mb-0.5 text-rose-500" />
+                            <span className="text-[8px] truncate w-full text-center px-0.5 font-medium">{mediaNameOf(m)}</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

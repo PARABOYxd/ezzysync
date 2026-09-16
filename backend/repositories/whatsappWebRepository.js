@@ -139,21 +139,30 @@ async function findChatById(tenantId, chatId) {
  * lead is kept, and a blank jid is filled in rather than replaced. The loser of
  * the race gets the winner's row back and carries on.
  */
-async function createChat(tenantId, { phone, jid, customerName, leadId, lastMessage, aiEnabled, transport = 'web' }) {
+/**
+ * `openedByUs: true` is a chat the business started (new chat, voucher). The
+ * customer has said nothing, so there is no 24-hour window and nothing unread.
+ * Stamping last_inbound_at here told the window check a closed conversation
+ * was open, and Meta then refused the send.
+ */
+async function createChat(tenantId, { phone, jid, customerName, leadId, lastMessage, aiEnabled, transport = 'web', openedByUs = false }) {
   const { rows } = await query(
     `INSERT INTO whatsapp_chats
        (tenant_id, phone, jid, customer_name, lead_id, last_message, last_message_timestamp, last_inbound_at, unread_count, ai_enabled, transport, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, now(), now(), 1, $7, $8, now(), now())
+     VALUES ($1, $2, $3, $4, $5, $6, now(),
+             CASE WHEN $9::boolean THEN NULL ELSE now() END,
+             CASE WHEN $9::boolean THEN 0 ELSE 1 END,
+             $7, $8, now(), now())
      ON CONFLICT (tenant_id, phone_key) DO UPDATE SET
        last_message = EXCLUDED.last_message,
        last_message_timestamp = now(),
-       last_inbound_at = now(),
+       last_inbound_at = CASE WHEN $9::boolean THEN whatsapp_chats.last_inbound_at ELSE now() END,
        updated_at = now(),
        customer_name = COALESCE(NULLIF(whatsapp_chats.customer_name, ''), EXCLUDED.customer_name),
        lead_id = COALESCE(whatsapp_chats.lead_id, EXCLUDED.lead_id),
        jid = COALESCE(NULLIF(whatsapp_chats.jid, ''), EXCLUDED.jid)
      RETURNING *`,
-    [tenantId, phone, jid, customerName, leadId, lastMessage, aiEnabled, transport]
+    [tenantId, phone, jid, customerName, leadId, lastMessage, aiEnabled, transport, openedByUs]
   );
   return rows[0];
 }
@@ -245,6 +254,7 @@ async function listChats(tenantId, search) {
   let sql = `
     SELECT c.*,
            l.lead_id AS formatted_lead_id, l.stage AS lead_stage, l.interest AS lead_interest,
+           b.id AS booking_uuid, b.booking_id AS formatted_booking_id,
            b.trip AS booking_trip, b.travel_status AS booking_travel_status, b.payment_status AS booking_payment_status
     FROM whatsapp_chats c
     LEFT JOIN leads l ON l.id = c.lead_id
@@ -271,7 +281,11 @@ async function getChatWithContext(tenantId, chatId) {
             l.id AS lead_uuid, l.lead_id AS formatted_lead_id, l.customer_name AS lead_name,
             l.stage AS lead_stage, l.interest AS lead_interest, l.notes AS lead_notes,
             b.id AS booking_uuid, b.booking_id AS formatted_booking_id, b.trip AS booking_trip,
-            b.total_amount, b.paid, b.remaining, b.travel_status, b.payment_status
+            b.total_amount, b.paid, b.remaining, b.travel_status, b.payment_status,
+            b.hotel_id AS booking_hotel_id, b.hotel_confirmation_no AS booking_hotel_confirmation_no,
+            b.vehicle_type AS booking_vehicle_type, b.driver_name AS booking_driver_name,
+            b.driver_phone AS booking_driver_phone, b.vehicle_number AS booking_vehicle_number,
+            b.transports AS booking_transports, b.hotels_stay AS booking_hotels_stay
      FROM whatsapp_chats c
      LEFT JOIN leads l ON l.id = c.lead_id
      LEFT JOIN bookings b ON b.id = c.booking_id

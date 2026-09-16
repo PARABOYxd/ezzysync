@@ -1,8 +1,8 @@
 const whatsappWebService = require('../services/whatsappWebService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappWindow = require('../services/whatsappWindowService');
+const r2Service = require('../services/r2Service');
 const whatsappSendService = require('../services/whatsappSendService');
-const settingsService = require('../services/settingsService');
 const templateRepo = require('../repositories/whatsappTemplateRepository');
 const PDFDocument = require('pdfkit');
 const aiService = require('../services/aiService');
@@ -65,7 +65,9 @@ async function getChatMessages(req, res, next) {
     await whatsappWebRepository.clearUnread(req.user.tenantId, chatId);
 
     let chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chatId);
-    const messages = await whatsappWebRepository.listMessages(req.user.tenantId, chatId);
+    // Stored media is a private reference; each read gets short-lived links.
+    const messages = (await whatsappWebRepository.listMessages(req.user.tenantId, chatId))
+      .map((m) => ({ ...m, media_url: r2Service.resolveMediaUrl(m.media_url) }));
 
     // If chat row was merged into another ID, resolve context from messages
     if (!chat && messages.length > 0) {
@@ -306,46 +308,21 @@ async function startChat(req, res, next) {
     const { phone, message } = req.body;
     if (!phone) return res.status(400).json({ message: 'phone is required.' });
 
-    // Normalize: strip everything except digits, then ensure Indian 91 prefix
-    const digits = String(phone).replace(/\D/g, '');
-    const normalized = digits.length === 10 ? `91${digits}` : digits;
-
+    const normalized = whatsappSendService.toWhatsAppNumber(phone);
     if (normalized.length < 10) {
       return res.status(400).json({ message: 'Enter a valid phone number (10 or 12 digits).' });
     }
 
     const tenantId = req.user.tenantId;
 
-    // Re-use an existing chat if one already exists for this number
-    let chat = await whatsappWebRepository.findChatByPhone(tenantId, normalized);
-    if (!chat) {
-      // Create a bare chat row so the CRM inbox shows the conversation.
-      // Starting a brand-new conversation had no inbound message to infer
-      // transport from, so this used to always default to 'web' (QR) even
-      // for a tenant with only Cloud API configured - the send below then
-      // went to a socket that was never connected, and nothing was ever
-      // actually sent to Meta at all.
-      const [autopilotDefault, settings] = await Promise.all([
-        whatsappWebRepository.getAutopilotDefault(tenantId),
-        settingsService.getSettings(tenantId),
-      ]);
-      const transport = settings.whatsappPhoneNumberId ? 'cloud_api' : 'web';
-      chat = await whatsappWebRepository.createChat(tenantId, {
-        phone: normalized,
-        jid: `${normalized}@s.whatsapp.net`,
-        customerName: '',
-        leadId: null,
-        // Not the attempted message text - this used to write it here
-        // unconditionally, so a send that Meta then rejected (e.g. a sandbox
-        // recipient not on the allowed list) still left the chat preview
-        // showing "hello" as the last message, with no actual message ever
-        // stored. sendText below sets this for real, only once a message has
-        // actually gone through.
-        lastMessage: '',
-        aiEnabled: autopilotDefault,
-        transport,
-      });
-    }
+    // Re-uses an existing chat, otherwise opens one on the connection that can
+    // actually deliver (a Cloud-API-only tenant used to get a QR chat that
+    // could never send). The last message is left for sendText to set, so a
+    // rejected send does not leave a preview of a message that never went.
+    const chat = await whatsappSendService.findOrStartChat(tenantId, {
+      phone: normalized,
+      aiEnabled: await whatsappWebRepository.getAutopilotDefault(tenantId),
+    });
 
     if (message && message.trim()) {
       // Transport-aware: routes to Cloud API or the QR socket depending on

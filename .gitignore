@@ -53,3 +53,4 @@ backend/sessions/
 # where they cannot be deleted afterwards.
 uploads/
 backend/uploads/
+backend/private-uploads/

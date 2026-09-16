@@ -3,6 +3,7 @@ const whatsappService = require('./whatsappService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const settingsService = require('./settingsService');
 const whatsappWindow = require('./whatsappWindowService');
+const r2Service = require('./r2Service');
 const logger = require('../utils/logger').child({ module: 'whatsapp_send' });
 
 /**
@@ -18,18 +19,39 @@ const logger = require('../utils/logger').child({ module: 'whatsapp_send' });
  * leaves by the right road.
  */
 
-async function sendText(tenantId, { chat, messageText, mediaBuffer, fileName, mimeType, userId }) {
+async function sendText(tenantId, { chat, messageText, mediaBuffer, fileName, mimeType, userId, storedMediaRef = null }) {
   if (chat.transport === 'cloud_api') {
     // Meta refuses free-form outside the 24-hour window; checked here as well
     // as in the controller because this is the last point before the network.
     whatsappWindow.assertCanSendFreeform(chat);
 
+    // `storedMediaRef` is a file the caller already uploaded (a voucher), so
+    // it is not stored a second time.
+    let mediaUrl = storedMediaRef;
+    let messageType = 'text';
+    if (mediaBuffer && mimeType) {
+      const isImage = mimeType.startsWith('image/');
+      messageType = isImage ? 'image' : 'document';
+      if (!mediaUrl) {
+        try {
+          const folder = `whatsapp/outbound/${tenantId}/${isImage ? 'images' : 'documents'}`;
+          mediaUrl = await r2Service.uploadPrivateFile(mediaBuffer, fileName || 'attachment', mimeType, folder);
+        } catch (err) {
+          logger.error({ err, tenantId, chatId: chat.id }, 'Could not store Cloud API outgoing attachment');
+        }
+      }
+    }
+
     const settings = await settingsService.getSettingsWithSecrets(tenantId);
     const result = await whatsappService.sendWhatsAppMessage(
       { phone: chat.phone, bookingId: 'CHAT' },
       settings,
-      null,
-      messageText
+      // Meta downloads the file from this link, so it gets a signed one.
+      r2Service.resolveMediaUrl(mediaUrl),
+      messageText,
+      // Without this every attachment went out as a document, photos included.
+      messageType === 'image' ? 'image' : 'document',
+      fileName || null
     );
 
     const messageId = result?.messages?.[0]?.id || null;
@@ -40,6 +62,8 @@ async function sendText(tenantId, { chat, messageText, mediaBuffer, fileName, mi
       sender: 'agent',
       messageText,
       status: 'sent',
+      messageType,
+      mediaUrl,
       userId,
     });
     await whatsappWebRepository.recordHumanReplyOnChat(chat.id, messageText);
@@ -56,6 +80,7 @@ async function sendText(tenantId, { chat, messageText, mediaBuffer, fileName, mi
     fileName,
     mimeType,
     userId,
+    storedMediaRef,
   });
 }
 
@@ -129,4 +154,46 @@ async function sendTemplate(tenantId, { chat, template, variables = {}, userId }
   return { sent: true, via: 'cloud_api', messageId, windowReopened: false };
 }
 
-module.exports = { sendText, sendTemplate };
+/**
+ * Which connection a chat the business starts should use.
+ *
+ * A live QR link wins when there is one: it has no 24-hour rule, so a voucher
+ * or first message actually arrives. Otherwise a configured Meta number, and
+ * only then the QR path - whose send will explain that it needs connecting.
+ */
+async function chooseTransportForNewChat(tenantId) {
+  const [session, settings] = await Promise.all([
+    whatsappWebRepository.getSession(tenantId),
+    settingsService.getSettings(tenantId),
+  ]);
+  if (session?.status === 'connected') return 'web';
+  if (settings?.whatsappPhoneNumberId) return 'cloud_api';
+  return 'web';
+}
+
+/** Bookings and forms hold bare 10-digit numbers; WhatsApp needs the country code. */
+function toWhatsAppNumber(phone) {
+  const digits = String(phone || '').replace(/\D/g, '').replace(/^0+/, '');
+  return digits.length === 10 ? `91${digits}` : digits;
+}
+
+/** The existing chat for this number, or a new one the business opened. */
+async function findOrStartChat(tenantId, { phone, customerName = '', aiEnabled = false }) {
+  const normalized = toWhatsAppNumber(phone);
+  const existing = await whatsappWebRepository.findChatByPhone(tenantId, normalized);
+  if (existing) return existing;
+
+  return whatsappWebRepository.createChat(tenantId, {
+    phone: normalized,
+    jid: `${normalized}@s.whatsapp.net`,
+    customerName,
+    leadId: null,
+    // Set by the send itself, once something has actually gone out.
+    lastMessage: '',
+    aiEnabled,
+    transport: await chooseTransportForNewChat(tenantId),
+    openedByUs: true,
+  });
+}
+
+module.exports = { sendText, sendTemplate, chooseTransportForNewChat, toWhatsAppNumber, findOrStartChat };

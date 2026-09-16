@@ -148,7 +148,7 @@ async function sendMessage(req, res, next) {
     let invoiceMediaLink = mediaLink;
     if (!invoiceMediaLink && pdfBuffer) {
       try {
-        invoiceMediaLink = await r2Service.uploadFile(
+        invoiceMediaLink = await r2Service.uploadPrivateFile(
           pdfBuffer,
           `${invoiceNumber}.pdf`,
           'application/pdf',
@@ -267,7 +267,8 @@ async function startNewChat(req, res, next) {
  */
 async function getChatMessages(req, res, next) {
   try {
-    const messages = await whatsappRepo.getChatMessages(req.user.tenantId, req.params.chatId);
+    const messages = (await whatsappRepo.getChatMessages(req.user.tenantId, req.params.chatId))
+      .map((m) => ({ ...m, media_url: r2Service.resolveMediaUrl(m.media_url) }));
     // Was a console.log of every message body - customer conversations printed
     // to stdout, outside the logger and so outside its redaction rules.
     res.json({ messages });

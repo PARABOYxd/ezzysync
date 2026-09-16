@@ -187,20 +187,25 @@ function extractMediaInfo(msg) {
   const m = getRawMessage(msg);
 
   if (m.imageMessage) {
-    return { type: 'image', mimetype: m.imageMessage.mimetype || 'image/jpeg', fileName: 'photo.jpg' };
+    const ext = (m.imageMessage.mimetype || '').includes('png') ? '.png' : '.jpg';
+    return { type: 'image', mimetype: m.imageMessage.mimetype || 'image/jpeg', fileName: `photo${ext}` };
   }
   if (m.documentMessage) {
     return {
       type: 'document',
       mimetype: m.documentMessage.mimetype || 'application/octet-stream',
-      fileName: m.documentMessage.fileName || 'document',
+      fileName: m.documentMessage.fileName || 'document.pdf',
     };
   }
   if (m.videoMessage) {
-    return { type: 'document', mimetype: m.videoMessage.mimetype || 'video/mp4', fileName: 'video.mp4' };
+    return { type: 'video', mimetype: m.videoMessage.mimetype || 'video/mp4', fileName: 'video.mp4' };
   }
   if (m.audioMessage) {
-    return { type: 'document', mimetype: m.audioMessage.mimetype || 'audio/ogg', fileName: 'audio.ogg' };
+    const ext = (m.audioMessage.mimetype || '').includes('ogg') ? '.ogg' : (m.audioMessage.mimetype || '').includes('mp3') ? '.mp3' : '.m4a';
+    return { type: 'audio', mimetype: m.audioMessage.mimetype || 'audio/ogg', fileName: `audio${ext}` };
+  }
+  if (m.stickerMessage) {
+    return { type: 'image', mimetype: m.stickerMessage.mimetype || 'image/webp', fileName: 'sticker.webp' };
   }
   return null;
 }
@@ -212,15 +217,17 @@ function extractMediaInfo(msg) {
  * message itself would be useless to the inbox an hour later. Failure is not
  * fatal - the message is still recorded, just without a preview.
  */
-async function storeInboundMedia(sock, msg, media) {
+async function storeInboundMedia(sock, msg, media, tenantId = null) {
   try {
     const buffer = await downloadMediaMessage(msg, 'buffer', {}, {
       logger: sock.logger,
       reuploadRequest: sock.updateMediaMessage,
     });
     if (!buffer?.length) return null;
-    const folder = `whatsapp/inbound/${media.type === 'image' ? 'images' : 'documents'}`;
-    return await r2Service.uploadFile(buffer, media.fileName, media.mimetype, folder);
+    const typeFolder = media.type === 'image' ? 'images' : media.type === 'video' ? 'videos' : media.type === 'audio' ? 'audios' : 'documents';
+    const folder = tenantId ? `whatsapp/inbound/${tenantId}/${typeFolder}` : `whatsapp/inbound/${typeFolder}`;
+    // Customers send passports and payment proofs here - never a public link.
+    return await r2Service.uploadPrivateFile(buffer, media.fileName, media.mimetype, folder);
   } catch (err) {
     logger.warn({ err }, 'Could not download inbound WhatsApp media');
     return null;
@@ -441,7 +448,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       // just sent, which the message_id conflict swallows.
       if (msg.key.fromMe) {
         try {
-          const mediaUrl = media ? await storeInboundMedia(sock, msg, media) : null;
+          const mediaUrl = media ? await storeInboundMedia(sock, msg, media, tenantId) : null;
           await recordOwnOutgoingMessage(tenantId, {
             senderPhone,
             messageText,
@@ -463,7 +470,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       }
 
       try {
-        const mediaUrl = media ? await storeInboundMedia(sock, msg, media) : null;
+        const mediaUrl = media ? await storeInboundMedia(sock, msg, media, tenantId) : null;
 
         // Backlog messages are always recorded, but the AI only answers ones
         // that are still fresh. Coming back after an hour and firing a reply
@@ -755,7 +762,7 @@ async function generateAiReplyForChat(tenantId, phone, message) {
  * storage as well, because the socket only hands back a WhatsApp media
  * reference and the CRM has to be able to render the thread later.
  */
-async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, messageText, mediaBuffer, fileName, mimeType, userId = null }) {
+async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, messageText, mediaBuffer, fileName, mimeType, userId = null, storedMediaRef = null }) {
   // Paced so a linked number never sends faster than a person could type.
   // This is not an official API, so there is no published limit to respect -
   // which is precisely why the behaviour has to look human. See
@@ -799,7 +806,7 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
 
   let sentResult;
   let messageType = 'text';
-  let mediaUrl = null;
+  let mediaUrl = storedMediaRef;
 
   if (hasMedia) {
     const isImage = mimeType.startsWith('image/');
@@ -807,12 +814,14 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
 
     // Stored before sending: if WhatsApp rejects the media we still want the
     // upload to have failed loudly here rather than leaving a message row
-    // pointing at nothing.
-    try {
-      const folder = `whatsapp/outbound/${isImage ? 'images' : 'documents'}`;
-      mediaUrl = await r2Service.uploadFile(mediaBuffer, fileName || 'attachment', mimeType, folder);
-    } catch (err) {
-      logger.error({ err, tenantId, chatId }, 'Could not store outgoing attachment');
+    // pointing at nothing. Skipped when the caller already stored the file.
+    if (!mediaUrl) {
+      try {
+        const folder = `whatsapp/outbound/${tenantId}/${isImage ? 'images' : 'documents'}`;
+        mediaUrl = await r2Service.uploadPrivateFile(mediaBuffer, fileName || 'attachment', mimeType, folder);
+      } catch (err) {
+        logger.error({ err, tenantId, chatId }, 'Could not store outgoing attachment');
+      }
     }
 
     if (isImage) {
@@ -854,7 +863,8 @@ async function sendManualMessage(tenantId, { chatId, phone, jid: storedJid, mess
   const preview = caption || (messageType === 'image' ? '📷 Photo' : `📄 ${fileName || 'Document'}`);
   await whatsappWebRepository.recordHumanReplyOnChat(chatId, preview);
 
-  return { messageId, status: 'sent', mediaUrl, messageType };
+  // The stored value is a private reference; callers pass this on to browsers.
+  return { messageId, status: 'sent', mediaUrl: r2Service.resolveMediaUrl(mediaUrl), messageType };
 }
 
 async function disconnectSession(tenantId) {

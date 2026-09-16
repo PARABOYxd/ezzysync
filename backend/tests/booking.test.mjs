@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { Buffer } from 'node:buffer';
 import { appRequire, helpers } from './app.mjs';
 
 const bookingService = appRequire('../services/bookingService');
@@ -283,6 +284,157 @@ describe('Bookings', () => {
       const { upcomingDepartures } = await bookingService.dashboardStats(tenant.tenantId);
       const batchEntries = upcomingDepartures.filter((e) => e.type === 'batch' && e.batch.batchId === batch.batch_id);
       expect(batchEntries).toHaveLength(1);
+    });
+  });
+
+  describe('hotel and cab vouchers', () => {
+    it('persists and retrieves all voucher fields on create and update', async () => {
+      const created = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({
+          mealPlan: 'MAP',
+          hotelCheckIn: '2026-12-01',
+          hotelCheckOut: '2026-12-05',
+          vehicleType: 'Innova Crysta',
+          driverName: 'Rajesh Sharma',
+          driverPhone: '+91 9876543210',
+          vehicleNumber: 'GA 01 AB 1234',
+          pickupTime: '09:00 AM',
+          pickupLocation: 'Dabolim Airport',
+          dropLocation: 'Taj Resort North Goa',
+          voucherNotes: 'VIP Welcome drink requested upon arrival',
+        }),
+        'agent@test.com'
+      );
+
+      expect(created.mealPlan).toBe('MAP');
+      expect(created.vehicleType).toBe('Innova Crysta');
+      expect(created.driverName).toBe('Rajesh Sharma');
+      expect(created.driverPhone).toBe('+91 9876543210');
+      expect(created.vehicleNumber).toBe('GA 01 AB 1234');
+      expect(created.pickupLocation).toBe('Dabolim Airport');
+      expect(created.voucherNotes).toBe('VIP Welcome drink requested upon arrival');
+
+      const updated = await bookingService.updateBooking(
+        tenant.tenantId,
+        created.bookingId,
+        {
+          mealPlan: 'AP',
+          vehicleType: 'Tempo Traveller 17 Seater',
+          driverName: 'Sunil Verma',
+        },
+        'agent@test.com'
+      );
+
+      expect(updated.mealPlan).toBe('AP');
+      expect(updated.vehicleType).toBe('Tempo Traveller 17 Seater');
+      expect(updated.driverName).toBe('Sunil Verma');
+      expect(updated.driverPhone).toBe('+91 9876543210'); // Unchanged
+    });
+
+    it('generates valid PDF vouchers for both hotel and cab types', async () => {
+      const booking = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({
+          hotelConfirmationNo: 'HTL-GOA-9921',
+          mealPlan: 'CP',
+          hotelCheckIn: '2026-12-01',
+          hotelCheckOut: '2026-12-05',
+          vehicleType: 'Toyota Ertiga',
+          driverName: 'Vikram Singh',
+          driverPhone: '9988776655',
+          vehicleNumber: 'MH 02 CZ 4433',
+          pickupTime: '10:30 AM',
+          pickupLocation: 'Panjim Bus Stand',
+          dropLocation: 'Calangute Beach Hotel',
+        }),
+        'agent@test.com'
+      );
+
+      // Hotel Voucher
+      const hotelRes = await bookingService.generateVoucherPdf(tenant.tenantId, booking.bookingId, 'hotel');
+      expect(Buffer.isBuffer(hotelRes.buffer)).toBe(true);
+      expect(hotelRes.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      expect(hotelRes.filename).toContain('Hotel-Voucher');
+
+      // Cab / Transport Voucher
+      const cabRes = await bookingService.generateVoucherPdf(tenant.tenantId, booking.bookingId, 'cab');
+      expect(Buffer.isBuffer(cabRes.buffer)).toBe(true);
+      expect(cabRes.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      expect(cabRes.filename).toContain('Cab-Voucher');
+    });
+
+    it('persists and generates PDFs with multiple drivers/vehicles and multiple hotels', async () => {
+      const multiBooking = await bookingService.createBooking(
+        tenant.tenantId,
+        bookingData({
+          transports: [
+            {
+              vehicleType: 'Innova Crysta',
+              vehicleNumber: 'DL 01 AB 1234',
+              driverName: 'Ramesh Kumar',
+              driverPhone: '+91 9876543210',
+              pickupTime: '06:00 AM',
+              pickupLocation: 'IGI Airport T3',
+              dropLocation: 'Manali Hotel River View',
+              voucherNotes: 'AC switched off in hills',
+            },
+            {
+              vehicleType: 'Toyota Ertiga',
+              vehicleNumber: 'HP 02 CD 5678',
+              driverName: 'Suresh Sharma',
+              driverPhone: '+91 9811223344',
+              pickupTime: '09:00 AM',
+              pickupLocation: 'Manali Hotel',
+              dropLocation: 'Solang Valley & Rohtang Pass',
+              voucherNotes: 'Local sightseeing guide included',
+            },
+          ],
+          hotelsStay: [
+            {
+              roomCategory: 'Luxury Valley View Suite',
+              mealPlan: 'MAP',
+              hotelCheckIn: '2026-12-01',
+              hotelCheckOut: '2026-12-03',
+              hotelConfirmationNo: 'MNL-9988',
+              hotelBookingStatus: 'Confirmed',
+            },
+            {
+              roomCategory: 'Heritage Pine Deluxe',
+              mealPlan: 'CP',
+              hotelCheckIn: '2026-12-03',
+              hotelCheckOut: '2026-12-05',
+              hotelConfirmationNo: 'SML-7766',
+              hotelBookingStatus: 'Confirmed',
+            },
+          ],
+        }),
+        'agent@test.com'
+      );
+
+      // Verify array persistence
+      expect(multiBooking.transports).toHaveLength(2);
+      expect(multiBooking.transports[0].driverName).toBe('Ramesh Kumar');
+      expect(multiBooking.transports[1].driverName).toBe('Suresh Sharma');
+
+      expect(multiBooking.hotelsStay).toHaveLength(2);
+      expect(multiBooking.hotelsStay[0].hotelConfirmationNo).toBe('MNL-9988');
+      expect(multiBooking.hotelsStay[1].hotelConfirmationNo).toBe('SML-7766');
+
+      // Verify primary sync for backward compatibility
+      expect(multiBooking.driverName).toBe('Ramesh Kumar');
+      expect(multiBooking.vehicleNumber).toBe('DL 01 AB 1234');
+      expect(multiBooking.hotelConfirmationNo).toBe('MNL-9988');
+
+      // Verify Multi-Cab PDF Generation
+      const cabPdf = await bookingService.generateVoucherPdf(tenant.tenantId, multiBooking.bookingId, 'cab');
+      expect(Buffer.isBuffer(cabPdf.buffer)).toBe(true);
+      expect(cabPdf.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+
+      // Verify Multi-Hotel PDF Generation
+      const hotelPdf = await bookingService.generateVoucherPdf(tenant.tenantId, multiBooking.bookingId, 'hotel');
+      expect(Buffer.isBuffer(hotelPdf.buffer)).toBe(true);
+      expect(hotelPdf.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     });
   });
 });

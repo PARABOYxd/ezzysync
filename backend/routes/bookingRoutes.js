@@ -19,4 +19,7 @@ router.delete('/:id', requirePermission('bookings', 'delete'), ctrl.remove);
 router.get('/:id/follow-ups', requirePermission('bookings', 'read'), ctrl.listFollowUps);
 router.post('/:id/follow-ups', requirePermission('bookings', 'update'), ctrl.createFollowUp);
 
+router.get('/:id/voucher-pdf', requirePermission('bookings', 'read'), ctrl.getVoucherPdf);
+router.post('/:id/send-voucher', requirePermission('bookings', 'update'), ctrl.sendVoucher);
+
 module.exports = router;

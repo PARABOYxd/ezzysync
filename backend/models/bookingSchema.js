@@ -48,6 +48,19 @@ function rowToBooking(row) {
     hotelBookingStatus: row.hotel_booking_status || 'Pending',
     hotelConfirmationNo: row.hotel_confirmation_no || '',
     refundedAmount: Number(row.refunded_amount || 0),
+    mealPlan: row.meal_plan || 'CP',
+    hotelCheckIn: row.hotel_check_in ? (typeof row.hotel_check_in === 'string' ? row.hotel_check_in.split('T')[0] : new Date(row.hotel_check_in).toISOString().split('T')[0]) : null,
+    hotelCheckOut: row.hotel_check_out ? (typeof row.hotel_check_out === 'string' ? row.hotel_check_out.split('T')[0] : new Date(row.hotel_check_out).toISOString().split('T')[0]) : null,
+    vehicleType: row.vehicle_type || '',
+    driverName: row.driver_name || '',
+    driverPhone: row.driver_phone || '',
+    vehicleNumber: row.vehicle_number || '',
+    pickupTime: row.pickup_time || '',
+    pickupLocation: row.pickup_location || '',
+    dropLocation: row.drop_location || '',
+    voucherNotes: row.voucher_notes || '',
+    transports: Array.isArray(row.transports) ? row.transports : (row.transports ? JSON.parse(row.transports) : []),
+    hotelsStay: Array.isArray(row.hotels_stay) ? row.hotels_stay : (row.hotels_stay ? JSON.parse(row.hotels_stay) : []),
   };
 }
 

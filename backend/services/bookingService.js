@@ -6,6 +6,12 @@ const leadRepository = require('../repositories/leadRepository');
 const customerService = require('./customerService');
 const { rowToBooking } = require('../models/bookingSchema');
 const { rowToBatch } = require('../models/batchSchema');
+const { query } = require('../config/db');
+const settingsService = require('./settingsService');
+const voucherPdfService = require('./voucherPdfService');
+const r2Service = require('./r2Service');
+const whatsappSendService = require('./whatsappSendService');
+const logger = require('../utils/logger').child({ module: 'bookingService' });
 
 function computeAmounts({ members, pricePerPerson, paid }) {
   const totalAmount = Number(members || 0) * Number(pricePerPerson || 0);
@@ -461,6 +467,151 @@ async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
   }
 }
 
+async function fetchHotelsForBooking(tenantId, booking) {
+  const hotelIds = new Set();
+  if (booking.hotelId) hotelIds.add(booking.hotelId);
+  if (Array.isArray(booking.hotelsStay)) {
+    booking.hotelsStay.forEach((h) => {
+      if (h.hotelId) hotelIds.add(h.hotelId);
+    });
+  }
+
+  const hotelsMap = {};
+  if (hotelIds.size > 0) {
+    const idsArray = Array.from(hotelIds);
+    const placeholders = idsArray.map((_, i) => `$${i + 2}`).join(',');
+    const hotelRes = await query(`SELECT * FROM hotels WHERE tenant_id = $1 AND id IN (${placeholders})`, [tenantId, ...idsArray]);
+    hotelRes.rows.forEach((h) => {
+      hotelsMap[h.id] = h;
+    });
+  }
+  return hotelsMap;
+}
+
+async function generateVoucherPdf(tenantId, bookingId, type = 'hotel') {
+  const booking = await getBookingById(tenantId, bookingId);
+  if (!booking) {
+    const err = new Error('Booking not found.');
+    err.status = 404;
+    throw err;
+  }
+
+  const hotelsMap = await fetchHotelsForBooking(tenantId, booking);
+  const primaryHotel = hotelsMap[booking.hotelId] || Object.values(hotelsMap)[0] || null;
+  const settings = await settingsService.getSettings(tenantId);
+  const buffer = await voucherPdfService.generateVoucherPDF({
+    booking,
+    hotel: primaryHotel,
+    hotelsMap,
+    settings,
+    type,
+  });
+
+  const isHotel = type === 'hotel';
+  const prefix = isHotel ? 'Hotel-Voucher' : 'Cab-Voucher';
+  const filename = `${prefix}-${booking.bookingId}.pdf`;
+
+  return { buffer, filename, booking };
+}
+
+async function sendVoucherToWhatsApp(tenantId, bookingId, { type = 'hotel', customNotes = '', userId = null } = {}) {
+  const booking = await getBookingById(tenantId, bookingId);
+  if (!booking) {
+    const err = new Error('Booking not found.');
+    err.status = 404;
+    throw err;
+  }
+
+  const hotelsMap = await fetchHotelsForBooking(tenantId, booking);
+  const primaryHotel = hotelsMap[booking.hotelId] || Object.values(hotelsMap)[0] || null;
+  const settings = await settingsService.getSettings(tenantId);
+  const pdfBuffer = await voucherPdfService.generateVoucherPDF({
+    booking,
+    hotel: primaryHotel,
+    hotelsMap,
+    settings,
+    type,
+  });
+
+  const isHotel = type === 'hotel';
+  const prefix = isHotel ? 'Hotel-Voucher' : 'Cab-Voucher';
+  const fileName = `${prefix}-${booking.bookingId}.pdf`;
+  const folder = `vouchers/${tenantId}/${isHotel ? 'hotels' : 'transports'}`;
+
+  // Stored once, privately - it carries the customer's name, trip and driver
+  // phone numbers. The send below reuses this file instead of uploading again.
+  const storedRef = await r2Service.uploadPrivateFile(pdfBuffer, fileName, 'application/pdf', folder);
+
+  // Opens the chat on whichever connection can deliver, with the number in
+  // WhatsApp form (bookings usually hold a bare 10-digit number).
+  const chat = await whatsappSendService.findOrStartChat(tenantId, {
+    phone: booking.phone,
+    customerName: booking.customerName,
+  });
+
+  let multiSummary = '';
+  if (isHotel) {
+    const stays = Array.isArray(booking.hotelsStay) && booking.hotelsStay.length > 0 ? booking.hotelsStay : [];
+    if (stays.length > 1) {
+      multiSummary = '\n\n🏨 *Confirmed Accommodation Stays:*\n' + stays.map((h, idx) => {
+        const name = hotelsMap[h.hotelId]?.name || `Property #${idx + 1}`;
+        const conf = h.hotelConfirmationNo ? ` (Ref: ${h.hotelConfirmationNo})` : '';
+        return `${idx + 1}. *${name}*${conf}`;
+      }).join('\n');
+    }
+  } else {
+    const cabs = Array.isArray(booking.transports) && booking.transports.length > 0 ? booking.transports : [];
+    if (cabs.length > 1) {
+      multiSummary = '\n\n🚗 *Assigned Cabs & Chauffeurs:*\n' + cabs.map((t, idx) => {
+        const v = t.vehicleType || 'Cab';
+        const no = t.vehicleNumber ? ` (${t.vehicleNumber})` : '';
+        const d = t.driverName ? ` - ${t.driverName}` : '';
+        const p = t.driverPhone ? ` (+${t.driverPhone.replace(/[^0-9]/g, '')})` : '';
+        return `${idx + 1}. *${v}*${no}${d}${p}`;
+      }).join('\n');
+    }
+  }
+
+  const voucherText = isHotel
+    ? `Hello *${booking.customerName}*! 🏨\n\nYour confirmed *Hotel Reservation Voucher* for *${booking.trip}* is ready! Please find the official voucher PDF attached.${multiSummary}\n\n${customNotes ? `${customNotes}\n\n` : ''}Wish you a wonderful stay! ✈️\n— ${settings.companyName || 'EzzySync'}`
+    : `Hello *${booking.customerName}*! 🚗\n\nYour *Transport & Chauffeur Voucher* for *${booking.trip}* is ready! Please find the vehicle & pickup details attached in the PDF.${multiSummary}\n\n${customNotes ? `${customNotes}\n\n` : ''}Have a safe and happy journey! 🌟\n— ${settings.companyName || 'EzzySync'}`;
+
+  let whatsappResult = null;
+  let sentToWhatsApp = false;
+  let whatsappError = null;
+  try {
+    whatsappResult = await whatsappSendService.sendText(tenantId, {
+      chat,
+      userId,
+      messageText: voucherText,
+      mediaBuffer: pdfBuffer,
+      fileName,
+      mimeType: 'application/pdf',
+      storedMediaRef: storedRef,
+    });
+    sentToWhatsApp = true;
+  } catch (err) {
+    // The generic window message says "pick a template below", which means
+    // nothing on the booking screen.
+    whatsappError = err.code === 'WHATSAPP_WINDOW_CLOSED'
+      ? 'This customer has not messaged you on WhatsApp in the last 24 hours, so Meta blocks ' +
+        'attachments. Open their chat, send a template to restart the conversation, and send ' +
+        'the voucher again once they reply. Download the PDF to share it another way meanwhile.'
+      : err.message;
+    logger.warn({ err, tenantId, bookingId }, 'Voucher PDF generated but could not send via WhatsApp');
+  }
+
+  return {
+    success: true,
+    pdfUrl: r2Service.resolveMediaUrl(storedRef),
+    fileName,
+    sentToWhatsApp,
+    whatsappError,
+    voucherType: type,
+    whatsappResult,
+  };
+}
+
 module.exports = {
   listBookings,
   getBookingById,
@@ -475,4 +626,6 @@ module.exports = {
   getBookingBySourceQuotation,
   getActiveBookingsByCustomer,
   billingAnalytics,
+  generateVoucherPdf,
+  sendVoucherToWhatsApp,
 };

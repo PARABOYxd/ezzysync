@@ -16,6 +16,14 @@ export const parseTicket = (payload, isFile = false) => {
 export const getFollowUps = (bookingId) => api.get(`/bookings/${bookingId}/follow-ups`).then((r) => r.data.followUps);
 export const addFollowUp = (bookingId, payload) => api.post(`/bookings/${bookingId}/follow-ups`, payload).then((r) => r.data.followUp);
 
+export const downloadVoucherPdf = (bookingId, type = 'hotel') =>
+  api.get(`/bookings/${bookingId}/voucher-pdf`, {
+    params: { type },
+    responseType: 'blob',
+  }).then((r) => r.data);
+
+export const sendVoucherToWhatsApp = (bookingId, payload) =>
+  api.post(`/bookings/${bookingId}/send-voucher`, payload).then((r) => r.data);
 
 /** Flat booking array for pickers/dropdowns. Tolerates both the wrapped
  * ({ bookings: [...] }) and bare-array response shapes. */

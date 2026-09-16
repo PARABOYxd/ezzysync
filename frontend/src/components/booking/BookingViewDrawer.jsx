@@ -6,7 +6,7 @@ import Input from '../ui/Input.jsx';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { TravelStatusBadge, PaymentStatusBadge } from '../common/StatusBadge.jsx';
 import * as bookingService from '../../services/bookingService';
-import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info, IndianRupee, MapPin, Home, Tag } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Calendar, FileText, Lock, Plus, User, Info, IndianRupee, MapPin, Home, Tag, Download, Send, Car, Check, Loader2 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast.jsx';
 import * as hotelService from '../../services/hotelService';
 
@@ -18,6 +18,49 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   const [nextDate, setNextDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hotels, setHotels] = useState([]);
+  const [downloadingVoucher, setDownloadingVoucher] = useState(null);
+  const [sendingVoucher, setSendingVoucher] = useState(null);
+
+  const handleDownloadVoucher = async (type) => {
+    if (!booking?.bookingId) return;
+    try {
+      setDownloadingVoucher(type);
+      const blob = await bookingService.downloadVoucherPdf(booking.bookingId, type);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type === 'hotel' ? 'Hotel' : 'Cab'}-Voucher-${booking.bookingId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`${type === 'hotel' ? 'Hotel' : 'Transport'} voucher downloaded.`);
+    } catch (err) {
+      toast.error('Failed to download voucher PDF.');
+    } finally {
+      setDownloadingVoucher(null);
+    }
+  };
+
+  const handleSendVoucher = async (type) => {
+    if (!booking?.bookingId) return;
+    try {
+      setSendingVoucher(type);
+      const res = await bookingService.sendVoucherToWhatsApp(booking.bookingId, { type });
+      if (res.sentToWhatsApp) {
+        toast.success(`Official ${type === 'hotel' ? 'Hotel' : 'Cab'} Voucher sent to ${booking.customerName} via WhatsApp!`);
+      } else {
+        // The PDF exists, but the customer did not get it - saying "success"
+        // here left agents believing a voucher had been delivered.
+        toast.error(`Voucher PDF created but NOT sent on WhatsApp: ${res.whatsappError || 'WhatsApp is not connected.'}`);
+      }
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send voucher via WhatsApp.');
+    } finally {
+      setSendingVoucher(null);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -183,41 +226,188 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
           </div>
 
           {/* Section 2.5: Hotel Booking Status & Voucher */}
-          {booking.hotelId && (
-            <div className="space-y-4">
-              <h5 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
-                <Home size={12} />
-                <span>Hotel Voucher Details</span>
-              </h5>
-              <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-                <div className="col-span-2">
-                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Hotel / Property</span>
-                  <span className="font-semibold text-slate-700">{hotels.find((h) => h.id === booking.hotelId)?.name || 'Linked Hotel'}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Room Category</span>
-                  <span className="font-semibold text-slate-600">{booking.roomCategory || <span className="text-slate-400 italic">Not specified</span>}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Voucher Status</span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    booking.hotelBookingStatus === 'Confirmed'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                      : booking.hotelBookingStatus === 'Cancelled'
-                      ? 'bg-red-50 text-red-700 border border-red-100'
-                      : 'bg-amber-50 text-amber-700 border border-amber-100'
-                  }`}>
-                    {booking.hotelBookingStatus === 'Confirmed' ? '✅ Confirmed' : booking.hotelBookingStatus === 'Cancelled' ? '❌ Cancelled' : '⏳ Pending'}
-                  </span>
-                </div>
-                {booking.hotelConfirmationNo && (
-                  <div className="col-span-2">
-                    <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Confirmation Voucher No</span>
-                    <span className="font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg">
-                      {booking.hotelConfirmationNo}
-                    </span>
+          {displayHotels.length > 0 && (
+            <div className="space-y-4 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-200/60">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                <h5 className="text-[11px] uppercase font-bold tracking-wider text-teal-800 flex items-center gap-1.5">
+                  <Home size={13} className="text-teal-600" />
+                  <span>Hotel Reservation Voucher{displayHotels.length > 1 ? ` (${displayHotels.length} Stays)` : ''}</span>
+                </h5>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-100">
+                  🏨 {displayHotels.length > 1 ? `${displayHotels.length} Hotels` : (displayHotels[0].hotelBookingStatus || 'Active')}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {displayHotels.map((stay, idx) => {
+                  const hotelName = hotels.find((h) => h.id === stay.hotelId)?.name || stay.hotelName || 'Linked Hotel';
+                  return (
+                    <div key={idx} className="bg-white/90 p-3 rounded-xl border border-slate-200/80 space-y-2.5">
+                      {displayHotels.length > 1 && (
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                          <span className="text-xs font-bold text-slate-700">Stay #{idx + 1}</span>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                            stay.hotelBookingStatus === 'Confirmed'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                              : stay.hotelBookingStatus === 'Cancelled'
+                              ? 'bg-red-50 text-red-700 border border-red-100'
+                              : 'bg-amber-50 text-amber-700 border border-amber-100'
+                          }`}>
+                            {stay.hotelBookingStatus === 'Confirmed' ? '✅ Confirmed' : stay.hotelBookingStatus === 'Cancelled' ? '❌ Cancelled' : '⏳ Pending'}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs">
+                        <div className="col-span-2">
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Hotel / Property</span>
+                          <span className="font-semibold text-slate-800 text-sm">
+                            {hotelName}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Room Category</span>
+                          <span className="font-medium text-slate-700">{stay.roomCategory || <span className="text-slate-400 italic">Standard</span>}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Meal Plan</span>
+                          <span className="font-medium text-slate-700">{stay.mealPlan || <span className="text-slate-400 italic">CP</span>}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Check-In</span>
+                          <span className="font-medium text-slate-700">{formatDate(stay.hotelCheckIn || booking.departure)}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Check-Out</span>
+                          <span className="font-medium text-slate-700">{formatDate(stay.hotelCheckOut)}</span>
+                        </div>
+                        {stay.hotelConfirmationNo && (
+                          <div className="col-span-2">
+                            <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Confirmation / Voucher No</span>
+                            <span className="font-mono font-bold text-slate-800 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-[11px] inline-block">
+                              {stay.hotelConfirmationNo}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/60 flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={downloadingVoucher === 'hotel'}
+                  onClick={() => handleDownloadVoucher('hotel')}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                >
+                  {downloadingVoucher === 'hotel' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} className="text-teal-600" />}
+                  <span>Download PDF</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={sendingVoucher === 'hotel'}
+                  onClick={() => handleSendVoucher('hotel')}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                >
+                  {sendingVoucher === 'hotel' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  <span>Send to WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Section 2.6: Transport & Driver Voucher */}
+          {displayTransports.length > 0 && (
+            <div className="space-y-4 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-200/60">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                <h5 className="text-[11px] uppercase font-bold tracking-wider text-blue-800 flex items-center gap-1.5">
+                  <Car size={13} className="text-blue-600" />
+                  <span>Cab & Chauffeur Voucher{displayTransports.length > 1 ? ` (${displayTransports.length} Cabs)` : ''}</span>
+                </h5>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                  🚗 {displayTransports.length > 1 ? `${displayTransports.length} Cabs` : 'Active'}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {displayTransports.map((t, idx) => (
+                  <div key={idx} className="bg-white/90 p-3 rounded-xl border border-slate-200/80 space-y-2.5">
+                    {displayTransports.length > 1 && (
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                        <span className="text-xs font-bold text-slate-700">Cab / Driver #{idx + 1}</span>
+                        {t.vehicleType && (
+                          <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                            {t.vehicleType} {t.vehicleNumber ? `(${t.vehicleNumber})` : ''}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-y-2.5 gap-x-3 text-xs">
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Vehicle Type</span>
+                        <span className="font-semibold text-slate-800">{t.vehicleType || 'Assigned Cab'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Vehicle Number</span>
+                        <span className="font-mono font-bold text-slate-800">{t.vehicleNumber || <span className="text-slate-400 italic font-normal">TBA</span>}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Driver Name</span>
+                        <span className="font-medium text-slate-700">{t.driverName || <span className="text-slate-400 italic">TBA</span>}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Driver Contact</span>
+                        <span className="font-medium text-slate-700">{t.driverPhone || <span className="text-slate-400 italic">TBA</span>}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Pickup Time</span>
+                        <span className="font-medium text-slate-700">{t.pickupTime || <span className="text-slate-400 italic">As scheduled</span>}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Pickup Location</span>
+                        <span className="font-medium text-slate-700 truncate">{t.pickupLocation || booking.pickup || <span className="text-slate-400 italic">-</span>}</span>
+                      </div>
+                      {t.dropLocation && (
+                        <div className="col-span-2">
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Drop / Destination</span>
+                          <span className="font-medium text-slate-700">{t.dropLocation}</span>
+                        </div>
+                      )}
+                      {t.voucherNotes && (
+                        <div className="col-span-2">
+                          <span className="block text-[10px] text-slate-400 font-semibold mb-0.5">Special Instructions</span>
+                          <span className="text-slate-600 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg block text-[11px]">
+                            {t.voucherNotes}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                ))}
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/60 flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={downloadingVoucher === 'cab'}
+                  onClick={() => handleDownloadVoucher('cab')}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                >
+                  {downloadingVoucher === 'cab' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} className="text-blue-600" />}
+                  <span>Download Cab PDF</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={sendingVoucher === 'cab'}
+                  onClick={() => handleSendVoucher('cab')}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                >
+                  {sendingVoucher === 'cab' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  <span>Send Cab Voucher</span>
+                </button>
               </div>
             </div>
           )}

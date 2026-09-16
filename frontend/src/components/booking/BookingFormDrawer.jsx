@@ -19,7 +19,8 @@ import { usePermission } from '../../hooks/usePermission.js';
 import {
   User, Mail, Phone, ShieldAlert, MapPin, Calendar, Navigation,
   Users, UserCheck, IndianRupee, CreditCard, Home, Plane, Car,
-  Tag, Sparkles, Check, ChevronRight, ChevronLeft, ArrowRight
+  Tag, Sparkles, Check, ChevronRight, ChevronLeft, ArrowRight,
+  Plus, Trash2
 } from 'lucide-react';
 
 const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled', 'Refunded'];
@@ -40,6 +41,11 @@ const emptyForm = {
   vendorHotelCost: 0, vendorFlightCost: 0, vendorTransportCost: 0, vendorOtherCost: 0,
   hotelId: '', roomCategory: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '', sourceQuotationId: '',
   batchId: '', costTemplateId: '',
+  mealPlan: 'CP', hotelCheckIn: '', hotelCheckOut: '',
+  vehicleType: '', driverName: '', driverPhone: '', vehicleNumber: '',
+  pickupTime: '', pickupLocation: '', dropLocation: '', voucherNotes: '',
+  transports: [],
+  hotelsStay: [],
 };
 
 export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
@@ -170,7 +176,43 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
   useEffect(() => {
     if (open) {
-      const initialForm = booking ? { ...emptyForm, ...booking } : emptyForm;
+      const rawTransports = (Array.isArray(booking?.transports) && booking.transports.length > 0)
+        ? booking.transports
+        : [{
+            vehicleType: booking?.vehicleType || '',
+            vehicleNumber: booking?.vehicleNumber || '',
+            driverName: booking?.driverName || '',
+            driverPhone: booking?.driverPhone || '',
+            pickupTime: booking?.pickupTime || '',
+            pickupLocation: booking?.pickupLocation || booking?.pickup || '',
+            dropLocation: booking?.dropLocation || '',
+            voucherNotes: booking?.voucherNotes || '',
+          }];
+
+      const rawHotelsStay = (Array.isArray(booking?.hotelsStay) && booking.hotelsStay.length > 0)
+        ? booking.hotelsStay
+        : (booking?.hotelId ? [{
+            hotelId: booking.hotelId || '',
+            roomCategory: booking.roomCategory || '',
+            mealPlan: booking.mealPlan || 'CP',
+            hotelCheckIn: booking.hotelCheckIn ? (typeof booking.hotelCheckIn === 'string' ? booking.hotelCheckIn.slice(0, 10) : '') : '',
+            hotelCheckOut: booking.hotelCheckOut ? (typeof booking.hotelCheckOut === 'string' ? booking.hotelCheckOut.slice(0, 10) : '') : '',
+            hotelBookingStatus: booking.hotelBookingStatus || 'Pending',
+            hotelConfirmationNo: booking.hotelConfirmationNo || '',
+          }] : [{
+            hotelId: '',
+            roomCategory: '',
+            mealPlan: 'CP',
+            hotelCheckIn: '',
+            hotelCheckOut: '',
+            hotelBookingStatus: 'Pending',
+            hotelConfirmationNo: '',
+          }]);
+
+      const initialForm = booking
+        ? { ...emptyForm, ...booking, transports: rawTransports, hotelsStay: rawHotelsStay }
+        : { ...emptyForm, transports: rawTransports, hotelsStay: rawHotelsStay };
+
       setForm(initialForm);
       setErrors({});
       setActiveTab('customer');
@@ -198,6 +240,78 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
       }
     }
   }, [open, booking]);
+
+  const addTransportLeg = () => {
+    setForm((prev) => ({
+      ...prev,
+      transports: [
+        ...(prev.transports || []),
+        {
+          vehicleType: '',
+          vehicleNumber: '',
+          driverName: '',
+          driverPhone: '',
+          pickupTime: '',
+          pickupLocation: prev.pickup || '',
+          dropLocation: '',
+          voucherNotes: '',
+        },
+      ],
+    }));
+  };
+
+  const removeTransportLeg = (index) => {
+    setForm((prev) => {
+      const next = (prev.transports || []).filter((_, i) => i !== index);
+      return { ...prev, transports: next.length > 0 ? next : [{ vehicleType: '', vehicleNumber: '', driverName: '', driverPhone: '', pickupTime: '', pickupLocation: '', dropLocation: '', voucherNotes: '' }] };
+    });
+  };
+
+  const updateTransportLeg = (index, field, value) => {
+    setForm((prev) => {
+      const next = (prev.transports || []).map((item, i) => i === index ? { ...item, [field]: value } : item);
+      return { ...prev, transports: next };
+    });
+  };
+
+  const addHotelStay = () => {
+    setForm((prev) => ({
+      ...prev,
+      hotelsStay: [
+        ...(prev.hotelsStay || []),
+        {
+          hotelId: '',
+          roomCategory: '',
+          mealPlan: 'CP',
+          hotelCheckIn: '',
+          hotelCheckOut: '',
+          hotelBookingStatus: 'Pending',
+          hotelConfirmationNo: '',
+        },
+      ],
+    }));
+  };
+
+  const removeHotelStay = (index) => {
+    setForm((prev) => {
+      const next = (prev.hotelsStay || []).filter((_, i) => i !== index);
+      return { ...prev, hotelsStay: next.length > 0 ? next : [{ hotelId: '', roomCategory: '', mealPlan: 'CP', hotelCheckIn: '', hotelCheckOut: '', hotelBookingStatus: 'Pending', hotelConfirmationNo: '' }] };
+    });
+  };
+
+  const updateHotelStay = (index, field, value) => {
+    setForm((prev) => {
+      const next = (prev.hotelsStay || []).map((item, i) => {
+        if (i !== index) return item;
+        const updated = { ...item, [field]: value };
+        if (field === 'hotelId') {
+          updated.roomCategory = '';
+        }
+        return updated;
+      });
+      return { ...prev, hotelsStay: next };
+    });
+  };
 
   // Fetch team members when modal opens
   useEffect(() => {
@@ -366,8 +480,33 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
     }
     setSaving(true);
     try {
+      const validTransports = (form.transports || []).filter(
+        (t) => t.vehicleType || t.driverName || t.vehicleNumber || t.pickupLocation || t.pickupTime || t.voucherNotes
+      );
+      const validHotelsStay = (form.hotelsStay || []).filter(
+        (h) => h.hotelId || h.roomCategory || h.hotelConfirmationNo
+      );
+
       const payload = {
         ...form,
+        transports: validTransports,
+        hotelsStay: validHotelsStay,
+        // top-level backward compatibility sync
+        vehicleType: validTransports[0]?.vehicleType || form.vehicleType || '',
+        vehicleNumber: validTransports[0]?.vehicleNumber || form.vehicleNumber || '',
+        driverName: validTransports[0]?.driverName || form.driverName || '',
+        driverPhone: validTransports[0]?.driverPhone || form.driverPhone || '',
+        pickupTime: validTransports[0]?.pickupTime || form.pickupTime || '',
+        pickupLocation: validTransports[0]?.pickupLocation || form.pickupLocation || form.pickup || '',
+        dropLocation: validTransports[0]?.dropLocation || form.dropLocation || '',
+        voucherNotes: validTransports[0]?.voucherNotes || form.voucherNotes || '',
+        hotelId: validHotelsStay[0]?.hotelId || form.hotelId || null,
+        roomCategory: validHotelsStay[0]?.roomCategory || form.roomCategory || '',
+        mealPlan: validHotelsStay[0]?.mealPlan || form.mealPlan || 'CP',
+        hotelCheckIn: validHotelsStay[0]?.hotelCheckIn || form.hotelCheckIn || null,
+        hotelCheckOut: validHotelsStay[0]?.hotelCheckOut || form.hotelCheckOut || null,
+        hotelBookingStatus: validHotelsStay[0]?.hotelBookingStatus || form.hotelBookingStatus || 'Pending',
+        hotelConfirmationNo: validHotelsStay[0]?.hotelConfirmationNo || form.hotelConfirmationNo || '',
         members: Number(form.members),
         pricePerPerson: Number(form.pricePerPerson),
         paid: Number(form.paid || 0),
@@ -694,57 +833,136 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                 />
               </FormRow>
 
-              {/* Hotel Booking (optional) */}
-              <FormRow>
-                <div className="w-full">
-                  <Select
-                    label="Hotel"
-                    icon={Home}
-                    hint="Optional - link the hotel this booking is staying at"
-                    value={form.hotelId || ''}
-                    onChange={(e) => {
-                      const hotelId = e.target.value;
-                      setForm((prev) => ({ ...prev, hotelId, roomCategory: '' }));
-                    }}
-                    options={[
-                      { value: '', label: 'No hotel linked' },
-                      ...hotels.map((h) => ({ value: h.id, label: `${h.name}${h.city ? ` - ${h.city}` : ''}` })),
-                    ]}
-                  />
+              {/* Hotel Stays & Accommodations Repeater */}
+              <div className="pt-2 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Home size={15} className="text-teal-600" />
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Hotel Stays & Accommodations (Optional)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addHotelStay}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-1 rounded-lg transition shadow-sm"
+                  >
+                    <Plus size={12} />
+                    <span>Add Hotel Stay</span>
+                  </button>
                 </div>
-                <div className="w-full">
-                  <Select
-                    label="Room Category"
-                    disabled={!form.hotelId}
-                    hint={form.hotelId ? 'Room type for this stay' : 'Select a hotel first'}
-                    value={form.roomCategory || ''}
-                    onChange={set('roomCategory')}
-                    options={[
-                      { value: '', label: 'Select room type' },
-                      ...(hotels.find((h) => h.id === form.hotelId)?.rooms_and_rates || [])
-                        .filter((r) => r.roomType)
-                        .map((r) => ({ value: r.roomType, label: r.roomType })),
-                    ]}
-                  />
-                </div>
-              </FormRow>
 
-              {!!form.hotelId && (
-                <FormRow>
-                  <Select
-                    label="Hotel Booking Status"
-                    value={form.hotelBookingStatus || 'Pending'}
-                    onChange={set('hotelBookingStatus')}
-                    options={['Pending', 'Confirmed', 'Cancelled']}
-                  />
-                  <Input
-                    label="Confirmation Number"
-                    placeholder="e.g. Hotel's booking reference"
-                    value={form.hotelConfirmationNo || ''}
-                    onChange={set('hotelConfirmationNo')}
-                  />
-                </FormRow>
-              )}
+                {(!form.hotelsStay || form.hotelsStay.length === 0) ? (
+                  <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center">
+                    <p className="text-xs text-slate-500">No hotel stays added yet.</p>
+                    <button
+                      type="button"
+                      onClick={addHotelStay}
+                      className="mt-1.5 text-xs text-teal-600 font-bold hover:underline"
+                    >
+                      + Add Hotel Stay
+                    </button>
+                  </div>
+                ) : (
+                  form.hotelsStay.map((stay, idx) => (
+                    <div key={idx} className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-200/70 space-y-3 relative">
+                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <span>🏨 Stay #{idx + 1}</span>
+                          {stay.hotelConfirmationNo && (
+                            <span className="text-[10px] font-mono font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100">
+                              {stay.hotelConfirmationNo}
+                            </span>
+                          )}
+                        </span>
+                        {form.hotelsStay.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeHotelStay(idx)}
+                            className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-50 transition"
+                            title="Remove this hotel stay"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+
+                      <FormRow>
+                        <div className="w-full">
+                          <Select
+                            label="Hotel / Property"
+                            icon={Home}
+                            value={stay.hotelId || ''}
+                            onChange={(e) => updateHotelStay(idx, 'hotelId', e.target.value)}
+                            options={[
+                              { value: '', label: '-- No hotel linked --' },
+                              ...hotels.map((h) => ({ value: h.id, label: `${h.name}${h.city ? ` - ${h.city}` : ''}` })),
+                            ]}
+                          />
+                        </div>
+                        <div className="w-full">
+                          <Select
+                            label="Room Category"
+                            disabled={!stay.hotelId}
+                            hint={stay.hotelId ? 'Room type for this stay' : 'Select a hotel first'}
+                            value={stay.roomCategory || ''}
+                            onChange={(e) => updateHotelStay(idx, 'roomCategory', e.target.value)}
+                            options={[
+                              { value: '', label: 'Select room type' },
+                              ...(hotels.find((h) => h.id === stay.hotelId)?.rooms_and_rates || [])
+                                .filter((r) => r.roomType)
+                                .map((r) => ({ value: r.roomType, label: r.roomType })),
+                            ]}
+                          />
+                        </div>
+                      </FormRow>
+
+                      <FormRow>
+                        <Select
+                          label="Booking Status"
+                          value={stay.hotelBookingStatus || 'Pending'}
+                          onChange={(e) => updateHotelStay(idx, 'hotelBookingStatus', e.target.value)}
+                          options={['Pending', 'Confirmed', 'Cancelled']}
+                        />
+                        <Input
+                          label="Confirmation / Voucher No"
+                          placeholder="e.g. Hotel's booking reference"
+                          value={stay.hotelConfirmationNo || ''}
+                          onChange={(e) => updateHotelStay(idx, 'hotelConfirmationNo', e.target.value)}
+                        />
+                      </FormRow>
+
+                      <FormRow>
+                        <Select
+                          label="Meal Plan"
+                          value={stay.mealPlan || 'CP'}
+                          onChange={(e) => updateHotelStay(idx, 'mealPlan', e.target.value)}
+                          options={[
+                            { value: 'EP', label: 'EP (European Plan - Room Only)' },
+                            { value: 'CP', label: 'CP (Continental Plan - Breakfast Included)' },
+                            { value: 'MAP', label: 'MAP (Modified American - Breakfast + Dinner)' },
+                            { value: 'AP', label: 'AP (American Plan - All Meals Included)' },
+                          ]}
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            label="Check-In Date"
+                            type="date"
+                            value={stay.hotelCheckIn?.slice(0, 10) || ''}
+                            onChange={(e) => updateHotelStay(idx, 'hotelCheckIn', e.target.value)}
+                          />
+                          <Input
+                            label="Check-Out Date"
+                            type="date"
+                            value={stay.hotelCheckOut?.slice(0, 10) || ''}
+                            onChange={(e) => updateHotelStay(idx, 'hotelCheckOut', e.target.value)}
+                          />
+                        </div>
+                      </FormRow>
+                    </div>
+                  ))
+                )}
+              </div>
 
               {/* Row 3: Sharing Type & Travel Status */}
               <FormRow>
@@ -824,6 +1042,124 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
                   )}
                 </div>
               </FormRow>
+
+              {/* Transport & Chauffeur Voucher Details */}
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Car size={15} className="text-teal-600" />
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Transport, Vehicles & Drivers (Optional)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addTransportLeg}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-1 rounded-lg transition shadow-sm"
+                  >
+                    <Plus size={12} />
+                    <span>Add Cab / Driver</span>
+                  </button>
+                </div>
+
+                {(!form.transports || form.transports.length === 0) ? (
+                  <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center">
+                    <p className="text-xs text-slate-500">No transport/cab details added yet.</p>
+                    <button
+                      type="button"
+                      onClick={addTransportLeg}
+                      className="mt-1.5 text-xs text-teal-600 font-bold hover:underline"
+                    >
+                      + Add Vehicle / Driver
+                    </button>
+                  </div>
+                ) : (
+                  form.transports.map((transport, idx) => (
+                    <div key={idx} className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-200/70 space-y-3 relative">
+                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <span>🚗 Cab / Driver #{idx + 1}</span>
+                          {transport.vehicleType && (
+                            <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100">
+                              {transport.vehicleType} {transport.vehicleNumber ? `(${transport.vehicleNumber})` : ''}
+                            </span>
+                          )}
+                        </span>
+                        {form.transports.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeTransportLeg(idx)}
+                            className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-50 transition"
+                            title="Remove this vehicle"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+
+                      <FormRow>
+                        <Input
+                          label="Vehicle Type / Model"
+                          placeholder="e.g. Innova Crysta, Dzire, Tempo 17-str"
+                          value={transport.vehicleType || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'vehicleType', e.target.value)}
+                        />
+                        <Input
+                          label="Vehicle Number"
+                          placeholder="e.g. DL 01 AB 1234"
+                          value={transport.vehicleNumber || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'vehicleNumber', e.target.value)}
+                        />
+                      </FormRow>
+
+                      <FormRow>
+                        <Input
+                          label="Driver Name"
+                          placeholder="e.g. Rajesh Kumar"
+                          value={transport.driverName || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'driverName', e.target.value)}
+                        />
+                        <Input
+                          label="Driver Phone"
+                          placeholder="e.g. +91 9876543210"
+                          value={transport.driverPhone || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'driverPhone', e.target.value)}
+                        />
+                      </FormRow>
+
+                      <FormRow>
+                        <Input
+                          label="Pickup Time"
+                          placeholder="e.g. 06:00 AM / Flight UK-812 arrival"
+                          value={transport.pickupTime || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'pickupTime', e.target.value)}
+                        />
+                        <Input
+                          label="Pickup Spot / Location"
+                          placeholder="e.g. Delhi Airport T3 Arrival Gate 4"
+                          value={transport.pickupLocation || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'pickupLocation', e.target.value)}
+                        />
+                      </FormRow>
+
+                      <FormRow>
+                        <Input
+                          label="Drop Location"
+                          placeholder="e.g. Hotel Grand / Rishikesh Campsite"
+                          value={transport.dropLocation || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'dropLocation', e.target.value)}
+                        />
+                        <Input
+                          label="Voucher Notes / Instructions"
+                          placeholder="e.g. Toll & Parking included, AC on hills"
+                          value={transport.voucherNotes || ''}
+                          onChange={(e) => updateTransportLeg(idx, 'voucherNotes', e.target.value)}
+                        />
+                      </FormRow>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 

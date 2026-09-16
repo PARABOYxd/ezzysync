@@ -134,6 +134,56 @@ async function getActiveBookingsByCustomer(tenantId, customerId) {
   return rows;
 }
 
+function normalizeTransports(data) {
+  let list = Array.isArray(data.transports) ? data.transports.map((t) => ({ ...t })) : [];
+  if (list.length === 0 && (data.vehicleType || data.driverName || data.vehicleNumber || data.pickupLocation || data.pickupTime)) {
+    list = [{
+      vehicleType: data.vehicleType || '',
+      vehicleNumber: data.vehicleNumber || '',
+      driverName: data.driverName || '',
+      driverPhone: data.driverPhone || '',
+      pickupTime: data.pickupTime || '',
+      pickupLocation: data.pickupLocation || data.pickup || '',
+      dropLocation: data.dropLocation || '',
+      voucherNotes: data.voucherNotes || '',
+    }];
+  } else if (list.length > 0) {
+    if (data.vehicleType !== undefined) list[0].vehicleType = data.vehicleType;
+    if (data.vehicleNumber !== undefined) list[0].vehicleNumber = data.vehicleNumber;
+    if (data.driverName !== undefined) list[0].driverName = data.driverName;
+    if (data.driverPhone !== undefined) list[0].driverPhone = data.driverPhone;
+    if (data.pickupTime !== undefined) list[0].pickupTime = data.pickupTime;
+    if (data.pickupLocation !== undefined) list[0].pickupLocation = data.pickupLocation;
+    if (data.dropLocation !== undefined) list[0].dropLocation = data.dropLocation;
+    if (data.voucherNotes !== undefined) list[0].voucherNotes = data.voucherNotes;
+  }
+  return list;
+}
+
+function normalizeHotelsStay(data) {
+  let list = Array.isArray(data.hotelsStay) ? data.hotelsStay.map((h) => ({ ...h })) : [];
+  if (list.length === 0 && data.hotelId) {
+    list = [{
+      hotelId: data.hotelId,
+      roomCategory: data.roomCategory || '',
+      mealPlan: data.mealPlan || 'CP',
+      hotelCheckIn: data.hotelCheckIn || null,
+      hotelCheckOut: data.hotelCheckOut || null,
+      hotelBookingStatus: data.hotelBookingStatus || 'Pending',
+      hotelConfirmationNo: data.hotelConfirmationNo || '',
+    }];
+  } else if (list.length > 0) {
+    if (data.hotelId !== undefined) list[0].hotelId = data.hotelId;
+    if (data.roomCategory !== undefined) list[0].roomCategory = data.roomCategory;
+    if (data.mealPlan !== undefined) list[0].mealPlan = data.mealPlan;
+    if (data.hotelCheckIn !== undefined) list[0].hotelCheckIn = data.hotelCheckIn;
+    if (data.hotelCheckOut !== undefined) list[0].hotelCheckOut = data.hotelCheckOut;
+    if (data.hotelBookingStatus !== undefined) list[0].hotelBookingStatus = data.hotelBookingStatus;
+    if (data.hotelConfirmationNo !== undefined) list[0].hotelConfirmationNo = data.hotelConfirmationNo;
+  }
+  return list;
+}
+
 async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, remaining, travelStatus, paymentStatus, createdBy, customerId) {
   const hotelCost = Number(data.vendorHotelCost || 0);
   const flightCost = Number(data.vendorFlightCost || 0);
@@ -143,6 +193,28 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
   const netProfit = totalAmount - totalCost;
   const sourceQuotationId = data.sourceQuotationId || null;
 
+  const transports = normalizeTransports(data);
+  const hotelsStay = normalizeHotelsStay(data);
+  const primaryTransport = transports[0] || {};
+  const primaryHotel = hotelsStay[0] || {};
+
+  const vehicleType = data.vehicleType || primaryTransport.vehicleType || '';
+  const driverName = data.driverName || primaryTransport.driverName || '';
+  const driverPhone = data.driverPhone || primaryTransport.driverPhone || '';
+  const vehicleNumber = data.vehicleNumber || primaryTransport.vehicleNumber || '';
+  const pickupTime = data.pickupTime || primaryTransport.pickupTime || '';
+  const pickupLocation = data.pickupLocation || primaryTransport.pickupLocation || data.pickup || '';
+  const dropLocation = data.dropLocation || primaryTransport.dropLocation || '';
+  const voucherNotes = data.voucherNotes || primaryTransport.voucherNotes || '';
+
+  const hotelId = data.hotelId || primaryHotel.hotelId || null;
+  const roomCategory = data.roomCategory || primaryHotel.roomCategory || '';
+  const hotelBookingStatus = data.hotelBookingStatus || primaryHotel.hotelBookingStatus || 'Pending';
+  const hotelConfirmationNo = data.hotelConfirmationNo || primaryHotel.hotelConfirmationNo || '';
+  const mealPlan = data.mealPlan || primaryHotel.mealPlan || 'CP';
+  const hotelCheckIn = data.hotelCheckIn || primaryHotel.hotelCheckIn || null;
+  const hotelCheckOut = data.hotelCheckOut || primaryHotel.hotelCheckOut || null;
+
   const { rows } = await query(
     `INSERT INTO bookings (
        tenant_id, booking_id, customer_name, email, phone, emergency_contact, trip, departure,
@@ -150,8 +222,16 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
        travel_status, payment_status, booking_timestamp, notes, created_by, updated_at, deleted,
        vendor_hotel_cost, vendor_flight_cost, vendor_transport_cost, vendor_other_cost, net_profit,
        source_quotation_id, customer_id, hotel_id, room_category, hotel_booking_status, hotel_confirmation_no,
-       batch_id, cost_template_id, sharing_type
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,FALSE,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)
+       batch_id, cost_template_id, sharing_type,
+       meal_plan, hotel_check_in, hotel_check_out, vehicle_type, driver_name, driver_phone,
+       vehicle_number, pickup_time, pickup_location, drop_location, voucher_notes,
+       transports, hotels_stay
+     ) VALUES (
+       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,FALSE,
+       $22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,
+       $36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,
+       $47,$48
+     )
      RETURNING *`,
     [
       tenantId, bookingId, data.customerName, data.email, data.phone, data.emergencyContact || '',
@@ -160,8 +240,13 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
       data.notes || '', createdBy || '', now,
       hotelCost, flightCost, transportCost, otherCost, netProfit,
       sourceQuotationId, customerId || null,
-      data.hotelId || null, data.roomCategory || '', data.hotelBookingStatus || 'Pending', data.hotelConfirmationNo || '',
-      data.batchId || null, data.costTemplateId || null, data.sharingType || 'Double'
+      hotelId, roomCategory, hotelBookingStatus, hotelConfirmationNo,
+      data.batchId || null, data.costTemplateId || null, data.sharingType || 'Double',
+      mealPlan, hotelCheckIn, hotelCheckOut,
+      vehicleType, driverName, driverPhone,
+      vehicleNumber, pickupTime, pickupLocation,
+      dropLocation, voucherNotes,
+      JSON.stringify(transports), JSON.stringify(hotelsStay)
     ]
   );
   return rows[0];
@@ -175,6 +260,28 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
   const totalCost = hotelCost + flightCost + transportCost + otherCost;
   const netProfit = totalAmount - totalCost;
 
+  const transports = normalizeTransports(merged);
+  const hotelsStay = normalizeHotelsStay(merged);
+  const primaryTransport = transports[0] || {};
+  const primaryHotel = hotelsStay[0] || {};
+
+  const vehicleType = merged.vehicleType !== undefined ? merged.vehicleType : (primaryTransport.vehicleType || '');
+  const driverName = merged.driverName !== undefined ? merged.driverName : (primaryTransport.driverName || '');
+  const driverPhone = merged.driverPhone !== undefined ? merged.driverPhone : (primaryTransport.driverPhone || '');
+  const vehicleNumber = merged.vehicleNumber !== undefined ? merged.vehicleNumber : (primaryTransport.vehicleNumber || '');
+  const pickupTime = merged.pickupTime !== undefined ? merged.pickupTime : (primaryTransport.pickupTime || '');
+  const pickupLocation = merged.pickupLocation !== undefined ? merged.pickupLocation : (primaryTransport.pickupLocation || merged.pickup || '');
+  const dropLocation = merged.dropLocation !== undefined ? merged.dropLocation : (primaryTransport.dropLocation || '');
+  const voucherNotes = merged.voucherNotes !== undefined ? merged.voucherNotes : (primaryTransport.voucherNotes || '');
+
+  const hotelId = merged.hotelId !== undefined ? merged.hotelId : (primaryHotel.hotelId || null);
+  const roomCategory = merged.roomCategory !== undefined ? merged.roomCategory : (primaryHotel.roomCategory || '');
+  const hotelBookingStatus = merged.hotelBookingStatus !== undefined ? merged.hotelBookingStatus : (primaryHotel.hotelBookingStatus || 'Pending');
+  const hotelConfirmationNo = merged.hotelConfirmationNo !== undefined ? merged.hotelConfirmationNo : (primaryHotel.hotelConfirmationNo || '');
+  const mealPlan = merged.mealPlan !== undefined ? merged.mealPlan : (primaryHotel.mealPlan || 'CP');
+  const hotelCheckIn = merged.hotelCheckIn !== undefined ? merged.hotelCheckIn : (primaryHotel.hotelCheckIn || null);
+  const hotelCheckOut = merged.hotelCheckOut !== undefined ? merged.hotelCheckOut : (primaryHotel.hotelCheckOut || null);
+
   const { rows } = await query(
     `UPDATE bookings SET
        customer_name = $1, email = $2, phone = $3, emergency_contact = $4, trip = $5, departure = $6,
@@ -183,7 +290,11 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
        vendor_hotel_cost = $19, vendor_flight_cost = $20, vendor_transport_cost = $21, vendor_other_cost = $22, net_profit = $23,
        customer_id = COALESCE($26, customer_id),
        hotel_id = $27, room_category = $28, hotel_booking_status = $29, hotel_confirmation_no = $30,
-       batch_id = $31, cost_template_id = $32, sharing_type = $33, refunded_amount = $34
+       batch_id = $31, cost_template_id = $32, sharing_type = $33, refunded_amount = $34,
+       meal_plan = $35, hotel_check_in = $36, hotel_check_out = $37, vehicle_type = $38,
+       driver_name = $39, driver_phone = $40, vehicle_number = $41, pickup_time = $42,
+       pickup_location = $43, drop_location = $44, voucher_notes = $45,
+       transports = $46, hotels_stay = $47
      WHERE tenant_id = $24 AND booking_id = $25
      RETURNING *`,
     [
@@ -193,8 +304,13 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
       merged.notes || '', updatedAt, !!merged.deleted,
       hotelCost, flightCost, transportCost, otherCost, netProfit,
       tenantId, bookingId, customerId || null,
-      merged.hotelId || null, merged.roomCategory || '', merged.hotelBookingStatus || 'Pending', merged.hotelConfirmationNo || '',
-      merged.batchId || null, merged.costTemplateId || null, merged.sharingType || 'Double', Number(merged.refundedAmount || 0)
+      hotelId, roomCategory, hotelBookingStatus, hotelConfirmationNo,
+      merged.batchId || null, merged.costTemplateId || null, merged.sharingType || 'Double', Number(merged.refundedAmount || 0),
+      mealPlan, hotelCheckIn, hotelCheckOut,
+      vehicleType, driverName, driverPhone,
+      vehicleNumber, pickupTime, pickupLocation,
+      dropLocation, voucherNotes,
+      JSON.stringify(transports), JSON.stringify(hotelsStay)
     ]
   );
   return rows[0];

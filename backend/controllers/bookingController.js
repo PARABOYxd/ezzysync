@@ -147,4 +147,64 @@ async function createFollowUp(req, res, next) {
   }
 }
 
-module.exports = { list, getOne, create, update, remove, exportCSV, listFollowUps, createFollowUp };
+async function getVoucherPdf(req, res, next) {
+  try {
+    const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+    if (shouldScopeToSelf(req.user, 'bookings') && booking.teamMember !== req.user.name) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    const type = (req.query.type === 'cab' || req.query.type === 'transport') ? 'cab' : 'hotel';
+    const { buffer, filename } = await bookingService.generateVoucherPdf(req.user.tenantId, req.params.id, type);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function sendVoucher(req, res, next) {
+  try {
+    const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+    if (shouldScopeToSelf(req.user, 'bookings') && booking.teamMember !== req.user.name) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    const { type, customNotes } = req.body;
+    const voucherType = (type === 'cab' || type === 'transport') ? 'cab' : 'hotel';
+
+    const result = await bookingService.sendVoucherToWhatsApp(req.user.tenantId, req.params.id, {
+      type: voucherType,
+      customNotes,
+      userId: req.user.userId || req.user.id,
+    });
+
+    await auditService.logAction(req, 'SEND_BOOKING_VOUCHER', {
+      bookingId: req.params.id,
+      type: voucherType,
+      phone: result.phone,
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  list,
+  getOne,
+  create,
+  update,
+  remove,
+  exportCSV,
+  listFollowUps,
+  createFollowUp,
+  getVoucherPdf,
+  sendVoucher,
+};
