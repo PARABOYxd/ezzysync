@@ -10,7 +10,7 @@ const env = require('../config/env');
 const aiService = require('./aiService');
 const logger = require('../utils/logger').child({ module: 'llmService' });
 
-const OPENAI_PRIMARY_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_PRIMARY_MODEL = env.openaiModel;
 
 /**
  * Generates an itinerary by providing the LLM with structured real-world context

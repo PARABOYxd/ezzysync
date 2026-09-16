@@ -4,12 +4,16 @@ const env = require('../config/env');
 const settingsRepository = require('../repositories/settingsRepository');
 const leadRepository = require('../repositories/leadRepository');
 
-const VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || 'ezzysync_ig_webhook_2024';
-const FB_APP_ID = process.env.FACEBOOK_APP_ID || '';
-const FB_APP_SECRET = process.env.FACEBOOK_APP_SECRET || '';
-const BACKEND_URL = process.env.NODE_ENV === 'development'
-  ? `http://localhost:${process.env.PORT || 5001}`
-  : (process.env.BACKEND_URL || 'https://ezzysync-production.up.railway.app');
+const VERIFY_TOKEN = env.instagram.webhookVerifyToken;
+const FB_APP_ID = env.facebook.appId;
+const FB_APP_SECRET = env.facebook.appSecret;
+// Forces localhost in dev regardless of what BACKEND_URL/Railway resolve to
+// - env.backendUrl alone has no such dev-specific branch, since most of its
+// callers want the real public URL even while developing (e.g. webhook
+// registration against a tunnel).
+const BACKEND_URL = env.nodeEnv === 'development'
+  ? `http://localhost:${env.port}`
+  : env.backendUrl;
 
 const REDIRECT_URI = `${BACKEND_URL}/api/instagram/callback`;
 

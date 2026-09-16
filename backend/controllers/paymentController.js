@@ -1,3 +1,4 @@
+const env = require('../config/env');
 const paymentService = require('../services/paymentService');
 const paymentRepository = require('../repositories/paymentRepository');
 
@@ -10,26 +11,14 @@ async function createSubscriptionOrder(req, res, next) {
     const order = await paymentService.createSubscriptionOrder(req.user.tenantId, req.user.userId, planId);
     res.json(order);
   } catch (err) {
-    // A missing or unknown plan is the caller's mistake and says so plainly;
-    // reporting it as a 500 would hide a fixable message behind "something
-    // went wrong on our side".
-    if (err.status && err.status < 500) {
-      return res.status(err.status).json({ message: err.message });
+    // A missing/unknown plan or downgrade refusal is the caller's mistake and
+    // says so plainly; anything else is Razorpay-shaped and gets parsed by
+    // the service, which knows what that SDK's errors look like.
+    if (!(err.status && err.status < 500)) {
+      req.log?.error({ err, apiResponse: err.response?.data || err.error }, 'Error creating subscription order');
     }
-
-    const errDesc = err.error?.description || err.response?.data?.error?.description || err.message;
-    req.log?.error({ err, apiResponse: err.response?.data || err.error }, 'Error creating subscription order');
-    
-    if (err.statusCode === 401 || err.response?.status === 401 || errDesc === 'Authentication failed') {
-      return res.status(401).json({
-        message: 'Razorpay Authentication Failed: Please check your Key ID and Key Secret in Razorpay Dashboard (Settings > API Keys).',
-        code: 'RAZORPAY_AUTH_FAILED',
-      });
-    }
-
-    res.status(500).json({ 
-      message: errDesc || 'Failed to initiate payment order.' 
-    });
+    const shaped = paymentService.describeOrderCreationError(err);
+    res.status(shaped.status).json(shaped.code ? { message: shaped.message, code: shaped.code } : { message: shaped.message });
   }
 }
 
@@ -105,52 +94,19 @@ async function handleRazorpayWebhook(req, res) {
 
     req.log?.info({ event, orderId: payload?.order?.entity?.id }, 'Razorpay Webhook received');
 
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
     if (signature && req.rawBody) {
-      const isValid = paymentService.verifyWebhookSignature(req.rawBody, signature, webhookSecret);
+      const isValid = paymentService.verifyWebhookSignature(req.rawBody, signature, env.razorpayWebhookSecret);
       if (!isValid) {
         req.log?.warn('Razorpay webhook signature verification failed');
         return res.status(400).json({ message: 'Invalid webhook signature.' });
       }
     }
 
-    if (event === 'order.paid' || event === 'payment.captured') {
-      const paymentEntity = payload?.payment?.entity;
-      const orderEntity = payload?.order?.entity;
-      const orderId = orderEntity?.id || paymentEntity?.order_id;
-      const paymentId = paymentEntity?.id;
-
-      if (orderId) {
-        const existing = await paymentRepository.findPaymentByOrderId(orderId);
-        if (existing) {
-          await paymentService.completePaymentAndUpgrade({
-            tenantId: existing.tenant_id,
-            userId: existing.user_id,
-            orderId,
-            paymentId,
-            planId: existing.plan_id,
-            rawResponse: req.body,
-          });
-          req.log?.info({ orderId, tenantId: existing.tenant_id }, 'Webhook successfully upgraded tenant plan');
-        }
-      }
-    } else if (event === 'payment.failed') {
-      const paymentEntity = payload?.payment?.entity;
-      const orderId = paymentEntity?.order_id;
-      if (orderId) {
-        await paymentRepository.updatePaymentFailed({
-          orderId,
-          paymentId: paymentEntity?.id,
-          rawResponse: req.body,
-        });
-      }
+    const result = await paymentService.processWebhookEvent({ event, payload, rawResponse: req.body });
+    if (result?.upgraded) {
+      req.log?.info({ orderId: result.orderId, tenantId: result.tenantId }, 'Webhook successfully upgraded tenant plan');
     } else if (event === 'refund.processed' || event === 'refund.created') {
-      const refundEntity = payload?.refund?.entity;
-      const paymentId = refundEntity?.payment_id;
-      if (paymentId) {
-        await paymentRepository.updatePaymentStatusByPaymentId(paymentId, 'refunded', req.body);
-        req.log?.info({ paymentId }, 'Webhook marked payment as refunded');
-      }
+      req.log?.info({ paymentId: result?.paymentId }, 'Webhook marked payment as refunded');
     }
 
     res.json({ status: 'ok' });

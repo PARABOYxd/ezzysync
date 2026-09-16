@@ -17,7 +17,7 @@ function publicUser(user) {
     companyName: user.companyName,
     planId: user.planId || 'FREE',
     createdAt: user.createdAt,
-    trialDays: Number(process.env.DEFAULT_TRIAL_DAYS || 30),
+    trialDays: env.defaultTrialDays,
   };
 }
 

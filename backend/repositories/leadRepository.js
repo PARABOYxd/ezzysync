@@ -209,6 +209,16 @@ async function insertInstagramLead(tenantId, leadId, customerName, phone, notes,
   );
 }
 
+/** Whether any (non-deleted) lead already exists for this phone - used to
+ * guard auto-creating a duplicate lead from an inbound WhatsApp message. */
+async function existsByPhone(tenantId, phone) {
+  const { rows } = await query(
+    `SELECT lead_id FROM leads WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) AND deleted = FALSE LIMIT 1`,
+    [tenantId, phone, `%${phone}`]
+  );
+  return rows.length > 0;
+}
+
 module.exports = {
   countLeadsByAssignee,
   nextLeadSeq,
@@ -224,4 +234,5 @@ module.exports = {
   insertFollowUp,
   listPool,
   claimLead,
+  existsByPhone,
 };

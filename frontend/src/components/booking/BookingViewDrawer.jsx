@@ -21,6 +21,16 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   const [downloadingVoucher, setDownloadingVoucher] = useState(null);
   const [sendingVoucher, setSendingVoucher] = useState(null);
 
+  // The backend already normalizes every booking's hotel(s)/transport(s)
+  // into these arrays on every create/update (bookingRepository's
+  // normalizeHotelsStay/normalizeTransports - including folding a legacy
+  // single hotelId/vehicleType booking into a one-item array), so there is
+  // nothing left to derive here beyond a safe default. This used to be
+  // referenced without ever being declared, so the voucher sections below
+  // threw a ReferenceError on every render.
+  const displayHotels = booking?.hotelsStay?.length > 0 ? booking.hotelsStay : [];
+  const displayTransports = booking?.transports?.length > 0 ? booking.transports : [];
+
   const handleDownloadVoucher = async (type) => {
     if (!booking?.bookingId) return;
     try {

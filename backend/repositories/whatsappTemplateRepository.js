@@ -40,6 +40,21 @@ async function deleteTemplate(tenantId, id) {
   return rows[0];
 }
 
+/** A template by name as typed in the composer's "/" picker, which may or
+ * may not include the leading slash - tries the name as given, without a
+ * leading slash, and with one, in that order. */
+async function findByNameVariants(tenantId, rawName) {
+  const cleanName = rawName.trim();
+  const strippedName = cleanName.replace(/^\//, '');
+  const { rows } = await query(
+    `SELECT body, variables_map FROM whatsapp_templates
+     WHERE tenant_id = $1 AND (name = $2 OR name = $3 OR name = $4)
+     LIMIT 1`,
+    [tenantId, cleanName, strippedName, `/${strippedName}`]
+  );
+  return rows[0];
+}
+
 async function getTemplateById(tenantId, id) {
   const { rows } = await query(
     `SELECT * FROM whatsapp_templates 
@@ -122,6 +137,7 @@ module.exports = {
   seedStarterTemplates,
   getTemplates,
   getTemplateById,
+  findByNameVariants,
   createTemplate,
   updateTemplateRecord,
   updateMetaStatus,

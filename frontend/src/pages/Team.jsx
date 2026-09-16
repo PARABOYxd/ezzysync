@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import * as userService from '../services/userService';
-import api from '../services/api';
+import { getMyPlanStatus } from '../services/planService';
 import Input from '../components/ui/Input.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search } from 'lucide-react';
@@ -50,11 +50,6 @@ export default function Team() {
   const { user } = useAuth();
   const toast = useToast();
 
-  // Redirect if not ADMIN
-  if (user?.role !== 'ADMIN') {
-    return <Navigate to="/bookings" replace />;
-  }
-
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -91,12 +86,21 @@ export default function Team() {
     // Seats are enforced server-side; reading them here is what lets the page
     // say so up front instead of letting the agent fill in a form and hit a
     // 403 on submit.
-    api.get('/plans/me').then((res) => setPlanInfo(res.data)).catch(() => {});
+    getMyPlanStatus().then(setPlanInfo).catch(() => {});
   }, []);
+
+  // Redirect if not ADMIN - after every hook above, not before. A hook
+  // called conditionally (only on renders where this check doesn't return
+  // early) breaks React's per-render hook bookkeeping outright; it isn't a
+  // style issue, which is why react-hooks/rules-of-hooks treats it as an
+  // error rather than a lint opinion.
+  if (user?.role !== 'ADMIN') {
+    return <Navigate to="/bookings" replace />;
+  }
 
   const fetchMembers = () => {
     setLoading(true);
-    api.get('/plans/me').then((res) => setPlanInfo(res.data)).catch(() => {});
+    getMyPlanStatus().then(setPlanInfo).catch(() => {});
     userService.getUsers()
       .then((users) => {
         setMembers(users);

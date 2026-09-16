@@ -101,7 +101,7 @@ function safeErrSerializer(err) {
 }
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  level: env.logLevel || (isDev ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
   serializers: {
     err: safeErrSerializer,
@@ -149,7 +149,7 @@ const logger = pino({
       isDev
         ? {
             target: 'pino-pretty',
-            level: process.env.LOG_LEVEL || 'debug',
+            level: env.logLevel || 'debug',
             options: { colorize: true, translateTime: 'yyyy-mm-dd HH:MM:ss.l', ignore: 'pid,hostname' },
           }
         : { target: 'pino/file', level: 'info', options: { destination: 1 } },

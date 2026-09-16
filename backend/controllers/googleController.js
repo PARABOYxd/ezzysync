@@ -1,5 +1,5 @@
-const { google } = require("googleapis");
 const oauth2Client = require("../config/googleOAuth");
+const gmailApiService = require("../services/gmailApiService");
 const gmailConnectionService = require("../services/gmailConnectionService");
 const jwt = require("jsonwebtoken");
 const env = require("../config/env");
@@ -57,26 +57,10 @@ exports.googleCallback = async (req, res) => {
         const payload = jwt.verify(state, env.jwtSecret);
         const tenantId = payload.tenantId;
 
-        const { tokens } = await oauth2Client.getToken(code);
-        oauth2Client.setCredentials(tokens);
+        const { googleEmail, refreshToken } = await gmailApiService.exchangeGmailConnectionCode(code);
+        const encryptedRefreshToken = encrypt(refreshToken);
 
-        const { google } = require("googleapis");
-
-        const oauth2 = google.oauth2({
-            version: "v2",
-            auth: oauth2Client,
-        });
-
-        const profile = await oauth2.userinfo.get();
-        const googleEmail = profile.data.email;
-        if (!tokens.refresh_token) {
-            throw new Error(
-                "Google did not return a refresh token. Please disconnect the app from your Google Account and reconnect."
-            );
-        }
-        const encryptedRefreshToken = encrypt(tokens.refresh_token);
-
-        req.log.info({ tenantId, googleEmail: profile.data.email }, 'Google account connected');
+        req.log.info({ tenantId, googleEmail }, 'Google account connected');
         await gmailConnectionService.upsertConnection({
             tenantId,
             googleEmail,

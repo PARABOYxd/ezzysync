@@ -40,6 +40,96 @@ async function resetUnreadCount(tenantId, chatId) {
   return rows[0];
 }
 
+/** Exact phone match - used by the legacy /start-chat and /chats/:id/send
+ * endpoints, which key on the raw normalized phone rather than the
+ * phone_key fuzzy-match findChatByPhone in whatsappWebRepository uses. */
+async function findChatByPhone(tenantId, phone) {
+  const { rows } = await query(
+    `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND phone = $2`,
+    [tenantId, phone]
+  );
+  return rows[0] || null;
+}
+
+async function findChatById(tenantId, chatId) {
+  const { rows } = await query(
+    `SELECT * FROM whatsapp_chats WHERE tenant_id = $1 AND id = $2`,
+    [tenantId, chatId]
+  );
+  return rows[0] || null;
+}
+
+/** A bare, human-handled chat row for a number nobody has messaged yet -
+ * created so the CRM inbox has something to show before the first real
+ * message exists. */
+async function createBareChat(tenantId, { phone, customerName }) {
+  const { rows } = await query(
+    `INSERT INTO whatsapp_chats (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, ai_enabled)
+     VALUES ($1, $2, $3, $4, now(), 0, FALSE)
+     RETURNING *`,
+    [tenantId, phone, customerName, 'Chat initiated']
+  );
+  return rows[0];
+}
+
+async function setChatAiEnabled(tenantId, chatId, enabled) {
+  const { rows } = await query(
+    `UPDATE whatsapp_chats SET ai_enabled = $1, updated_at = now() WHERE tenant_id = $2 AND id = $3 RETURNING *`,
+    [enabled, tenantId, chatId]
+  );
+  return rows[0] || null;
+}
+
+/** Same shape as setChatAiEnabled but also clears an active human-handoff
+ * flag - used by the /management endpoint, which lets an agent explicitly
+ * pick 'ai' or 'human' rather than just toggling. */
+async function setChatManagement(tenantId, chatId, enableAi) {
+  const { rows } = await query(
+    `UPDATE whatsapp_chats
+     SET ai_enabled = $1, needs_human = FALSE, handoff_reason = NULL, updated_at = now()
+     WHERE tenant_id = $2 AND id = $3
+     RETURNING *`,
+    [enableAi, tenantId, chatId]
+  );
+  return rows[0] || null;
+}
+
+/** Cheap early-exit before any media download or AI work starts, ahead of
+ * saveMessage's own internal dedup (which still runs - this only saves the
+ * wasted work of a redelivered webhook message, it isn't the only guard). */
+async function messageExistsByMessageId(tenantId, messageId) {
+  const { rows } = await query(
+    `SELECT id FROM whatsapp_messages WHERE message_id = $1 AND tenant_id = $2 LIMIT 1`,
+    [messageId, tenantId]
+  );
+  return rows.length > 0;
+}
+
+/** Whether a newer inbound message than `afterMessageRowId` has already
+ * landed on this chat - the AI auto-reply debounce's "only the last message
+ * in a burst replies" check. */
+async function findNewerInboundMessage(tenantId, chatId, afterMessageRowId) {
+  const { rows } = await query(
+    `SELECT id, message_text FROM whatsapp_messages
+     WHERE tenant_id = $1 AND chat_id = $2 AND direction = 'inbound' AND id > $3
+     ORDER BY id DESC LIMIT 1`,
+    [tenantId, chatId, afterMessageRowId]
+  );
+  return rows[0] || null;
+}
+
+/** The last few inbound messages on a chat, oldest first - combines a burst
+ * of messages the customer sent in quick succession into one AI prompt. */
+async function listRecentInboundMessages(tenantId, chatId, limit = 3) {
+  const { rows } = await query(
+    `SELECT message_text FROM whatsapp_messages
+     WHERE tenant_id = $1 AND chat_id = $2 AND direction = 'inbound'
+     ORDER BY id DESC LIMIT $3`,
+    [tenantId, chatId, limit]
+  );
+  return rows.map((r) => r.message_text).reverse();
+}
+
 function normalizePhone(phone = '') {
   // Instagram conversations are keyed as "IG_<handle>" in this same column.
   // Stripping non-digits from those left an empty string, so every Instagram
@@ -191,4 +281,12 @@ module.exports = {
   resetUnreadCount,
   saveMessage,
   updateMessageStatus,
+  findChatByPhone,
+  findChatById,
+  createBareChat,
+  setChatAiEnabled,
+  setChatManagement,
+  messageExistsByMessageId,
+  findNewerInboundMessage,
+  listRecentInboundMessages,
 };

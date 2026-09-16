@@ -4,6 +4,7 @@ const {
   IgCheckpointError,
   IgLoginRequiredError,
 } = require('instagram-private-api');
+const env = require('../config/env');
 const instagramDirectRepo = require('../repositories/instagramDirectRepository');
 const leadRepository = require('../repositories/leadRepository');
 const whatsappRepo = require('../repositories/whatsappRepository');
@@ -333,7 +334,7 @@ function startInboxPoller(tenantId) {
   // fetches - two API calls each - was enough to get every cycle rejected, so
   // no DM ever arrived. A minute is still responsive for a CRM inbox and stays
   // under the limit. Both are overridable if an account needs it tuned.
-  const BASE_INTERVAL = Number(process.env.IG_POLL_INTERVAL_MS) || 60000;
+  const BASE_INTERVAL = env.instagram.pollIntervalMs;
   const MAX_INTERVAL = 300000; // 5 minutes max backoff
 
   async function poll() {
@@ -365,7 +366,7 @@ function startInboxPoller(tenantId) {
 
   // A freshly logged-in session needs to settle before its first request.
   // Polling five seconds after login is what Instagram was rejecting.
-  const firstDelay = Number(process.env.IG_FIRST_POLL_DELAY_MS) || 45000;
+  const firstDelay = env.instagram.firstPollDelayMs;
   logger.info({ tenantId, firstDelayMs: firstDelay, intervalMs: BASE_INTERVAL }, '[instagramDirectService] Poller scheduled');
 
   const client = activeClients.get(tenantId) || {};

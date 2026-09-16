@@ -102,6 +102,16 @@ async function listUpcomingBookingCandidates(tenantId, { teamMember = null, toda
   return rows;
 }
 
+/** Whether any booking already exists for this phone - used to guard
+ * auto-creating a duplicate lead from an inbound WhatsApp message. */
+async function existsByPhone(tenantId, phone) {
+  const { rows } = await query(
+    `SELECT id FROM bookings WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) LIMIT 1`,
+    [tenantId, phone, `%${phone}`]
+  );
+  return rows.length > 0;
+}
+
 async function getBookingBySourceQuotation(tenantId, quotationId) {
   const { rows } = await query(
     `SELECT * FROM bookings WHERE tenant_id = $1 AND source_quotation_id = $2`,
@@ -490,4 +500,5 @@ module.exports = {
   countBySourceQuotation,
   getActiveBookingsByCustomer,
   getUpcomingDepartures,
+  existsByPhone,
 };

@@ -77,12 +77,25 @@ async function getTenantIdByInstagramAccountId(instagramAccountId) {
   return rows[0]?.tenant_id;
 }
 
+/** Attributes a WhatsApp Cloud API webhook to the tenant that owns this
+ * phone_number_id. An unrecognised id resolves to undefined - the caller
+ * must drop the event rather than guess, since a wrong guess writes one
+ * tenant's customer conversation into another tenant's CRM. */
+async function getTenantIdByWhatsappPhoneNumberId(phoneNumberId) {
+  const { rows } = await query(
+    `SELECT tenant_id FROM settings WHERE whatsapp_phone_number_id = $1`,
+    [phoneNumberId]
+  );
+  return rows[0]?.tenant_id;
+}
+
 module.exports = {
   ensureRow,
   insertWhatsappSetupRequest,
   upsertInstagramCredentials,
   clearInstagramCredentials,
   getTenantIdByInstagramAccountId,
+  getTenantIdByWhatsappPhoneNumberId,
   getSettings,
   updateSettings,
   getPublicLeadKey,

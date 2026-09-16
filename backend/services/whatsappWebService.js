@@ -14,6 +14,7 @@ const {
   downloadMediaMessage,
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
+const env = require('../config/env');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const logger = require('../utils/logger');
 const aiService = require('./aiService');
@@ -30,11 +31,11 @@ const HUMAN_HANDOFF_MARKER = '[FALLBACK_HUMAN_NEEDED]';
 // How stale a queued message may be and still get an automatic reply. Older
 // than this and it is left for a person: answering a two-hour-old question as
 // though it just arrived is worse than not answering it.
-const AI_REPLY_MAX_AGE_SECONDS = Number(process.env.AI_REPLY_MAX_AGE_SECONDS) || 15 * 60;
+const AI_REPLY_MAX_AGE_SECONDS = env.whatsapp.aiReplyMaxAgeSeconds;
 
 
 // Gap between reconnections when resuming sessions at boot.
-const RESUME_STAGGER_MS = Number(process.env.WHATSAPP_RESUME_STAGGER_MS) || 3000;
+const RESUME_STAGGER_MS = env.whatsapp.resumeStaggerMs;
 
 // Map to hold active Baileys socket connections per tenantId
 const activeSockets = new Map();

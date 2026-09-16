@@ -66,7 +66,7 @@ function getLocalHost() {
 
 /** Absolute, because Meta has to be able to fetch the link as well as the browser. */
 function getMediaHost() {
-  if (env.nodeEnv === 'production' || process.env.BACKEND_URL) {
+  if (env.nodeEnv === 'production' || env.backendUrlWasSet) {
     return env.backendUrl.replace(/\/$/, '');
   }
   return `http://localhost:${env.port}`;

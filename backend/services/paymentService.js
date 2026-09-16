@@ -8,6 +8,7 @@ const tokenService = require('./tokenService');
 const logger = require('../utils/logger').child({ module: 'payments' });
 const { getPlanPricePaise, getPurchasablePlanIds, getPlanRank } = require('../config/planCatalog');
 const planService = require('./planService');
+const { ValidationError, ConflictError } = require('../errors/AppError');
 
 function getRazorpayInstance() {
   return new Razorpay({
@@ -36,11 +37,9 @@ async function createSubscriptionOrder(tenantId, userId, planId) {
   const amount = getPlanPricePaise(finalPlan);
 
   if (amount === null) {
-    const err = new Error(
+    throw new ValidationError(
       `Choose a plan to continue. Available plans: ${getPurchasablePlanIds().join(', ')}.`
     );
-    err.status = 400;
-    throw err;
   }
 
   // A cheaper plan must not quietly replace a better one that is still
@@ -55,13 +54,11 @@ async function createSubscriptionOrder(tenantId, userId, planId) {
   // decision rather than an accident.
   const current = await planService.getTenantPlanLimits(tenantId);
   if (!current.isExpired && getPlanRank(current.id) > getPlanRank(finalPlan)) {
-    const err = new Error(
+    throw new ConflictError(
       `You're already on ${current.name}, which includes more than this plan. ` +
         `Switching down would remove features you are currently using, so we don't do it automatically — ` +
         `email support@ezzysync.com and we'll move you across at the end of your paid month.`
     );
-    err.status = 409;
-    throw err;
   }
 
   const receipt = `sub_${finalPlan.toLowerCase()}_${tenantId.substring(0, 8)}_${Date.now()}`;
@@ -137,9 +134,7 @@ async function completePaymentAndUpgrade({ tenantId, userId, orderId, paymentId,
   const finalPlan = paidOrder?.plan_id || planId;
 
   if (!finalPlan || getPlanPricePaise(finalPlan) === null) {
-    const err = new Error('That payment could not be matched to a plan. Please contact support.');
-    err.status = 400;
-    throw err;
+    throw new ValidationError('That payment could not be matched to a plan. Please contact support.');
   }
 
   // The same downgrade guard as at order creation, applied again here because
@@ -192,10 +187,92 @@ async function completePaymentAndUpgrade({ tenantId, userId, orderId, paymentId,
   return { user, token: tokenService.signAccessToken(user) };
 }
 
+/**
+ * Turns whatever shape the Razorpay SDK/API threw into the {status, message,
+ * code} the controller responds with. Moved out of the controller verbatim -
+ * an unrecognised-plan/downgrade error from createSubscriptionOrder above
+ * already carries its own `.status < 500`, and is returned as-is (`code:
+ * null`) rather than run through this Razorpay-specific parsing.
+ */
+function describeOrderCreationError(err) {
+  if (err.status && err.status < 500) {
+    return { status: err.status, message: err.message, code: null };
+  }
+
+  const errDesc = err.error?.description || err.response?.data?.error?.description || err.message;
+
+  if (err.statusCode === 401 || err.response?.status === 401 || errDesc === 'Authentication failed') {
+    return {
+      status: 401,
+      message: 'Razorpay Authentication Failed: Please check your Key ID and Key Secret in Razorpay Dashboard (Settings > API Keys).',
+      code: 'RAZORPAY_AUTH_FAILED',
+    };
+  }
+
+  return { status: 500, message: errDesc || 'Failed to initiate payment order.', code: null };
+}
+
+/**
+ * Routes one Razorpay webhook event to the right repository/upgrade action.
+ * Moved out of the controller verbatim - signature verification stays in the
+ * controller since it needs the raw request (headers/rawBody) this function
+ * has no business seeing once the event is trusted.
+ */
+async function processWebhookEvent({ event, payload, rawResponse }) {
+  if (event === 'order.paid' || event === 'payment.captured') {
+    const paymentEntity = payload?.payment?.entity;
+    const orderEntity = payload?.order?.entity;
+    const orderId = orderEntity?.id || paymentEntity?.order_id;
+    const paymentId = paymentEntity?.id;
+
+    if (orderId) {
+      const existing = await paymentRepository.findPaymentByOrderId(orderId);
+      if (existing) {
+        await completePaymentAndUpgrade({
+          tenantId: existing.tenant_id,
+          userId: existing.user_id,
+          orderId,
+          paymentId,
+          planId: existing.plan_id,
+          rawResponse,
+        });
+        return { orderId, tenantId: existing.tenant_id, upgraded: true };
+      }
+    }
+    return { orderId, upgraded: false };
+  }
+
+  if (event === 'payment.failed') {
+    const paymentEntity = payload?.payment?.entity;
+    const orderId = paymentEntity?.order_id;
+    if (orderId) {
+      await paymentRepository.updatePaymentFailed({
+        orderId,
+        paymentId: paymentEntity?.id,
+        rawResponse,
+      });
+    }
+    return { orderId };
+  }
+
+  if (event === 'refund.processed' || event === 'refund.created') {
+    const refundEntity = payload?.refund?.entity;
+    const paymentId = refundEntity?.payment_id;
+    if (paymentId) {
+      await paymentRepository.updatePaymentStatusByPaymentId(paymentId, 'refunded', rawResponse);
+    }
+    return { paymentId };
+  }
+
+  return null;
+}
+
 module.exports = {
   createSubscriptionOrder,
   verifyPaymentSignature,
   verifyWebhookSignature,
   completePaymentAndUpgrade,
+  describeOrderCreationError,
+  processWebhookEvent,
   upgradeTenantPlan: (tId, uId, pId) => completePaymentAndUpgrade({ tenantId: tId, userId: uId, planId: pId }),
 };

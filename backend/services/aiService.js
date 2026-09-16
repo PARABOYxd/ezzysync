@@ -4,9 +4,9 @@ const bookingService = require('./bookingService');
 const settingsService = require('./settingsService');
 const logger = require('../utils/logger');
 
-const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const PRIMARY_GEMINI_MODEL = env.gemini.model;
 const FALLBACK_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.7-flash', 'gemini-3.6-flash'];
-const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 30000;
+const GEMINI_TIMEOUT_MS = env.gemini.timeoutMs;
 
 // JSON schema for Gemini structured output
 const bookingJsonSchema = {

@@ -1,3 +1,4 @@
+const env = require('../config/env');
 const planService = require('./planService');
 const logger = require('../utils/logger').child({ module: 'whatsapp_ai_policy' });
 
@@ -18,7 +19,7 @@ const logger = require('../utils/logger').child({ module: 'whatsapp_ai_policy' }
 // How stale a queued message may be and still get an automatic reply. Older
 // than this deserves a person: answering a two-hour-old question as though it
 // just arrived reads as a malfunction.
-const AI_REPLY_MAX_AGE_SECONDS = Number(process.env.AI_REPLY_MAX_AGE_SECONDS) || 15 * 60;
+const AI_REPLY_MAX_AGE_SECONDS = env.whatsapp.aiReplyMaxAgeSeconds;
 
 /**
  * Chats with a reply already being generated.

@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const env = require('../config/env');
 const planRepository = require('../repositories/planRepository');
 
 async function getTenantPlanLimits(tenantId) {
@@ -6,7 +7,7 @@ async function getTenantPlanLimits(tenantId) {
   const { rows } = await query('SELECT plan_id, created_at FROM tenants WHERE id = $1', [tenantId]);
   const tenant = rows[0];
 
-  const trialDays = Number(process.env.DEFAULT_TRIAL_DAYS || 30);
+  const trialDays = env.defaultTrialDays;
   const createdTime = tenant?.created_at ? new Date(tenant.created_at).getTime() : Date.now();
   const isWithinTrial = (Date.now() - createdTime) < (trialDays * 24 * 60 * 60 * 1000);
 

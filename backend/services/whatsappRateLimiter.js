@@ -1,3 +1,4 @@
+const env = require('../config/env');
 const logger = require('../utils/logger').child({ module: 'whatsapp_rate' });
 
 /**
@@ -18,8 +19,8 @@ const logger = require('../utils/logger').child({ module: 'whatsapp_rate' });
 
 // Roughly one message every four seconds sustained, with room for a burst of
 // ten - close to how a busy human agent actually works.
-const SUSTAINED_PER_MINUTE = Number(process.env.WHATSAPP_MAX_MESSAGES_PER_MINUTE) || 15;
-const BURST = Number(process.env.WHATSAPP_BURST_SIZE) || 10;
+const SUSTAINED_PER_MINUTE = env.whatsapp.maxMessagesPerMinute;
+const BURST = env.whatsapp.burstSize;
 
 const buckets = new Map(); // tenantId -> { tokens, lastRefill }
 

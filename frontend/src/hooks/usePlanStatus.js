@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '../services/api';
+import { getMyPlanStatus } from '../services/planService';
 
 /**
  * The tenant's live plan state, from the server.
@@ -21,10 +21,9 @@ export function usePlanStatus() {
 
   useEffect(() => {
     let active = true;
-    api
-      .get('/plans/me')
-      .then((res) => {
-        if (active) setStatus(res.data);
+    getMyPlanStatus()
+      .then((data) => {
+        if (active) setStatus(data);
       })
       .catch(() => {
         // A network failure must not throw up the paywall over a working
