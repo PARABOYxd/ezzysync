@@ -30,6 +30,43 @@ async function findByPhone(tenantId, phone) {
   return rows[0];
 }
 
+/**
+ * The same upsert for a whole batch, for the spreadsheet lead import.
+ *
+ * Two rows of one file can carry the same phone with different spellings of
+ * the name; Postgres rejects a multi-row upsert that hits the same conflict
+ * target twice, so the batch is de-duplicated on phone first.
+ *
+ * @returns {Promise<Object>} phone (as supplied) -> customer id
+ */
+async function bulkUpsertByPhone(tenantId, contacts) {
+  const byPhone = new Map();
+  for (const c of contacts) {
+    if (c.phone && !byPhone.has(c.phone)) byPhone.set(c.phone, c);
+  }
+  if (byPhone.size === 0) return {};
+
+  const list = [...byPhone.values()];
+  const values = [tenantId];
+  const placeholders = list.map((c) => {
+    values.push(c.customerName || c.name || '', c.email || '', c.phone);
+    return `($1, $${values.length - 2}, $${values.length - 1}, $${values.length})`;
+  });
+
+  const { rows } = await query(
+    `INSERT INTO customers (tenant_id, name, email, phone)
+     VALUES ${placeholders.join(',')}
+     ON CONFLICT (tenant_id, phone) DO UPDATE SET
+       name = COALESCE(NULLIF(EXCLUDED.name, ''), customers.name),
+       email = COALESCE(NULLIF(EXCLUDED.email, ''), customers.email),
+       last_activity_at = now()
+     RETURNING id, phone`,
+    values
+  );
+
+  return Object.fromEntries(rows.map((r) => [r.phone, r.id]));
+}
+
 async function getCustomerById(tenantId, customerId) {
   const { rows } = await query(
     `SELECT * FROM customers WHERE tenant_id = $1 AND id = $2`,
@@ -111,6 +148,7 @@ async function getCustomerHistory(tenantId, customerId, phone) {
 module.exports = {
   upsertByPhone,
   findByPhone,
+  bulkUpsertByPhone,
   getCustomerById,
   listCustomersPaged,
   getCustomerHistory,

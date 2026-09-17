@@ -16,7 +16,7 @@ import * as batchService from '../../services/batchService';
 import { useToast } from '../../hooks/useToast.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
-const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp'];
+const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp', 'Excel Import'];
 const LEAD_STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
 
 const emptyForm = {

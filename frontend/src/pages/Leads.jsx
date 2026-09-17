@@ -9,7 +9,7 @@ import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
 import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import LeadPoolDrawer from '../components/lead/LeadPoolDrawer.jsx';
-import BulkImportLeadsDrawer from '../components/lead/BulkImportLeadsDrawer.jsx';
+import ImportLeadsDrawer from '../components/lead/ImportLeadsDrawer.jsx';
 import BroadcastLeadsDrawer from '../components/lead/BroadcastLeadsDrawer.jsx';
 import BroadcastHistoryDrawer from '../components/lead/BroadcastHistoryDrawer.jsx';
 import Pagination from '../components/common/Pagination.jsx';
@@ -49,6 +49,8 @@ export default function Leads() {
   const [convertingLead, setConvertingLead] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [importOpen, setImportOpen] = useState(false);
 
   const [poolCount, setPoolCount] = useState(0);
   const [poolOpen, setPoolOpen] = useState(false);
@@ -243,7 +245,12 @@ export default function Leads() {
           </div>
 
           {canCreate && (
-            <button type="button" className="btn-secondary" onClick={() => setImportOpen(true)}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setImportOpen(true)}
+              title="Bring your old leads in from an Excel or CSV file"
+            >
               <Upload size={16} /> Import
             </button>
           )}
@@ -373,6 +380,7 @@ export default function Leads() {
         </div>
       )}
 
+      <ImportLeadsDrawer open={importOpen} onClose={() => setImportOpen(false)} onImported={load} />
       <LeadFormDrawer open={formOpen} lead={editingLead} onClose={() => setFormOpen(false)} onSaved={load} onConvert={setConvertingLead} />
       <LeadViewDrawer
         open={!!viewingLead}
@@ -407,7 +415,6 @@ export default function Leads() {
         title="Delete lead?"
         message={`This will remove "${deleteTarget?.customerName}"'s lead from the active pipeline.`}
       />
-      <BulkImportLeadsDrawer open={importOpen} onClose={() => setImportOpen(false)} onImported={load} />
       <BroadcastLeadsDrawer
         open={broadcastOpen}
         onClose={() => setBroadcastOpen(false)}

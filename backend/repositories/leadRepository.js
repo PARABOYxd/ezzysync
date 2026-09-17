@@ -285,8 +285,83 @@ async function recomputeAllPriorities() {
   return rowCount;
 }
 
+/**
+ * Every phone already on file, reduced to the last 10 digits.
+ *
+ * The spreadsheet import needs to recognise a customer it already has, and
+ * one query beats asking per row - a 2000-row file would otherwise be 2000
+ * round trips. Deleted leads count: re-importing someone the agency
+ * deliberately removed would quietly undo that.
+ */
+async function listPhoneKeys(tenantId) {
+  const { rows } = await query(
+    `SELECT RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) AS key
+     FROM leads
+     WHERE tenant_id = $1 AND phone IS NOT NULL AND phone <> ''`,
+    [tenantId]
+  );
+  return rows.map((r) => r.key).filter(Boolean);
+}
+
+/**
+ * Inserts a batch of imported leads in one statement.
+ *
+ * `created_at` is per-lead rather than now(): an enquiry from last year
+ * should not surface as today's newest lead. Rows whose lead_id somehow
+ * collides are ignored instead of failing the whole batch.
+ */
+async function bulkInsertLeads(tenantId, leads, createdBy) {
+  if (leads.length === 0) return [];
+
+  const values = [tenantId, createdBy || ''];
+  const placeholders = leads.map((lead) => {
+    // created_at is reused for updated_at, so the row's own enquiry date is
+    // the only timestamp the imported lead carries.
+    const cells = [
+      lead.leadId, lead.customerId || null, lead.customerName, lead.email || '', lead.phone,
+      lead.interest || '', lead.source || 'Excel Import', lead.stage || 'New', lead.assignedTo || '',
+      lead.notes || '', lead.createdAt || new Date().toISOString(), lead.departureDate || '',
+      lead.travelers !== null && lead.travelers !== undefined ? Number(lead.travelers) : null,
+    ];
+    const first = values.length + 1;
+    values.push(...cells);
+    const p = (offset) => `$${first + offset}`;
+    return `($1,${p(0)},${p(1)},${p(2)},${p(3)},${p(4)},${p(5)},${p(6)},${p(7)},${p(8)},${p(9)},$2,`
+      + `${p(10)}::timestamptz,${p(10)}::timestamptz,FALSE,${p(11)},${p(12)})`;
+  });
+
+  const { rows } = await query(
+    `INSERT INTO leads (
+       tenant_id, lead_id, customer_id, customer_name, email, phone, interest, source, stage,
+       assigned_to, notes, created_by, created_at, updated_at, deleted, departure_date, travelers
+     ) VALUES ${placeholders.join(',')}
+     ON CONFLICT (tenant_id, lead_id) DO NOTHING
+     RETURNING *`,
+    values
+  );
+  return rows;
+}
+
+/** One timeline entry per imported lead, so an imported lead has a history like any other. */
+async function bulkInsertFollowUps(tenantId, entries) {
+  if (entries.length === 0) return;
+
+  const placeholders = entries
+    .map((_, i) => `($1, $${i * 3 + 2}, $${i * 3 + 3}, 'note', $${i * 3 + 4})`)
+    .join(',');
+
+  await query(
+    `INSERT INTO follow_up_logs (tenant_id, lead_id, note, activity_type, created_by)
+     VALUES ${placeholders}`,
+    [tenantId, ...entries.flatMap((e) => [e.leadUuid, e.note, e.createdBy || ''])]
+  );
+}
+
 module.exports = {
   countLeadsByAssignee,
+  listPhoneKeys,
+  bulkInsertLeads,
+  bulkInsertFollowUps,
   nextLeadSeq,
   getLeadByInstagramSenderId,
   insertInstagramLead,
