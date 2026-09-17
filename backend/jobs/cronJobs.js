@@ -4,6 +4,7 @@ const bookingRepository = require('../repositories/bookingRepository');
 const logRepository = require('../repositories/logRepository');
 const followUpRepository = require('../repositories/followUpRepository');
 const userRepository = require('../repositories/userRepository');
+const leadRepository = require('../repositories/leadRepository');
 const emailService = require('../services/emailService');
 const logger = require('../utils/logger').child({ module: 'cron' });
 
@@ -98,6 +99,25 @@ function initScheduler() {
       logger.error({ err }, 'Error running departure alert job');
     }
   });
+
+  // Job 4: Lead priority (Hot/Warm/Cold) recompute (Runs hourly at :00).
+  // One bulk UPDATE across every tenant - see leadRepository.recomputeAllPriorities
+  // for the scoring rule. Cheap and side-effect-free, so hourly is generous
+  // rather than necessary.
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const updated = await leadRepository.recomputeAllPriorities();
+      logger.info({ updated }, 'Lead priority recompute complete');
+    } catch (err) {
+      logger.error({ err }, 'Error running lead priority recompute job');
+    }
+  });
+
+  // Also run once at boot, so a freshly restarted server doesn't leave every
+  // lead showing yesterday's priority for up to an hour.
+  leadRepository.recomputeAllPriorities()
+    .then((updated) => logger.info({ updated }, 'Initial lead priority recompute complete'))
+    .catch((err) => logger.error({ err }, 'Error running initial lead priority recompute'));
 }
 
 /**
@@ -158,7 +178,12 @@ async function sendFollowUpDigestForTenant(tenantId) {
 }
 
 /**
- * Send a departure reminder email to a traveler.
+ * Sends a departure reminder over whichever channels this booking has data
+ * for - email if there's an address, WhatsApp if there's a phone. Each
+ * channel is attempted independently (matching the same best-effort pattern
+ * as the booking-confirmation/auto-invoice sends): a booking with only a
+ * phone on file, previously skipped by getUpcomingDepartures' email-only
+ * filter, now gets its reminder over WhatsApp instead of nothing at all.
  */
 async function sendDepartureAlert(booking, daysAhead) {
   const departureDate = new Date(booking.departure).toLocaleDateString('en-IN', {
@@ -166,6 +191,26 @@ async function sendDepartureAlert(booking, daysAhead) {
   });
   const urgency = daysAhead === 1 ? 'TOMORROW' : `in ${daysAhead} days`;
   const agencyName = booking.company_name || 'Your Travel Agency';
+
+  if (booking.phone) {
+    try {
+      const whatsappSendService = require('../services/whatsappSendService');
+      const chat = await whatsappSendService.findOrStartChat(booking.tenant_id, {
+        phone: booking.phone,
+        customerName: booking.customer_name,
+      });
+      const messageText = `Hello *${booking.customer_name}*! ✈️\n\nYour trip *${booking.trip}* departs ${urgency === 'TOMORROW' ? '*tomorrow*' : `in *${daysAhead} days*`} (${departureDate}).\n\n👥 Travelers: ${booking.members}${booking.pickup ? `\n📍 Pickup: ${booking.pickup}` : ''}\n\nPlease keep your travel documents and a valid photo ID ready. Reach out here for any last-minute questions!\n\n— ${agencyName}`;
+      // On a Cloud API chat outside the 24h window this free-form send is
+      // refused by Meta (WHATSAPP_WINDOW_CLOSED) - caught below same as any
+      // other failure; the email reminder still goes out regardless.
+      await whatsappSendService.sendText(booking.tenant_id, { chat, messageText });
+      logger.info({ tenantId: booking.tenant_id, bookingId: booking.booking_id }, 'Sent departure alert via WhatsApp');
+    } catch (err) {
+      logger.warn({ err, tenantId: booking.tenant_id, bookingId: booking.booking_id }, 'Could not send departure alert via WhatsApp');
+    }
+  }
+
+  if (!booking.email) return;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:12px">

@@ -123,6 +123,17 @@ export default function TripDetailsTab({
     });
   };
 
+  // The quotation this trip name matches, if any - its configured pickup
+  // points (each with its own price) are what the Pickup field below offers,
+  // instead of always being free text disconnected from what was quoted.
+  const matchedQuotation = quotations.find((q) => {
+    const name = q.trip_name || q.tripName || '';
+    return name && form.trip && name.toLowerCase() === form.trip.toLowerCase();
+  });
+  const pickupOptions = matchedQuotation?.pickupOptions || [];
+  const pickupIsCustom = pickupOptions.length > 0 && !!form.pickup &&
+    !pickupOptions.some((p) => p.location === form.pickup);
+
   return (
     <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
       {/* Tour Batch / Group Selector */}
@@ -205,14 +216,43 @@ export default function TripDetailsTab({
 
       {/* Row 2: Pickup Location & Departure Date */}
       <FormRow>
-        <Input
-          label="Pickup Location"
-          icon={Navigation}
-          hint="Specific pickup spot details"
-          placeholder="e.g. IGI Airport Terminal 3"
-          value={form.pickup}
-          onChange={set('pickup')}
-        />
+        {pickupOptions.length > 0 ? (
+          <div className="w-full space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700">Pickup Location</label>
+            <select
+              className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition"
+              value={pickupIsCustom ? '__other__' : (form.pickup || '')}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm({ ...form, pickup: val === '__other__' ? '' : val });
+              }}
+            >
+              <option value="">Select pickup point</option>
+              {pickupOptions.map((p) => (
+                <option key={p.location} value={p.location}>{p.location} (₹{p.price})</option>
+              ))}
+              <option value="__other__">Other</option>
+            </select>
+            {pickupIsCustom && (
+              <Input
+                icon={Navigation}
+                placeholder="e.g. IGI Airport Terminal 3"
+                value={form.pickup}
+                onChange={set('pickup')}
+              />
+            )}
+            <p className="text-[10px] text-slate-400">From the pickup points configured on this quotation.</p>
+          </div>
+        ) : (
+          <Input
+            label="Pickup Location"
+            icon={Navigation}
+            hint="Specific pickup spot details"
+            placeholder="e.g. IGI Airport Terminal 3"
+            value={form.pickup}
+            onChange={set('pickup')}
+          />
+        )}
         <Input
           label="Departure Date"
           icon={Calendar}

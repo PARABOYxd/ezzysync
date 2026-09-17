@@ -43,6 +43,77 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [selectedBannerFile, setSelectedBannerFile] = useState(null);
   const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
+  const [parsingItineraryPdf, setParsingItineraryPdf] = useState(false);
+
+  /** Merges an AI-produced quotation plan (generated fresh, or extracted
+   * from an uploaded PDF) into the form the same way either source: fields
+   * that already have real content are left alone, empty ones are filled. */
+  const applyQuotationPlan = (plan, { fallbackTripName = '' } = {}) => {
+    setForm((prev) => {
+      const updated = { ...prev };
+      if (!prev.tripName?.trim() || prev.tripName.trim() === aiRoughIdea.trim() || prev.tripName.length < 5) {
+        updated.tripName = plan.tripName || prev.tripName || fallbackTripName;
+      }
+      if ((!prev.priceQuote || Number(prev.priceQuote) === 0) && plan.estimatedPrice) {
+        updated.priceQuote = plan.estimatedPrice;
+      }
+      if (Array.isArray(plan.itineraryDays) && plan.itineraryDays.length > 0) {
+        updated.itineraryDays = plan.itineraryDays;
+      }
+      if (Array.isArray(plan.highlights) && plan.highlights.length > 0) {
+        updated.highlights = plan.highlights;
+      }
+      if (Array.isArray(plan.inclusions) && plan.inclusions.length > 0) {
+        updated.inclusions = plan.inclusions;
+      }
+      if (Array.isArray(plan.exclusions) && plan.exclusions.length > 0) {
+        updated.exclusions = plan.exclusions;
+      }
+      if (Array.isArray(plan.pickupOptions) && plan.pickupOptions.length > 0) {
+        updated.pickupOptions = plan.pickupOptions;
+      }
+      if (Array.isArray(plan.departureDays) && plan.departureDays.length > 0) {
+        updated.departureDays = plan.departureDays;
+      }
+      if (Array.isArray(plan.tripTypes) && plan.tripTypes.length > 0) {
+        updated.tripTypes = plan.tripTypes;
+      }
+      return updated;
+    });
+  };
+
+  const handleItineraryPdfUpload = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size too large. Maximum allowed size is 10MB.');
+      return;
+    }
+
+    setParsingItineraryPdf(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const plan = await aiService.parseItineraryPdf(formData);
+      if (!plan) {
+        toast.error('Could not read an itinerary out of that PDF.');
+        return;
+      }
+      applyQuotationPlan(plan);
+      setShowAiBuilder(true);
+      setAiGeneratedSuccess(true);
+      toast.success(`✨ Itinerary extracted from PDF! ${plan.itineraryDays?.length || 0} days populated - review and adjust before saving.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to read the PDF.');
+    } finally {
+      setParsingItineraryPdf(false);
+    }
+  };
 
   const handleBannerUpload = (e) => {
     const file = e.target.files[0];
@@ -85,47 +156,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
 
       const plan = response?.quotationPlan;
       if (plan) {
-        setForm((prev) => {
-          const updated = { ...prev };
-          // If trip name is empty or matched previous rough idea, update it with refined AI title
-          if (!prev.tripName?.trim() || prev.tripName.trim() === aiRoughIdea.trim() || prev.tripName.length < 5) {
-            updated.tripName = plan.tripName || prev.tripName || rawTrip;
-          }
-          // If price quote was empty or 0, update with estimated price
-          if ((!prev.priceQuote || Number(prev.priceQuote) === 0) && plan.estimatedPrice) {
-            updated.priceQuote = plan.estimatedPrice;
-          }
-          // Days
-          if (Array.isArray(plan.itineraryDays) && plan.itineraryDays.length > 0) {
-            updated.itineraryDays = plan.itineraryDays;
-          }
-          // Highlights
-          if (Array.isArray(plan.highlights) && plan.highlights.length > 0) {
-            updated.highlights = plan.highlights;
-          }
-          // Inclusions
-          if (Array.isArray(plan.inclusions) && plan.inclusions.length > 0) {
-            updated.inclusions = plan.inclusions;
-          }
-          // Exclusions
-          if (Array.isArray(plan.exclusions) && plan.exclusions.length > 0) {
-            updated.exclusions = plan.exclusions;
-          }
-          // Pickups
-          if (Array.isArray(plan.pickupOptions) && plan.pickupOptions.length > 0) {
-            updated.pickupOptions = plan.pickupOptions;
-          }
-          // Departure Days
-          if (Array.isArray(plan.departureDays) && plan.departureDays.length > 0) {
-            updated.departureDays = plan.departureDays;
-          }
-          // Trip Types
-          if (Array.isArray(plan.tripTypes) && plan.tripTypes.length > 0) {
-            updated.tripTypes = plan.tripTypes;
-          }
-          return updated;
-        });
-
+        applyQuotationPlan(plan, { fallbackTripName: rawTrip });
         setAiGeneratedSuccess(true);
         toast.success(
           `✨ Complete Quotation Generated! ${plan.itineraryDays?.length || 0} Days, ${plan.highlights?.length || 0} Highlights, Inclusions & Pickups populated.`
@@ -339,6 +370,20 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
                     <span>💡</span> Mention pickup cities and prices (e.g. "Delhi 4500, Rishikesh 3500") and AI will automatically prefill pickup options with those rates!
                   </p>
                 </div>
+
+                {/* Already have a PDF itinerary? Extract it instead of describing it. */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-violet-200/60" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Or upload an existing PDF</span>
+                  <div className="flex-1 h-px bg-violet-200/60" />
+                </div>
+                <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-xl p-3 cursor-pointer transition ${parsingItineraryPdf ? 'border-violet-300 bg-violet-50/60' : 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/30'}`}>
+                  <ClipboardList size={15} className="text-violet-500 shrink-0" />
+                  <span className="text-xs font-semibold text-violet-700">
+                    {parsingItineraryPdf ? 'Reading your PDF...' : 'Click to extract an itinerary/quotation PDF you already have'}
+                  </span>
+                  <input type="file" accept="application/pdf" className="hidden" disabled={parsingItineraryPdf} onChange={handleItineraryPdfUpload} />
+                </label>
 
                 {/* Days & Preferences */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">

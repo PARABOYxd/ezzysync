@@ -30,6 +30,7 @@ export default function WhatsAppChat() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const phoneParam = searchParams.get('phone');
+  const openItineraryParam = searchParams.get('openItinerary');
 
   const [session, setSession] = useState({
     status: 'disconnected',
@@ -167,6 +168,11 @@ export default function WhatsAppChat() {
         if (res?.chatId) {
           await loadChats();
           await loadChatMessages(res.chatId);
+          // Lets a "Share Itinerary" link elsewhere in the app (e.g. a booking
+          // row) land directly on the modal instead of just the bare chat.
+          if (openItineraryParam) {
+            handleOpenItineraryModal();
+          }
           setSearchParams({}, { replace: true });
         }
       })

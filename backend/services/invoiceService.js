@@ -1,5 +1,7 @@
 const PDFDocument = require('pdfkit');
 const axios = require('axios');
+const emailService = require('./emailService');
+const whatsappSendService = require('./whatsappSendService');
 const logger = require('../utils/logger').child({ module: 'invoice' });
 
 // In-memory cache for fonts to support Rupee symbol (₹) rendering
@@ -93,6 +95,20 @@ function generateInvoicePDF({ booking, settings, invoiceNumber }) {
           logoBuffer = Buffer.from(response.data);
         } catch (e) {
           logger.warn({ err: e, tenantId: booking?.tenant_id, logoUrl: settings.companyLogoUrl }, 'Could not pre-fetch company logo');
+        }
+      }
+
+      // ---- Pre-fetch payment QR (pdfkit draws from a buffer, not a URL) ----
+      let paymentQrBuffer = null;
+      if (settings.paymentQrUrl) {
+        try {
+          const response = await axios.get(settings.paymentQrUrl, {
+            responseType: 'arraybuffer',
+            timeout: 4000,
+          });
+          paymentQrBuffer = Buffer.from(response.data);
+        } catch (e) {
+          logger.warn({ err: e, tenantId: booking?.tenant_id, qrUrl: settings.paymentQrUrl }, 'Could not pre-fetch payment QR');
         }
       }
 
@@ -345,25 +361,42 @@ function generateInvoicePDF({ booking, settings, invoiceNumber }) {
       // 8. PAYMENT TO DETAILS
       // ====================================================================
       const payTo = settings.paymentTo || {};
-      const payName = payTo.name || settings.paymentToName;
+      const payName = settings.paymentAccountName || payTo.name || settings.paymentToName;
+      const payUpi = settings.paymentUpiId || payTo.upi;
       const payPhone = payTo.phone || settings.paymentToPhone;
       const payEmail = payTo.email || settings.paymentToEmail;
 
-      if (payName || payPhone || payEmail) {
+      if (payName || payUpi || payPhone || payEmail) {
         doc.font(fontBold).fontSize(9.5).fillColor(accentColor).text('PAYMENT DIRECTIONS:', MARGIN_L, y);
         y += 14;
         doc.font(fontRegular).fontSize(8.5).fillColor(textColor);
-        if (payName) { 
+        if (payName) {
           doc.text('Account Name : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payName);
-          y += 13; 
+          y += 13;
         }
-        if (payPhone) { 
-          doc.text('Contact / UPI : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payPhone);
-          y += 13; 
+        if (payUpi) {
+          doc.text('UPI ID : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payUpi);
+          y += 13;
+        }
+        if (payPhone) {
+          doc.text('Contact : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payPhone);
+          y += 13;
         }
         if (payEmail) {
           doc.font(fontRegular).fillColor(textColor).text('Payment Email : ', MARGIN_L, y, { continued: true }).font(fontBold).fillColor(darkColor).text(payEmail);
           y += 13;
+        }
+      }
+
+      if (paymentQrBuffer) {
+        try {
+          doc.image(paymentQrBuffer, MARGIN_L, y, { width: 70, height: 70 });
+          doc.font(fontRegular).fontSize(7.5).fillColor(textColor).text('Scan to pay', MARGIN_L, y + 72, { width: 70, align: 'center' });
+          y += 90;
+        } catch (err) {
+          // A broken/unreadable QR image should never fail the whole invoice -
+          // the text payment details above still render either way.
+          logger.warn({ err: err.message }, 'Could not render payment QR on invoice');
         }
       }
 
@@ -381,4 +414,75 @@ function generateInvoicePDF({ booking, settings, invoiceNumber }) {
   });
 }
 
-module.exports = { generateInvoicePDF };
+/**
+ * Generates the invoice once and sends it over whichever channels are both
+ * requested and have enough data to reach the customer (email if one is on
+ * file, WhatsApp if a phone is). Used both by the manual "Send Invoice"
+ * actions (both channels always requested there) and by the Settings >
+ * Invoice auto-send toggles, which can enable either channel independently -
+ * callers decide whether a failure here should block anything; this function
+ * itself never throws for a single channel's failure, it reports it instead.
+ */
+async function sendInvoiceForBooking(tenantId, booking, settings, { userId = null, channels = { email: true, whatsapp: true } } = {}) {
+  const invoiceNumber = `INV-${booking.bookingId}`;
+  const pdfBuffer = await generateInvoicePDF({ booking, settings, invoiceNumber });
+  const fileName = `${invoiceNumber}.pdf`;
+
+  const result = { emailSent: false, emailError: null, whatsappSent: false, whatsappError: null };
+
+  if (channels.email && booking.email) {
+    const summaryHtml = `
+      <ul>
+        <li>Trip: ${booking.trip}</li>
+        <li>Departure: ${booking.departure}</li>
+        <li>Members: ${booking.members}</li>
+        <li>Total Amount: ₹${booking.totalAmount}</li>
+        <li>Remaining Amount: ₹${booking.remaining}</li>
+      </ul>`;
+    try {
+      await emailService.sendInvoiceEmail({
+        tenantId,
+        to: booking.email,
+        customerName: booking.customerName,
+        tripName: booking.trip,
+        pdfBuffer,
+        bookingSummaryHtml: summaryHtml,
+        invoiceFileName: fileName,
+      });
+      result.emailSent = true;
+    } catch (err) {
+      result.emailError = err.message;
+      logger.warn({ err, bookingId: booking.bookingId }, '[Invoice] Could not email invoice');
+    }
+  }
+
+  if (channels.whatsapp && booking.phone) {
+    try {
+      const chat = await whatsappSendService.findOrStartChat(tenantId, {
+        phone: booking.phone,
+        customerName: booking.customerName,
+      });
+      const messageText = `Hello *${booking.customerName}*! 🧾\n\nYour invoice for *${booking.trip}* is ready — please find it attached.\n\nTotal: ₹${booking.totalAmount}\nRemaining: ₹${booking.remaining}\n\n— ${settings.companyName || 'EzzySync'}`;
+      await whatsappSendService.sendText(tenantId, {
+        chat,
+        userId,
+        messageText,
+        mediaBuffer: pdfBuffer,
+        fileName,
+        mimeType: 'application/pdf',
+      });
+      result.whatsappSent = true;
+    } catch (err) {
+      // Same window-closed case the voucher-send flow surfaces - the invoice
+      // can't be pushed as an attachment outside Meta's 24-hour reply window.
+      result.whatsappError = err.code === 'WHATSAPP_WINDOW_CLOSED'
+        ? 'This customer has not messaged on WhatsApp in the last 24 hours, so Meta blocked the attachment.'
+        : err.message;
+      logger.warn({ err, bookingId: booking.bookingId }, '[Invoice] Could not send invoice via WhatsApp');
+    }
+  }
+
+  return result;
+}
+
+module.exports = { generateInvoicePDF, sendInvoiceForBooking };

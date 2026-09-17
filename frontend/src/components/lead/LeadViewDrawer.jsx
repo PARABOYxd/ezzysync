@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Drawer from '../common/Drawer.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Input from '../ui/Input.jsx';
@@ -42,6 +42,7 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
   const { user } = useAuth();
   const isTeamMember = user?.role === 'TEAM_MEMBER';
   const toast = useToast();
+  const navigate = useNavigate();
   const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
   const [activityType, setActivityType] = useState('note');
@@ -110,13 +111,24 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
     >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-700">
         <div className="lg:col-span-5 space-y-6">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <LeadStageBadge stage={currentLead.stage} />
-            {currentLead.customerId && (
-              <Link to={`/customers/${currentLead.customerId}`} className="text-xs font-semibold text-brand-600 hover:underline">
-                View Customer &rarr;
-              </Link>
-            )}
+            <div className="flex items-center gap-3">
+              {currentLead.phone && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/whatsapp-chat?phone=${encodeURIComponent(currentLead.phone.replace(/[^\d]/g, ''))}`)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:underline cursor-pointer"
+                >
+                  <MessageSquare size={13} /> Open Conversation
+                </button>
+              )}
+              {currentLead.customerId && (
+                <Link to={`/customers/${currentLead.customerId}`} className="text-xs font-semibold text-brand-600 hover:underline">
+                  View Customer &rarr;
+                </Link>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">

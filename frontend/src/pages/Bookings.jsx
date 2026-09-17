@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import BookingFilters from '../components/booking/BookingFilters.jsx';
 import BookingTable from '../components/booking/BookingTable.jsx';
@@ -14,6 +14,7 @@ import { usePermission } from '../hooks/usePermission.js';
 
 export default function Bookings() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -99,6 +100,14 @@ export default function Bookings() {
     }
   };
 
+  const handleShareItinerary = (b) => {
+    if (!b.phone) {
+      toast.error('This booking has no phone number on file.');
+      return;
+    }
+    navigate(`/whatsapp-chat?phone=${encodeURIComponent(b.phone.replace(/[^\d]/g, ''))}&openItinerary=1`);
+  };
+
   const canCreate = usePermission('bookings', 'create');
 
   const handleFiltersChange = (newFilters) => {
@@ -126,6 +135,7 @@ export default function Bookings() {
         onDelete={setDeleteTarget}
         onSendInvoice={handleSendInvoice}
         onSendWhatsApp={handleSendWhatsApp}
+        onShareItinerary={handleShareItinerary}
       />
 
       {/* Pagination Controls */}

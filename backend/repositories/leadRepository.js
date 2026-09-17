@@ -49,7 +49,7 @@ async function updateLead(tenantId, leadId, merged, updatedAt, customerId) {
 
 async function listLeadsPaged(params) {
   const {
-    tenantId, page = 1, limit = 10, search = '', stage = '', assignedTo = '', sort = 'newest', includeDeleted = false,
+    tenantId, page = 1, limit = 10, search = '', stage = '', priority = '', assignedTo = '', sort = 'newest', includeDeleted = false,
   } = params;
 
   const values = [tenantId];
@@ -61,6 +61,10 @@ async function listLeadsPaged(params) {
   if (stage) {
     whereClauses.push(`stage = $${paramIndex++}`);
     values.push(stage);
+  }
+  if (priority) {
+    whereClauses.push(`priority = $${paramIndex++}`);
+    values.push(priority);
   }
   if (assignedTo) {
     whereClauses.push(`assigned_to ILIKE $${paramIndex++}`);
@@ -219,6 +223,55 @@ async function existsByPhone(tenantId, phone) {
   return rows.length > 0;
 }
 
+/** The most recently active lead for this phone, full row - used to fill in
+ * details an AI conversation confidently extracted. Same match rule as
+ * existsByPhone, so it finds the same record that guard already found. */
+async function findByPhone(tenantId, phone) {
+  const { rows } = await query(
+    `SELECT * FROM leads WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) AND deleted = FALSE ORDER BY created_at DESC LIMIT 1`,
+    [tenantId, phone, `%${phone}`]
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Recomputes every active lead's Hot/Warm/Cold priority across all tenants
+ * in one statement - run periodically by a cron job rather than derived on
+ * every read, since nothing in this codebase caches a derived value.
+ *
+ * Hot: departing within the next 7 days.
+ * Warm: departing 8-30 days out, OR no known/past departure but the lead has
+ *   had some update (stage change, AI auto-fill, edit) in the last 2 days.
+ * Cold: everything else - including every Won/Lost lead, which this
+ *   deliberately leaves untouched rather than recomputing (a closed lead's
+ *   priority no longer means anything operationally).
+ *
+ * `departure_date` is stored as free text, not a real DATE column, so the
+ * regex guards every cast - a garbage value falls through to the Cold/Warm
+ * branches instead of throwing and failing the whole batch.
+ */
+async function recomputeAllPriorities() {
+  const { rowCount } = await query(`
+    UPDATE leads
+    SET priority = CASE
+      WHEN departure_date ~ '^\\d{4}-\\d{2}-\\d{2}$'
+        AND departure_date::date >= CURRENT_DATE
+        AND departure_date::date <= CURRENT_DATE + INTERVAL '7 days'
+        THEN 'Hot'
+      WHEN departure_date ~ '^\\d{4}-\\d{2}-\\d{2}$'
+        AND departure_date::date > CURRENT_DATE + INTERVAL '7 days'
+        AND departure_date::date <= CURRENT_DATE + INTERVAL '30 days'
+        THEN 'Warm'
+      WHEN NOT (departure_date ~ '^\\d{4}-\\d{2}-\\d{2}$' AND departure_date::date >= CURRENT_DATE)
+        AND updated_at >= NOW() - INTERVAL '2 days'
+        THEN 'Warm'
+      ELSE 'Cold'
+    END
+    WHERE deleted = FALSE AND stage NOT IN ('Won', 'Lost')
+  `);
+  return rowCount;
+}
+
 module.exports = {
   countLeadsByAssignee,
   nextLeadSeq,
@@ -235,4 +288,6 @@ module.exports = {
   listPool,
   claimLead,
   existsByPhone,
+  findByPhone,
+  recomputeAllPriorities,
 };

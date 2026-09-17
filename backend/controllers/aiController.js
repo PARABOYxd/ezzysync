@@ -30,6 +30,31 @@ async function parseTicketOrChat(req, res, next) {
   }
 }
 
+async function parseItineraryPdf(req, res, next) {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Please upload a PDF itinerary file.' });
+    }
+    if (file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ message: 'Only PDF files are supported.' });
+    }
+    if (!aiService.isConfigured()) {
+      return res.status(500).json({ message: 'Gemini API Key is not configured on the server.' });
+    }
+
+    const quotationPlan = await aiService.extractItineraryFromPdf({ file });
+    if (!quotationPlan) {
+      return res.status(500).json({ message: 'Could not read an itinerary out of that PDF. Please try again.' });
+    }
+
+    res.json({ quotationPlan });
+  } catch (err) {
+    req.log.error({ err, apiResponse: err.response?.data }, 'Error extracting itinerary from PDF');
+    res.status(500).json({ message: 'Failed to read the PDF. Please try again.' });
+  }
+}
+
 async function generateItinerary(req, res, next) {
   try {
     const { tripName, days, notes, format, fullQuotation } = req.body;
@@ -150,4 +175,4 @@ async function downloadItinerary(req, res, next) {
   }
 }
 
-module.exports = { parseTicketOrChat, generateItinerary, whatsappReply, downloadItinerary };
+module.exports = { parseTicketOrChat, parseItineraryPdf, generateItinerary, whatsappReply, downloadItinerary };

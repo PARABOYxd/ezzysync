@@ -149,6 +149,18 @@ async function processIncomingWebhook(body) {
             'WhatsApp Bot'
           );
           logger.info({ tenantId, phone: cleanPhone }, '[WhatsApp Webhook] Auto-created new Lead for inbound message (not in leads or bookings)');
+
+          // Links this chat back to the lead it just spawned - the Baileys/QR
+          // transport already does this at chat-creation time; the Cloud API
+          // path creates the lead a step later, so it needs its own link-up.
+          try {
+            const newLeadRow = await leadRepository.findByPhone(tenantId, cleanPhone);
+            if (newLeadRow) {
+              await whatsappRepo.setChatLeadId(tenantId, saved.chat.id, newLeadRow.id);
+            }
+          } catch (linkErr) {
+            logger.warn({ err: linkErr }, '[WhatsApp Webhook] Could not link chat to its new lead');
+          }
         }
       } catch (leadErr) {
         logger.error({ err: leadErr }, '[WhatsApp Webhook] Failed to auto-create Lead from inbound message');
@@ -298,6 +310,25 @@ async function processIncomingWebhook(body) {
                   chat: outboundSaved.chat,
                   message: outboundSaved.message
                 });
+
+                // Best-effort: fill in whichever of the lead's own missing
+                // fields (trip/travelers/departure) the conversation now
+                // confidently contains. Reads its own fresh copy of the
+                // history rather than reusing the AI reply's context, and
+                // never overwrites a field the lead already has - see
+                // leadService.autoFillFromConversation for the safety rules.
+                // Never allowed to affect the reply that was already sent.
+                try {
+                  const aiContextRepository = require('../repositories/aiContextRepository');
+                  const leadService = require('./leadService');
+                  const historyRows = await aiContextRepository.getChatHistoryByPhone(tenantId, from, 20);
+                  const conversationText = historyRows
+                    .map((r) => `${r.direction === 'inbound' ? 'Customer' : 'Agent'}: ${r.message_text || ''}`)
+                    .join('\n');
+                  await leadService.autoFillFromConversation(tenantId, from, conversationText);
+                } catch (fillErr) {
+                  logger.warn({ err: fillErr }, '[WhatsApp Webhook] Lead auto-fill from conversation failed');
+                }
               }
             } else {
               logger.warn({ tenantId, from }, '[WhatsApp Webhook] AI returned no response or GEMINI_API_KEY is unconfigured. Triggering fallback handoff.');

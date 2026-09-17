@@ -16,6 +16,7 @@ router.use(requireAuth);
 router.use(requireFeature('canUseAi'));
 
 router.post('/parse', requirePermission('aiTools', 'use'), upload.single('file'), ctrl.parseTicketOrChat);
+router.post('/parse-itinerary', requirePermission('aiTools', 'use'), upload.single('file'), ctrl.parseItineraryPdf);
 router.post('/generate-itinerary', requirePermission('aiTools', 'use'), ctrl.generateItinerary);
 router.post('/whatsapp-reply', requirePermission('aiTools', 'use'), ctrl.whatsappReply);
 router.post('/download-itinerary', requirePermission('aiTools', 'use'), ctrl.downloadItinerary);

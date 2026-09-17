@@ -471,16 +471,21 @@ async function insertFollowUp(tenantId, bookingIdText, note, activityType, nextF
 }
 
 async function getUpcomingDepartures(daysAhead) {
-  // Get all Booked bookings with departure date = today + daysAhead
+  // Get all Booked bookings with departure date = today + daysAhead.
+  // Requires an email OR a phone, not just an email - a WhatsApp-only
+  // booking (no email on file at all) used to never get a departure
+  // reminder of any kind, even though the reminder can go out over WhatsApp
+  // just as well. daysAhead is parameterized, not interpolated, since it can
+  // now come from a settings value rather than only a hardcoded caller.
   const { rows } = await query(
     `SELECT b.*, t.company_name, t.id as tenant_uuid_id
      FROM bookings b
      JOIN tenants t ON b.tenant_id = t.id
      WHERE b.deleted = FALSE
        AND b.travel_status = 'Booked'
-       AND DATE(b.departure) = CURRENT_DATE + INTERVAL '${daysAhead} days'
-       AND b.email IS NOT NULL AND b.email != ''`,
-    []
+       AND DATE(b.departure) = CURRENT_DATE + ($1 * INTERVAL '1 day')
+       AND ((b.email IS NOT NULL AND b.email != '') OR (b.phone IS NOT NULL AND b.phone != ''))`,
+    [daysAhead]
   );
   return rows;
 }

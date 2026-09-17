@@ -1,18 +1,20 @@
 import React from 'react';
 import { Eye, Pencil, Trash2, ArrowRightCircle, Edit2 } from 'lucide-react';
 import { formatRelativeDate } from '../../utils/formatters';
-import { LeadStageBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
+import { LeadStageBadge, LeadPriorityBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
 import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
-export default function LeadTable({ leads, loading, onView, onEdit, onDelete, onConvert }) {
+export default function LeadTable({ leads, loading, onView, onEdit, onDelete, onConvert, selectedIds, onToggleSelect, onToggleSelectAll }) {
   const { user } = useAuth();
   const isTeamMember = user?.role === 'TEAM_MEMBER';
   const canEdit = usePermission('leads', 'update');
   const canDelete = usePermission('leads', 'delete');
+  const showSelection = !!selectedIds;
+  const allSelected = showSelection && leads.length > 0 && leads.every((l) => selectedIds.has(l.leadId));
 
   const getFollowUpDisplay = (dateStr) => {
     if (!dateStr) return <span className="text-slate-300">-</span>;
@@ -31,19 +33,40 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
     <div className="card p-0 overflow-hidden">
       <Table>
         <Thead>
+          {showSelection && (
+            <Th className="w-8">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => onToggleSelectAll(leads.map((l) => l.leadId), !allSelected)}
+                className="rounded text-brand-600 focus:ring-brand-500/20 border-slate-300"
+              />
+            </Th>
+          )}
           <Th>Customer</Th>
           <Th>Interest</Th>
           {!isTeamMember && <Th>Source</Th>}
           {!isTeamMember && <Th>Assigned To</Th>}
           <Th>Follow-up</Th>
           <Th>Created</Th>
+          <Th>Priority</Th>
           <Th>Stage</Th>
           <Th className="text-right">Actions</Th>
         </Thead>
         <Tbody>
-          {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 6 : 8} />}
+          {loading && <SkeletonTableRows rows={6} cols={(isTeamMember ? 7 : 9) + (showSelection ? 1 : 0)} />}
           {!loading && leads.map((l) => (
             <Tr key={l.leadId}>
+              {showSelection && (
+                <Td>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(l.leadId)}
+                    onChange={() => onToggleSelect(l.leadId)}
+                    className="rounded text-brand-600 focus:ring-brand-500/20 border-slate-300"
+                  />
+                </Td>
+              )}
               <Td>
                 <p className="font-medium text-slate-700 dark:text-zinc-200">{l.customerName || 'New Inquiry'}</p>
                 <button
@@ -67,6 +90,7 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
               {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{l.assignedTo || '-'}</Td>}
               <Td>{getFollowUpDisplay(l.nextFollowUpDate)}</Td>
               <Td className="text-slate-500 dark:text-zinc-400 text-xs">{formatRelativeDate(l.createdAt)}</Td>
+              <Td><LeadPriorityBadge priority={l.priority} /></Td>
               <Td><LeadStageBadge stage={l.stage} /></Td>
               <Td>
                 <div className="flex justify-end gap-1">

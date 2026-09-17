@@ -80,6 +80,19 @@ async function setChatAiEnabled(tenantId, chatId, enabled) {
   return rows[0] || null;
 }
 
+/** Links a chat to the lead it spawned. The Cloud API webhook path creates
+ * the lead a step after the chat row already exists, unlike the Baileys/QR
+ * path which sets this at chat-creation time - this is that missing second
+ * step, kept separate so it only ever adds the link, never clears one an
+ * agent (or the other transport) already set. */
+async function setChatLeadId(tenantId, chatId, leadUuid) {
+  const { rows } = await query(
+    `UPDATE whatsapp_chats SET lead_id = $1, updated_at = now() WHERE tenant_id = $2 AND id = $3 AND lead_id IS NULL RETURNING *`,
+    [leadUuid, tenantId, chatId]
+  );
+  return rows[0] || null;
+}
+
 /** Same shape as setChatAiEnabled but also clears an active human-handoff
  * flag - used by the /management endpoint, which lets an agent explicitly
  * pick 'ai' or 'human' rather than just toggling. */
@@ -286,6 +299,7 @@ module.exports = {
   createBareChat,
   setChatAiEnabled,
   setChatManagement,
+  setChatLeadId,
   messageExistsByMessageId,
   findNewerInboundMessage,
   listRecentInboundMessages,

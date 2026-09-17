@@ -1,8 +1,19 @@
 const { v4: uuidv4 } = require('uuid');
 const leadRepository = require('../repositories/leadRepository');
+const bookingRepository = require('../repositories/bookingRepository');
 const customerService = require('./customerService');
 const bookingService = require('./bookingService');
 const { rowToLead } = require('../models/leadSchema');
+
+// Deliberately does NOT add a country-code prefix - leads/bookings store
+// phone numbers exactly as entered everywhere else in the app (no forced
+// '91'), and existsByPhone's suffix match only works if a shorter digits-only
+// value here can genuinely be a suffix of whatever's already stored. Adding
+// a prefix here would make this value longer than a shorter existing record
+// and the match would silently fail.
+function normalizePhone(phone = '') {
+  return String(phone).replace(/\D/g, '');
+}
 
 async function getLeadById(tenantId, leadId) {
   const row = await leadRepository.getLeadById(tenantId, leadId);
@@ -37,6 +48,57 @@ async function createLead(tenantId, data, createdBy) {
   }
 
   return rowToLead(row);
+}
+
+/**
+ * Imports a batch of leads (from a parsed CSV), applying the same
+ * phone-based dedup rule the WhatsApp auto-capture path uses: a row whose
+ * phone already belongs to a lead or a booking is skipped, never turned into
+ * a second record. Rows are processed one at a time rather than in bulk SQL
+ * so each one gets the same validation and side effects (customer upsert,
+ * follow-up log, pool notification) a normal single create would.
+ *
+ * Returns a summary rather than throwing on a bad row, so one malformed line
+ * in a hundred-row file doesn't fail the whole import.
+ */
+async function bulkImportLeads(tenantId, rows, createdBy) {
+  const result = { created: 0, skipped: 0, failed: 0, errors: [] };
+
+  for (const [index, row] of rows.entries()) {
+    const phone = normalizePhone(row.phone);
+    if (!phone) {
+      result.failed += 1;
+      result.errors.push({ row: index + 1, reason: 'Missing or invalid phone number.' });
+      continue;
+    }
+
+    try {
+      const [leadExists, bookingExists] = await Promise.all([
+        leadRepository.existsByPhone(tenantId, phone),
+        bookingRepository.existsByPhone(tenantId, phone),
+      ]);
+      if (leadExists || bookingExists) {
+        result.skipped += 1;
+        continue;
+      }
+
+      await createLead(tenantId, {
+        customerName: row.customerName || row.name || 'New Inquiry',
+        phone,
+        email: row.email || '',
+        interest: row.interest || row.trip || '',
+        source: 'Manual',
+        stage: 'New',
+        notes: 'Imported from bulk CSV upload.',
+      }, createdBy);
+      result.created += 1;
+    } catch (err) {
+      result.failed += 1;
+      result.errors.push({ row: index + 1, reason: err.message });
+    }
+  }
+
+  return result;
 }
 
 async function updateLead(tenantId, leadId, updates, updatedByUser) {
@@ -156,6 +218,55 @@ async function claimLead(tenantId, leadId, username) {
   return rowToLead(row);
 }
 
+/**
+ * After an AI reply, checks whether the trip/travelers/departure-date the AI
+ * is collecting (see aiService's conversation prompt) can be confidently read
+ * from the conversation and are still missing on the matching lead - if so,
+ * fills them in. Deliberately conservative: a field is only written when it
+ * is both (a) currently empty on the lead, so a human's own entry - or an
+ * earlier auto-fill - is never silently overwritten, and (b) explicitly
+ * stated per the extraction, never inferred. The fill is logged as an
+ * ordinary, visible follow-up note, so it reads in the lead's timeline
+ * exactly like a human logging what the customer said, and is just as easy
+ * to correct by hand if the AI got it wrong.
+ */
+async function autoFillFromConversation(tenantId, phone, conversationText) {
+  const lead = await leadRepository.findByPhone(tenantId, phone);
+  if (!lead) return;
+
+  const missingTrip = !lead.interest || lead.interest === 'Inquiry via WhatsApp';
+  const missingMembers = !lead.travelers;
+  const missingDeparture = !lead.departure_date;
+  if (!missingTrip && !missingMembers && !missingDeparture) return;
+
+  const aiService = require('./aiService');
+  const extracted = await aiService.extractLeadFieldsFromConversation(conversationText);
+  if (!extracted) return;
+
+  const updates = {};
+  const filled = [];
+  if (missingTrip && extracted.tripName) {
+    updates.interest = extracted.tripName;
+    filled.push(`Trip: ${extracted.tripName}`);
+  }
+  if (missingMembers && Number(extracted.members) > 0) {
+    updates.travelers = Number(extracted.members);
+    filled.push(`Travelers: ${extracted.members}`);
+  }
+  if (missingDeparture && /^\d{4}-\d{2}-\d{2}$/.test(extracted.departureDate || '')) {
+    updates.departureDate = extracted.departureDate;
+    filled.push(`Departure: ${extracted.departureDate}`);
+  }
+  if (Object.keys(updates).length === 0) return;
+
+  await updateLead(tenantId, lead.lead_id, updates, 'AI Auto-Fill');
+  await leadRepository.insertFollowUp(
+    tenantId, lead.lead_id,
+    `AI auto-filled from the conversation: ${filled.join(', ')}.`,
+    'note', null, 'AI Auto-Fill'
+  );
+}
+
 module.exports = {
   getLeadById,
   createLead,
@@ -169,4 +280,6 @@ module.exports = {
   convertToBooking,
   getLeadPool,
   claimLead,
+  autoFillFromConversation,
+  bulkImportLeads,
 };

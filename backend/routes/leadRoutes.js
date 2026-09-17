@@ -11,6 +11,8 @@ router.use(requireAuth);
 router.get('/', requirePermission('leads', 'read'), ctrl.list);
 router.get('/pool', requirePermission('leads', 'read'), ctrl.listPool);
 router.get('/pipeline', requirePermission('leads', 'read'), ctrl.pipeline);
+router.post('/bulk-import', requirePermission('leads', 'create'), ctrl.bulkImport);
+router.post('/broadcast', requirePermission('leads', 'update'), ctrl.broadcast);
 router.get('/:id', requirePermission('leads', 'read'), ctrl.getOne);
 router.post('/', requirePermission('leads', 'create'), leadValidators, validate, ctrl.create);
 router.put('/:id', requirePermission('leads', 'update'), ctrl.update);

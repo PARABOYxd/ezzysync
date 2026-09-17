@@ -47,6 +47,19 @@ export function LeadStageBadge({ stage }) {
   return <span className={`badge-tint ${LEAD_STAGE_STYLES[stage] || 'badge-lost'}`}>{stage}</span>;
 }
 
+const LEAD_PRIORITY_STYLES = {
+  Hot: 'badge-hot',
+  Warm: 'badge-quoted',
+  Cold: 'badge-lost',
+};
+
+/** Hot/Warm/Cold - computed server-side from departure proximity and recent
+ * activity (see backend leadRepository.recomputeAllPriorities), not set by
+ * hand, so this is read-only everywhere it's shown. */
+export function LeadPriorityBadge({ priority }) {
+  return <span className={`badge-tint ${LEAD_PRIORITY_STYLES[priority] || 'badge-lost'}`}>{priority || 'Cold'}</span>;
+}
+
 const BATCH_STATUS_STYLES = {
   Planning: 'badge-new',
   Confirmed: 'badge-confirmed',

@@ -1,11 +1,30 @@
 import React from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, QrCode } from 'lucide-react';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Button from '../ui/Button.jsx';
+import { useToast } from '../../hooks/useToast.jsx';
 
-export default function InvoiceTab({ settings, setSettings, saving, handleSave }) {
+export default function InvoiceTab({
+  settings, setSettings, saving, handleSave,
+  qrPreviewUrl, setQrPreviewUrl, uploadingQr, selectedQrFile, setSelectedQrFile,
+}) {
+  const toast = useToast();
+
+  const handleQrUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size too large. Maximum allowed size is 5MB.');
+      return;
+    }
+
+    setSelectedQrFile(file);
+    setQrPreviewUrl(URL.createObjectURL(file));
+  };
+
   return (
     <form onSubmit={handleSave} className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -85,14 +104,24 @@ export default function InvoiceTab({ settings, setSettings, saving, handleSave }
                   Show Payment Status
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-emerald-50 text-xs font-medium text-emerald-800 sm:col-span-2">
+                <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-emerald-50 text-xs font-medium text-emerald-800">
                   <input
                     type="checkbox"
-                    checked={!!settings.autoSendInvoice}
-                    onChange={(e) => setSettings({ ...settings, autoSendInvoice: e.target.checked })}
+                    checked={!!settings.autoSendInvoiceEmail}
+                    onChange={(e) => setSettings({ ...settings, autoSendInvoiceEmail: e.target.checked })}
                     className="rounded text-emerald-600 focus:ring-emerald-500/20 border-emerald-300"
                   />
-                  Automatically send Invoice via Email/WhatsApp on new bookings
+                  Auto-send Invoice via Email on new bookings
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-slate-100 bg-emerald-50 text-xs font-medium text-emerald-800">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.autoSendInvoiceWhatsapp}
+                    onChange={(e) => setSettings({ ...settings, autoSendInvoiceWhatsapp: e.target.checked })}
+                    className="rounded text-emerald-600 focus:ring-emerald-500/20 border-emerald-300"
+                  />
+                  Auto-send Invoice via WhatsApp on new bookings
                 </label>
               </div>
             </div>
@@ -246,6 +275,74 @@ export default function InvoiceTab({ settings, setSettings, saving, handleSave }
             {/* Footer center */}
             <div className="absolute bottom-4 left-6 right-6 text-center text-[8px] text-slate-300">
               {settings.invoiceFooter || 'Thank you for choosing EzzySync!'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Collection Details - configured once here, then reused on
+          every invoice PDF instead of an agent typing/attaching it per chat. */}
+      <div className="card space-y-5 max-w-3xl">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+          <QrCode size={18} className="text-brand-600" />
+          <div>
+            <h3 className="font-bold text-slate-800">Payment Collection Details</h3>
+            <p className="text-xs text-slate-400">Shown on every invoice PDF so customers know where to pay</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+          <Input
+            label="Account / Payee Name"
+            placeholder="e.g. TravelGo Holidays Pvt Ltd"
+            hint="Whose name the payment should be made to"
+            value={settings.paymentAccountName || ''}
+            onChange={(e) => setSettings({ ...settings, paymentAccountName: e.target.value })}
+          />
+          <Input
+            label="UPI ID"
+            placeholder="e.g. travelgo@okhdfcbank"
+            hint="Printed as text on the invoice"
+            value={settings.paymentUpiId || ''}
+            onChange={(e) => setSettings({ ...settings, paymentUpiId: e.target.value })}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment QR Code (Optional)</label>
+          <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-200 dark:border-zinc-800">
+            {qrPreviewUrl ? (
+              <div className="relative group shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white">
+                <img src={qrPreviewUrl} alt="Payment QR" className="w-full h-full object-contain" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettings({ ...settings, paymentQrUrl: '' });
+                    setSelectedQrFile(null);
+                    setQrPreviewUrl('');
+                  }}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-zinc-700 flex items-center justify-center text-slate-400 text-xs shrink-0 bg-white dark:bg-zinc-900">
+                No QR
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
+              <label className={`btn btn-xs ${uploadingQr ? 'loading btn-disabled' : 'btn-outline btn-primary'} cursor-pointer text-[10px] w-fit px-2.5 py-1 rounded border border-brand-500 text-brand-600 hover:bg-brand-50 transition`}>
+                {uploadingQr ? 'Uploading...' : 'Upload QR Image'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingQr}
+                  onChange={handleQrUpload}
+                />
+              </label>
+              <p className="text-[10px] text-slate-400">Scannable UPI QR code, printed on the invoice alongside the UPI ID</p>
             </div>
           </div>
         </div>

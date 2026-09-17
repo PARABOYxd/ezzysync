@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, List, LayoutGrid, Phone, Mail, UserCheck } from 'lucide-react';
+import { Plus, List, LayoutGrid, Phone, Mail, UserCheck, Upload, Send } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import LeadFilters from '../components/lead/LeadFilters.jsx';
 import LeadTable from '../components/lead/LeadTable.jsx';
@@ -9,6 +9,9 @@ import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
 import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import LeadPoolDrawer from '../components/lead/LeadPoolDrawer.jsx';
+import BulkImportLeadsDrawer from '../components/lead/BulkImportLeadsDrawer.jsx';
+import BroadcastLeadsDrawer from '../components/lead/BroadcastLeadsDrawer.jsx';
+import { LeadPriorityBadge } from '../components/common/StatusBadge.jsx';
 import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { usePermission } from '../hooks/usePermission.js';
@@ -33,7 +36,7 @@ export default function Leads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    search: searchParams.get('search') || '', stage: '', assignedTo: '', createdFrom: '', createdTo: '', sort: 'newest', page: 1, limit: 10,
+    search: searchParams.get('search') || '', stage: '', priority: '', assignedTo: '', createdFrom: '', createdTo: '', sort: 'newest', page: 1, limit: 10,
   });
 
   const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 1, currentPage: 1, limit: 10 });
@@ -49,7 +52,27 @@ export default function Leads() {
   const [poolOpen, setPoolOpen] = useState(false);
   const socketRef = useRef(null);
 
+  const [importOpen, setImportOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
   const toast = useToast();
+
+  const toggleSelect = (leadId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId); else next.add(leadId);
+      return next;
+    });
+  };
+  const toggleSelectAll = (ids, select) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (select ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  };
+  const selectedLeads = leads.filter((l) => selectedIds.has(l.leadId));
 
   const changeViewMode = (mode) => {
     setViewMode(mode);
@@ -212,6 +235,11 @@ export default function Leads() {
           </div>
 
           {canCreate && (
+            <button type="button" className="btn-secondary" onClick={() => setImportOpen(true)}>
+              <Upload size={16} /> Import
+            </button>
+          )}
+          {canCreate && (
             <button className="btn-primary" onClick={() => { setEditingLead(null); setFormOpen(true); }}>
               <Plus size={16} /> Add Lead
             </button>
@@ -225,8 +253,29 @@ export default function Leads() {
             <LeadFilters filters={filters} onChange={handleFiltersChange} />
           </div>
 
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5">
+              <span className="text-xs font-semibold text-brand-700">{selectedIds.size} lead{selectedIds.size === 1 ? '' : 's'} selected</span>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setSelectedIds(new Set())} className="text-xs text-slate-500 hover:text-slate-700">
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBroadcastOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition"
+                >
+                  <Send size={13} /> Message Selected
+                </button>
+              </div>
+            </div>
+          )}
+
           <LeadTable
             leads={leads}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
             loading={loading}
             onView={setViewingLead}
             onEdit={(l) => { setEditingLead(l); setFormOpen(true); }}
@@ -306,7 +355,10 @@ export default function Leads() {
                                   onClick={() => setViewingLead(lead)}
                                   className={`bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 p-3 shadow-sm cursor-pointer hover:shadow-md transition select-none ${dragSnapshot.isDragging ? 'shadow-lg rotate-1' : ''}`}
                                 >
-                                  <p className="font-semibold text-slate-800 dark:text-zinc-100 text-sm truncate">{lead.customerName}</p>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="font-semibold text-slate-800 dark:text-zinc-100 text-sm truncate">{lead.customerName}</p>
+                                    <LeadPriorityBadge priority={lead.priority} />
+                                  </div>
                                   <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">{lead.interest || 'General inquiry'}</p>
                                   {(lead.departureDate || lead.travelers) && (
                                     <div className="flex items-center gap-2 mt-1 text-[10px] text-brand-600 dark:text-brand-400 font-medium">
@@ -371,6 +423,13 @@ export default function Leads() {
         loading={deleting}
         title="Delete lead?"
         message={`This will remove "${deleteTarget?.customerName}"'s lead from the active pipeline.`}
+      />
+      <BulkImportLeadsDrawer open={importOpen} onClose={() => setImportOpen(false)} onImported={load} />
+      <BroadcastLeadsDrawer
+        open={broadcastOpen}
+        onClose={() => setBroadcastOpen(false)}
+        leads={selectedLeads}
+        onSent={() => setSelectedIds(new Set())}
       />
     </div>
   );

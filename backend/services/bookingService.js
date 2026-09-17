@@ -11,6 +11,7 @@ const settingsService = require('./settingsService');
 const voucherPdfService = require('./voucherPdfService');
 const r2Service = require('./r2Service');
 const whatsappSendService = require('./whatsappSendService');
+const emailService = require('./emailService');
 const logger = require('../utils/logger').child({ module: 'bookingService' });
 
 function computeAmounts({ members, pricePerPerson, paid }) {
@@ -58,6 +59,11 @@ async function createBooking(tenantId, data, createdBy) {
   const bookingObj = rowToBooking(row);
   if (bookingObj.travelStatus === 'Booked') {
     await autoGenerateExpensesFromTemplate(tenantId, bookingObj, createdBy);
+    try {
+      await sendBookingConfirmation(tenantId, bookingObj);
+    } catch (err) {
+      logger.error({ err, bookingId: bookingObj.bookingId }, '[Booking Confirmation] Unexpected failure on create');
+    }
   }
   return bookingObj;
 }
@@ -143,6 +149,16 @@ async function updateBooking(tenantId, bookingId, updates, updatedByUser) {
   const updatedBooking = rowToBooking(row);
   if (updatedBooking.travelStatus === 'Booked') {
     await autoGenerateExpensesFromTemplate(tenantId, updatedBooking, updatedByUser);
+  }
+  // Only on the transition into Booked - not on every subsequent edit to an
+  // already-confirmed trip, which would otherwise re-send a confirmation
+  // every time an agent tweaks an unrelated field like notes.
+  if (statusChanged && updatedBooking.travelStatus === 'Booked') {
+    try {
+      await sendBookingConfirmation(tenantId, updatedBooking);
+    } catch (err) {
+      logger.error({ err, bookingId: updatedBooking.bookingId }, '[Booking Confirmation] Unexpected failure on update');
+    }
   }
   return updatedBooking;
 }
@@ -465,6 +481,65 @@ async function autoGenerateExpensesFromTemplate(tenantId, booking, createdBy) {
     // eslint-disable-next-line no-console
     console.error('[bookingService] Error auto-generating template expenses:', err.message);
   }
+}
+
+/**
+ * Fires once a booking first reaches 'Booked' - on direct creation as Booked,
+ * or on an update that transitions it there. Never called merely because a
+ * booking happens to already be Booked, so editing an already-confirmed trip
+ * doesn't re-send a confirmation. Both channels are attempted independently
+ * and a failure on one (or both) never bubbles up to the caller - the booking
+ * itself already succeeded either way.
+ */
+async function sendBookingConfirmation(tenantId, booking, { userId = null } = {}) {
+  const settings = await settingsService.getSettings(tenantId);
+  const companyName = settings.companyName || 'EzzySync';
+  const result = { emailSent: false, emailError: null, whatsappSent: false, whatsappError: null };
+
+  if (booking.phone) {
+    try {
+      const chat = await whatsappSendService.findOrStartChat(tenantId, {
+        phone: booking.phone,
+        customerName: booking.customerName,
+      });
+      const messageText = `Hello *${booking.customerName}*! ✅\n\nYour booking for *${booking.trip}* is confirmed!\n\n📅 Departure: ${booking.departure || 'To be confirmed'}\n👥 Travelers: ${booking.members}\n💰 Total: ₹${booking.totalAmount}\n💳 Paid: ₹${booking.paid}\n\nWe're excited to have you travel with us — reach out here anytime.\n\n— ${companyName}`;
+      await whatsappSendService.sendText(tenantId, { chat, userId, messageText });
+      result.whatsappSent = true;
+    } catch (err) {
+      result.whatsappError = err.code === 'WHATSAPP_WINDOW_CLOSED'
+        ? 'This customer has not messaged on WhatsApp in the last 24 hours, so Meta blocked the confirmation.'
+        : err.message;
+      logger.warn({ err, bookingId: booking.bookingId }, '[Booking Confirmation] Could not send via WhatsApp');
+    }
+  }
+
+  if (booking.email) {
+    const html = `
+      <p>Hello ${booking.customerName},</p>
+      <p>Your booking for <strong>${booking.trip}</strong> is confirmed!</p>
+      <ul>
+        <li>Departure: ${booking.departure || 'To be confirmed'}</li>
+        <li>Travelers: ${booking.members}</li>
+        <li>Total Amount: ₹${booking.totalAmount}</li>
+        <li>Paid: ₹${booking.paid}</li>
+      </ul>
+      <p>We're excited to have you travel with us!</p>
+    `;
+    try {
+      await emailService.sendMail({
+        tenantId,
+        to: booking.email,
+        subject: `Booking Confirmed — ${booking.trip}`,
+        html,
+      });
+      result.emailSent = true;
+    } catch (err) {
+      result.emailError = err.message;
+      logger.warn({ err, bookingId: booking.bookingId }, '[Booking Confirmation] Could not send email');
+    }
+  }
+
+  return result;
 }
 
 async function fetchHotelsForBooking(tenantId, booking) {

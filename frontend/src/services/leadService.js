@@ -15,3 +15,7 @@ export const addLeadFollowUp = (id, payload) => api.post(`/leads/${id}/follow-up
 /** Unassigned leads available for anyone on the team to claim. */
 export const getLeadPool = () => api.get('/leads/pool').then((r) => r.data.leads || []);
 export const claimLead = (id) => api.post(`/leads/${id}/claim`).then((r) => r.data);
+
+export const bulkImportLeads = (rows) => api.post('/leads/bulk-import', { rows }).then((r) => r.data);
+export const broadcastToLeads = (leadIds, templateId) =>
+  api.post('/leads/broadcast', { leadIds, templateId }).then((r) => r.data);

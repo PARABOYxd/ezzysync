@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Pencil, Trash2, FileText, MessageCircle, Edit2 } from 'lucide-react';
+import { Eye, Pencil, Trash2, FileText, MessageCircle, Edit2, Compass } from 'lucide-react';
 import { formatCurrency, formatDate, formatRelativeDate } from '../../utils/formatters';
 import { TravelStatusBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
 import { SkeletonTableRows } from '../common/Skeleton.jsx';
@@ -8,7 +8,7 @@ import EmptyState from '../common/EmptyState.jsx';
 
 import { usePermission } from '../../hooks/usePermission.js';
 
-export default function BookingTable({ bookings, loading, onView, onEdit, onDelete, onSendInvoice, onSendWhatsApp }) {
+export default function BookingTable({ bookings, loading, onView, onEdit, onDelete, onSendInvoice, onSendWhatsApp, onShareItinerary }) {
   const canEdit = usePermission('bookings', 'update');
   const canDelete = usePermission('bookings', 'delete');
   const canDownload = usePermission('invoices', 'download');
@@ -71,6 +71,7 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
                   )}
                   {canDownload && <button onClick={() => onSendInvoice(b)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Send Invoice"><FileText size={14} /></button>}
                   <button onClick={() => onSendWhatsApp(b)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Send Invoice on WhatsApp"><MessageCircle size={14} /></button>
+                  {onShareItinerary && <button onClick={() => onShareItinerary(b)} className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300" title="Share Itinerary on WhatsApp"><Compass size={14} /></button>}
                   {canDelete && (
                     <button onClick={() => onDelete(b)} className="btn-icon text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" title="Delete Booking">
                       <Trash2 size={14} />

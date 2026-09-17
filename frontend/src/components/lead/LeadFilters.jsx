@@ -7,6 +7,7 @@ import TeamMemberSelect from '../common/TeamMemberSelect.jsx';
 import { useAuth } from '../../hooks/useAuth.jsx';
 
 const LEAD_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiating', 'Won', 'Lost'];
+const LEAD_PRIORITIES = ['Hot', 'Warm', 'Cold'];
 
 function DateRangeField({ label, from, to, onFromChange, onToChange, onClear }) {
   const hasValue = from || to;
@@ -81,6 +82,13 @@ export default function LeadFilters({ filters, onChange }) {
           value={filters.stage}
           onChange={set('stage')}
           options={[{ value: '', label: 'All Stages' }, ...LEAD_STAGES]}
+        />
+        <Select
+          className="w-full sm:w-auto"
+          inputClassName="w-full sm:w-auto"
+          value={filters.priority || ''}
+          onChange={set('priority')}
+          options={[{ value: '', label: 'All Priorities' }, ...LEAD_PRIORITIES]}
         />
         {!isTeamMember && (
           <TeamMemberSelect

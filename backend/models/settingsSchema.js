@@ -1,8 +1,10 @@
 const DEFAULT_KEYS = [
   'companyName', 'companyLogoUrl', 'invoiceFooter', 'emailSenderName', 'whatsappNumber', 'gstNumber', 'address',
   'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms', 'autoSendInvoice',
+  'autoSendInvoiceEmail', 'autoSendInvoiceWhatsapp',
   'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
-  'instagramUsername', 'instagramAccountId', 'instagramAccessToken', 'whatsappAiAutoReply', 'whatsappDefaultChatMode'
+  'instagramUsername', 'instagramAccountId', 'instagramAccessToken', 'whatsappAiAutoReply', 'whatsappDefaultChatMode',
+  'paymentAccountName', 'paymentUpiId', 'paymentQrUrl'
 ];
 
 /** camelCase key -> Postgres column name in the `settings` table */
@@ -31,6 +33,8 @@ const COLUMN_MAP = {
   invoiceShowPaymentStatus: 'invoice_show_payment_status',
   invoiceTerms: 'invoice_terms',
   autoSendInvoice: 'auto_send_invoice',
+  autoSendInvoiceEmail: 'auto_send_invoice_email',
+  autoSendInvoiceWhatsapp: 'auto_send_invoice_whatsapp',
   whatsappPhoneNumberId: 'whatsapp_phone_number_id',
   whatsappAccessToken: 'whatsapp_access_token',
   whatsappWabaId: 'whatsapp_waba_id',
@@ -40,7 +44,10 @@ const COLUMN_MAP = {
   instagramAccountId: 'instagram_account_id',
   instagramAccessToken: 'instagram_access_token',
   whatsappAiAutoReply: 'whatsapp_ai_auto_reply',
-  whatsappDefaultChatMode: 'whatsapp_default_chat_mode'
+  whatsappDefaultChatMode: 'whatsapp_default_chat_mode',
+  paymentAccountName: 'payment_account_name',
+  paymentUpiId: 'payment_upi_id',
+  paymentQrUrl: 'payment_qr_url'
 };
 
 /**
@@ -58,7 +65,7 @@ function rowToSettings(row, { includeSecrets = false } = {}) {
       obj[k] = val !== undefined ? !!val : true;
     } else if (k === 'whatsappAiAutoReply') {
       obj[k] = val !== undefined && val !== null ? !!val : true;
-    } else if (k === 'autoSendInvoice') {
+    } else if (k === 'autoSendInvoice' || k === 'autoSendInvoiceEmail' || k === 'autoSendInvoiceWhatsapp') {
       obj[k] = !!val;
     } else if (k === 'whatsappDefaultChatMode') {
       obj[k] = val || 'ai';

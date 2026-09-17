@@ -62,7 +62,12 @@ export default function NotificationBell() {
               {items.slice(0, 20).map((item) => (
                 <Link
                   key={item.id}
-                  to="/follow-ups"
+                  // Straight into the specific conversation this follow-up is
+                  // about, not the generic list - the phone is already right
+                  // here in the row, so there is nothing left to search for.
+                  to={item.customer_phone
+                    ? `/whatsapp-chat?phone=${encodeURIComponent(item.customer_phone.replace(/[^\d]/g, ''))}`
+                    : '/follow-ups'}
                   onClick={() => setOpen(false)}
                   className="block px-4 py-3 hover:bg-slate-50"
                 >

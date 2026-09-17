@@ -1,6 +1,7 @@
 const bookingService = require('../services/bookingService');
 const auditService = require('../services/auditService');
 const settingsService = require('../services/settingsService');
+const invoiceService = require('../services/invoiceService');
 const logger = require('../utils/logger').child({ module: 'bookingController' });
 const { shouldScopeToSelf } = require('../config/permissions');
 
@@ -57,12 +58,30 @@ async function create(req, res, next) {
     const booking = await bookingService.createBooking(req.user.tenantId, req.body, req.user.email);
     await auditService.logAction(req, 'CREATE_LEAD', { bookingId: booking.bookingId, customerName: booking.customerName, trip: booking.trip });
 
-    // Auto invoice sharing logic
+    // Auto invoice sharing - Settings > Invoice > "Auto-send Invoice via
+    // Email" / "via WhatsApp", each independently toggleable. A failure here
+    // must never fail the booking-creation response - the booking already
+    // exists either way.
     const settings = await settingsService.getSettings(req.user.tenantId);
-    if (settings && settings.autoSendInvoice) {
-      logger.info(`[Auto-Invoice] Sending invoice to ${booking.email} for booking ${booking.bookingId}`);
-      // In MVP, we mock the email send. 
-      await auditService.logAction(req, 'AUTO_SEND_INVOICE', { bookingId: booking.bookingId, email: booking.email });
+    if (settings && (settings.autoSendInvoiceEmail || settings.autoSendInvoiceWhatsapp)) {
+      try {
+        const result = await invoiceService.sendInvoiceForBooking(req.user.tenantId, booking, settings, {
+          userId: req.user.userId || req.user.id,
+          channels: { email: !!settings.autoSendInvoiceEmail, whatsapp: !!settings.autoSendInvoiceWhatsapp },
+        });
+        logger.info(
+          { bookingId: booking.bookingId, emailSent: result.emailSent, whatsappSent: result.whatsappSent },
+          '[Auto-Invoice] Invoice auto-send attempted'
+        );
+        await auditService.logAction(req, 'AUTO_SEND_INVOICE', {
+          bookingId: booking.bookingId,
+          email: booking.email,
+          emailSent: result.emailSent,
+          whatsappSent: result.whatsappSent,
+        });
+      } catch (err) {
+        logger.error({ err, bookingId: booking.bookingId }, '[Auto-Invoice] Failed to auto-send invoice');
+      }
     }
 
     res.status(201).json({ booking });

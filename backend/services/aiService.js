@@ -255,6 +255,38 @@ async function parseTicketOrChat({ text, file }) {
   return JSON.parse(parsedText);
 }
 
+/**
+ * Reads an existing itinerary/quotation PDF an agency already has and turns
+ * it into the same shape the AI Tour Planner generates - so it lands in the
+ * same editable quotation form, not a separate "uploaded document" concept.
+ * Reuses quotationPlanJsonSchema (same fields, same required-ness) since the
+ * output feeds the identical form either way, but the prompt is extraction,
+ * not creative generation: read what the document actually says, and only
+ * fill in a reasonable default (departure days, trip type) for whatever it
+ * genuinely doesn't state, rather than embellishing what's already there.
+ */
+async function extractItineraryFromPdf({ file }) {
+  const promptParts = [
+    {
+      inlineData: {
+        mimeType: file.mimetype,
+        data: file.buffer.toString('base64'),
+      },
+    },
+    {
+      text: `This PDF is an existing travel itinerary or quotation document. Extract its actual content faithfully - the real day-by-day plan, price, inclusions/exclusions, pickup points and prices exactly as written in the document. Do not invent attractions, prices or days that are not in the document. Only where the document genuinely does not state something (e.g. it never mentions which days of the week the tour departs on) is a sensible standard default acceptable.`,
+    },
+  ];
+
+  const parsedText = await generateContent(promptParts, {
+    responseMimeType: 'application/json',
+    responseSchema: quotationPlanJsonSchema,
+  });
+  if (!parsedText) return null;
+
+  return JSON.parse(parsedText);
+}
+
 function buildItineraryPrompt(tripName, days, notes, isJson) {
   if (isJson) {
     return `You are a professional travel planner. Generate a highly detailed, premium day-by-day travel itinerary for the trip: "${tripName}" spanning ${days} days.
@@ -577,7 +609,7 @@ Open with a short, warm welcome before anything else:
 Then, if they've already named a trip/destination, follow with ONE short, genuine line that makes that trip sound appealing — using only real highlights from the database (e.g. a standout inclusion, the stay, a popular activity). Do not write a long pitch — one line of excitement, then move into Step 2. If they haven't named a trip yet, skip the excitement line and just ask which trip/destination they're interested in.
 
 ============================================================
-STEP 2 — COLLECT THESE 5 BASIC DETAILS (ONE AT A TIME, NEVER REPEAT!)
+STEP 2 — COLLECT THESE 5 BASIC DETAILS (ASK FOR WHAT'S MISSING TOGETHER, NEVER REPEAT!)
 ============================================================
 Before ever proceeding toward booking or handoff, you need to know these 5 details:
 1. Trip Name (which trip/destination they want, e.g. Chopta Tungnath, Manali, etc.)
@@ -593,9 +625,13 @@ CRITICAL ANTI-REPETITION & MEMORY RULES (EXTREMELY IMPORTANT):
 - If the customer asked about or specified a day (e.g. "Thursday", "next weekend", "20th Nov"), THAT DEPARTURE DATE/DAY IS LOCKED. DO NOT ASK FOR DEPARTURE DATE AGAIN!
 - If the customer specified pickup (e.g. "Delhi pickup", "pickup from Rishikesh"), THAT PICKUP IS LOCKED. DO NOT ASK FOR PICKUP AGAIN!
 - If the customer specified customized private or group (or if you already agreed on Customized Private tour because of a weekday departure), THAT TOUR TYPE IS LOCKED. DO NOT ASK IT AGAIN!
-- Only ask for whichever of the 5 details is still MISSING, one at a time.
-- If the customer asks a specific question (e.g. "Can we go on Thursday?"), answer that question first with genuine enthusiasm using package data, and then ask ONLY for whatever detail is still genuinely missing.
-- Keep each question short, warm, and natural.
+
+HOW TO ASK FOR WHAT'S MISSING (BATCH IT, DON'T DRIP IT):
+- Work out everything that's still missing (per the memory rules above) and ask for ALL of it together in ONE natural message — never one field per message, never a slow back-and-forth interrogation.
+  Example: if only members and pickup are still missing, send one message like "Sounds great! Could you tell me how many people are traveling and where you'd like to be picked up from?" — not two separate messages asking each one at a time.
+- If the customer's reply only answers part of what you asked, don't restart the whole list — just ask again for whichever specific piece is still missing, still in one natural line.
+- If the customer asks a specific question (e.g. "Can we go on Thursday?"), answer that question first with genuine enthusiasm using package data, then ask for everything still genuinely missing, together, in that same message.
+- The combined question should read like one real sentence a human would type, not a numbered checklist or a rapid-fire quiz.
 
 ============================================================
 STEP 2B — ONCE ALL 5 DETAILS ARE CONFIRMED: PITCH & ASK TO PROCEED (DO NOT HAND OFF YET!)
@@ -608,7 +644,6 @@ Instead, execute this exact 2-step flow:
    - Confirm trip name, group size, pickup point, and exact price per person from the package.
 2. Ask this exact closing question:
    "Do you have any other questions, or would you like to proceed with the booking?"
-   (Or in Hindi/Hinglish if lead speaks Hindi: "Kya aapka koi aur question hai, ya shall we proceed with the booking?")
    NOTE: Do NOT mention words like "itinerary, stays, or inclusions" in this question — just ask if they have any other questions!
 
 If the lead asks any other questions:
@@ -683,8 +718,9 @@ This applies especially to missing-data / handoff situations — never explain t
 reason data is missing. Just say naturally that you're checking/confirming and hand off.
 Keep that handoff line to one short sentence, not an explanation.
 - No emojis except a light touch in greeting, if at all. Keep it professional-friendly.
-- Reply in the same language/style the lead is using (Hindi, English, Hinglish) — mirror them
-  naturally without forcing translations.
+- Always reply in clear, natural English, regardless of what language the lead writes in. If
+  the lead writes in Hindi or Hinglish, understand them fully, but respond in English — never
+  switch the reply itself into Hindi or Hinglish.
 
 ============================================================
 STEP 5 — HUMAN HANDOFF (mandatory, not optional)
@@ -712,7 +748,8 @@ HARD RULES SUMMARY
    — sell using only real data, never made-up excitement or fake urgency.
 3. NEVER mention "database," "data provided," or any other phrase that reveals you're
    working off a data source — talk like a human who just knows the trip.
-4. Ask one question at a time when collecting details.
+4. Ask for whatever details are still missing together, in one natural message — never one
+   field per turn.
 5. Answer only what is asked — don't repeat the full itinerary for a specific question — but
    answer it with energy, not flatly.
 6. Every reply should keep moving the lead toward booking, including gently handling
@@ -720,7 +757,8 @@ HARD RULES SUMMARY
 7. If required data isn't available — hand off to a human in ONE short line, no explanation.
    Do not guess.
 8. Keep every message as short as the question deserves — no unrequested extra detail.
-9. Output ONLY the response text to send to the customer.`;
+9. Always reply in English, even when the lead writes in Hindi or Hinglish.
+10. Output ONLY the response text to send to the customer.`;
 }
 
 /**
@@ -885,13 +923,57 @@ ${task}` }], WHATSAPP_REPLY_CONFIG);
   return { suggestion: (text || '').trim() || null };
 }
 
+// Deliberately has NO `required` fields, unlike bookingJsonSchema - that one
+// is used against a real ticket/document that always has real answers, this
+// one runs against an in-progress conversation where most fields are
+// legitimately still unknown, and forcing the model to answer would mean
+// forcing it to guess.
+const leadFieldsJsonSchema = {
+  type: 'OBJECT',
+  properties: {
+    tripName: { type: 'STRING', description: 'The exact trip/destination name, ONLY if the customer has explicitly named one themselves. Empty string if not clearly and explicitly stated.' },
+    members: { type: 'INTEGER', description: 'Number of travelers, ONLY if the customer explicitly stated a headcount. 0 if not clearly and explicitly stated.' },
+    departureDate: { type: 'STRING', description: 'Departure date in YYYY-MM-DD format, ONLY if the customer stated one unambiguous, specific calendar date - never resolve a relative phrase like "next weekend" or "soon" into a date yourself. Empty string if no specific date was stated.' },
+  },
+};
+
+/**
+ * Reads only what the customer has explicitly and unambiguously said in this
+ * conversation - never infers, estimates, or resolves relative dates. Used
+ * to auto-fill a lead record without risking a wrong guess landing in it;
+ * the caller is responsible for only trusting fields that come back
+ * non-empty, and for never overwriting a value the lead already has.
+ */
+async function extractLeadFieldsFromConversation(conversationText) {
+  if (!conversationText || !conversationText.trim()) return null;
+
+  const promptParts = [{
+    text: `You are extracting ONLY facts the customer has explicitly and unambiguously stated themselves in this WhatsApp conversation with a travel agency - never infer, guess, or estimate, and never resolve a vague/relative time reference into a specific date. Leave a field at its empty/zero default if it was not clearly stated.\n\nConversation:\n${conversationText}`,
+  }];
+
+  const parsedText = await generateContent(promptParts, {
+    responseMimeType: 'application/json',
+    responseSchema: leadFieldsJsonSchema,
+  });
+  if (!parsedText) return null;
+
+  try {
+    return JSON.parse(parsedText);
+  } catch (err) {
+    logger.warn({ err }, '[aiService] Could not parse lead-field extraction JSON');
+    return null;
+  }
+}
+
 module.exports = {
   isConfigured,
   generateContent,
   parseTicketOrChat,
+  extractItineraryFromPdf,
   generateItineraryText,
   generateFullQuotationPlan,
   parseItineraryJson,
   generateWhatsappReply,
   suggestWhatsappDraft,
+  extractLeadFieldsFromConversation,
 };

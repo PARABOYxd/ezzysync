@@ -1,16 +1,17 @@
 const leadService = require('../services/leadService');
 const auditService = require('../services/auditService');
+const broadcastService = require('../services/broadcastService');
 const { shouldScopeToSelf } = require('../config/permissions');
 
 async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { stage, search, sort } = req.query;
+    const { stage, priority, search, sort } = req.query;
     const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : req.query.assignedTo;
 
     const result = await leadService.listLeadsPaged(req.user.tenantId, {
-      page, limit, stage, assignedTo, search, sort,
+      page, limit, stage, priority, assignedTo, search, sort,
     });
 
     res.json({
@@ -152,4 +153,40 @@ async function claimLead(req, res, next) {
   }
 }
 
-module.exports = { list, pipeline, getOne, create, update, updateStage, remove, convert, listFollowUps, createFollowUp, listPool, claimLead };
+async function bulkImport(req, res, next) {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ message: 'No rows to import.' });
+    }
+    if (rows.length > 500) {
+      return res.status(400).json({ message: 'Import is capped at 500 rows at a time - split the file and try again.' });
+    }
+    const result = await leadService.bulkImportLeads(req.user.tenantId, rows, req.user.name || req.user.email);
+    await auditService.logAction(req, 'BULK_IMPORT_LEADS', { created: result.created, skipped: result.skipped, failed: result.failed });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function broadcast(req, res, next) {
+  try {
+    const { leadIds, templateId } = req.body;
+    const results = await broadcastService.broadcastToLeads(req.user.tenantId, {
+      leadIds,
+      templateId,
+      userId: req.user.userId || req.user.id,
+    });
+    const sentCount = results.filter((r) => r.sent).length;
+    await auditService.logAction(req, 'BROADCAST_TO_LEADS', { requested: leadIds?.length || 0, sent: sentCount, templateId });
+    res.json({ results, sentCount, totalCount: results.length });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  list, pipeline, getOne, create, update, updateStage, remove, convert,
+  listFollowUps, createFollowUp, listPool, claimLead, bulkImport, broadcast,
+};

@@ -25,6 +25,7 @@ function rowToLead(row) {
     batchId: row.batch_id || null,
     departureDate: row.departure_date || '',
     travelers: row.travelers !== null && row.travelers !== undefined ? Number(row.travelers) : '',
+    priority: row.priority || 'Cold',
   };
 }
 
