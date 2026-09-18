@@ -166,6 +166,61 @@ async function createFollowUp(req, res, next) {
   }
 }
 
+async function listPayments(req, res, next) {
+  try {
+    const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+    if (shouldScopeToSelf(req.user, 'bookings') && booking.teamMember !== req.user.name) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+    const payments = await bookingService.getPayments(req.user.tenantId, req.params.id);
+    res.json({ payments });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function addPayment(req, res, next) {
+  try {
+    const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+    if (shouldScopeToSelf(req.user, 'bookings') && booking.teamMember !== req.user.name) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    const { amount, method, reference, paidOn, notes } = req.body;
+    const result = await bookingService.addPayment(req.user.tenantId, req.params.id, {
+      amount,
+      method,
+      reference,
+      paidOn,
+      notes,
+      createdBy: req.user.name || req.user.email,
+    });
+
+    await auditService.logAction(req, 'ADD_BOOKING_PAYMENT', { bookingId: req.params.id, amount, method });
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removePayment(req, res, next) {
+  try {
+    const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+    if (shouldScopeToSelf(req.user, 'bookings') && booking.teamMember !== req.user.name) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    const result = await bookingService.removePayment(req.user.tenantId, req.params.id, req.params.paymentId);
+    await auditService.logAction(req, 'DELETE_BOOKING_PAYMENT', { bookingId: req.params.id, paymentId: req.params.paymentId });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getVoucherPdf(req, res, next) {
   try {
     const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
@@ -224,6 +279,9 @@ module.exports = {
   exportCSV,
   listFollowUps,
   createFollowUp,
+  listPayments,
+  addPayment,
+  removePayment,
   getVoucherPdf,
   sendVoucher,
 };

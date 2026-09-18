@@ -1,12 +1,118 @@
-import React from 'react';
-import { IndianRupee, CreditCard, Home, Plane, Car, Tag } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { IndianRupee, CreditCard, Home, Plane, Car, Tag, Trash2, Plus } from 'lucide-react';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import FormRow from '../ui/FormRow.jsx';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast.jsx';
+import * as bookingService from '../../services/bookingService';
 
 const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'];
+const PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Cheque', 'Other'];
+
+/** Installment log for an existing booking - replaces hand-recomputing a new
+ * "Amount Paid" total on every partial payment with logging just the one
+ * new installment; the server rolls it into paid/remaining/status. */
+function PaymentLedger({ bookingId, paid, onTotalsChange }) {
+  const toast = useToast();
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [entry, setEntry] = useState({ amount: '', method: 'Cash', reference: '', paidOn: new Date().toISOString().split('T')[0] });
+
+  const load = () => {
+    setLoading(true);
+    bookingService.getPayments(bookingId)
+      .then((data) => setPayments(data || []))
+      .catch(() => toast.error('Could not load payment history.'))
+      .finally(() => setLoading(false));
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(load, [bookingId]);
+
+  const handleAdd = async () => {
+    if (!(Number(entry.amount) > 0)) {
+      toast.error('Enter an amount greater than zero.');
+      return;
+    }
+    setAdding(true);
+    try {
+      const result = await bookingService.addPayment(bookingId, entry);
+      toast.success('Payment logged.');
+      setEntry({ amount: '', method: 'Cash', reference: '', paidOn: new Date().toISOString().split('T')[0] });
+      onTotalsChange(result.paid, result.paymentStatus);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not log this payment.');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleDelete = async (paymentId) => {
+    if (!window.confirm('Remove this payment entry? The booking total will be reduced to match.')) return;
+    try {
+      const result = await bookingService.deletePayment(bookingId, paymentId);
+      toast.success('Payment removed.');
+      onTotalsChange(result.paid, result.paymentStatus);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not remove this payment.');
+    }
+  };
+
+  return (
+    <div className="p-4 bg-slate-50/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-800 rounded-2xl space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Payment History</h4>
+        <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Total Paid: {formatCurrency(paid)}</span>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-slate-400">Loading payment history...</p>
+      ) : payments.length === 0 ? (
+        <p className="text-xs text-slate-400">No payments logged yet.</p>
+      ) : (
+        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+          {payments.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-xs bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-lg px-3 py-2">
+              <div>
+                <span className="font-semibold text-slate-700 dark:text-zinc-200">{formatCurrency(p.amount)}</span>
+                <span className="text-slate-400 mx-1.5">&middot;</span>
+                <span className="text-slate-500 dark:text-zinc-400">{p.method}</span>
+                {p.reference && <span className="text-slate-400"> ({p.reference})</span>}
+                <span className="text-slate-400 mx-1.5">&middot;</span>
+                <span className="text-slate-500 dark:text-zinc-400">{formatDate(p.paidOn)}</span>
+              </div>
+              <button type="button" onClick={() => handleDelete(p.id)} className="p-1 text-slate-400 hover:text-red-500 transition" title="Remove entry">
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end pt-2 border-t border-slate-200/60 dark:border-zinc-800">
+        <Input label="Amount (₹)" type="number" min={0} placeholder="e.g. 5000" value={entry.amount} onChange={(e) => setEntry({ ...entry, amount: e.target.value })} />
+        <Select label="Method" value={entry.method} onChange={(e) => setEntry({ ...entry, method: e.target.value })} options={PAYMENT_METHODS} />
+        <Input label="Reference" placeholder="Txn ID (optional)" value={entry.reference} onChange={(e) => setEntry({ ...entry, reference: e.target.value })} />
+        <Input label="Date" type="date" value={entry.paidOn} onChange={(e) => setEntry({ ...entry, paidOn: e.target.value })} />
+      </div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={adding}
+          className="text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl px-3.5 py-2 flex items-center gap-1.5 shadow-sm transition disabled:opacity-50"
+        >
+          <Plus size={13} />
+          {adding ? 'Logging...' : 'Log Payment'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function FinancialsTab({
   form,
@@ -19,6 +125,8 @@ export default function FinancialsTab({
   templates,
   totalAmount,
   remaining,
+  bookingId,
+  isEdit,
 }) {
   const toast = useToast();
 
@@ -69,7 +177,8 @@ export default function FinancialsTab({
           icon={CreditCard}
           type="number"
           min={0}
-          hint="Advance payment received"
+          disabled={isEdit}
+          hint={isEdit ? 'Log payments below to change this' : 'Advance payment received'}
           placeholder="e.g. 5000"
           value={form.paid}
           onChange={set('paid')}
@@ -83,6 +192,14 @@ export default function FinancialsTab({
           options={PAYMENT_STATUSES}
         />
       </FormRow>
+
+      {isEdit && bookingId && (
+        <PaymentLedger
+          bookingId={bookingId}
+          paid={Number(form.paid || 0)}
+          onTotalsChange={(paid, paymentStatus) => setForm((prev) => ({ ...prev, paid, paymentStatus }))}
+        />
+      )}
 
       {/* Toggle Button for Costing Section - Admin Only */}
       {user?.role === 'ADMIN' && (

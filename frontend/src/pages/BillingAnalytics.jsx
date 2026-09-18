@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { IndianRupee, MapPin, CalendarDays, Users, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Briefcase, Filter, X, Award } from 'lucide-react';
 import * as dashboardService from '../services/dashboardService';
 import { useToast } from '../hooks/useToast.jsx';
@@ -478,7 +479,11 @@ export default function BillingAnalytics() {
               ) : (
                 tripWiseItems.map((trip, i) => (
                   <Tr key={i}>
-                    <Td className="font-medium text-slate-800 dark:text-slate-200">{trip.trip}</Td>
+                    <Td className="font-medium text-slate-800 dark:text-slate-200">
+                      <Link to={`/bookings?search=${encodeURIComponent(trip.trip)}`} className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
+                        {trip.trip}
+                      </Link>
+                    </Td>
                     <Td className="text-center text-slate-600 dark:text-slate-300">{trip.count}</Td>
                     <Td className="text-center text-slate-600 dark:text-slate-300">{trip.members}</Td>
                     <Td className="text-right font-medium text-emerald-700 dark:text-emerald-500">{formatCurrency(trip.revenue)}</Td>
@@ -563,12 +568,12 @@ export default function BillingAnalytics() {
                   filteredTeamData.teamWise.map((t, i) => (
                     <Tr key={i}>
                       <Td className="font-medium text-slate-800 dark:text-slate-200">
-                        <div className="flex items-center gap-2">
+                        <Link to={`/bookings?search=${encodeURIComponent(t.teamMember)}`} className="flex items-center gap-2 hover:text-brand-600 dark:hover:text-brand-400">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-200 to-amber-400 dark:from-amber-700 dark:to-amber-900 text-amber-900 dark:text-amber-100 flex items-center justify-center text-[11px] uppercase font-bold shadow-sm">
                             {t.teamMember.charAt(0)}
                           </div>
                           {t.teamMember}
-                        </div>
+                        </Link>
                       </Td>
                       <Td className="text-center text-slate-600 dark:text-slate-300">{t.leads}</Td>
                       <Td className="text-center font-medium text-brand-600 dark:text-brand-400">{t.bookingsClosed}</Td>

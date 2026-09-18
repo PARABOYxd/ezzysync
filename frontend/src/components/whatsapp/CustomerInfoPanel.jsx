@@ -1,8 +1,8 @@
 import React from 'react';
-import { Briefcase, Calendar, Paperclip, FileText, Loader2 } from 'lucide-react';
+import { Briefcase, Calendar, Paperclip, FileText, Loader2, CalendarPlus } from 'lucide-react';
 import { mediaTypeOf, mediaNameOf } from '../../utils/whatsappMessageFormatters';
 
-export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, onViewMedia }) {
+export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, onViewMedia, onCreateBooking, creatingBooking }) {
   return (
     <div className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
       <div>
@@ -30,6 +30,18 @@ export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendin
           </p>
           {selectedChat.lead_notes && (
             <p className="text-[11px] text-slate-500 mt-1 italic">"{selectedChat.lead_notes}"</p>
+          )}
+          {!selectedChat.booking_trip && (
+            <button
+              type="button"
+              disabled={creatingBooking}
+              onClick={onCreateBooking}
+              className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold shadow-sm transition disabled:opacity-50"
+              title="Convert this lead straight into a booking, pre-filled from what's already known"
+            >
+              {creatingBooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarPlus className="w-3.5 h-3.5" />}
+              <span>Create Booking</span>
+            </button>
           )}
         </div>
       ) : (

@@ -22,7 +22,7 @@ export default function RecentBookingsTable({ bookings }) {
         {bookings.map((b) => (
           <Tr key={b.bookingId}>
             <Td>
-              <Link to="/bookings" className="font-medium text-slate-700 dark:text-zinc-200 hover:text-brand-600 dark:hover:text-brand-400">{b.customerName}</Link>
+              <Link to={`/bookings?search=${encodeURIComponent(b.bookingId)}`} className="font-medium text-slate-700 dark:text-zinc-200 hover:text-brand-600 dark:hover:text-brand-400">{b.customerName}</Link>
             </Td>
             <Td className="text-slate-500 dark:text-zinc-400">{b.trip}</Td>
             <Td className="text-slate-500 dark:text-zinc-400">{formatDate(b.departure)}</Td>

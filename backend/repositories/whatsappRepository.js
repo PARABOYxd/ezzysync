@@ -93,6 +93,19 @@ async function setChatLeadId(tenantId, chatId, leadUuid) {
   return rows[0] || null;
 }
 
+/** Suffix match, same convention as bookingRepository.existsByPhone - a chat's
+ * phone and a booking's phone don't always agree on a country-code prefix.
+ * Only ever claims an unlinked chat, same "never overwrite" rule as
+ * setChatLeadId - a repeat customer's newest booking doesn't bump an older
+ * one already showing in their thread. */
+async function linkBookingToChatByPhone(tenantId, phone, bookingUuid) {
+  await query(
+    `UPDATE whatsapp_chats SET booking_id = $1, updated_at = now()
+     WHERE tenant_id = $2 AND booking_id IS NULL AND (phone = $3 OR phone LIKE $4 OR $3 LIKE '%' || phone)`,
+    [bookingUuid, tenantId, phone, `%${phone}`]
+  );
+}
+
 /** Same shape as setChatAiEnabled but also clears an active human-handoff
  * flag - used by the /management endpoint, which lets an agent explicitly
  * pick 'ai' or 'human' rather than just toggling. */
@@ -300,6 +313,7 @@ module.exports = {
   setChatAiEnabled,
   setChatManagement,
   setChatLeadId,
+  linkBookingToChatByPhone,
   messageExistsByMessageId,
   findNewerInboundMessage,
   listRecentInboundMessages,

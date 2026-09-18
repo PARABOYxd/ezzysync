@@ -88,8 +88,14 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  // A deliberate 4xx: the message was written to be read.
-  res.status(status).json({ message: err.message || 'That request could not be completed.' });
+  // A deliberate 4xx: the message was written to be read. `err.details` is an
+  // opt-in escape hatch for the rare case where the frontend needs structured
+  // data alongside the message (e.g. to offer a fix inline) - unset on every
+  // other throw site in the codebase, so this changes nothing for them.
+  res.status(status).json({
+    message: err.message || 'That request could not be completed.',
+    ...(err.details ? { details: err.details } : {}),
+  });
 }
 
 module.exports = { notFoundHandler, errorHandler };

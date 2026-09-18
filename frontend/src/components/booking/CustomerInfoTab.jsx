@@ -1,10 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Mail, Phone, ShieldAlert } from 'lucide-react';
 import Input from '../ui/Input.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import FormRow from '../ui/FormRow.jsx';
+import { isValidPhone } from '../../utils/validators';
+import * as customerService from '../../services/customerService';
+import { useToast } from '../../hooks/useToast.jsx';
 
-export default function CustomerInfoTab({ form, errors, set, isBookedOrBeyond, canEditPhone, isEdit }) {
+export default function CustomerInfoTab({ form, setForm, errors, set, isBookedOrBeyond, canEditPhone, isEdit }) {
+  const toast = useToast();
+  const [checkingPhone, setCheckingPhone] = useState(false);
+
+  // New booking only - an existing edit already has its own customer record.
+  // Saves retyping name/email for someone who has already booked, been
+  // quoted, or been a lead before, instead of always starting from blank.
+  const handlePhoneBlur = async () => {
+    if (isEdit || !isValidPhone(form.phone) || form.customerName?.trim()) return;
+    setCheckingPhone(true);
+    try {
+      const customer = await customerService.lookupByPhone(form.phone);
+      if (customer) {
+        setForm((prev) => ({
+          ...prev,
+          customerName: prev.customerName || customer.name || '',
+          email: prev.email || customer.email || '',
+        }));
+        toast.success(`Found existing customer: ${customer.name || form.phone}. Details pre-filled.`);
+      }
+    } catch {
+      // Silent - this is a convenience lookup, not a required step.
+    } finally {
+      setCheckingPhone(false);
+    }
+  };
+
   return (
     <div className="animate-[fadeIn_0.2s_ease-out] space-y-5">
       <FormRow>
@@ -19,12 +48,11 @@ export default function CustomerInfoTab({ form, errors, set, isBookedOrBeyond, c
           onChange={set('customerName')}
         />
         <Input
-          label="Email Address"
+          label="Email Address (Optional)"
           icon={Mail}
           type="email"
           error={errors.email}
-          required={isBookedOrBeyond}
-          hint="Receipts & vouchers will be sent here"
+          hint="Receipts & vouchers go here if given - otherwise WhatsApp only"
           placeholder="e.g. rahul@gmail.com"
           value={form.email}
           onChange={set('email')}
@@ -36,10 +64,11 @@ export default function CustomerInfoTab({ form, errors, set, isBookedOrBeyond, c
           icon={Phone}
           error={errors.phone}
           required
-          hint="Include country code for WhatsApp updates"
+          hint={checkingPhone ? 'Checking for an existing customer...' : 'Include country code for WhatsApp updates'}
           placeholder="e.g. +919876543210"
           value={form.phone}
           onChange={set('phone')}
+          onBlur={handlePhoneBlur}
           disabled={isEdit && !canEditPhone}
         />
         <Input

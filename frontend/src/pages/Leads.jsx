@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, List, LayoutGrid, Phone, Mail, UserCheck, Upload, Send } from 'lucide-react';
+import { Plus, List, LayoutGrid, Phone, Mail, UserCheck, Upload, Send, History } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import LeadFilters from '../components/lead/LeadFilters.jsx';
 import LeadTable from '../components/lead/LeadTable.jsx';
@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import LeadPoolDrawer from '../components/lead/LeadPoolDrawer.jsx';
 import BulkImportLeadsDrawer from '../components/lead/BulkImportLeadsDrawer.jsx';
 import BroadcastLeadsDrawer from '../components/lead/BroadcastLeadsDrawer.jsx';
+import BroadcastHistoryDrawer from '../components/lead/BroadcastHistoryDrawer.jsx';
 import { LeadPriorityBadge } from '../components/common/StatusBadge.jsx';
 import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
@@ -54,6 +55,7 @@ export default function Leads() {
 
   const [importOpen, setImportOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastHistoryOpen, setBroadcastHistoryOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const toast = useToast();
@@ -239,6 +241,9 @@ export default function Leads() {
               <Upload size={16} /> Import
             </button>
           )}
+          <button type="button" className="btn-secondary" onClick={() => setBroadcastHistoryOpen(true)}>
+            <History size={16} /> Broadcast History
+          </button>
           {canCreate && (
             <button className="btn-primary" onClick={() => { setEditingLead(null); setFormOpen(true); }}>
               <Plus size={16} /> Add Lead
@@ -431,6 +436,7 @@ export default function Leads() {
         leads={selectedLeads}
         onSent={() => setSelectedIds(new Set())}
       />
+      <BroadcastHistoryDrawer open={broadcastHistoryOpen} onClose={() => setBroadcastHistoryOpen(false)} />
     </div>
   );
 }

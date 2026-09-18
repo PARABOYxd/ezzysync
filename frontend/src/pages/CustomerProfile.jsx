@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, Clock, MapPin, FileText, ArrowLeft, Activity, Compass, Tag } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Clock, MapPin, FileText, ArrowLeft, Activity, Compass, Tag, Paperclip, Download, Loader2 } from 'lucide-react';
 import * as customerService from '../services/customerService';
+import * as bookingService from '../services/bookingService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { TravelStatusBadge, PaymentStatusBadge, QuotationStatusBadge, LeadStageBadge } from '../components/common/StatusBadge.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
@@ -11,6 +12,7 @@ export default function CustomerProfile() {
   const { id } = useParams();
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingVoucher, setDownloadingVoucher] = useState(null);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -26,7 +28,28 @@ export default function CustomerProfile() {
   if (loading) return <div className="skeleton h-96 rounded-2xl animate-pulse bg-zinc-100 dark:bg-zinc-800" />;
   if (!customer) return <EmptyState title="Customer not found" message="This customer profile doesn't exist or you don't have access to it." />;
 
-  const hasHistory = customer.bookings.length || customer.quotations.length || customer.leads.length || customer.followUps.length;
+  const media = customer.media || [];
+  const hasHistory = customer.bookings.length || customer.quotations.length || customer.leads.length || customer.followUps.length || media.length;
+
+  const handleDownloadVoucher = async (bookingId, type) => {
+    const key = `${bookingId}-${type}`;
+    setDownloadingVoucher(key);
+    try {
+      const blob = await bookingService.downloadVoucherPdf(bookingId, type);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type === 'hotel' ? 'Hotel' : 'Cab'}-Voucher-${bookingId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download voucher PDF.');
+    } finally {
+      setDownloadingVoucher(null);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl text-[var(--text-main)]">
@@ -79,7 +102,7 @@ export default function CustomerProfile() {
                 <Activity size={16} className="text-brand-500" />
                 <span>Interaction Feed</span>
               </h3>
-              
+
               {customer.followUps.length === 0 ? (
                 <p className="text-xs text-slate-400 dark:text-zinc-500 italic text-center py-4">No follow-ups recorded yet</p>
               ) : (
@@ -92,6 +115,42 @@ export default function CustomerProfile() {
                       </p>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Documents & Media - photos/PDFs shared over WhatsApp, pulled by
+                phone so it works whether the chat is on Cloud API or QR. */}
+            <div className="card space-y-4">
+              <h3 className="font-extrabold text-sm uppercase tracking-wider text-slate-800 dark:text-zinc-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-zinc-800/80">
+                <Paperclip size={16} className="text-brand-500" />
+                <span>Documents & Media ({media.length})</span>
+              </h3>
+              {media.length === 0 ? (
+                <p className="text-xs text-slate-400 dark:text-zinc-500 italic text-center py-4">No media or documents shared over WhatsApp yet</p>
+              ) : (
+                <div className="grid grid-cols-4 gap-2 max-h-[320px] overflow-y-auto pr-1 no-scrollbar">
+                  {media.map((m) => {
+                    const isImg = m.message_type === 'image';
+                    return (
+                      <a
+                        key={m.id}
+                        href={m.media_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={formatDate(m.message_timestamp)}
+                        className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 hover:opacity-90 transition-opacity"
+                      >
+                        {isImg ? (
+                          <img src={m.media_url} alt="Shared media" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
+                            <FileText size={18} className="text-rose-500" />
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -120,6 +179,24 @@ export default function CustomerProfile() {
                         <TravelStatusBadge status={b.travel_status} />
                         <PaymentStatusBadge status={b.payment_status} />
                         <span className="text-sm font-extrabold text-slate-800 dark:text-zinc-200">{formatCurrency(b.total_amount)}</span>
+                        <button
+                          type="button"
+                          title="Download Hotel Voucher"
+                          disabled={downloadingVoucher === `${b.booking_id}-hotel`}
+                          onClick={() => handleDownloadVoucher(b.booking_id, 'hotel')}
+                          className="p-1.5 text-slate-400 hover:text-brand-600 rounded-lg hover:bg-brand-50/50 dark:hover:bg-brand-950/20 transition disabled:opacity-50"
+                        >
+                          {downloadingVoucher === `${b.booking_id}-hotel` ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        </button>
+                        <button
+                          type="button"
+                          title="Download Cab Voucher"
+                          disabled={downloadingVoucher === `${b.booking_id}-cab`}
+                          onClick={() => handleDownloadVoucher(b.booking_id, 'cab')}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition disabled:opacity-50"
+                        >
+                          {downloadingVoucher === `${b.booking_id}-cab` ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                        </button>
                       </div>
                     </div>
                   ))}

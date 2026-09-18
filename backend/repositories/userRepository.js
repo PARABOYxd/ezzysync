@@ -148,6 +148,38 @@ async function deleteTeamMember(tenantId, userId) {
   return rowCount > 0;
 }
 
+/** assigned_to/team_member are plain TEXT columns matched by name, not a
+ * foreign key to users.id - this is how many leads/bookings would go
+ * orphaned (unassigned, but silently) if a member were deleted outright. */
+async function countAssignedRecords(tenantId, name) {
+  const { rows } = await query(
+    `SELECT
+       (SELECT COUNT(*) FROM leads WHERE tenant_id = $1 AND assigned_to = $2 AND deleted = FALSE) AS lead_count,
+       (SELECT COUNT(*) FROM bookings WHERE tenant_id = $1 AND team_member = $2 AND deleted = FALSE) AS booking_count`,
+    [tenantId, name]
+  );
+  const row = rows[0] || {};
+  return {
+    leadCount: parseInt(row.lead_count || 0, 10),
+    bookingCount: parseInt(row.booking_count || 0, 10),
+  };
+}
+
+/** Keeps existing lead/booking assignments pointed at the right person after
+ * a rename, or moves them to a chosen teammate before the old one is
+ * deleted - same string-match columns as countAssignedRecords. */
+async function reassignTeamMemberName(tenantId, oldName, newName) {
+  if (!oldName || !newName || oldName === newName) return;
+  await query(
+    `UPDATE leads SET assigned_to = $1, updated_at = now() WHERE tenant_id = $2 AND assigned_to = $3`,
+    [newName, tenantId, oldName]
+  );
+  await query(
+    `UPDATE bookings SET team_member = $1, updated_at = now() WHERE tenant_id = $2 AND team_member = $3`,
+    [newName, tenantId, oldName]
+  );
+}
+
 async function findUserByGoogleId(googleId) {
   const { rows } = await query(
     `SELECT u.*, t.company_name, t.plan_id
@@ -192,6 +224,8 @@ module.exports = {
   insertTeamMember,
   updateTeamMember,
   deleteTeamMember,
+  countAssignedRecords,
+  reassignTeamMemberName,
   findUserByGoogleId,
   linkGoogleAccount,
   insertGoogleUser,

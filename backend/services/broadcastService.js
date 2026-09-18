@@ -1,5 +1,6 @@
 const leadRepository = require('../repositories/leadRepository');
 const whatsappTemplateRepository = require('../repositories/whatsappTemplateRepository');
+const broadcastRepository = require('../repositories/broadcastRepository');
 const whatsappSendService = require('./whatsappSendService');
 const logger = require('../utils/logger').child({ module: 'broadcastService' });
 
@@ -23,7 +24,7 @@ const MAX_RECIPIENTS = 200;
  * instead, so a template that only works for half the list still reaches
  * the other half.
  */
-async function broadcastToLeads(tenantId, { leadIds, templateId, userId } = {}) {
+async function broadcastToLeads(tenantId, { leadIds, templateId, userId, sentBy } = {}) {
   if (!Array.isArray(leadIds) || leadIds.length === 0) {
     const err = new Error('Select at least one lead to message.');
     err.status = 400;
@@ -55,7 +56,7 @@ async function broadcastToLeads(tenantId, { leadIds, templateId, userId } = {}) 
       continue;
     }
     if (!leadRow.phone) {
-      results.push({ leadId, customerName: leadRow.customer_name, sent: false, error: 'No phone number on file.' });
+      results.push({ leadId, leadUuid: leadRow.id, customerName: leadRow.customer_name, sent: false, error: 'No phone number on file.' });
       continue;
     }
 
@@ -65,28 +66,60 @@ async function broadcastToLeads(tenantId, { leadIds, templateId, userId } = {}) 
         customerName: leadRow.customer_name,
       });
 
+      let sendResult;
       if (chat.transport === 'cloud_api') {
-        await whatsappSendService.sendTemplate(tenantId, {
+        sendResult = await whatsappSendService.sendTemplate(tenantId, {
           chat,
           template,
           variables: { customer_name: leadRow.customer_name },
           userId,
         });
       } else {
-        await whatsappSendService.sendText(tenantId, {
+        sendResult = await whatsappSendService.sendText(tenantId, {
           chat,
           userId,
           messageText: template.body,
         });
       }
-      results.push({ leadId, customerName: leadRow.customer_name, sent: true });
+      results.push({
+        leadId, leadUuid: leadRow.id, customerName: leadRow.customer_name, phone: leadRow.phone, sent: true,
+        chatId: chat.id, messageId: sendResult?.messageId || null,
+      });
     } catch (err) {
       logger.warn({ err, tenantId, leadId }, '[Broadcast] Could not message this lead');
-      results.push({ leadId, customerName: leadRow.customer_name, sent: false, error: err.message });
+      results.push({ leadId, leadUuid: leadRow.id, customerName: leadRow.customer_name, phone: leadRow.phone, sent: false, error: err.message });
     }
+  }
+
+  // Best-effort: a logging failure should never undo sends that already
+  // went out, so this can never throw back into the caller.
+  try {
+    const log = await broadcastRepository.createBroadcastLog(tenantId, {
+      templateId,
+      templateName: template.name,
+      sentBy,
+      requestedCount: leadIds.length,
+      sentCount: results.filter((r) => r.sent).length,
+    });
+    await broadcastRepository.insertRecipients(
+      tenantId,
+      log.id,
+      results.map((r) => ({ ...r, leadId: r.leadUuid || null }))
+    );
+    results.broadcastId = log.id;
+  } catch (err) {
+    logger.warn({ err, tenantId }, '[Broadcast] Could not persist broadcast history');
   }
 
   return results;
 }
 
-module.exports = { broadcastToLeads, MAX_RECIPIENTS };
+async function listBroadcasts(tenantId) {
+  return broadcastRepository.listBroadcasts(tenantId);
+}
+
+async function getBroadcastDetail(tenantId, broadcastId) {
+  return broadcastRepository.getBroadcastDetail(tenantId, broadcastId);
+}
+
+module.exports = { broadcastToLeads, listBroadcasts, getBroadcastDetail, MAX_RECIPIENTS };

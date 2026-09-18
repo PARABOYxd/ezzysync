@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get('/', requirePermission('customers', 'read'), ctrl.list);
+router.get('/lookup', requirePermission('customers', 'read'), ctrl.lookupByPhone);
 router.get('/:id', requirePermission('customers', 'read'), ctrl.getOne);
 
 module.exports = router;

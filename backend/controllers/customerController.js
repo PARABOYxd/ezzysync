@@ -22,6 +22,17 @@ async function list(req, res, next) {
   }
 }
 
+async function lookupByPhone(req, res, next) {
+  try {
+    const phone = (req.query.phone || '').trim();
+    if (!phone) return res.json({ customer: null });
+    const customer = await customerService.findByPhone(req.user.tenantId, phone);
+    res.json({ customer });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getOne(req, res, next) {
   try {
     const profile = await customerService.getProfile(req.user.tenantId, req.params.id);
@@ -32,4 +43,4 @@ async function getOne(req, res, next) {
   }
 }
 
-module.exports = { list, getOne };
+module.exports = { list, getOne, lookupByPhone };

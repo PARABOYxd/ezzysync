@@ -3,7 +3,7 @@ import {
   ClipboardList, PlaneTakeoff, CheckCircle2, XCircle, RotateCcw, CalendarClock, Sun, Plus,
   IndianRupee, Coins, TrendingUp, Landmark, User, Users, X, ChevronDown, Sparkles
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import StatCard from '../components/dashboard/StatCard.jsx';
 import RecentBookingsTable from '../components/dashboard/RecentBookingsTable.jsx';
 import UpcomingDepartures from '../components/dashboard/UpcomingDepartures.jsx';
@@ -203,13 +203,17 @@ function PopularToursList({ tripWise }) {
       <div className="flex-1 flex flex-col justify-start mt-2 space-y-3">
         {tours.length > 0 ? (
           tours.map((t, idx) => (
-            <div key={idx} className="flex items-center gap-3 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
+            <Link
+              key={idx}
+              to={`/bookings?search=${encodeURIComponent(t.name)}`}
+              className="flex items-center gap-3 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-100 dark:border-zinc-800 hover:border-slate-200 dark:hover:border-zinc-700 hover:shadow-sm transition"
+            >
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">{t.name}</p>
                 <p className="text-[10px] text-slate-400 font-medium">{t.count} booking{t.count !== 1 ? 's' : ''} &middot; Profit: {formatCurrency(t.profit)}</p>
               </div>
               <span className="text-[11px] font-bold text-brand-600 shrink-0">{formatCurrency(t.revenue)}</span>
-            </div>
+            </Link>
           ))
         ) : (
           <div className="text-center text-xs text-slate-400 py-10">No bookings generated yet.</div>

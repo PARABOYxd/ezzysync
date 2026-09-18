@@ -72,10 +72,11 @@ async function remove(req, res, next) {
     if (id === req.user.userId) {
       return res.status(400).json({ message: 'You cannot delete your own admin account.' });
     }
-    await userService.deleteTeamMember(req.user.tenantId, id);
-    
+    const reassignToUserId = req.query.reassignTo || req.body?.reassignTo || null;
+    await userService.deleteTeamMember(req.user.tenantId, id, reassignToUserId);
+
     // Log audit trail
-    await auditService.logAction(req, 'DELETE_TEAM_MEMBER', { memberId: id });
+    await auditService.logAction(req, 'DELETE_TEAM_MEMBER', { memberId: id, reassignToUserId });
     
     res.json({ message: 'Team member account deleted.' });
   } catch (err) {

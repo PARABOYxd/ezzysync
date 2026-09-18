@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, Calendar, MapPin, Settings, Command } from 'lucide-react';
+import { Search, User, Calendar, MapPin, Settings, Command, BookUser } from 'lucide-react';
 import * as leadService from '../../services/leadService';
 import * as bookingService from '../../services/bookingService';
+import * as customerService from '../../services/customerService';
 
 export default function GlobalSearchModal({ open, onClose }) {
   const [query, setQuery] = useState('');
@@ -49,6 +50,7 @@ export default function GlobalSearchModal({ open, onClose }) {
       setResults([
         { id: 'q-dashboard', type: 'nav', title: 'Go to Dashboard', path: '/dashboard', icon: Command },
         { id: 'q-leads', type: 'nav', title: 'Manage Leads Pipeline', path: '/leads', icon: User },
+        { id: 'q-customers', type: 'nav', title: 'Browse Customers', path: '/customers', icon: BookUser },
         { id: 'q-bookings', type: 'nav', title: 'View Bookings Ledger', path: '/bookings', icon: Calendar },
         { id: 'q-itineraries', type: 'nav', title: 'Itineraries & Quotes Builder', path: '/quotations', icon: MapPin },
         { id: 'q-settings', type: 'nav', title: 'Open Settings', path: '/settings', icon: Settings },
@@ -61,9 +63,10 @@ export default function GlobalSearchModal({ open, onClose }) {
     setSearching(true);
     const delayDebounce = setTimeout(async () => {
       try {
-        const [leadData, bookingData] = await Promise.all([
+        const [leadData, bookingData, customerData] = await Promise.all([
           leadService.getLeads({ search: query, limit: 5 }).catch(() => ({ leads: [] })),
-          bookingService.getBookings({ search: query, limit: 5 }).catch(() => ({ bookings: [] }))
+          bookingService.getBookings({ search: query, limit: 5 }).catch(() => ({ bookings: [] })),
+          customerService.getCustomers({ search: query, limit: 5 }).catch(() => ({ customers: [] })),
         ]);
 
         const formattedLeads = (leadData.leads || []).map(l => ({
@@ -84,7 +87,18 @@ export default function GlobalSearchModal({ open, onClose }) {
           icon: Calendar
         }));
 
-        setResults([...formattedLeads, ...formattedBookings]);
+        // Goes straight to the exact profile, not a filtered list - this is
+        // the one search result type that can, since it has a real id.
+        const formattedCustomers = (customerData.customers || []).map(c => ({
+          id: `customer-${c.id}`,
+          type: 'customer',
+          title: c.name || 'Unnamed Customer',
+          subtitle: `Customer: ${c.phone || c.email || ''}`,
+          path: `/customers/${c.id}`,
+          icon: BookUser
+        }));
+
+        setResults([...formattedCustomers, ...formattedLeads, ...formattedBookings]);
         setSelectedIndex(0);
       } catch (err) {
         console.error('Search failed', err);

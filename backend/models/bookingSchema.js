@@ -64,4 +64,19 @@ function rowToBooking(row) {
   };
 }
 
-module.exports = { TRAVEL_STATUSES, PAYMENT_STATUSES, rowToBooking };
+/** Maps a `booking_payments` row (snake_case) to the camelCase shape the frontend expects. */
+function rowToPayment(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    amount: Number(row.amount || 0),
+    method: row.method || 'Cash',
+    reference: row.reference || '',
+    paidOn: row.paid_on,
+    notes: row.notes || '',
+    createdBy: row.created_by || '',
+    createdAt: row.created_at,
+  };
+}
+
+module.exports = { TRAVEL_STATUSES, PAYMENT_STATUSES, rowToBooking, rowToPayment };

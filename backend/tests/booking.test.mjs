@@ -76,6 +76,73 @@ describe('Bookings', () => {
       const otherList = await bookingService.listBookings(other.tenantId);
       expect(otherList).toHaveLength(0);
     });
+
+    it('creates fine with no email - most WhatsApp-first leads never give one', async () => {
+      const withoutEmail = { ...bookingData() };
+      delete withoutEmail.email;
+      const booking = await bookingService.createBooking(tenant.tenantId, withoutEmail, 'agent@test.com');
+      expect(booking.email).toBe('');
+      expect(booking.bookingId).toBeTruthy();
+
+      // Updating it stays email-optional too, not just the initial insert.
+      const updated = await bookingService.updateBooking(tenant.tenantId, booking.bookingId, { notes: 'Called to confirm.' }, 'agent@test.com');
+      expect(updated.email).toBe('');
+    });
+  });
+
+  describe('payment ledger', () => {
+    it('logs an installment and rolls it into paid/remaining/status without the caller recomputing anything', async () => {
+      const booking = await bookingService.createBooking(tenant.tenantId, bookingData({ members: 2, pricePerPerson: 5000, paid: 0 }), 'agent@test.com');
+      expect(booking.totalAmount).toBe(10000);
+
+      const first = await bookingService.addPayment(tenant.tenantId, booking.bookingId, {
+        amount: 4000,
+        method: 'UPI',
+        reference: 'txn_1',
+        createdBy: 'agent@test.com',
+      });
+      expect(first.paid).toBe(4000);
+      expect(first.remaining).toBe(6000);
+      expect(first.paymentStatus).toBe('Partial');
+
+      const second = await bookingService.addPayment(tenant.tenantId, booking.bookingId, {
+        amount: 6000,
+        method: 'Cash',
+        createdBy: 'agent@test.com',
+      });
+      expect(second.paid).toBe(10000);
+      expect(second.remaining).toBe(0);
+      expect(second.paymentStatus).toBe('Paid');
+
+      const payments = await bookingService.getPayments(tenant.tenantId, booking.bookingId);
+      expect(payments).toHaveLength(2);
+    });
+
+    it('rejects a zero or negative payment', async () => {
+      const booking = await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');
+      await expect(
+        bookingService.addPayment(tenant.tenantId, booking.bookingId, { amount: 0, createdBy: 'agent@test.com' })
+      ).rejects.toThrow();
+    });
+
+    it('reverses a mistaken entry back out of paid/remaining on delete', async () => {
+      const booking = await bookingService.createBooking(tenant.tenantId, bookingData({ members: 1, pricePerPerson: 5000, paid: 0 }), 'agent@test.com');
+      const { payment } = await bookingService.addPayment(tenant.tenantId, booking.bookingId, { amount: 5000, createdBy: 'agent@test.com' });
+
+      const afterDelete = await bookingService.removePayment(tenant.tenantId, booking.bookingId, payment.id);
+      expect(afterDelete.paid).toBe(0);
+      expect(afterDelete.remaining).toBe(5000);
+      expect(afterDelete.paymentStatus).toBe('Pending');
+
+      const payments = await bookingService.getPayments(tenant.tenantId, booking.bookingId);
+      expect(payments).toHaveLength(0);
+    });
+
+    it('404s adding a payment to a booking that does not exist', async () => {
+      await expect(
+        bookingService.addPayment(tenant.tenantId, 'BK-NOPE', { amount: 100, createdBy: 'agent@test.com' })
+      ).rejects.toThrow();
+    });
   });
 
   describe('updating a booking', () => {

@@ -244,7 +244,7 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
      )
      RETURNING *`,
     [
-      tenantId, bookingId, data.customerName, data.email, data.phone, data.emergencyContact || '',
+      tenantId, bookingId, data.customerName, data.email || '', data.phone, data.emergencyContact || '',
       data.trip, data.departure, data.pickup || '', Number(data.members || 0), Number(data.pricePerPerson || 0),
       totalAmount, paid, remaining, data.teamMember || '', travelStatus, paymentStatus, now,
       data.notes || '', createdBy || '', now,
@@ -304,11 +304,11 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
        meal_plan = $35, hotel_check_in = $36, hotel_check_out = $37, vehicle_type = $38,
        driver_name = $39, driver_phone = $40, vehicle_number = $41, pickup_time = $42,
        pickup_location = $43, drop_location = $44, voucher_notes = $45,
-       transports = $46, hotels_stay = $47
+       transports = $46, hotels_stay = $47, source_quotation_id = $48
      WHERE tenant_id = $24 AND booking_id = $25
      RETURNING *`,
     [
-      merged.customerName, merged.email, merged.phone, merged.emergencyContact || '', merged.trip, merged.departure,
+      merged.customerName, merged.email || '', merged.phone, merged.emergencyContact || '', merged.trip, merged.departure,
       merged.pickup || '', Number(merged.members || 0), Number(merged.pricePerPerson || 0), totalAmount,
       Number(merged.paid || 0), remaining, merged.teamMember || '', merged.travelStatus, merged.paymentStatus,
       merged.notes || '', updatedAt, !!merged.deleted,
@@ -320,7 +320,7 @@ async function updateBooking(tenantId, bookingId, merged, totalAmount, remaining
       vehicleType, driverName, driverPhone,
       vehicleNumber, pickupTime, pickupLocation,
       dropLocation, voucherNotes,
-      JSON.stringify(transports), JSON.stringify(hotelsStay)
+      JSON.stringify(transports), JSON.stringify(hotelsStay), merged.sourceQuotationId || null
     ]
   );
   return rows[0];
@@ -470,6 +470,82 @@ async function insertFollowUp(tenantId, bookingIdText, note, activityType, nextF
   return fRows[0];
 }
 
+async function listPayments(tenantId, bookingIdText) {
+  const { rows } = await query(
+    `SELECT p.*
+     FROM booking_payments p
+     JOIN bookings b ON p.booking_id = b.id
+     WHERE p.tenant_id = $1 AND b.booking_id = $2
+     ORDER BY p.paid_on DESC, p.created_at DESC`,
+    [tenantId, bookingIdText]
+  );
+  return rows;
+}
+
+/**
+ * Logs one payment and rolls it straight into the booking's running totals
+ * - the alternative (log the row, then a separate request recomputes
+ * paid/remaining) leaves a window where the two disagree if that second
+ * call never happens.
+ */
+async function insertPayment(tenantId, bookingIdText, { amount, method, reference, paidOn, notes, createdBy }) {
+  const { rows: bRows } = await query(
+    `SELECT id, total_amount, paid FROM bookings WHERE tenant_id = $1 AND booking_id = $2`,
+    [tenantId, bookingIdText]
+  );
+  if (bRows.length === 0) {
+    return null;
+  }
+  const booking = bRows[0];
+  const newPaid = Number(booking.paid || 0) + Number(amount);
+  const newRemaining = Math.max(Number(booking.total_amount || 0) - newPaid, 0);
+  const paymentStatus = newRemaining <= 0 ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+
+  const { rows: pRows } = await query(
+    `INSERT INTO booking_payments (tenant_id, booking_id, amount, method, reference, paid_on, notes, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [tenantId, booking.id, amount, method || 'Cash', reference || '', paidOn, notes || '', createdBy || '']
+  );
+
+  await query(
+    `UPDATE bookings SET paid = $1, remaining = $2, payment_status = $3 WHERE id = $4`,
+    [newPaid, newRemaining, paymentStatus, booking.id]
+  );
+
+  return { payment: pRows[0], paid: newPaid, remaining: newRemaining, paymentStatus };
+}
+
+async function deletePayment(tenantId, bookingIdText, paymentId) {
+  const { rows: bRows } = await query(
+    `SELECT id, total_amount, paid FROM bookings WHERE tenant_id = $1 AND booking_id = $2`,
+    [tenantId, bookingIdText]
+  );
+  if (bRows.length === 0) {
+    throw new Error('Booking not found.');
+  }
+  const booking = bRows[0];
+
+  const { rows: delRows } = await query(
+    `DELETE FROM booking_payments WHERE tenant_id = $1 AND booking_id = $2 AND id = $3 RETURNING amount`,
+    [tenantId, booking.id, paymentId]
+  );
+  if (delRows.length === 0) {
+    return null;
+  }
+
+  const newPaid = Math.max(Number(booking.paid || 0) - Number(delRows[0].amount), 0);
+  const newRemaining = Math.max(Number(booking.total_amount || 0) - newPaid, 0);
+  const paymentStatus = newRemaining <= 0 ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+
+  await query(
+    `UPDATE bookings SET paid = $1, remaining = $2, payment_status = $3 WHERE id = $4`,
+    [newPaid, newRemaining, paymentStatus, booking.id]
+  );
+
+  return { paid: newPaid, remaining: newRemaining, paymentStatus };
+}
+
 async function getUpcomingDepartures(daysAhead) {
   // Get all Booked bookings with departure date = today + daysAhead.
   // Requires an email OR a phone, not just an email - a WhatsApp-only
@@ -506,4 +582,7 @@ module.exports = {
   getActiveBookingsByCustomer,
   getUpcomingDepartures,
   existsByPhone,
+  listPayments,
+  insertPayment,
+  deletePayment,
 };

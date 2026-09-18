@@ -19,3 +19,6 @@ export const claimLead = (id) => api.post(`/leads/${id}/claim`).then((r) => r.da
 export const bulkImportLeads = (rows) => api.post('/leads/bulk-import', { rows }).then((r) => r.data);
 export const broadcastToLeads = (leadIds, templateId) =>
   api.post('/leads/broadcast', { leadIds, templateId }).then((r) => r.data);
+
+export const getBroadcastHistory = () => api.get('/leads/broadcasts').then((r) => r.data.broadcasts || []);
+export const getBroadcastDetail = (broadcastId) => api.get(`/leads/broadcasts/${broadcastId}`).then((r) => r.data);

@@ -32,7 +32,7 @@ export default function UpcomingDepartures({ departures }) {
           return (
             <Link
               key={key}
-              to={isBatch ? `/tour-batches?open=${d.batch.batchId}` : `/bookings?search=${encodeURIComponent(d.booking.customerName)}`}
+              to={isBatch ? `/tour-batches?open=${d.batch.batchId}` : `/bookings?search=${encodeURIComponent(d.booking.bookingId)}`}
               className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-800/10 hover:border-slate-200 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer transition text-left"
             >
               <div className="flex items-center gap-3 min-w-0">

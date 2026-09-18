@@ -20,10 +20,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [selectedLogoFile, setSelectedLogoFile] = useState(null);
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [uploadingQr, setUploadingQr] = useState(false);
   const [selectedQrFile, setSelectedQrFile] = useState(null);
-  const [qrPreviewUrl, setQrPreviewUrl] = useState('');
 
   const [features, setFeatures] = useState(getFeatures());
   useEffect(() => {
@@ -32,15 +30,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     settingsService.getSettings()
-      .then((data) => {
-        setSettings(data);
-        if (data && data.companyLogoUrl) {
-          setLogoPreviewUrl(data.companyLogoUrl);
-        }
-        if (data && data.paymentQrUrl) {
-          setQrPreviewUrl(data.paymentQrUrl);
-        }
-      })
+      .then(setSettings)
       .catch(() => toast.error('Could not load settings.'));
 
     // Check if returning from Meta OAuth redirect in popup or page
@@ -155,8 +145,6 @@ export default function SettingsPage() {
       const payload = { ...settings, companyLogoUrl: finalLogoUrl, paymentQrUrl: finalQrUrl };
       const updated = await settingsService.updateSettings(payload);
       setSettings(updated);
-      setLogoPreviewUrl(updated.companyLogoUrl || '');
-      setQrPreviewUrl(updated.paymentQrUrl || '');
       toast.success('Settings saved successfully.');
     } catch {
       toast.error('Could not save settings.');
@@ -240,10 +228,7 @@ export default function SettingsPage() {
           setErrors={setErrors}
           saving={saving}
           handleSave={handleSave}
-          logoPreviewUrl={logoPreviewUrl}
-          setLogoPreviewUrl={setLogoPreviewUrl}
           uploadingLogo={uploadingLogo}
-          selectedLogoFile={selectedLogoFile}
           setSelectedLogoFile={setSelectedLogoFile}
         />
       )}
@@ -262,10 +247,7 @@ export default function SettingsPage() {
           setSettings={setSettings}
           saving={saving}
           handleSave={handleSave}
-          qrPreviewUrl={qrPreviewUrl}
-          setQrPreviewUrl={setQrPreviewUrl}
           uploadingQr={uploadingQr}
-          selectedQrFile={selectedQrFile}
           setSelectedQrFile={setSelectedQrFile}
         />
       )}

@@ -19,6 +19,17 @@ async function upsertByPhone(tenantId, { name, email, phone }) {
   return rows[0];
 }
 
+/** Suffix match, same convention as bookingRepository.existsByPhone - lets a
+ * typed number without a country-code prefix still match a stored one that
+ * has one (or vice versa). */
+async function findByPhone(tenantId, phone) {
+  const { rows } = await query(
+    `SELECT * FROM customers WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) LIMIT 1`,
+    [tenantId, phone, `%${phone}`]
+  );
+  return rows[0];
+}
+
 async function getCustomerById(tenantId, customerId) {
   const { rows } = await query(
     `SELECT * FROM customers WHERE tenant_id = $1 AND id = $2`,
@@ -55,9 +66,11 @@ async function listCustomersPaged({ tenantId, page = 1, limit = 10, search = '' 
   return { customers: rows, totalCount };
 }
 
-/** Everything tied to one customer, for the unified profile view. */
-async function getCustomerHistory(tenantId, customerId) {
-  const [bookings, quotations, leads, followUps] = await Promise.all([
+/** Everything tied to one customer, for the unified profile view. `phone` is
+ * needed separately because whatsapp_chats has no customer_id column - it
+ * only carries the phone number, same natural key customers uses. */
+async function getCustomerHistory(tenantId, customerId, phone) {
+  const [bookings, quotations, leads, followUps, media] = await Promise.all([
     query(`SELECT * FROM bookings WHERE tenant_id = $1 AND customer_id = $2 AND deleted = FALSE ORDER BY booking_timestamp DESC`, [tenantId, customerId]),
     query(`SELECT * FROM quotations WHERE tenant_id = $1 AND customer_id = $2 ORDER BY created_at DESC`, [tenantId, customerId]),
     query(`SELECT * FROM leads WHERE tenant_id = $1 AND customer_id = $2 AND deleted = FALSE ORDER BY created_at DESC`, [tenantId, customerId]),
@@ -69,6 +82,17 @@ async function getCustomerHistory(tenantId, customerId) {
        ORDER BY f.created_at DESC`,
       [tenantId, customerId]
     ),
+    phone
+      ? query(
+          `SELECT m.id, m.message_type, m.media_url, m.message_timestamp
+           FROM whatsapp_messages m
+           JOIN whatsapp_chats c ON m.chat_id = c.id
+           WHERE c.tenant_id = $1 AND c.phone = $2 AND m.media_url IS NOT NULL
+           ORDER BY m.message_timestamp DESC
+           LIMIT 50`,
+          [tenantId, phone]
+        )
+      : Promise.resolve({ rows: [] }),
   ]);
 
   return {
@@ -76,11 +100,13 @@ async function getCustomerHistory(tenantId, customerId) {
     quotations: quotations.rows,
     leads: leads.rows,
     followUps: followUps.rows,
+    media: media.rows,
   };
 }
 
 module.exports = {
   upsertByPhone,
+  findByPhone,
   getCustomerById,
   listCustomersPaged,
   getCustomerHistory,

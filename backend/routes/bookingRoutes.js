@@ -19,6 +19,10 @@ router.delete('/:id', requirePermission('bookings', 'delete'), ctrl.remove);
 router.get('/:id/follow-ups', requirePermission('bookings', 'read'), ctrl.listFollowUps);
 router.post('/:id/follow-ups', requirePermission('bookings', 'update'), ctrl.createFollowUp);
 
+router.get('/:id/payments', requirePermission('bookings', 'read'), ctrl.listPayments);
+router.post('/:id/payments', requirePermission('bookings', 'update'), ctrl.addPayment);
+router.delete('/:id/payments/:paymentId', requirePermission('bookings', 'update'), ctrl.removePayment);
+
 router.get('/:id/voucher-pdf', requirePermission('bookings', 'read'), ctrl.getVoucherPdf);
 router.post('/:id/send-voucher', requirePermission('bookings', 'update'), ctrl.sendVoucher);
 

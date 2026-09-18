@@ -75,6 +75,13 @@ export default function Team() {
   const [formErrors, setFormErrors] = useState({});
   const [planInfo, setPlanInfo] = useState(null);
 
+  // Set only when a delete is blocked because the member still has leads or
+  // bookings assigned to them (assigned_to/team_member match by name, so
+  // deleting outright would silently orphan those records).
+  const [reassignPrompt, setReassignPrompt] = useState(null);
+  const [reassignTarget, setReassignTarget] = useState('');
+  const [reassigning, setReassigning] = useState(false);
+
   // -1 means unlimited, so only a positive limit can actually be full.
   const seatsFull =
     !!planInfo &&
@@ -217,7 +224,32 @@ export default function Team() {
       toast.success('Team member deleted.');
       fetchMembers();
     } catch (err) {
+      const details = err.response?.data?.details;
+      if (details?.needsReassignment) {
+        const member = members.find((m) => m.userId === id);
+        setReassignPrompt({ id, name: details.memberName || member?.name, leadCount: details.leadCount, bookingCount: details.bookingCount });
+        setReassignTarget('');
+        return;
+      }
       toast.error(err.response?.data?.message || 'Failed to delete team member.');
+    }
+  };
+
+  const handleReassignAndDelete = async () => {
+    if (!reassignTarget) {
+      toast.error('Pick who should take over these leads and bookings.');
+      return;
+    }
+    setReassigning(true);
+    try {
+      await userService.deleteUser(reassignPrompt.id, reassignTarget);
+      toast.success('Records reassigned and team member deleted.');
+      setReassignPrompt(null);
+      fetchMembers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reassign and delete.');
+    } finally {
+      setReassigning(false);
     }
   };
 
@@ -593,6 +625,45 @@ export default function Team() {
                 </button>
               </div>
             </form>
+      </Drawer>
+
+      {/* Reassign-before-delete prompt */}
+      <Drawer open={!!reassignPrompt} onClose={() => setReassignPrompt(null)} title="Reassign Before Deleting">
+        {reassignPrompt && (
+          <div className="space-y-5">
+            <p className="text-sm text-slate-600">
+              <strong>{reassignPrompt.name}</strong> still has{' '}
+              <strong>{reassignPrompt.leadCount}</strong> lead{reassignPrompt.leadCount === 1 ? '' : 's'} and{' '}
+              <strong>{reassignPrompt.bookingCount}</strong> booking{reassignPrompt.bookingCount === 1 ? '' : 's'} assigned to them.
+              Pick who should take these over before the account is removed.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Reassign to</label>
+              <select
+                className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700"
+                value={reassignTarget}
+                onChange={(e) => setReassignTarget(e.target.value)}
+              >
+                <option value="">Select a team member</option>
+                {members
+                  .filter((m) => m.userId !== reassignPrompt.id)
+                  .map((m) => (
+                    <option key={m.userId} value={m.userId}>{m.name} ({m.role})</option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button type="button" onClick={() => setReassignPrompt(null)} className="btn-secondary" disabled={reassigning}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleReassignAndDelete} className="btn-primary" disabled={reassigning}>
+                {reassigning ? 'Reassigning...' : 'Reassign & Delete'}
+              </button>
+            </div>
+          </div>
+        )}
       </Drawer>
     </div>
   );

@@ -45,8 +45,6 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
 
   // Team members state
   const [teamMembers, setTeamMembers] = useState([]);
-  const [teamMemberOther, setTeamMemberOther] = useState(false);
-  const [teamMemberCustom, setTeamMemberCustom] = useState('');
 
   // Trip name dropdown — other = manual entry
   const [tripOther, setTripOther] = useState(false);
@@ -63,9 +61,13 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
       quotationService.getQuotations({ limit: 100 }).then((data) => {
         const list = data.quotations || data || [];
         setQuotations(list);
-        // If editing and trip doesn't match any itinerary name, pre-set Other
+        // If editing, prefer the stored quotation reference over a name
+        // match - two quotations can share a display name, and a rename
+        // would otherwise silently drop an existing booking into "Other".
         if (booking?.trip) {
-          const found = list.find((q) => (q.trip_name || q.tripName) === booking.trip);
+          const found = booking.sourceQuotationId
+            ? list.find((q) => (q.quotation_id || q.id) === booking.sourceQuotationId)
+            : list.find((q) => (q.trip_name || q.tripName) === booking.trip);
           if (!found) setTripOther(true);
         }
       }).catch(() => { });
@@ -129,14 +131,6 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
       setErrors({});
       setActiveTab('customer');
       setTripOther(false);
-      // Check if existing booking has a custom team member (not in list)
-      if (booking?.teamMember && booking.teamMember !== '') {
-        // Will be resolved after team members load
-        setTeamMemberCustom(booking.teamMember);
-      } else {
-        setTeamMemberCustom('');
-      }
-      setTeamMemberOther(false);
 
       if (booking && (
         Number(booking.vendorHotelCost) > 0 ||
@@ -157,17 +151,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
     if (open) {
       userService.getUsers().then((users) => {
         setTeamMembers(users || []);
-        // If editing and the teamMember doesn't match any user name, set to 'Other'
-        if (booking?.teamMember) {
-          const found = (users || []).find(u => u.name === booking.teamMember);
-          if (!found && booking.teamMember !== '') {
-            setTeamMemberOther(true);
-            setTeamMemberCustom(booking.teamMember);
-          }
-        }
       }).catch(() => { });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const totalAmount = Number(form.members || 0) * Number(form.pricePerPerson || 0);
@@ -386,6 +371,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
           {activeTab === 'customer' && (
             <CustomerInfoTab
               form={form}
+              setForm={setForm}
               errors={errors}
               set={set}
               isBookedOrBeyond={isBookedOrBeyond}
@@ -408,10 +394,6 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
               hotels={hotels}
               batches={batches}
               teamMembers={teamMembers}
-              teamMemberOther={teamMemberOther}
-              setTeamMemberOther={setTeamMemberOther}
-              teamMemberCustom={teamMemberCustom}
-              setTeamMemberCustom={setTeamMemberCustom}
             />
           )}
 
@@ -427,6 +409,8 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
               templates={templates}
               totalAmount={totalAmount}
               remaining={remaining}
+              bookingId={booking?.bookingId}
+              isEdit={isEdit}
             />
           )}
 

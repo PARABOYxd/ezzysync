@@ -177,10 +177,30 @@ async function broadcast(req, res, next) {
       leadIds,
       templateId,
       userId: req.user.userId || req.user.id,
+      sentBy: req.user.name || req.user.email,
     });
     const sentCount = results.filter((r) => r.sent).length;
     await auditService.logAction(req, 'BROADCAST_TO_LEADS', { requested: leadIds?.length || 0, sent: sentCount, templateId });
-    res.json({ results, sentCount, totalCount: results.length });
+    res.json({ results, sentCount, totalCount: results.length, broadcastId: results.broadcastId || null });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listBroadcasts(req, res, next) {
+  try {
+    const broadcasts = await broadcastService.listBroadcasts(req.user.tenantId);
+    res.json({ broadcasts });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getBroadcastDetail(req, res, next) {
+  try {
+    const detail = await broadcastService.getBroadcastDetail(req.user.tenantId, req.params.broadcastId);
+    if (!detail) return res.status(404).json({ message: 'Broadcast not found.' });
+    res.json(detail);
   } catch (err) {
     next(err);
   }
@@ -189,4 +209,5 @@ async function broadcast(req, res, next) {
 module.exports = {
   list, pipeline, getOne, create, update, updateStage, remove, convert,
   listFollowUps, createFollowUp, listPool, claimLead, bulkImport, broadcast,
+  listBroadcasts, getBroadcastDetail,
 };

@@ -16,7 +16,8 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
     email: '',
     interest: '',
     customerName: '',
-    paid: 0
+    paid: 0,
+    sourceQuotationId: ''
   });
   const [itineraries, setItineraries] = useState([]);
   const [loadingItineraries, setLoadingItineraries] = useState(false);
@@ -33,7 +34,8 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         email: lead.email || '',
         interest: lead.interest || '',
         customerName: lead.customerName || '',
-        paid: 0
+        paid: 0,
+        sourceQuotationId: ''
       });
       setTripOther(false);
       setLoadingItineraries(true);
@@ -44,13 +46,18 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
           const list = data.quotations || data || [];
           setItineraries(list);
           if (lead?.interest) {
+            // The lead's "interest" is free text typed or extracted earlier,
+            // not a stored reference - this is the one place a name match is
+            // unavoidable, since there is nothing else to match it against.
+            // Once matched, the id itself is what carries forward from here.
             const found = list.find((q) => (q.trip_name || q.tripName) === lead.interest);
             if (!found) {
               setTripOther(true);
-            } else if (found.priceQuote) {
+            } else {
               setForm((prev) => ({
                 ...prev,
-                pricePerPerson: prev.pricePerPerson || found.priceQuote
+                sourceQuotationId: found.quotation_id || found.id || '',
+                pricePerPerson: prev.pricePerPerson || found.priceQuote || ''
               }));
             }
           }
@@ -66,13 +73,14 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
     const val = e.target.value;
     if (val === '__other__') {
       setTripOther(true);
-      setForm((prev) => ({ ...prev, interest: '' }));
+      setForm((prev) => ({ ...prev, interest: '', sourceQuotationId: '' }));
     } else {
       setTripOther(false);
       const selected = itineraries.find((q) => (q.trip_name || q.tripName) === val);
       setForm((prev) => ({
         ...prev,
         interest: val,
+        sourceQuotationId: selected?.quotation_id || selected?.id || '',
         pricePerPerson: selected?.priceQuote ? selected.priceQuote : prev.pricePerPerson
       }));
     }
@@ -86,10 +94,9 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
       toast.error('Customer name is required.');
       return;
     }
-    if (!form.email || !form.email.trim()) {
-      toast.error('Email address is required.');
-      return;
-    }
+    // Email is optional - most leads arrive over WhatsApp and never give one.
+    // Invoice/confirmation sends already skip the email channel gracefully
+    // when it's blank and use WhatsApp instead.
     if (!form.departure) {
       toast.error('Departure date is required to create the booking.');
       return;
@@ -121,6 +128,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         email: form.email,
         interest: form.interest,
         trip: form.interest,
+        sourceQuotationId: form.sourceQuotationId || null,
         customerName: form.customerName,
         paid: Number(form.paid || 0)
       });
@@ -141,7 +149,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
       <form onSubmit={handleSubmit} className="space-y-5">
         <FormRow>
           <Input label="Customer Name" icon={User} required placeholder="e.g. Rahul Kumar" value={form.customerName} onChange={set('customerName')} />
-          <Input label="Email Address" icon={Mail} required type="email" placeholder="e.g. rahul@gmail.com" value={form.email} onChange={set('email')} />
+          <Input label="Email Address (Optional)" icon={Mail} type="email" hint="Only needed if you want invoices emailed" placeholder="e.g. rahul@gmail.com" value={form.email} onChange={set('email')} />
         </FormRow>
 
         <div className="w-full space-y-1.5">

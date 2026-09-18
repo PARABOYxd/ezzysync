@@ -12,10 +12,13 @@ export function validateBookingForm(form, { isEdit, previousStatus } = {}) {
   // Phone is always required
   if (!isValidPhone(form.phone)) e.phone = 'Contact number is required.';
 
-  // When status is Booked, all key fields become required
+  // When status is Booked, all key fields become required - except email,
+  // which most WhatsApp-first leads never give. It stays validated (a typo
+  // shouldn't slip through), just not mandatory: invoice/confirmation sends
+  // already fall back to WhatsApp when a booking has no email on file.
   if (isBookedOrBeyond) {
     if (!form.customerName) e.customerName = 'Required when status is Booked+';
-    if (!isValidEmail(form.email)) e.email = 'Required when status is Booked+';
+    if (form.email && !isValidEmail(form.email)) e.email = 'Enter a valid email address, or leave it blank.';
     if (!form.trip) e.trip = 'Required when status is Booked+';
     if (!form.departure) e.departure = 'Required when status is Booked+';
     if (!form.members || Number(form.members) < 1) e.members = 'At least 1 member required.';

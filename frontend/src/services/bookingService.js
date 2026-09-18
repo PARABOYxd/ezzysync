@@ -16,6 +16,10 @@ export const parseTicket = (payload, isFile = false) => {
 export const getFollowUps = (bookingId) => api.get(`/bookings/${bookingId}/follow-ups`).then((r) => r.data.followUps);
 export const addFollowUp = (bookingId, payload) => api.post(`/bookings/${bookingId}/follow-ups`, payload).then((r) => r.data.followUp);
 
+export const getPayments = (bookingId) => api.get(`/bookings/${bookingId}/payments`).then((r) => r.data.payments);
+export const addPayment = (bookingId, payload) => api.post(`/bookings/${bookingId}/payments`, payload).then((r) => r.data);
+export const deletePayment = (bookingId, paymentId) => api.delete(`/bookings/${bookingId}/payments/${paymentId}`).then((r) => r.data);
+
 export const downloadVoucherPdf = (bookingId, type = 'hotel') =>
   api.get(`/bookings/${bookingId}/voucher-pdf`, {
     params: { type },

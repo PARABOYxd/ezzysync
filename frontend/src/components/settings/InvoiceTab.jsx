@@ -4,27 +4,12 @@ import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Textarea from '../ui/Textarea.jsx';
 import Button from '../ui/Button.jsx';
-import { useToast } from '../../hooks/useToast.jsx';
+import ImageUploadField from '../ui/ImageUploadField.jsx';
 
 export default function InvoiceTab({
   settings, setSettings, saving, handleSave,
-  qrPreviewUrl, setQrPreviewUrl, uploadingQr, selectedQrFile, setSelectedQrFile,
+  uploadingQr, setSelectedQrFile,
 }) {
-  const toast = useToast();
-
-  const handleQrUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size too large. Maximum allowed size is 5MB.');
-      return;
-    }
-
-    setSelectedQrFile(file);
-    setQrPreviewUrl(URL.createObjectURL(file));
-  };
-
   return (
     <form onSubmit={handleSave} className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -308,44 +293,20 @@ export default function InvoiceTab({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment QR Code (Optional)</label>
-          <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-zinc-800/25 p-3 rounded-xl border border-slate-200 dark:border-zinc-800">
-            {qrPreviewUrl ? (
-              <div className="relative group shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 bg-white">
-                <img src={qrPreviewUrl} alt="Payment QR" className="w-full h-full object-contain" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSettings({ ...settings, paymentQrUrl: '' });
-                    setSelectedQrFile(null);
-                    setQrPreviewUrl('');
-                  }}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-zinc-700 flex items-center justify-center text-slate-400 text-xs shrink-0 bg-white dark:bg-zinc-900">
-                No QR
-              </div>
-            )}
-            <div className="flex flex-col gap-2">
-              <label className={`btn btn-xs ${uploadingQr ? 'loading btn-disabled' : 'btn-outline btn-primary'} cursor-pointer text-[10px] w-fit px-2.5 py-1 rounded border border-brand-500 text-brand-600 hover:bg-brand-50 transition`}>
-                {uploadingQr ? 'Uploading...' : 'Upload QR Image'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={uploadingQr}
-                  onChange={handleQrUpload}
-                />
-              </label>
-              <p className="text-[10px] text-slate-400">Scannable UPI QR code, printed on the invoice alongside the UPI ID</p>
-            </div>
-          </div>
-        </div>
+        <ImageUploadField
+          label="Payment QR Code (Optional)"
+          hint="Scannable UPI QR code, printed on the invoice alongside the UPI ID"
+          value={settings.paymentQrUrl}
+          uploading={uploadingQr}
+          emptyLabel="No QR"
+          size="md"
+          imageFit="contain"
+          buttonLabel="Upload QR Image"
+          onFileSelected={(file) => {
+            setSelectedQrFile(file);
+            if (!file) setSettings({ ...settings, paymentQrUrl: '' });
+          }}
+        />
       </div>
 
       <div className="flex justify-end pt-2 max-w-3xl">

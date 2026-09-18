@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare, BookUser } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { getFeatures } from '../../services/featureService';
 import { usePlanStatus } from '../../hooks/usePlanStatus.js';
@@ -21,6 +21,7 @@ export default function Sidebar({ open, onClose }) {
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/leads', label: 'Leads', icon: Contact2, module: 'leads' },
     { to: '/follow-ups', label: 'Follow-ups', icon: ListTodo, module: 'followUps' },
+    { to: '/customers', label: 'Customers', icon: BookUser, module: 'customers' },
   ].filter(link => !link.module || canRead(link.module));
 
   const salesLinks = [

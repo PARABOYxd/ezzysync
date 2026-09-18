@@ -5,6 +5,7 @@ import { whatsappWebService } from '../services/whatsappWebService';
 import * as settingsService from '../services/settingsService';
 import * as quotationService from '../services/quotationService';
 import * as bookingService from '../services/bookingService';
+import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import WhatsAppQRModal from '../components/whatsapp/WhatsAppQRModal.jsx';
@@ -15,6 +16,7 @@ import ChatThread from '../components/whatsapp/ChatThread.jsx';
 import CustomerInfoPanel from '../components/whatsapp/CustomerInfoPanel.jsx';
 import ItineraryShareModal from '../components/whatsapp/ItineraryShareModal.jsx';
 import StartChatModal from '../components/whatsapp/StartChatModal.jsx';
+import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
 
 // WhatsApp itself caps a multi-attachment send; the backend enforces the same
 // number, this is only so the UI can stop the agent before the upload.
@@ -88,6 +90,9 @@ export default function WhatsAppChat() {
   const [startChatMsg, setStartChatMsg] = useState('');
   const [startingChat, setStartingChat] = useState(false);
   const [sendingVoucherType, setSendingVoucherType] = useState(null);
+  const [convertLeadOpen, setConvertLeadOpen] = useState(false);
+  const [leadToConvert, setLeadToConvert] = useState(null);
+  const [loadingLeadToConvert, setLoadingLeadToConvert] = useState(false);
 
   const isSelectedIg = selectedChat?.phone?.startsWith('IG_') || selectedChat?.chat_id?.startsWith('IG_');
   const selectedIgHandle = isSelectedIg ? selectedChat?.phone?.replace('IG_', '') : '';
@@ -346,6 +351,25 @@ export default function WhatsAppChat() {
       toast.error(err.response?.data?.message || 'Failed to send voucher via WhatsApp.');
     } finally {
       setSendingVoucherType(null);
+    }
+  };
+
+  // Reuses ConvertLeadDrawer instead of a separate form - same conversion
+  // endpoint, same pre-fill logic, just launched from the chat instead of
+  // the Leads pipeline. Needs the full lead record (departure date, email,
+  // travelers, interest) which the chat list join doesn't carry, so it's
+  // fetched fresh by the formatted lead id already attached to the chat.
+  const handleOpenCreateBooking = async () => {
+    if (!selectedChat?.formatted_lead_id) return;
+    setLoadingLeadToConvert(true);
+    try {
+      const lead = await leadService.getLead(selectedChat.formatted_lead_id);
+      setLeadToConvert(lead);
+      setConvertLeadOpen(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not load this lead.');
+    } finally {
+      setLoadingLeadToConvert(false);
     }
   };
 
@@ -724,9 +748,22 @@ export default function WhatsAppChat() {
             sendingVoucherType={sendingVoucherType}
             onSendVoucher={handleSendChatVoucher}
             onViewMedia={setViewingMedia}
+            onCreateBooking={handleOpenCreateBooking}
+            creatingBooking={loadingLeadToConvert}
           />
         )}
       </div>
+
+      <ConvertLeadDrawer
+        open={convertLeadOpen}
+        onClose={() => setConvertLeadOpen(false)}
+        lead={leadToConvert}
+        onConverted={() => {
+          if (selectedChat) {
+            loadChatMessages(selectedChat.id);
+          }
+        }}
+      />
 
       <AttachmentPreviewModal
         open={attachmentPreviewOpen && attachments.length > 0}

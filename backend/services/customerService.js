@@ -1,4 +1,5 @@
 const customerRepository = require('../repositories/customerRepository');
+const r2Service = require('./r2Service');
 
 /**
  * Upserts the customer rollup row for a contact and returns its id.
@@ -18,11 +19,22 @@ async function upsertFromContact(tenantId, { name, email, phone }, log) {
   }
 }
 
+/** Backs the "Add Booking" phone lookup - lets the form offer to reuse an
+ * existing customer's name/email instead of the agent retyping them from
+ * scratch for someone who has already booked, been quoted, or been a lead. */
+async function findByPhone(tenantId, phone) {
+  if (!phone) return null;
+  const customer = await customerRepository.findByPhone(tenantId, phone);
+  return customer || null;
+}
+
 async function getProfile(tenantId, customerId) {
   const customer = await customerRepository.getCustomerById(tenantId, customerId);
   if (!customer) return null;
-  const history = await customerRepository.getCustomerHistory(tenantId, customerId);
-  return { ...customer, ...history };
+  const history = await customerRepository.getCustomerHistory(tenantId, customerId, customer.phone);
+  // Stored media is a private reference; each read gets a fresh short-lived link.
+  const media = history.media.map((m) => ({ ...m, media_url: r2Service.resolveMediaUrl(m.media_url) }));
+  return { ...customer, ...history, media };
 }
 
 async function listCustomers(params) {
@@ -31,6 +43,7 @@ async function listCustomers(params) {
 
 module.exports = {
   upsertFromContact,
+  findByPhone,
   getProfile,
   listCustomers,
 };

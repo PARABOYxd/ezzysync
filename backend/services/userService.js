@@ -208,7 +208,13 @@ async function updateTeamMember(tenantId, userId, updates) {
   const values = [];
   let idx = 1;
 
+  // assigned_to (leads) and team_member (bookings) store this name as plain
+  // text, not a foreign key - fetched up front so a rename can be cascaded
+  // to both tables after the users row itself updates cleanly.
+  let previousName = null;
   if (updates.name) {
+    const existing = await userRepository.findUserByIdAndTenant(tenantId, userId);
+    previousName = existing?.name || null;
     fields.push(`name = $${idx++}`);
     values.push(updates.name);
   }
@@ -246,10 +252,46 @@ async function updateTeamMember(tenantId, userId, updates) {
     err.status = 404;
     throw err;
   }
+  if (previousName && previousName !== row.name) {
+    await userRepository.reassignTeamMemberName(tenantId, previousName, row.name);
+  }
   return stripSecrets(rowToUser(row));
 }
 
-async function deleteTeamMember(tenantId, userId) {
+async function deleteTeamMember(tenantId, userId, reassignToUserId) {
+  const member = await userRepository.findUserByIdAndTenant(tenantId, userId);
+  if (!member) {
+    const err = new Error('User not found.');
+    err.status = 404;
+    throw err;
+  }
+
+  const { leadCount, bookingCount } = await userRepository.countAssignedRecords(tenantId, member.name);
+  const totalAssigned = leadCount + bookingCount;
+
+  if (totalAssigned > 0) {
+    if (!reassignToUserId) {
+      const err = new Error(
+        `${member.name} still has ${leadCount} lead(s) and ${bookingCount} booking(s) assigned. Reassign them to another team member before deleting.`
+      );
+      err.status = 409;
+      err.details = { needsReassignment: true, leadCount, bookingCount, memberName: member.name };
+      throw err;
+    }
+    if (reassignToUserId === userId) {
+      const err = new Error('Cannot reassign to the member being deleted.');
+      err.status = 400;
+      throw err;
+    }
+    const target = await userRepository.findUserByIdAndTenant(tenantId, reassignToUserId);
+    if (!target) {
+      const err = new Error('Reassignment target not found.');
+      err.status = 404;
+      throw err;
+    }
+    await userRepository.reassignTeamMemberName(tenantId, member.name, target.name);
+  }
+
   const ok = await userRepository.deleteTeamMember(tenantId, userId);
   if (!ok) {
     const err = new Error('User not found.');

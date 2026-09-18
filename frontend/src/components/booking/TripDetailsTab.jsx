@@ -30,10 +30,6 @@ export default function TripDetailsTab({
   hotels,
   batches,
   teamMembers,
-  teamMemberOther,
-  setTeamMemberOther,
-  teamMemberCustom,
-  setTeamMemberCustom,
 }) {
   // A batch groups bookings that share one fixed departure - linking one
   // pins trip/departure to the batch's values so the roster can't drift out
@@ -47,7 +43,7 @@ export default function TripDetailsTab({
     const b = batches.find((x) => x.id === bId);
     if (!b) return;
     setTripOther(false);
-    setForm((prev) => ({ ...prev, batchId: bId, trip: b.tripName, departure: b.departureDate }));
+    setForm((prev) => ({ ...prev, batchId: bId, trip: b.tripName, departure: b.departureDate, sourceQuotationId: '' }));
     setErrors((prev) => ({ ...prev, trip: '', departure: '' }));
   };
 
@@ -123,13 +119,19 @@ export default function TripDetailsTab({
     });
   };
 
-  // The quotation this trip name matches, if any - its configured pickup
+  // The quotation this trip is linked to, if any - its configured pickup
   // points (each with its own price) are what the Pickup field below offers,
   // instead of always being free text disconnected from what was quoted.
-  const matchedQuotation = quotations.find((q) => {
-    const name = q.trip_name || q.tripName || '';
-    return name && form.trip && name.toLowerCase() === form.trip.toLowerCase();
-  });
+  // Prefers the stored reference captured when the dropdown was used, since
+  // two quotations can share a display name and a rename shouldn't break
+  // an existing link; falls back to a name match only for older bookings
+  // saved before that reference existed.
+  const matchedQuotation = form.sourceQuotationId
+    ? quotations.find((q) => (q.quotation_id || q.id) === form.sourceQuotationId)
+    : quotations.find((q) => {
+        const name = q.trip_name || q.tripName || '';
+        return name && form.trip && name.toLowerCase() === form.trip.toLowerCase();
+      });
   const pickupOptions = matchedQuotation?.pickupOptions || [];
   const pickupIsCustom = pickupOptions.length > 0 && !!form.pickup &&
     !pickupOptions.some((p) => p.location === form.pickup);
@@ -167,10 +169,11 @@ export default function TripDetailsTab({
               const val = e.target.value;
               if (val === '__other__') {
                 setTripOther(true);
-                setForm({ ...form, trip: '' });
+                setForm({ ...form, trip: '', sourceQuotationId: '' });
               } else {
                 setTripOther(false);
-                setForm({ ...form, trip: val });
+                const selected = quotations.find((q) => (q.trip_name || q.tripName || '') === val);
+                setForm({ ...form, trip: val, sourceQuotationId: selected?.quotation_id || selected?.id || '' });
                 if (errors.trip) setErrors({ ...errors, trip: '' });
               }
             }}
@@ -437,42 +440,22 @@ export default function TripDetailsTab({
         </FormRow>
       )}
 
-      {/* Row 4: Assigned Team Member */}
+      {/* Row 4: Assigned Team Member - picked from real accounts only, so
+          assignment always matches a name that Team management, reassignment,
+          and per-agent scoping can actually resolve. */}
       <FormRow>
         <div className="w-full">
           <Select
             label="Assigned Team Member"
             icon={UserCheck}
             hint="Agent managing this booking lead"
-            value={teamMemberOther ? '__other__' : (form.teamMember || '')}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '__other__') {
-                setTeamMemberOther(true);
-                setForm({ ...form, teamMember: teamMemberCustom });
-              } else {
-                setTeamMemberOther(false);
-                setTeamMemberCustom('');
-                setForm({ ...form, teamMember: val });
-              }
-            }}
+            value={form.teamMember || ''}
+            onChange={(e) => setForm({ ...form, teamMember: e.target.value })}
             options={[
               { value: '', label: '-- Not Assigned --' },
               ...teamMembers.map((m) => ({ value: m.name, label: `${m.name} (${m.role})` })),
-              { value: '__other__', label: 'Other' },
             ]}
           />
-          {teamMemberOther && (
-            <Input
-              className="mt-2"
-              placeholder="e.g. Amit Sharma (external agent)"
-              value={teamMemberCustom}
-              onChange={(e) => {
-                setTeamMemberCustom(e.target.value);
-                setForm({ ...form, teamMember: e.target.value });
-              }}
-            />
-          )}
         </div>
       </FormRow>
 

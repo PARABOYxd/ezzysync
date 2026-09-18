@@ -4,10 +4,11 @@ const batchRepository = require('../repositories/batchRepository');
 const expenseRepository = require('../repositories/expenseRepository');
 const leadRepository = require('../repositories/leadRepository');
 const customerService = require('./customerService');
-const { rowToBooking } = require('../models/bookingSchema');
+const { rowToBooking, rowToPayment } = require('../models/bookingSchema');
 const { rowToBatch } = require('../models/batchSchema');
 const { query } = require('../config/db');
 const settingsService = require('./settingsService');
+const whatsappRepository = require('../repositories/whatsappRepository');
 const voucherPdfService = require('./voucherPdfService');
 const r2Service = require('./r2Service');
 const whatsappSendService = require('./whatsappSendService');
@@ -45,6 +46,17 @@ async function createBooking(tenantId, data, createdBy) {
   const row = await bookingRepository.insertBooking(
     tenantId, bookingId, data, now, paid, totalAmount, remaining, travelStatus, paymentStatus, createdBy, customerId
   );
+
+  // Best-effort: links this booking into any existing WhatsApp thread with
+  // this phone number, so the chat's "Active Booking" card and voucher
+  // actions have something to show instead of staying permanently empty.
+  if (data.phone) {
+    try {
+      await whatsappRepository.linkBookingToChatByPhone(tenantId, data.phone, row.id);
+    } catch (err) {
+      logger.warn({ err, tenantId, bookingId }, 'Failed to link booking to a WhatsApp chat');
+    }
+  }
 
   // Log initial creation details in follow-up history
   await bookingRepository.insertFollowUp(
@@ -266,6 +278,48 @@ async function getFollowUps(tenantId, bookingIdText) {
 
 async function addFollowUp(tenantId, bookingIdText, { note, activityType, nextFollowUpDate, createdBy }) {
   return bookingRepository.insertFollowUp(tenantId, bookingIdText, note, activityType, nextFollowUpDate, createdBy);
+}
+
+async function getPayments(tenantId, bookingIdText) {
+  const rows = await bookingRepository.listPayments(tenantId, bookingIdText);
+  return rows.map(rowToPayment);
+}
+
+async function addPayment(tenantId, bookingIdText, { amount, method, reference, paidOn, notes, createdBy }) {
+  if (!(Number(amount) > 0)) {
+    const err = new Error('Payment amount must be greater than zero.');
+    err.status = 400;
+    throw err;
+  }
+  const result = await bookingRepository.insertPayment(tenantId, bookingIdText, {
+    amount: Number(amount),
+    method,
+    reference,
+    paidOn: paidOn || new Date().toISOString().split('T')[0],
+    notes,
+    createdBy,
+  });
+  if (!result) {
+    const err = new Error('Booking not found.');
+    err.status = 404;
+    throw err;
+  }
+  return {
+    payment: rowToPayment(result.payment),
+    paid: result.paid,
+    remaining: result.remaining,
+    paymentStatus: result.paymentStatus,
+  };
+}
+
+async function removePayment(tenantId, bookingIdText, paymentId) {
+  const result = await bookingRepository.deletePayment(tenantId, bookingIdText, paymentId);
+  if (!result) {
+    const err = new Error('Payment not found.');
+    err.status = 404;
+    throw err;
+  }
+  return result;
 }
 
 async function getBookingBySourceQuotation(tenantId, quotationId) {
@@ -698,6 +752,9 @@ module.exports = {
   listBookingsPaged,
   getFollowUps,
   addFollowUp,
+  getPayments,
+  addPayment,
+  removePayment,
   getBookingBySourceQuotation,
   getActiveBookingsByCustomer,
   billingAnalytics,
