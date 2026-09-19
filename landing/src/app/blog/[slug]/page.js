@@ -1007,6 +1007,60 @@ export default async function BlogPostPage({ params }) {
           <div className="mt-8">
             {article.content}
           </div>
+
+          {/* Free Tool & Contact Money-Page CTAs (Glox Rule #23) */}
+          <div className="mt-12 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center sm:text-left">
+              <h3 className="text-lg font-bold text-slate-900">Try Our Free AI Itinerary Generator</h3>
+              <p className="text-sm text-slate-600">Create branded, day-wise itineraries in 30 seconds for your clients with zero sign-up.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Link
+                href="/free-itinerary-builder"
+                className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold text-center transition-colors shadow-sm"
+              >
+                Use Itinerary Builder Free
+              </Link>
+              <Link
+                href="/contact"
+                className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 text-sm font-semibold text-center transition-colors shadow-xs"
+              >
+                Talk to Team
+              </Link>
+            </div>
+          </div>
+
+          {/* Related Articles Cross-Linking (Glox Rule #24: Eliminate orphan pages) */}
+          <div className="mt-16 pt-10 border-t border-slate-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Related Guides for Travel Agencies</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Object.keys(articlesData)
+                .filter((s) => s !== slug)
+                .slice(0, 4)
+                .map((relatedSlug) => {
+                  const rel = articlesData[relatedSlug];
+                  return (
+                    <Link
+                      key={relatedSlug}
+                      href={`/blog/${relatedSlug}`}
+                      className="p-4 rounded-xl border border-slate-200 hover:border-brand-500 bg-white hover:shadow-md transition-all group flex flex-col justify-between"
+                    >
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-2 py-0.5 rounded border border-brand-100 w-fit inline-block">
+                          {rel.category}
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-brand-600 transition-colors line-clamp-2">
+                          {rel.title}
+                        </h4>
+                      </div>
+                      <span className="text-xs text-slate-400 mt-3 flex items-center gap-1 font-medium group-hover:text-brand-600">
+                        Read Guide &rarr;
+                      </span>
+                    </Link>
+                  );
+                })}
+            </div>
+          </div>
         </div>
       </main>
 
