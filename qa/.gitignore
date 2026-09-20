@@ -1,0 +1,37 @@
+# ============================================================
+# QA SYSTEM GITIGNORE — PRODUCTION & SENSITIVITY SAFETY
+# ============================================================
+
+# 1. Environment variables with local credentials / passwords
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# 2. Dependencies
+node_modules/
+
+# 3. Playwright MCP & Browser temp files
+.playwright/
+.playwright-mcp/
+test-results/
+
+# 4. Large media and generated run artifacts (Screenshots & Traces)
+reports/screenshots/*.png
+!reports/screenshots/.gitkeep
+reports/traces/*.zip
+!reports/traces/.gitkeep
+
+# 5. Generated test reports (Keep folder structure, ignore dynamic run output)
+reports/index.html
+reports/*.html
+reports/bugs.json
+reports/*.json
+reports/*.md
+!reports/.gitkeep
+
+# 6. Temporary scratch files
+scratch/
+temp/
+*.tmp
+*.log

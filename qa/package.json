@@ -1,0 +1,21 @@
+{
+  "name": "autonomous-qa",
+  "version": "1.0.0",
+  "description": "100% Free, Local Autonomous QA Testing System powered by Open-QA, Playwright and Ollama",
+  "type": "module",
+  "scripts": {
+    "doctor": "node scripts/doctor.js",
+    "qa": "node scripts/run-qa.js",
+    "qa:production": "node scripts/run-production-qa.js",
+    "qa:adversarial": "node scripts/run-adversarial-qa.js",
+    "qa:deep": "node scripts/run-deep-qa.js",
+    "report": "node scripts/open-report.js",
+    "clean": "node scripts/clean-reports.js"
+  },
+  "dependencies": {
+    "@playwright/mcp": "^0.0.73",
+    "dotenv": "^16.4.7",
+    "openqa": "0.0.10",
+    "playwright": "^1.50.0"
+  }
+}
