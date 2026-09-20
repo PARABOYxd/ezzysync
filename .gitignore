@@ -54,3 +54,21 @@ backend/sessions/
 uploads/
 backend/uploads/
 backend/private-uploads/
+
+# QA Test System: Local environment, secrets, and generated artifacts
+qa/.env
+qa/**/.env
+qa/node_modules/
+qa/.playwright-mcp/
+qa/reports/screenshots/*.png
+!qa/reports/screenshots/.gitkeep
+qa/reports/traces/*.zip
+!qa/reports/traces/.gitkeep
+qa/reports/index.html
+qa/reports/bugs.json
+qa/reports/coverage.md
+qa/reports/test-summary.md
+qa/reports/application-map.md
+qa/reports/bug-report.md
+qa/test-results/
+

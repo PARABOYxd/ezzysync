@@ -21,7 +21,12 @@ export default function Topbar({ title, onMenuClick, actions }) {
     <header className="sticky top-0 z-20 bg-white dark:bg-zinc-950 border-b border-[var(--border)] h-[56px] flex items-center justify-between px-4 md:px-8 select-none">
       {/* Left section: breadcrumbs / menu button */}
       <div className="flex items-center gap-3">
-        <button className="md:hidden text-slate-500 hover:text-slate-700" onClick={onMenuClick}>
+        <button
+          className="md:hidden text-slate-500 hover:text-slate-700"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+          title="Open navigation menu"
+        >
           <Menu size={18} />
         </button>
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-zinc-500">

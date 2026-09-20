@@ -15,6 +15,7 @@ import Bookings from './pages/Bookings.jsx';
 import UpcomingTrips from './pages/UpcomingTrips.jsx';
 import WhatsAppChat from './pages/WhatsAppChat.jsx';
 import Leads from './pages/Leads.jsx';
+import Pipeline from './pages/Pipeline.jsx';
 import FollowUps from './pages/FollowUps.jsx';
 import Invoices from './pages/Invoices.jsx';
 import Quotations from './pages/Quotations.jsx';
@@ -57,6 +58,7 @@ export default function App() {
       >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leads" element={<RequirePermission module="leads"><Leads /></RequirePermission>} />
+        <Route path="/pipeline" element={<RequirePermission module="leads"><Pipeline /></RequirePermission>} />
         <Route path="/follow-ups" element={<RequirePermission module="followUps"><FollowUps /></RequirePermission>} />
         <Route path="/bookings" element={<RequirePermission module="bookings"><Bookings /></RequirePermission>} />
         <Route path="/upcoming-trips" element={<RequirePermission module="bookings"><UpcomingTrips /></RequirePermission>} />

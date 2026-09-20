@@ -114,7 +114,12 @@ export default function Sidebar({ open, onClose }) {
             </div>
             <span className="font-bold text-slate-800 dark:text-zinc-100 text-sm tracking-tight">EzzySync</span>
           </div>
-          <button className="md:hidden text-[var(--text-light)]" onClick={onClose}>
+          <button
+            className="md:hidden text-[var(--text-light)]"
+            onClick={onClose}
+            aria-label="Close sidebar navigation"
+            title="Close sidebar"
+          >
             <X size={18} />
           </button>
         </div>
