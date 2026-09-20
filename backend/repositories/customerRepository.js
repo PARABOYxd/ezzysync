@@ -43,10 +43,14 @@ async function listCustomersPaged({ tenantId, page = 1, limit = 10, search = '' 
   let whereSql = 'tenant_id = $1';
   let paramIndex = 2;
 
-  if (search) {
-    whereSql += ` AND (name ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`;
-    values.push(`%${search}%`);
-    paramIndex++;
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', name, email, phone)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereSql += ` AND (${searchConditions.join(' AND ')})`;
   }
 
   const countRes = await query(`SELECT COUNT(*)::int as count FROM customers WHERE ${whereSql}`, values);

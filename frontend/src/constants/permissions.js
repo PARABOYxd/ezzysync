@@ -11,6 +11,8 @@ export const ACTION_LABELS = {
   email: 'Email',
   use: 'Use',
   viewAll: 'View Everyone\'s (not just own)',
+  reply: 'Reply Chats',
+  manage: 'Connect/Disconnect',
 };
 
 export const PERMISSION_MODULES = [
@@ -18,12 +20,14 @@ export const PERMISSION_MODULES = [
   { key: 'bookings', label: 'Bookings', actions: ['create', 'read', 'update', 'delete', 'editPhone', 'viewAll'] },
   { key: 'quotations', label: 'Quotations', actions: ['create', 'read', 'update', 'delete'] },
   { key: 'invoices', label: 'Invoices', actions: ['read', 'download', 'email'] },
+  { key: 'expenses', label: 'Expenses', actions: ['create', 'read', 'update', 'delete'] },
   { key: 'hotels', label: 'Hotels', actions: ['create', 'read', 'update', 'delete'] },
   { key: 'tourBatches', label: 'Group Tours', actions: ['create', 'read', 'update', 'delete'] },
   { key: 'followUps', label: 'Follow-ups', actions: ['create', 'read', 'update', 'viewAll'] },
   { key: 'customers', label: 'Customers', actions: ['read'] },
   { key: 'aiTools', label: 'AI Tools', actions: ['use'] },
   { key: 'billing', label: 'Billing & Analytics', actions: ['read'] },
+  { key: 'whatsapp', label: 'WhatsApp', actions: ['reply', 'manage'] },
 ];
 
 // Matches backend TEAM_MEMBER_DEFAULTS — used to seed the Add form and to
@@ -33,10 +37,12 @@ export const DEFAULT_TEAM_MEMBER_PERMISSIONS = {
   bookings: { create: true, read: true, update: true, delete: false, editPhone: false, viewAll: false },
   quotations: { create: true, read: true, update: true, delete: true },
   invoices: { read: true, download: true, email: true },
+  expenses: { create: true, read: true, update: true, delete: false },
   hotels: { create: true, read: true, update: true, delete: true },
   tourBatches: { create: true, read: true, update: true, delete: true },
   followUps: { create: true, read: true, update: true, viewAll: false },
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },
+  whatsapp: { reply: true, manage: false },
 };

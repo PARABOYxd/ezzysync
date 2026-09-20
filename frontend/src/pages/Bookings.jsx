@@ -6,6 +6,7 @@ import BookingTable from '../components/booking/BookingTable.jsx';
 import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import BookingViewDrawer from '../components/booking/BookingViewDrawer.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import * as bookingService from '../services/bookingService';
 import * as invoiceService from '../services/invoiceService';
 import * as whatsappService from '../services/whatsappService';
@@ -139,46 +140,16 @@ export default function Bookings() {
       />
 
       {/* Pagination Controls */}
-      {!loading && bookings.length > 0 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 bg-white p-4 rounded-xl shadow-sm">
-          <div>
-            Showing <span className="font-semibold text-slate-700">{Math.min((filters.page - 1) * filters.limit + 1, pagination.totalCount)}</span> to{' '}
-            <span className="font-semibold text-slate-700">{Math.min(filters.page * filters.limit, pagination.totalCount)}</span> of{' '}
-            <span className="font-semibold text-slate-700">{pagination.totalCount}</span> bookings
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={filters.page <= 1}
-              onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
-              className="btn-secondary px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-            >
-              Previous
-            </button>
-            {Array.from({ length: pagination.totalPages }, (_, index) => {
-              const p = index + 1;
-              return (
-                <button
-                  key={p}
-                  onClick={() => setFilters(prev => ({ ...prev, page: p }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    filters.page === p
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                  }`}
-                >
-                  {p}
-                </button>
-              );
-            })}
-            <button
-              disabled={filters.page >= pagination.totalPages}
-              onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
-              className="btn-secondary px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+      {!loading && (
+        <Pagination
+          currentPage={filters.page}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={filters.limit}
+          itemName="bookings"
+          onPageChange={(p) => setFilters((prev) => ({ ...prev, page: p }))}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
       )}
 
       <BookingFormDrawer

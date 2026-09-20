@@ -5,6 +5,7 @@ import * as bookingService from '../services/bookingService';
 import * as batchService from '../services/batchService';
 import { useToast } from '../hooks/useToast.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 
 const CATEGORIES = ['Hotel', 'Flight', 'Transport', 'Other'];
@@ -237,7 +238,17 @@ export default function Expenses() {
   };
 
   // Filter Pipeline (backend-filtered)
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterCategory, filterLinkType]);
+
   const filteredExpenses = expenses;
+  const totalCount = filteredExpenses.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const pagedExpenses = filteredExpenses.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto pb-20">
@@ -335,7 +346,7 @@ export default function Expenses() {
                 </Td>
               </Tr>
             ) : (
-              filteredExpenses.map((exp) => (
+              pagedExpenses.map((exp) => (
                 <Tr key={exp.id}>
                   <Td>
                     <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">{exp.title}</span>
@@ -399,6 +410,18 @@ export default function Expenses() {
           </Tbody>
         </Table>
       </div>
+
+      {!loading && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          limit={pageSize}
+          itemName="expenses"
+          onPageChange={setPage}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
+      )}
 
       {/* 🚀 Cost Templates Config Drawer */}
       <Drawer

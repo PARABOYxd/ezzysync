@@ -4,6 +4,7 @@ const MODULES = {
   bookings: ['create', 'read', 'update', 'delete', 'editPhone', 'viewAll'],
   quotations: ['create', 'read', 'update', 'delete'],
   invoices: ['read', 'download', 'email'],
+  expenses: ['create', 'read', 'update', 'delete'],
   hotels: ['create', 'read', 'update', 'delete'],
   tourBatches: ['create', 'read', 'update', 'delete'],
   followUps: ['create', 'read', 'update', 'viewAll'],
@@ -23,14 +24,13 @@ const TEAM_MEMBER_DEFAULTS = {
   bookings: { create: true, read: true, update: true, delete: false, editPhone: false, viewAll: false },
   quotations: { create: true, read: true, update: true, delete: true },
   invoices: { read: true, download: true, email: true },
+  expenses: { create: true, read: true, update: true, delete: false },
   hotels: { create: true, read: true, update: true, delete: true },
   tourBatches: { create: true, read: true, update: true, delete: true },
   followUps: { create: true, read: true, update: true, viewAll: false },
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },
-  // Matches what team members can already do today, so this ships as a no-op
-  // and only tightens if an admin turns 'manage' on for someone.
   whatsapp: { reply: true, manage: false },
 };
 

@@ -5,7 +5,8 @@ import Topbar from '../components/layout/Topbar.jsx';
 import NotificationBell from '../components/layout/NotificationBell.jsx';
 import InstallAppButton from '../components/layout/InstallAppButton.jsx';
 import ThemeToggle from '../components/layout/ThemeToggle.jsx';
-import { Plus, Lock, Check, Crown, Sparkles, X } from 'lucide-react';
+import ProductTour from '../components/common/ProductTour.jsx';
+import { Plus, Lock, Check, Crown, Sparkles, X, Compass } from 'lucide-react';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
@@ -75,10 +76,25 @@ export default function DashboardLayout() {
           onMenuClick={() => setSidebarOpen(true)} 
           actions={
             <>
-              <button className="btn-primary flex items-center gap-1.5 h-8 px-3 text-xs shrink-0" onClick={() => setAddOpen(true)}>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('start-product-tour'))}
+                title="Explore App Tour"
+                className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-brand-400 hover:border-brand-500/30 transition shadow-xs cursor-pointer shrink-0"
+              >
+                <Compass size={13} className="text-brand-600 dark:text-brand-400" />
+                <span>Tour</span>
+              </button>
+              <button 
+                id="tour-quick-add"
+                className="btn-primary flex items-center gap-1.5 h-8 px-3 text-xs shrink-0" 
+                onClick={() => setAddOpen(true)}
+              >
                 <Plus size={14} /> <span className="hidden sm:inline">Quick Add</span>
               </button>
-              <ThemeToggle />
+              <div id="tour-theme-toggle" className="inline-flex shrink-0">
+                <ThemeToggle />
+              </div>
               <InstallAppButton />
               <NotificationBell />
             </>
@@ -240,6 +256,9 @@ export default function DashboardLayout() {
           </div>
         </div>
       )}
+
+      {/* Interactive App Onboarding & Product Tour */}
+      <ProductTour />
     </div>
   );
 }

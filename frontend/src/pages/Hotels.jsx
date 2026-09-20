@@ -7,6 +7,7 @@ import { usePermission } from '../hooks/usePermission.js';
 import Input from '../components/ui/Input.jsx';
 import Select from '../components/ui/Select.jsx';
 import Button from '../components/ui/Button.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import Drawer from '../components/common/Drawer.jsx';
 
 export default function Hotels() {
@@ -15,7 +16,10 @@ export default function Hotels() {
   const canDelete = usePermission('hotels', 'delete');
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
@@ -31,10 +35,18 @@ export default function Hotels() {
   
   const toast = useToast();
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const load = () => {
     setLoading(true);
-    hotelService.getHotels(search)
-      .then(setHotels)
+    hotelService.getHotels(debouncedSearch)
+      .then((data) => setHotels(data || []))
       .catch(() => toast.error('Could not load hotels.'))
       .finally(() => setLoading(false));
   };
@@ -42,7 +54,7 @@ export default function Hotels() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [debouncedSearch]);
 
   const openAddModal = () => {
     setEditingId(null);
@@ -153,6 +165,10 @@ export default function Hotels() {
     );
   };
 
+  const totalCount = hotels.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const pagedHotels = hotels.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -160,8 +176,8 @@ export default function Hotels() {
           <Input
             icon={Search}
             placeholder="Search by hotel or city…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
         {canCreate && (
@@ -194,7 +210,7 @@ export default function Hotels() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hotels.map((h) => (
+          {pagedHotels.map((h) => (
             <div key={h.id} className="card flex flex-col justify-between hover:shadow-md transition duration-200">
               <div className="space-y-3.5">
                 <div className="flex justify-between items-start">
@@ -273,6 +289,18 @@ export default function Hotels() {
             </div>
           ))}
         </div>
+      )}
+
+      {!loading && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          limit={pageSize}
+          itemName="properties"
+          onPageChange={setPage}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
       )}
 
       {/* Add/Edit Drawer */}

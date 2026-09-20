@@ -8,6 +8,7 @@ import QuotationFormModal from '../components/quotation/QuotationFormModal.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import { QuotationStatusBadge } from '../components/common/StatusBadge.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import Input from '../components/ui/Input.jsx';
 import { API_BASE_URL } from '../services/api';
 
@@ -33,11 +34,11 @@ export default function Quotations() {
   const [copiedId, setCopiedId] = useState(null);
 
   const [filters, setFilters] = useState({
-    search: '', status: '', page: 1, limit: 250,
+    search: '', status: '', page: 1, limit: 20,
   });
 
   const [pagination, setPagination] = useState({
-    totalCount: 0, totalPages: 1, currentPage: 1, limit: 250,
+    totalCount: 0, totalPages: 1, currentPage: 1, limit: 20,
   });
 
   const [searchInput, setSearchInput] = useState('');
@@ -69,7 +70,7 @@ export default function Quotations() {
         if (prev.search === searchInput) return prev;
         return { ...prev, search: searchInput, page: 1 };
       });
-    }, 600);
+    }, 400);
     return () => clearTimeout(handler);
   }, [searchInput]);
 
@@ -278,6 +279,18 @@ export default function Quotations() {
             })}
           </div>
         </div>
+      )}
+
+      {!loading && (
+        <Pagination
+          currentPage={filters.page}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={filters.limit}
+          itemName="quotations"
+          onPageChange={(p) => setFilters((prev) => ({ ...prev, page: p }))}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
       )}
 
       <QuotationFormModal

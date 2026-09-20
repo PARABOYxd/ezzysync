@@ -75,9 +75,13 @@ async function listExpenses(tenantId, filters = {}) {
   }
 
   if (search && search.trim() !== '') {
-    whereClauses.push(`(e.title ILIKE $${paramIndex} OR e.vendor_name ILIKE $${paramIndex})`);
-    values.push(`%${search.trim()}%`);
-    paramIndex++;
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', e.title, e.vendor_name, b.booking_id, b.customer_name, t.batch_id, t.name)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereClauses.push(`(${searchConditions.join(' AND ')})`);
   }
 
   const whereSql = whereClauses.join(' AND ');

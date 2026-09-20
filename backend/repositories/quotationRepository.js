@@ -121,10 +121,14 @@ async function listQuotationsPaged(params) {
     values.push(status);
   }
 
-  if (search) {
-    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR quotation_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR trip_name ILIKE $${paramIndex})`);
-    values.push(`%${search}%`);
-    paramIndex++;
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', customer_name, quotation_id, email, phone, trip_name)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereClauses.push(`(${searchConditions.join(' AND ')})`);
   }
 
   const whereSql = whereClauses.join(' AND ');

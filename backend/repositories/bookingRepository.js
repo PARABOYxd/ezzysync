@@ -387,10 +387,14 @@ async function listBookingsPaged(params) {
     values.push(createdTo);
   }
 
-  if (search) {
-    whereClauses.push(`(b.customer_name ILIKE $${paramIndex} OR b.booking_id ILIKE $${paramIndex} OR b.email ILIKE $${paramIndex} OR b.phone ILIKE $${paramIndex} OR b.trip ILIKE $${paramIndex} OR b.team_member ILIKE $${paramIndex} OR b.travel_status ILIKE $${paramIndex})`);
-    values.push(`%${search}%`);
-    paramIndex++;
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', b.customer_name, b.booking_id, b.email, b.phone, b.trip, b.team_member, b.travel_status, b.notes)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereClauses.push(`(${searchConditions.join(' AND ')})`);
   }
 
   const whereSql = whereClauses.join(' AND ');

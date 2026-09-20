@@ -33,6 +33,7 @@ export default function Topbar({ title, onMenuClick, actions }) {
 
       {/* Center section: dense 320px search input */}
       <div 
+        id="tour-global-search"
         onClick={() => setSearchOpen(true)}
         className="hidden sm:flex items-center relative w-[320px] cursor-pointer"
       >

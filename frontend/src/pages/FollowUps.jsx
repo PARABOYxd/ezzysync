@@ -7,6 +7,7 @@ import * as leadService from '../services/leadService';
 import * as bookingService from '../services/bookingService';
 import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import CompleteFollowUpDrawer from '../components/followup/CompleteFollowUpDrawer.jsx';
 import LeadViewDrawer from '../components/lead/LeadViewDrawer.jsx';
@@ -42,7 +43,13 @@ export default function FollowUps() {
   const [editingBooking, setEditingBooking] = useState(null);
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [currentSegment, setCurrentSegment] = useState('pending'); // 'pending', 'all', 'priority', 'new', 'no-action'
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
   const toast = useToast();
+
+  useEffect(() => {
+    setPage(1);
+  }, [currentSegment, assignedTo]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -242,6 +249,9 @@ export default function FollowUps() {
   };
 
   const rows = getConsolidatedRows();
+  const totalCount = rows.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const pagedRows = rows.slice((page - 1) * pageSize, page * pageSize);
 
   const handleDoneClick = (row) => {
     if (row.type === 'committed') {
@@ -329,7 +339,7 @@ export default function FollowUps() {
           </Thead>
           <Tbody>
             {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 5 : 6} />}
-              {!loading && rows.map((row) => {
+              {!loading && pagedRows.map((row) => {
                 return (
                   <Tr key={row.id}>
                     <Td>
@@ -436,6 +446,18 @@ export default function FollowUps() {
           <EmptyState title="No follow-ups found" message="All caught up for this filter segment!" />
         )}
       </div>
+
+      {!loading && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          limit={pageSize}
+          itemName="follow-ups"
+          onPageChange={setPage}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
+      )}
 
       <CompleteFollowUpDrawer
         open={!!activeFollowUp}

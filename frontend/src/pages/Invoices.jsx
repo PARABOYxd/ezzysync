@@ -10,6 +10,8 @@ import EmptyState from '../components/common/EmptyState.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import { usePermission } from '../hooks/usePermission.js';
 import Input from '../components/ui/Input.jsx';
+import Pagination from '../components/common/Pagination.jsx';
+import BookingViewDrawer from '../components/booking/BookingViewDrawer.jsx';
 
 export default function Invoices() {
   const canDownload = usePermission('invoices', 'download');
@@ -18,24 +20,33 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 1, currentPage: 1, limit: 15 });
+  const [viewingBookingId, setViewingBookingId] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchInput);
-    }, 600); // 600ms debounce
+      setPage(1);
+    }, 400); // 400ms debounce
     return () => clearTimeout(handler);
   }, [searchInput]);
 
   useEffect(() => {
     setLoading(true);
     bookingService
-      .getBookings({ search: debouncedSearch, sort: 'newest', limit: 100 })
-      .then((res) => setBookings(res.bookings))
+      .getBookings({ search: debouncedSearch, sort: 'newest', page, limit: 15 })
+      .then((res) => {
+        setBookings(res.bookings || []);
+        if (res.pagination) {
+          setPagination(res.pagination);
+        }
+      })
       .catch(() => toast.error('Could not load bookings.'))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+  }, [debouncedSearch, page]);
 
   const handleDownload = async (b) => {
     try {
@@ -80,8 +91,22 @@ export default function Invoices() {
               {loading && <SkeletonTableRows rows={6} cols={6} />}
               {!loading && bookings.map((b) => (
                 <Tr key={b.bookingId}>
-                  <Td className="text-slate-400 dark:text-zinc-500 font-mono text-xs">{b.bookingId}</Td>
-                  <Td className="font-medium text-slate-700 dark:text-zinc-200">{b.customerName}</Td>
+                  <Td>
+                    <button
+                      onClick={() => setViewingBookingId(b.bookingId)}
+                      className="text-slate-400 dark:text-zinc-500 font-mono text-xs hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer"
+                    >
+                      {b.bookingId}
+                    </button>
+                  </Td>
+                  <Td>
+                    <button
+                      onClick={() => setViewingBookingId(b.bookingId)}
+                      className="font-medium text-slate-700 dark:text-zinc-200 hover:text-brand-600 dark:hover:text-brand-400 hover:underline text-left cursor-pointer"
+                    >
+                      {b.customerName}
+                    </button>
+                  </Td>
                   <Td className="text-slate-500 dark:text-zinc-400">{b.trip}</Td>
                   <Td className="text-slate-500 dark:text-zinc-400">{formatCurrency(b.totalAmount)}</Td>
                   <Td><PaymentStatusBadge status={b.paymentStatus} /></Td>
@@ -110,6 +135,32 @@ export default function Invoices() {
           <EmptyState title="No bookings to invoice yet" message="Once you create bookings, invoices will be generated from here." />
         )}
       </div>
+
+      {!loading && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={pagination.limit}
+          itemName="invoices"
+          onPageChange={setPage}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
+      )}
+
+      <BookingViewDrawer
+        open={!!viewingBookingId}
+        onClose={() => setViewingBookingId(null)}
+        bookingId={viewingBookingId}
+        onRefresh={() => {
+          bookingService
+            .getBookings({ search: debouncedSearch, sort: 'newest', page, limit: 15 })
+            .then((res) => {
+              setBookings(res.bookings || []);
+              if (res.pagination) setPagination(res.pagination);
+            });
+        }}
+      />
     </div>
   );
 }

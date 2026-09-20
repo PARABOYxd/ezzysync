@@ -50,6 +50,7 @@ async function updateLead(tenantId, leadId, merged, updatedAt, customerId) {
 async function listLeadsPaged(params) {
   const {
     tenantId, page = 1, limit = 10, search = '', stage = '', priority = '', assignedTo = '', sort = 'newest', includeDeleted = false,
+    createdFrom = '', createdTo = '',
   } = params;
 
   const values = [tenantId];
@@ -70,10 +71,22 @@ async function listLeadsPaged(params) {
     whereClauses.push(`assigned_to ILIKE $${paramIndex++}`);
     values.push(`%${assignedTo}%`);
   }
-  if (search) {
-    whereClauses.push(`(customer_name ILIKE $${paramIndex} OR lead_id ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
-    values.push(`%${search}%`);
-    paramIndex++;
+  if (createdFrom) {
+    whereClauses.push(`created_at::date >= $${paramIndex++}::date`);
+    values.push(createdFrom);
+  }
+  if (createdTo) {
+    whereClauses.push(`created_at::date <= $${paramIndex++}::date`);
+    values.push(createdTo);
+  }
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', customer_name, lead_id, email, phone, interest, notes, assigned_to)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereClauses.push(`(${searchConditions.join(' AND ')})`);
   }
 
   const whereSql = whereClauses.join(' AND ');

@@ -35,7 +35,7 @@ export default function Sidebar({ open, onClose }) {
 
   const billingLinks = [
     { to: '/billing', label: 'Billing & Analytics', icon: PieChart, role: 'ADMIN', module: 'billing' },
-    { to: '/expenses', label: 'Expenses', icon: Wallet, role: 'ADMIN', module: 'billing' },
+    { to: '/expenses', label: 'Expenses', icon: Wallet, module: 'expenses' },
     { to: '/invoices', label: 'Invoices', icon: FileText, module: 'invoices' },
   ]
     .filter(link => !link.role || link.role === (user?.role || 'ADMIN'))
@@ -102,6 +102,7 @@ export default function Sidebar({ open, onClose }) {
     <>
       {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
       <aside
+        id="tour-sidebar"
         className={`fixed md:sticky top-0 z-40 h-screen w-[240px] bg-[#FBFCFD] dark:bg-zinc-950 border-r border-[var(--border)] flex flex-col
         transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
@@ -124,6 +125,22 @@ export default function Sidebar({ open, onClose }) {
           {renderSection('Sales', salesLinks)}
           {renderSection('Billing', billingLinks)}
           {renderSection('Settings', settingsLinks)}
+
+          <div className="pt-2 px-1">
+            <button
+              type="button"
+              id="tour-user-guide"
+              onClick={() => {
+                onClose?.();
+                window.dispatchEvent(new CustomEvent('start-product-tour'));
+              }}
+              className="flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] font-semibold text-slate-600 dark:text-zinc-400 hover:bg-brand-50/70 hover:text-brand-600 dark:hover:bg-zinc-800/60 dark:hover:text-brand-400 transition select-none w-full text-left cursor-pointer"
+              title="Launch interactive product tour"
+            >
+              <Compass size={16} className="text-brand-600 shrink-0" />
+              <span className="truncate">Product Tour 🚀</span>
+            </button>
+          </div>
         </nav>
 
         {/* Trial Days Remaining Badge */}

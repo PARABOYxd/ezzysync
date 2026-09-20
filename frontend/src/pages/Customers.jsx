@@ -7,6 +7,7 @@ import { SkeletonTableRows } from '../components/common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import EmptyState from '../components/common/EmptyState.jsx';
 import Input from '../components/ui/Input.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 
 export default function Customers() {
@@ -22,7 +23,7 @@ export default function Customers() {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchInput);
       setPage(1);
-    }, 600);
+    }, 400);
     return () => clearTimeout(handler);
   }, [searchInput]);
 
@@ -103,30 +104,16 @@ export default function Customers() {
         )}
       </div>
 
-      {!loading && customers.length > 0 && pagination.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 text-xs text-slate-500">
-          <div>
-            Showing <span className="font-semibold text-slate-700">{Math.min((page - 1) * pagination.limit + 1, pagination.totalCount)}</span> to{' '}
-            <span className="font-semibold text-slate-700">{Math.min(page * pagination.limit, pagination.totalCount)}</span> of{' '}
-            <span className="font-semibold text-slate-700">{pagination.totalCount}</span> customers
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="btn-secondary px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-            >
-              Previous
-            </button>
-            <button
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="btn-secondary px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+      {!loading && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={pagination.limit}
+          itemName="customers"
+          onPageChange={setPage}
+          className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+        />
       )}
     </div>
   );

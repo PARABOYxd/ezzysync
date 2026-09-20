@@ -24,9 +24,15 @@ async function listHotels(tenantId, search = '') {
   let text = 'SELECT * FROM hotels WHERE tenant_id = $1';
   const params = [tenantId];
 
-  if (search) {
-    text += ' AND (name ILIKE $2 OR city ILIKE $2)';
-    params.push(`%${search}%`);
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', name, city, address, rating, contact_person, contact_phone)";
+    let paramIndex = params.length + 1;
+    const searchConditions = tokens.map((token) => {
+      params.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    text += ` AND (${searchConditions.join(' AND ')})`;
   }
 
   text += ' ORDER BY name ASC';

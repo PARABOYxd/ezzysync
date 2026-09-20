@@ -12,6 +12,7 @@ import LeadPoolDrawer from '../components/lead/LeadPoolDrawer.jsx';
 import BulkImportLeadsDrawer from '../components/lead/BulkImportLeadsDrawer.jsx';
 import BroadcastLeadsDrawer from '../components/lead/BroadcastLeadsDrawer.jsx';
 import BroadcastHistoryDrawer from '../components/lead/BroadcastHistoryDrawer.jsx';
+import Pagination from '../components/common/Pagination.jsx';
 import { LeadPriorityBadge } from '../components/common/StatusBadge.jsx';
 import * as leadService from '../services/leadService';
 import { useToast } from '../hooks/useToast.jsx';
@@ -105,12 +106,17 @@ export default function Leads() {
 
   useEffect(load, [load]);
 
-  // WebSocket Connection
+  const loadRef = useRef(load);
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+
+  // WebSocket Connection - only reconnects if tenant changes, not on filter updates
   useEffect(() => {
     // Initial fetch of unassigned leads
     leadService.getLeadPool()
-      .then((leads) => {
-        setPoolCount(leads.length);
+      .then((poolLeads) => {
+        setPoolCount(poolLeads.length);
       })
       .catch(() => {});
 
@@ -131,7 +137,7 @@ export default function Leads() {
         const data = JSON.parse(event.data);
         if (data.type === 'LEAD_POOL_UPDATED') {
           setPoolCount(data.count || 0);
-          load(); // Refresh the list
+          loadRef.current?.(); // Refresh the list
         }
       } catch (err) {
         console.error('Error parsing WS message', err);
@@ -141,7 +147,7 @@ export default function Leads() {
     return () => {
       socket.close();
     };
-  }, [user, load]);
+  }, [user?.tenantId]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -288,44 +294,16 @@ export default function Leads() {
             onConvert={setConvertingLead}
           />
 
-          {!loading && leads.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 bg-white p-4 rounded-xl shadow-sm">
-              <div>
-                Showing <span className="font-semibold text-slate-700">{Math.min((filters.page - 1) * filters.limit + 1, pagination.totalCount)}</span> to{' '}
-                <span className="font-semibold text-slate-700">{Math.min(filters.page * filters.limit, pagination.totalCount)}</span> of{' '}
-                <span className="font-semibold text-slate-700">{pagination.totalCount}</span> leads
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={filters.page <= 1}
-                  onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
-                  className="btn-secondary px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: pagination.totalPages }, (_, index) => {
-                  const p = index + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setFilters((prev) => ({ ...prev, page: p }))}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                        filters.page === p ? 'bg-brand-600 text-white' : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-                <button
-                  disabled={filters.page >= pagination.totalPages}
-                  onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
-                  className="btn-secondary px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+          {!loading && (
+            <Pagination
+              currentPage={filters.page}
+              totalPages={pagination.totalPages}
+              totalCount={pagination.totalCount}
+              limit={filters.limit}
+              itemName="leads"
+              onPageChange={(p) => setFilters((prev) => ({ ...prev, page: p }))}
+              className="mt-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-100 dark:border-zinc-800 shadow-sm"
+            />
           )}
         </>
       ) : (

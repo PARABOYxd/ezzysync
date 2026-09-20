@@ -7,11 +7,11 @@ async function list(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const { stage, priority, search, sort } = req.query;
+    const { stage, priority, search, sort, createdFrom, createdTo } = req.query;
     const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : req.query.assignedTo;
 
     const result = await leadService.listLeadsPaged(req.user.tenantId, {
-      page, limit, stage, priority, assignedTo, search, sort,
+      page, limit, stage, priority, assignedTo, search, sort, createdFrom, createdTo,
     });
 
     res.json({
