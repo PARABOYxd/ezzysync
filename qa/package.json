@@ -10,7 +10,11 @@
     "qa:adversarial": "node scripts/run-adversarial-qa.js",
     "qa:deep": "node scripts/run-deep-qa.js",
     "report": "node scripts/open-report.js",
-    "clean": "node scripts/clean-reports.js"
+    "clean": "node scripts/clean-reports.js",
+    "qa:all": "node run-all.js",
+    "qa:matrix": "node matrix/index.js",
+    "qa:backend": "node run-all.js --skip-matrix",
+    "qa:quick": "node run-all.js --skip-vitest --concurrency=12"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.73",

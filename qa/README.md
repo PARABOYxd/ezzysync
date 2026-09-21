@@ -1,3 +1,32 @@
+# QA
+
+Two systems live here, and they answer different questions.
+
+## 1. The matrix - one command, everything (start here)
+
+```bash
+cd qa
+npm run qa:all
+```
+
+Preflight, the 185 hand-written backend tests, and ~13,900 generated API cases
+covering authentication, permissions, tenant isolation, field validation,
+path and query fuzzing, request shapes, the HTTP contract, security headers,
+the login/registration/reset flows, rate limits and the business invariants.
+About eight minutes, against a throwaway database it creates and drops, with
+outbound network severed so nothing reaches a real provider.
+
+Full documentation: **[MATRIX.md](MATRIX.md)**. Report:
+`reports/matrix-report.html`.
+
+## 2. The autonomous browser explorer
+
+Everything below drives a real browser with a local LLM and explores the UI.
+It answers "does this feel broken to a user", where the matrix answers "is this
+endpoint correct under every input we can name".
+
+---
+
 # 100% Free, Local Autonomous QA Testing System
 
 An autonomous QA testing system powered by **Open-QA**, **Playwright**, and **Ollama**.
