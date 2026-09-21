@@ -324,95 +324,181 @@ export default function Team() {
             </p>
           </div>
         ) : (
-          <Table>
-            <Thead>
-              <Th>Name & Email</Th>
-              <Th>Role</Th>
-              <Th>Access Rights</Th>
-              <Th className="text-right">Actions</Th>
-            </Thead>
-            <Tbody>
-                {members.map((member) => {
-                  const isSelf = member.userId === user.userId;
-                  const perms = member.permissions || {};
-                  
-                  return (
-                    <Tr key={member.userId}>
-                      <Td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
-                            {member.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
-                              {member.name}
-                              {isSelf && (
-                                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-zinc-400 rounded-md">
-                                  YOU
-                                </span>
-                              )}
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <Table>
+                <Thead>
+                  <Th>Name & Email</Th>
+                  <Th>Role</Th>
+                  <Th>Access Rights</Th>
+                  <Th className="text-right">Actions</Th>
+                </Thead>
+                <Tbody>
+                    {members.map((member) => {
+                      const isSelf = member.userId === user.userId;
+                      const perms = member.permissions || {};
+                      
+                      return (
+                        <Tr key={member.userId}>
+                          <Td>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
+                                {member.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                  {member.name}
+                                  {isSelf && (
+                                    <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-zinc-400 rounded-md">
+                                      YOU
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{member.email}</div>
+                              </div>
                             </div>
-                            <div className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{member.email}</div>
-                          </div>
-                        </div>
-                      </Td>
-                      <Td>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          member.role === 'ADMIN'
-                            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
-                        }`}>
-                          {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
-                          {member.role}
-                        </span>
-                      </Td>
-                      <Td>
-                        {member.role === 'ADMIN' ? (
-                          <span className="text-xs font-medium text-slate-400">Full Administrative Access</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5 max-w-md">
-                            {PERMISSION_MODULES.map((mod) => {
-                              const modPerms = perms[mod.key] || {};
-                              const enabledActions = mod.actions.filter((a) => modPerms[a]);
-                              if (enabledActions.length === 0) return null;
-                              return (
-                                <span
-                                  key={mod.key}
-                                  title={enabledActions.map((a) => ACTION_LABELS[a] || a).join(', ')}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100"
+                          </Td>
+                          <Td>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              member.role === 'ADMIN'
+                                ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                                : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                            }`}>
+                              {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
+                              {member.role}
+                            </span>
+                          </Td>
+                          <Td>
+                            {member.role === 'ADMIN' ? (
+                              <span className="text-xs font-medium text-slate-400">Full Administrative Access</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5 max-w-md">
+                                {PERMISSION_MODULES.map((mod) => {
+                                  const modPerms = perms[mod.key] || {};
+                                  const enabledActions = mod.actions.filter((a) => modPerms[a]);
+                                  if (enabledActions.length === 0) return null;
+                                  return (
+                                    <span
+                                      key={mod.key}
+                                      title={enabledActions.map((a) => ACTION_LABELS[a] || a).join(', ')}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100"
+                                    >
+                                      {mod.label} ({enabledActions.length}/{mod.actions.length})
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </Td>
+                          <Td className="text-right">
+                            {!isSelf && (
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => openEditModal(member)}
+                                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition"
+                                  title="Edit Permissions"
                                 >
-                                  {mod.label} ({enabledActions.length}/{mod.actions.length})
-                                </span>
-                              );
-                            })}
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(member.userId)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50/50 transition"
+                                  title="Delete Member"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            )}
+                          </Td>
+                        </Tr>
+                      );
+                    })}
+                  </Tbody>
+                </Table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-slate-100 dark:divide-zinc-800">
+              {members.map((member) => {
+                const isSelf = member.userId === user.userId;
+                const perms = member.permissions || {};
+
+                return (
+                  <div key={member.userId} className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center font-bold text-sm shrink-0">
+                          {member.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 dark:text-zinc-100 text-sm flex items-center gap-1.5 truncate">
+                            {member.name}
+                            {isSelf && (
+                              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-zinc-400 rounded-md">
+                                YOU
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </Td>
-                      <Td className="text-right">
-                        {!isSelf && (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => openEditModal(member)}
-                              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition"
-                              title="Edit Permissions"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(member.userId)}
-                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50/50 transition"
-                              title="Delete Member"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </Td>
-                    </Tr>
-                  );
-                })}
-              </Tbody>
-            </Table>
+                          <p className="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">{member.email}</p>
+                        </div>
+                      </div>
+
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0 ${
+                        member.role === 'ADMIN'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                          : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                      }`}>
+                        {member.role === 'ADMIN' ? <Shield size={11} /> : <User size={11} />}
+                        {member.role}
+                      </span>
+                    </div>
+
+                    {/* Permissions summary */}
+                    <div className="pt-1">
+                      {member.role === 'ADMIN' ? (
+                        <p className="text-xs font-medium text-slate-400">Full Administrative Access</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {PERMISSION_MODULES.map((mod) => {
+                            const modPerms = perms[mod.key] || {};
+                            const enabledActions = mod.actions.filter((a) => modPerms[a]);
+                            if (enabledActions.length === 0) return null;
+                            return (
+                              <span
+                                key={mod.key}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/40 dark:text-orange-400"
+                              >
+                                {mod.label} ({enabledActions.length}/{mod.actions.length})
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    {!isSelf && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100/80 dark:border-zinc-800/80">
+                        <button
+                          onClick={() => openEditModal(member)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-50 transition min-h-[36px]"
+                        >
+                          <Edit2 size={13} /> Edit Permissions
+                        </button>
+                        <button
+                          onClick={() => handleDelete(member.userId)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-100 transition min-h-[36px]"
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

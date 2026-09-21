@@ -7,6 +7,7 @@ import { Calendar, Users, IndianRupee, MapPin, User, Mail } from 'lucide-react';
 import * as leadService from '../../services/leadService';
 import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
+import { quotationRef } from '../../utils/quotationRef';
 
 export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) {
   const [form, setForm] = useState({
@@ -56,7 +57,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
             } else {
               setForm((prev) => ({
                 ...prev,
-                sourceQuotationId: found.quotation_id || found.id || '',
+                sourceQuotationId: quotationRef(found),
                 pricePerPerson: prev.pricePerPerson || found.priceQuote || ''
               }));
             }
@@ -80,7 +81,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
       setForm((prev) => ({
         ...prev,
         interest: val,
-        sourceQuotationId: selected?.quotation_id || selected?.id || '',
+        sourceQuotationId: quotationRef(selected),
         pricePerPerson: selected?.priceQuote ? selected.priceQuote : prev.pricePerPerson
       }));
     }
@@ -101,7 +102,10 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
       toast.error('Departure date is required to create the booking.');
       return;
     }
-    const today = new Date().toISOString().split('T')[0];
+    // Local date, not UTC - between midnight and 05:30 IST the UTC date is
+    // still yesterday, which let a past departure through.
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (form.departure < today) {
       toast.error('Departure date must be in the future.');
       return;

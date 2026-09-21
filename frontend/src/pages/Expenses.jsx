@@ -319,96 +319,181 @@ export default function Expenses() {
         </div>
       </div>
 
-      {/* Main Expenses Table */}
+      {/* Main Expenses Table Card */}
       <div className="card p-0 overflow-hidden bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
-        <Table>
-          <Thead>
-            <Th>Title / Details</Th>
-            <Th>Category</Th>
-            <Th>Linked Entity</Th>
-            <Th>Vendor</Th>
-            <Th className="text-right">Amount</Th>
-            <Th className="text-center">Status</Th>
-            <Th className="text-right">Actions</Th>
-          </Thead>
-          <Tbody>
-            {loading ? (
-              <Tr>
-                <Td colSpan={7} className="text-center py-8">
-                  <RefreshCw className="animate-spin text-slate-400 mx-auto" size={24} />
-                  <span className="text-xs text-slate-400 font-semibold mt-2 block">Fetching expenses...</span>
-                </Td>
-              </Tr>
-            ) : filteredExpenses.length === 0 ? (
-              <Tr>
-                <Td colSpan={7} className="text-center text-slate-400 italic py-10">
-                  No logged expenses matches selected criteria.
-                </Td>
-              </Tr>
-            ) : (
-              pagedExpenses.map((exp) => (
-                <Tr key={exp.id}>
-                  <Td>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">{exp.title}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">Logged by: {exp.created_by || 'System'}</span>
-                  </Td>
-                  <Td>
-                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                      {exp.category}
-                    </span>
-                  </Td>
-                  <Td>
-                    {exp.link_type === 'booking' && exp.booking_customer ? (
-                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                        <LinkIcon size={12} />
-                        <span className="truncate">{exp.booking_customer} ({exp.booking_code || 'FIT'})</span>
-                      </div>
-                    ) : exp.link_type === 'batch' && exp.batch_name ? (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                        <LinkIcon size={12} />
-                        <span className="truncate">{exp.batch_name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 dark:text-zinc-600 text-xs italic">General Overhead</span>
-                    )}
-                  </Td>
-                  <Td className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    {exp.vendor_name || '-'}
-                  </Td>
-                  <Td className="text-right font-bold text-slate-800 dark:text-slate-200">
-                    {formatCurrency(exp.amount)}
-                  </Td>
-                  <Td className="text-center">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      exp.status === 'Paid' 
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
-                        : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
-                    }`}>
-                      {exp.status === 'Paid' ? <CheckCircle size={10} /> : <Clock size={10} />}
-                      {exp.status}
-                    </span>
-                  </Td>
-                  <Td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(exp)}
-                        className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-slate-500 hover:text-brand-600 transition"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(exp.id)}
-                        className="p-1 hover:bg-red-50 dark:hover:bg-red-950/10 rounded text-slate-400 hover:text-red-500 transition"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <Table>
+            <Thead>
+              <Th>Title / Details</Th>
+              <Th>Category</Th>
+              <Th>Linked Entity</Th>
+              <Th>Vendor</Th>
+              <Th className="text-right">Amount</Th>
+              <Th className="text-center">Status</Th>
+              <Th className="text-right">Actions</Th>
+            </Thead>
+            <Tbody>
+              {loading ? (
+                <Tr>
+                  <Td colSpan={7} className="text-center py-8">
+                    <RefreshCw className="animate-spin text-slate-400 mx-auto" size={24} />
+                    <span className="text-xs text-slate-400 font-semibold mt-2 block">Fetching expenses...</span>
                   </Td>
                 </Tr>
-              ))
-            )}
-          </Tbody>
-        </Table>
+              ) : filteredExpenses.length === 0 ? (
+                <Tr>
+                  <Td colSpan={7} className="text-center text-slate-400 italic py-10">
+                    No logged expenses matches selected criteria.
+                  </Td>
+                </Tr>
+              ) : (
+                pagedExpenses.map((exp) => (
+                  <Tr key={exp.id}>
+                    <Td>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">{exp.title}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">Logged by: {exp.created_by || 'System'}</span>
+                    </Td>
+                    <Td>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                        {exp.category}
+                      </span>
+                    </Td>
+                    <Td>
+                      {exp.link_type === 'booking' && exp.booking_customer ? (
+                        <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                          <LinkIcon size={12} />
+                          <span className="truncate">{exp.booking_customer} ({exp.booking_code || 'FIT'})</span>
+                        </div>
+                      ) : exp.link_type === 'batch' && exp.batch_name ? (
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                          <LinkIcon size={12} />
+                          <span className="truncate">{exp.batch_name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 dark:text-zinc-600 text-xs italic">General Overhead</span>
+                      )}
+                    </Td>
+                    <Td className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                      {exp.vendor_name || '-'}
+                    </Td>
+                    <Td className="text-right font-bold text-slate-800 dark:text-slate-200">
+                      {formatCurrency(exp.amount)}
+                    </Td>
+                    <Td className="text-center">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        exp.status === 'Paid' 
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
+                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                      }`}>
+                        {exp.status === 'Paid' ? <CheckCircle size={10} /> : <Clock size={10} />}
+                        {exp.status}
+                      </span>
+                    </Td>
+                    <Td className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(exp)}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-slate-500 hover:text-brand-600 transition"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(exp.id)}
+                          className="p-1 hover:bg-red-50 dark:hover:bg-red-950/10 rounded text-slate-400 hover:text-red-500 transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-zinc-800">
+          {loading && (
+            <div className="p-6 text-center text-slate-400 text-xs">
+              <span className="animate-spin inline-block mr-2">⏳</span> Loading expenses...
+            </div>
+          )}
+          {!loading && filteredExpenses.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-xs italic">
+              No logged expenses match selected criteria.
+            </div>
+          )}
+          {!loading && pagedExpenses.map((exp) => (
+            <div key={exp.id} className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-slate-800 dark:text-zinc-100 text-sm truncate">{exp.title}</h4>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5">By: {exp.created_by || 'System'}</p>
+                </div>
+                <span className="font-extrabold text-slate-800 dark:text-zinc-100 text-sm shrink-0">
+                  {formatCurrency(exp.amount)}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                    {exp.category}
+                  </span>
+                  {exp.vendor_name && (
+                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+                      Vendor: {exp.vendor_name}
+                    </span>
+                  )}
+                </div>
+
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  exp.status === 'Paid' 
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                }`}>
+                  {exp.status === 'Paid' ? <CheckCircle size={10} /> : <Clock size={10} />}
+                  {exp.status}
+                </span>
+              </div>
+
+              {/* Linked entity */}
+              <div className="text-xs text-slate-500 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800/40 p-2 rounded-lg">
+                {exp.link_type === 'booking' && exp.booking_customer ? (
+                  <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-medium">
+                    <LinkIcon size={12} />
+                    <span className="truncate">{exp.booking_customer} ({exp.booking_code || 'FIT'})</span>
+                  </div>
+                ) : exp.link_type === 'batch' && exp.batch_name ? (
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <LinkIcon size={12} />
+                    <span className="truncate">{exp.batch_name}</span>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 text-xs italic">General Overhead</span>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100/80 dark:border-zinc-800/80">
+                <button
+                  onClick={() => handleOpenEdit(exp)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-50 transition min-h-[36px]"
+                >
+                  <Edit2 size={13} /> Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(exp.id)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-100 transition min-h-[36px]"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {!loading && (

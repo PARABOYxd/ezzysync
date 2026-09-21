@@ -17,6 +17,8 @@ import {
   Compass,
   Instagram,
   X,
+  ArrowLeft,
+  Info,
 } from 'lucide-react';
 import { whatsappWebService } from '../../services/whatsappWebService';
 import { useToast } from '../../hooks/useToast.jsx';
@@ -105,6 +107,8 @@ export default function ChatThread({
   onOpenQrModal,
   onOpenAttachmentPreview,
   messagesEndRef,
+  onBack,
+  onOpenInfo,
 }) {
   const toast = useToast();
   const [aiDrafting, setAiDrafting] = useState(false);
@@ -176,10 +180,22 @@ export default function ChatThread({
   return (
     <>
       {/* Chat Thread Header */}
-      <div className="px-6 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 sm:gap-4 shadow-sm shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="md:hidden p-1.5 -ml-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0 cursor-pointer flex items-center justify-center"
+              aria-label="Back to chats"
+              title="Back to conversation list"
+            >
+              <ArrowLeft size={19} />
+            </button>
+          )}
           <div
-            className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${
+            onClick={onOpenInfo}
+            className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer md:cursor-default ${
               isSelectedIg
                 ? 'bg-gradient-to-tr from-pink-500 to-rose-600 text-white'
                 : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400'
@@ -193,18 +209,18 @@ export default function ChatThread({
               <User className="w-4 h-4" />
             )}
           </div>
-          <div className="min-w-0">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 min-w-0">
-              <span className="truncate">{selectedChat.customer_name || (isSelectedIg ? `@${selectedIgHandle}` : 'WhatsApp Contact')}</span>
+          <div className="min-w-0 cursor-pointer md:cursor-default" onClick={onOpenInfo}>
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0">
+              <span className="truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">{selectedChat.customer_name || (isSelectedIg ? `@${selectedIgHandle}` : 'WhatsApp Contact')}</span>
               {isSelectedIg ? (
-                <span className="text-[10px] font-extrabold bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full border border-pink-200 flex items-center gap-1 shrink-0">
-                  <Instagram size={10} /> Instagram Direct DM
+                <span className="text-[10px] font-extrabold bg-pink-100 text-pink-700 px-1.5 sm:px-2 py-0.5 rounded-full border border-pink-200 flex items-center gap-1 shrink-0">
+                  <Instagram size={10} /> <span className="hidden xs:inline">Instagram</span> Direct
                 </span>
               ) : (
-                <span className="text-xs font-normal text-slate-500 whitespace-nowrap shrink-0">+{selectedChat.phone}</span>
+                <span className="text-[11px] sm:text-xs font-normal text-slate-500 whitespace-nowrap shrink-0">+{selectedChat.phone}</span>
               )}
             </h3>
-            <p className="text-[11px] text-slate-400 truncate">
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
               {selectedChat.formatted_lead_id
                 ? `CRM Lead: ${selectedChat.formatted_lead_id} (${selectedChat.lead_stage || 'Inquiry'})`
                 : selectedChat.booking_trip
@@ -217,16 +233,29 @@ export default function ChatThread({
         </div>
 
         {/* Per-Chat Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Mobile Info / Customer 360° Button */}
+          {onOpenInfo && (
+            <button
+              type="button"
+              onClick={onOpenInfo}
+              className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center"
+              title="View Customer 360° details"
+              aria-label="Customer 360"
+            >
+              <Info size={19} />
+            </button>
+          )}
+
           {/* Human Takeover / Per-chat AI Toggle */}
           <button
             onClick={onToggleChatAi}
             disabled={togglingAi}
             title={AI_STATE_UI[getAiState(selectedChat)].title}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed ${AI_STATE_UI[getAiState(selectedChat)].className}`}
+            className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed ${AI_STATE_UI[getAiState(selectedChat)].className}`}
           >
             <Bot className="w-3.5 h-3.5" />
-            <span>{AI_STATE_UI[getAiState(selectedChat)].label}</span>
+            <span className="hidden sm:inline">{AI_STATE_UI[getAiState(selectedChat)].label}</span>
           </button>
 
           {/* Send Itinerary button */}

@@ -18,21 +18,23 @@ export default function Topbar({ title, onMenuClick, actions }) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 bg-white dark:bg-zinc-950 border-b border-[var(--border)] h-[56px] flex items-center justify-between px-4 md:px-8 select-none">
+    <header className="sticky top-0 z-20 bg-white dark:bg-zinc-950 border-b border-[var(--border)] h-[56px] flex items-center justify-between px-3 sm:px-4 md:px-8 select-none">
       {/* Left section: breadcrumbs / menu button */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
-          className="md:hidden text-slate-500 hover:text-slate-700"
+          className="md:hidden p-2 -ml-1.5 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 transition cursor-pointer flex items-center justify-center shrink-0"
           onClick={onMenuClick}
           aria-label="Open navigation menu"
           title="Open navigation menu"
         >
-          <Menu size={18} />
+          <Menu size={20} />
         </button>
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-zinc-500">
-          <span>EzzySync</span>
-          <span>/</span>
-          <span className="text-sm font-bold text-slate-800 dark:text-zinc-200">{title}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-400 dark:text-zinc-500 min-w-0">
+          <span className="hidden sm:inline">EzzySync</span>
+          <span className="hidden sm:inline">/</span>
+          <span className="text-sm font-bold text-slate-800 dark:text-zinc-200 truncate max-w-[130px] xs:max-w-[170px] sm:max-w-none">
+            {title}
+          </span>
         </div>
       </div>
 
@@ -40,7 +42,7 @@ export default function Topbar({ title, onMenuClick, actions }) {
       <div 
         id="tour-global-search"
         onClick={() => setSearchOpen(true)}
-        className="hidden sm:flex items-center relative w-[320px] cursor-pointer"
+        className="hidden md:flex items-center relative w-[280px] lg:w-[320px] cursor-pointer"
       >
         <Search size={14} className="absolute left-3 text-slate-400 dark:text-zinc-500" />
         <input 
@@ -55,7 +57,7 @@ export default function Topbar({ title, onMenuClick, actions }) {
       </div>
 
       {/* Right section: actions bar */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {actions}
       </div>
 

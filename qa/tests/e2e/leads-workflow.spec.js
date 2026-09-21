@@ -1,135 +1,134 @@
-import { test, expect } from '@playwright/test';
-import { setupAuthenticatedSession } from '../helpers/authHelper.js';
+import { test, expect, expectToast, drawer, unique, uniquePhone, apiJson } from '../support/fixtures.js';
+import { createLead } from '../support/seed.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+test.describe.configure({ mode: 'serial' });
 
-test.describe('Leads Management & Lifecycle Workflow', () => {
+const leadRow = (page, name) => page.locator('tbody tr', { hasText: name });
 
-  test.beforeEach(async ({ page }) => {
-    await setupAuthenticatedSession(page);
+async function openLeadsFilteredTo(page, text) {
+  await page.goto(`/leads?search=${encodeURIComponent(text)}`);
+  await expect(leadRow(page, text)).toBeVisible();
+}
+
+test.describe('Leads workflow', () => {
+  const name = unique('QA Lead');
+  const phone = uniquePhone();
+  let leadId;
+
+  test('create form refuses a lead without a phone number, without calling the API', async ({ page }) => {
+    let posts = 0;
+    page.on('request', (r) => { if (r.method() === 'POST' && /\/api\/leads$/.test(r.url())) posts += 1; });
+
+    await page.goto('/leads');
+    await page.getByRole('button', { name: 'Add Lead' }).click();
+    const form = drawer(page, 'Create New Lead');
+    await form.getByLabel('Customer Name').fill('No Phone Person');
+    await form.getByRole('button', { name: 'Create Lead' }).click();
+
+    await expect(form.getByText('A valid phone number is required.')).toBeVisible();
+    await expectToast(page, 'Please fix validation errors before saving.');
+    expect(posts).toBe(0);
   });
 
-  test('TC-LEAD-01: Full Lead Creation via Drawer, API sync & Table rendering', async ({ page }) => {
-    await page.goto(`${BASE_URL}/leads`);
-    await page.waitForLoadState('networkidle');
+  test('creates a lead through the form and it is stored exactly as typed', async ({ page, api }) => {
+    await page.goto('/leads');
+    await page.getByRole('button', { name: 'Add Lead' }).click();
+    const form = drawer(page, 'Create New Lead');
+    await form.getByLabel('Customer Name').fill(name);
+    await form.getByLabel('Contact Number').fill(phone);
+    await form.getByLabel('General Notes').fill('Wants a beach trip in December');
 
-    // Click Add Lead button
-    const addLeadBtn = page.locator('button:has-text("Add Lead"), button:has-text("+ Add Lead")').first();
-    await expect(addLeadBtn).toBeVisible();
-    await addLeadBtn.click();
+    const created = page.waitForResponse((r) => r.request().method() === 'POST' && /\/api\/leads$/.test(r.url()));
+    await form.getByRole('button', { name: 'Create Lead' }).click();
+    const body = await apiJson(await created, 201);
+    leadId = body.lead.leadId;
 
-    // Verify Drawer opens
-    const drawerTitle = page.locator('text=Create New Lead');
-    await expect(drawerTitle).toBeVisible();
+    await expectToast(page, 'Lead created.');
+    await expect(form).toBeHidden();
+    await openLeadsFilteredTo(page, name);
 
-    const uniqueLeadName = `QA_Lead_${Date.now()}`;
-    const uniquePhone = `98${Math.floor(10000000 + Math.random() * 90000000)}`;
-
-    const drawer = page.locator('div[role="dialog"]');
-
-    // Fill Form inputs scoped to drawer
-    const nameInput = drawer.locator('input[placeholder*="Rahul Kumar"]').first();
-    const phoneInput = drawer.locator('input[placeholder*="9876543210"], input[type="tel"]').first();
-
-    await expect(nameInput).toBeVisible();
-    await nameInput.fill(uniqueLeadName);
-    await expect(phoneInput).toBeVisible();
-    await phoneInput.fill(uniquePhone);
-
-    // Intercept POST /api/leads API request and click Submit
-    const [createResponse] = await Promise.all([
-      page.waitForResponse(res => res.url().includes('/api/leads') && res.request().method() === 'POST'),
-      drawer.locator('button:has-text("Create Lead")').click(),
-    ]);
-
-    expect([200, 201]).toContain(createResponse.status());
-
-    // Verify Toast notification
-    const toast = page.locator('text=Lead created');
-    await expect(toast).toBeVisible({ timeout: 6000 });
-
-    // Verify record rendered in Leads table
-    await page.waitForTimeout(1000);
-    const searchInput = page.locator('main input[placeholder*="Search" i], input[placeholder*="Search by name" i]').first();
-    if (await searchInput.isVisible()) {
-      await searchInput.fill(uniqueLeadName);
-      await page.waitForTimeout(600);
-      const row = page.locator(`text=${uniqueLeadName}`).first();
-      await expect(row).toBeVisible();
-    }
+    const { lead } = await apiJson(await api.get(`leads/${leadId}`), 200);
+    expect(lead.customerName).toBe(name);
+    expect(lead.phone).toContain(phone);
+    expect(lead.stage).toBe('New');
+    expect(lead.notes).toBe('Wants a beach trip in December');
   });
 
-  test('TC-LEAD-02: Lead Detail View Drawer & Activity Note Logging', async ({ page }) => {
-    await page.goto(`${BASE_URL}/leads`);
-    await page.waitForLoadState('networkidle');
+  test('a second lead for the same phone is flagged as a duplicate enquiry', async ({ page, api }) => {
+    await page.goto('/leads');
+    await page.getByRole('button', { name: 'Add Lead' }).click();
+    const form = drawer(page, 'Create New Lead');
+    await form.getByLabel('Customer Name').fill(`${name} again`);
+    await form.getByLabel('Contact Number').fill(phone);
 
-    // Click on View Lead icon button
-    const viewLeadBtn = page.locator('button[title="View Lead"]').first();
-    await expect(viewLeadBtn).toBeVisible({ timeout: 10000 });
-    await viewLeadBtn.click();
+    const res = page.waitForResponse((r) => r.request().method() === 'POST' && /\/api\/leads$/.test(r.url()));
+    await form.getByRole('button', { name: 'Create Lead' }).click();
+    expect((await res).status()).toBe(409);
+    await expectToast(page, 'An active enquiry already exists for this contact.');
+    await expect(page.getByRole('dialog', { name: 'Active Enquiry Found' }).or(page.getByText('Active Enquiry Found'))).toBeVisible();
 
-    // Verify LeadViewDrawer opens
-    const drawer = page.locator('div[role="dialog"], aside[role="dialog"]').first();
-    await expect(drawer).toBeVisible();
-
-    // Fill Activity Log Note
-    const noteTextarea = page.locator('textarea[placeholder*="note" i], textarea[placeholder*="conversation" i], textarea').first();
-    if (await noteTextarea.isVisible()) {
-      const noteContent = `Followed up with client regarding itinerary preference ${Date.now()}`;
-      await noteTextarea.fill(noteContent);
-
-      // Submit note
-      const logBtn = page.locator('button:has-text("Log Activity"), button:has-text("Add Note"), button:has-text("Save Activity")').first();
-      if (await logBtn.isVisible()) {
-        const [noteRes] = await Promise.all([
-          page.waitForResponse(res => res.url().includes('/follow-up') || res.url().includes('/notes') || res.url().includes('/api/leads')),
-          logBtn.click(),
-        ]);
-        expect([200, 201]).toContain(noteRes.status());
-      }
-    }
+    const { leads } = await apiJson(await api.get('leads', { params: { search: phone } }), 200);
+    expect(leads).toHaveLength(1);
   });
 
-  test('TC-LEAD-03: Stage Pipeline Transitions & Filters', async ({ page }) => {
-    await page.goto(`${BASE_URL}/leads`);
-    await page.waitForLoadState('networkidle');
+  test('editing the lead updates its details and pipeline stage', async ({ page, api }) => {
+    await openLeadsFilteredTo(page, name);
+    await leadRow(page, name).getByTitle('Edit Lead').click();
+    const form = drawer(page, 'Edit Lead');
+    await expect(form.getByLabel('Customer Name')).toHaveValue(name);
 
-    // Test Segmented Control (Switch to Kanban view)
-    const kanbanBtn = page.locator('button:has-text("Kanban")').first();
-    if (await kanbanBtn.isVisible()) {
-      await kanbanBtn.click();
-      await page.waitForTimeout(500);
+    await form.getByLabel('No. of Travelers').fill('4');
+    await form.getByLabel('Pipeline Stage').selectOption('Contacted');
+    const saved = page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().includes(`/leads/${leadId}`));
+    await form.getByRole('button', { name: 'Save Changes' }).click();
+    await apiJson(await saved, 200);
+    await expectToast(page, 'Lead updated.');
 
-      // Verify Kanban stages exist
-      const stages = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
-      for (const st of stages) {
-        const stageHeading = page.locator(`text=${st}`).first();
-        await expect(stageHeading).toBeVisible();
-      }
-
-      // Switch back to Table view
-      const tableBtn = page.locator('button:has-text("Table")').first();
-      await tableBtn.click();
-      await page.waitForTimeout(500);
-      const table = page.locator('table').first();
-      await expect(table).toBeVisible();
-    }
+    const { lead } = await apiJson(await api.get(`leads/${leadId}`), 200);
+    expect(lead.stage).toBe('Contacted');
+    expect(Number(lead.travelers)).toBe(4);
+    await expect(leadRow(page, name)).toContainText('Contacted');
   });
 
-  // Parameterized Filter Validation across Lead Stages
-  const leadStages = ['All', 'New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
-  for (const stage of leadStages) {
-    test(`TC-LEAD-FILTER: Filter by stage "${stage}" updates table without errors`, async ({ page }) => {
-      await page.goto(`${BASE_URL}/leads`);
-      await page.waitForLoadState('networkidle');
+  test('a timeline entry is logged, shown in the drawer, and persisted', async ({ page, api }) => {
+    const note = `Called customer - prefers Goa ${Date.now()}`;
+    await openLeadsFilteredTo(page, name);
+    await leadRow(page, name).getByTitle('View Lead').click();
+    const view = page.getByRole('dialog').filter({ hasText: 'Timeline & Activity Logs' });
+    await expect(view).toBeVisible();
 
-      const stageSelect = page.locator('select').first();
-      if (await stageSelect.isVisible()) {
-        await stageSelect.selectOption({ label: stage }).catch(() => {});
-        await page.waitForTimeout(400);
-        expect(page.url()).toContain('/leads');
-      }
-    });
-  }
+    await view.getByRole('button', { name: 'Call', exact: true }).click();
+    await view.getByPlaceholder('Type call summary').fill(note);
+    const logged = page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes(`/leads/${leadId}/follow-ups`));
+    await view.getByRole('button', { name: 'Add Log Entry' }).click();
+    await apiJson(await logged, 201);
 
+    await expectToast(page, 'Activity logged successfully.');
+    await expect(view.getByText(note)).toBeVisible();
+
+    const { followUps } = await apiJson(await api.get(`leads/${leadId}/follow-ups`), 200);
+    const entry = followUps.find((f) => f.note === note);
+    expect(entry).toBeTruthy();
+    expect(entry.activity_type || entry.activityType).toBe('call');
+  });
+
+  test('an empty timeline note cannot be submitted', async ({ page }) => {
+    await openLeadsFilteredTo(page, name);
+    await leadRow(page, name).getByTitle('View Lead').click();
+    const view = page.getByRole('dialog').filter({ hasText: 'Timeline & Activity Logs' });
+    let posts = 0;
+    page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/follow-ups')) posts += 1; });
+    await expect(view.getByPlaceholder('Type call summary')).toHaveAttribute('aria-required', 'true');
+    await view.getByPlaceholder('Type call summary').fill('   ');
+    await view.getByRole('button', { name: 'Add Log Entry' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Activity logged successfully.' })).toHaveCount(0);
+    expect(posts).toBe(0);
+  });
+
+  test('search finds the lead by phone and hides unrelated ones', async ({ page, api }) => {
+    const other = await createLead(api, { customerName: unique('QA Other') });
+    await page.goto(`/leads?search=${phone}`);
+    await expect(leadRow(page, name)).toBeVisible();
+    await expect(leadRow(page, other.customerName)).toHaveCount(0);
+  });
 });

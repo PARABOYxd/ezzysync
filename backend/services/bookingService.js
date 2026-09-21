@@ -189,6 +189,9 @@ async function dashboardStats(tenantId, teamMemberName = null) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().slice(0, 10);
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const sixtyDaysAgoStr = sixtyDaysAgo.toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
 
   // The headline numbers used to come from pulling every booking into Node
@@ -199,8 +202,11 @@ async function dashboardStats(tenantId, teamMemberName = null) {
     teamMember: teamMemberName,
     today,
     thirtyDaysAgo: thirtyDaysAgoStr,
+    sixtyDaysAgo: sixtyDaysAgoStr,
   });
 
+  const revenue30Days = Number(counts.revenue_30_days);
+  const revenuePrev30Days = Number(counts.revenue_prev_30_days);
   const stats = {
     totalBookings: Number(counts.total_bookings),
     upcomingTrips: Number(counts.upcoming_trips),
@@ -208,7 +214,13 @@ async function dashboardStats(tenantId, teamMemberName = null) {
     cancelledTrips: Number(counts.cancelled_trips),
     todaysBookings: Number(counts.todays_bookings),
     totalRevenue: Number(counts.total_revenue),
-    revenue30Days: Number(counts.revenue_30_days),
+    revenue30Days,
+    revenuePrev30Days,
+    // null when there is nothing to compare against - "+100%" against zero
+    // (what the card used to hardcode) says nothing true.
+    revenue30DaysChangePct: revenuePrev30Days > 0
+      ? Math.round(((revenue30Days - revenuePrev30Days) / revenuePrev30Days) * 100)
+      : null,
     totalPaid: Number(counts.total_paid),
     totalCost: Number(counts.total_cost),
     totalProfit: Number(counts.total_profit),
@@ -338,18 +350,29 @@ async function getActiveBookingsByCustomer(tenantId, customerId) {
   return rows.map(rowToBooking);
 }
 
+function toDay(value) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
 async function billingAnalytics(tenantId, teamMemberName = null, startDate = null, endDate = null) {
   let allBookings = await listBookings(tenantId, { includeDeleted: false });
   if (teamMemberName) {
     allBookings = allBookings.filter((b) => (b.teamMember || '') === teamMemberName);
   }
-  if (startDate) {
-    const start = new Date(startDate);
-    allBookings = allBookings.filter((b) => new Date(b.createdAt) >= start);
-  }
-  if (endDate) {
-    const end = new Date(endDate);
-    allBookings = allBookings.filter((b) => new Date(b.createdAt) <= end);
+  // Bookings have no created_at column - booking_timestamp is the creation
+  // time. Filtering on the non-existent createdAt made every date range
+  // return nothing. Compared as YYYY-MM-DD strings, the same way the dashboard
+  // counts do, so the end date is inclusive of the whole day.
+  const startDay = startDate ? toDay(startDate) : null;
+  const endDay = endDate ? toDay(endDate) : null;
+  if (startDay || endDay) {
+    allBookings = allBookings.filter((b) => {
+      const day = (b.bookingTimestamp || '').slice(0, 10);
+      if (!day) return false;
+      if (startDay && day < startDay) return false;
+      if (endDay && day > endDay) return false;
+      return true;
+    });
   }
   
   // 1. Fetch all expenses for calculations
@@ -466,6 +489,11 @@ async function billingAnalytics(tenantId, teamMemberName = null, startDate = nul
         }
       }
       return {
+        bookingId: b.bookingId,
+        // The page's Team Member filter matches on this - it was missing, so
+        // picking any member (or a team member viewing their own) showed zero.
+        teamMember: b.teamMember || '',
+        bookedOn: (b.bookingTimestamp || '').slice(0, 10),
         trip: b.trip,
         departure: b.departure,
         members: b.members,

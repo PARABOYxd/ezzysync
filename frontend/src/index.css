@@ -202,3 +202,11 @@
 .dark * {
   scrollbar-color: #3f3f46 transparent;
 }
+
+/* Mobile Safe-Area Utilities */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0.75rem);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0.75rem);
+}

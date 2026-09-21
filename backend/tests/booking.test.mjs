@@ -299,7 +299,85 @@ describe('Bookings', () => {
     });
   });
 
+  describe('billing analytics date range', () => {
+    const day = (offset) => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() + offset);
+      return d.toISOString().slice(0, 10);
+    };
+    const setBookedOn = (bookingId, isoDay) =>
+      db.query(`UPDATE bookings SET booking_timestamp = $1 WHERE booking_id = $2`, [`${isoDay}T10:00:00.000Z`, bookingId]);
+
+    // Regression: the range filtered on a createdAt field bookings never had,
+    // so every range - Last 30 Days, This Month, Custom - showed zero.
+    it('includes bookings made inside a custom range', async () => {
+      await bookingService.createBooking(tenant.tenantId, bookingData({ members: 1, pricePerPerson: 5000 }), 'agent@test.com');
+
+      const data = await bookingService.billingAnalytics(tenant.tenantId, null, day(-30), day(0));
+      expect(data.bookings).toHaveLength(1);
+      expect(data.bookings[0].totalAmount).toBe(5000);
+    });
+
+    it('treats the end date as inclusive of that whole day', async () => {
+      const b = await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');
+      await setBookedOn(b.bookingId, day(-5));
+
+      const data = await bookingService.billingAnalytics(tenant.tenantId, null, day(-10), day(-5));
+      expect(data.bookings.map((x) => x.bookingId)).toContain(b.bookingId);
+    });
+
+    it('leaves out bookings made before or after the range', async () => {
+      const before = await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');
+      const inside = await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');
+      const after = await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');
+      await setBookedOn(before.bookingId, day(-40));
+      await setBookedOn(inside.bookingId, day(-20));
+      await setBookedOn(after.bookingId, day(-1));
+
+      const data = await bookingService.billingAnalytics(tenant.tenantId, null, day(-30), day(-10));
+      expect(data.bookings.map((x) => x.bookingId)).toEqual([inside.bookingId]);
+    });
+
+    it('carries teamMember on each booking, which the page filters by', async () => {
+      await bookingService.createBooking(tenant.tenantId, bookingData({ teamMember: 'Amit' }), 'agent@test.com');
+      const data = await bookingService.billingAnalytics(tenant.tenantId);
+      expect(data.bookings[0].teamMember).toBe('Amit');
+    });
+
+    it('with no range, matches the dashboard revenue exactly (cancelled excluded from both)', async () => {
+      await bookingService.createBooking(tenant.tenantId, bookingData({ members: 2, pricePerPerson: 5000 }), 'agent@test.com');
+      const c = await bookingService.createBooking(tenant.tenantId, bookingData({ members: 1, pricePerPerson: 7000 }), 'agent@test.com');
+      await bookingService.updateBooking(tenant.tenantId, c.bookingId, { travelStatus: 'Cancelled' }, 'agent@test.com');
+
+      const billing = await bookingService.billingAnalytics(tenant.tenantId);
+      const { stats } = await bookingService.dashboardStats(tenant.tenantId);
+      const billingRevenue = billing.bookings.reduce((s, b) => s + b.totalAmount, 0);
+      expect(billingRevenue).toBe(stats.totalRevenue);
+      expect(billing.bookings).toHaveLength(stats.totalBookings - stats.cancelledTrips);
+    });
+  });
+
   describe('dashboard stats', () => {
+    it('compares last-30-day revenue with the 30 days before, instead of a fixed +100%', async () => {
+      const recent = await bookingService.createBooking(tenant.tenantId, bookingData({ members: 1, pricePerPerson: 15000 }), 'agent@test.com');
+      const older = await bookingService.createBooking(tenant.tenantId, bookingData({ members: 1, pricePerPerson: 10000 }), 'agent@test.com');
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - 45);
+      await db.query(`UPDATE bookings SET booking_timestamp = $1 WHERE booking_id = $2`, [d.toISOString(), older.bookingId]);
+
+      const { stats } = await bookingService.dashboardStats(tenant.tenantId);
+      expect(recent.totalAmount).toBe(15000);
+      expect(stats.revenue30Days).toBe(15000);
+      expect(stats.revenuePrev30Days).toBe(10000);
+      expect(stats.revenue30DaysChangePct).toBe(50);
+    });
+
+    it('reports no change percentage when there is nothing to compare against', async () => {
+      await bookingService.createBooking(tenant.tenantId, bookingData(), 'agent@test.com');
+      const { stats } = await bookingService.dashboardStats(tenant.tenantId);
+      expect(stats.revenue30DaysChangePct).toBeNull();
+    });
+
     // These now run as a single SQL aggregate (getDashboardCounts) instead of
     // pulling every booking into JS and summing in a loop - this test is what
     // pins the arithmetic to the old behaviour across that rewrite.

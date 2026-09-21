@@ -177,87 +177,172 @@ export default function UpcomingTrips() {
 
       {/* Booked Table Card */}
       <div className="card p-0 overflow-hidden bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-sm">
-        <Table>
-          <Thead>
-            <Th>Customer</Th>
-            <Th>Trip / Package</Th>
-            <Th>
-              <span className="flex items-center gap-1">
-                Departure Date <ArrowUpDown size={12} className="text-brand-500" />
-              </span>
-            </Th>
-            <Th>Pax</Th>
-            <Th>Total Price</Th>
-            <Th>Pending (₹)</Th>
-            <Th>Status</Th>
-            <Th className="text-right">Actions</Th>
-          </Thead>
-          <Tbody>
-            {loading && <SkeletonTableRows rows={6} cols={8} />}
-            {!loading && bookings.map((b) => (
-              <Tr key={b.bookingId}>
-                <Td>
-                  <p className="font-semibold text-slate-800 dark:text-zinc-200">{b.customerName}</p>
-                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5">{b.phone || b.email || '-'}</p>
-                </Td>
-                <Td>
-                  <p className="font-medium text-slate-700 dark:text-zinc-300">{b.trip}</p>
-                  {b.batchName && (
-                    <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded font-semibold mt-1">
-                      Batch: {b.batchName} ({b.batchCustomId})
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <Table>
+            <Thead>
+              <Th>Customer</Th>
+              <Th>Trip / Package</Th>
+              <Th>
+                <span className="flex items-center gap-1">
+                  Departure Date <ArrowUpDown size={12} className="text-brand-500" />
+                </span>
+              </Th>
+              <Th>Pax</Th>
+              <Th>Total Price</Th>
+              <Th>Pending (₹)</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Actions</Th>
+            </Thead>
+            <Tbody>
+              {loading && <SkeletonTableRows rows={6} cols={8} />}
+              {!loading && bookings.map((b) => (
+                <Tr key={b.bookingId}>
+                  <Td>
+                    <p className="font-semibold text-slate-800 dark:text-zinc-200">{b.customerName}</p>
+                    <p className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5">{b.phone || b.email || '-'}</p>
+                  </Td>
+                  <Td>
+                    <p className="font-medium text-slate-700 dark:text-zinc-300">{b.trip}</p>
+                    {b.batchName && (
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded font-semibold mt-1">
+                        Batch: {b.batchName} ({b.batchCustomId})
+                      </span>
+                    )}
+                  </Td>
+                  <Td>
+                    <span className="bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400 px-2.5 py-1 rounded-lg text-xs font-bold font-mono">
+                      {formatDate(b.departure)}
                     </span>
+                  </Td>
+                  <Td className="text-slate-600 dark:text-zinc-400 font-medium">
+                    <span className="flex items-center gap-1">
+                      <Users size={13} className="text-slate-400" /> {b.members}
+                    </span>
+                  </Td>
+                  <Td className="text-slate-700 dark:text-zinc-300 font-semibold">
+                    {formatCurrency(b.totalAmount)}
+                  </Td>
+                  <Td>
+                    <span className={`font-bold font-mono ${b.remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                      {formatCurrency(b.remaining)}
+                    </span>
+                  </Td>
+                  <Td>
+                    <TravelStatusBadge status={b.travelStatus} />
+                  </Td>
+                  <Td>
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => setViewingBooking(b)}
+                        className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleSendInvoice(b)}
+                        className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                        title="Email Invoice"
+                      >
+                        <FileText size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleSendWhatsApp(b)}
+                        className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                        title="Send Invoice on WhatsApp"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                    </div>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-zinc-800">
+          {loading && (
+            <div className="p-6 text-center text-slate-400 text-xs">
+              <span className="animate-spin inline-block mr-2">⏳</span> Loading upcoming trips...
+            </div>
+          )}
+          {!loading && bookings.map((b) => (
+            <div key={b.bookingId} className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-800 dark:text-zinc-100 text-sm truncate">{b.customerName}</p>
+                  {b.phone && (
+                    <a
+                      href={`tel:${b.phone}`}
+                      className="text-xs text-brand-600 dark:text-brand-400 font-mono hover:underline inline-block mt-0.5"
+                    >
+                      {b.phone}
+                    </a>
                   )}
-                </Td>
-                <Td>
-                  <span className="bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400 px-2.5 py-1 rounded-lg text-xs font-bold font-mono">
-                    {formatDate(b.departure)}
+                </div>
+                <TravelStatusBadge status={b.travelStatus} />
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-zinc-800/50 border border-slate-100 dark:border-zinc-800 space-y-1.5">
+                <p className="text-xs font-bold text-slate-700 dark:text-zinc-200 truncate">{b.trip}</p>
+                {b.batchName && (
+                  <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded font-semibold">
+                    Batch: {b.batchName} ({b.batchCustomId})
                   </span>
-                </Td>
-                <Td className="text-slate-600 dark:text-zinc-400 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Users size={13} className="text-slate-400" /> {b.members}
+                )}
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  <span className="bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:text-orange-400 px-2 py-0.5 rounded font-bold font-mono text-[11px]">
+                    Departs: {formatDate(b.departure)}
                   </span>
-                </Td>
-                <Td className="text-slate-700 dark:text-zinc-300 font-semibold">
-                  {formatCurrency(b.totalAmount)}
-                </Td>
-                <Td>
+                  <span className="flex items-center gap-1 text-slate-500 dark:text-zinc-400 text-[11px] font-semibold">
+                    <Users size={12} /> {b.members} Pax
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Total</span>
+                  <span className="font-semibold text-slate-700 dark:text-zinc-300">
+                    {formatCurrency(b.totalAmount)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Pending</span>
                   <span className={`font-bold font-mono ${b.remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                     {formatCurrency(b.remaining)}
                   </span>
-                </Td>
-                <Td>
-                  <TravelStatusBadge status={b.travelStatus} />
-                </Td>
-                <Td>
-                  <div className="flex justify-end gap-1">
-                    <button
-                      onClick={() => setViewingBooking(b)}
-                      className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
-                      title="View Details"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleSendInvoice(b)}
-                      className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
-                      title="Email Invoice"
-                    >
-                      <FileText size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleSendWhatsApp(b)}
-                      className="btn-icon text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300"
-                      title="Send Invoice on WhatsApp"
-                    >
-                      <MessageCircle size={14} />
-                    </button>
-                  </div>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100/80 dark:border-zinc-800/80">
+                <button
+                  onClick={() => setViewingBooking(b)}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-50 transition min-h-[38px]"
+                >
+                  <Eye size={14} /> View
+                </button>
+                <button
+                  onClick={() => handleSendInvoice(b)}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-200 transition min-h-[38px]"
+                  title="Email Invoice"
+                >
+                  <FileText size={14} /> Invoice
+                </button>
+                <button
+                  onClick={() => handleSendWhatsApp(b)}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 transition min-h-[38px]"
+                  title="WhatsApp"
+                >
+                  <MessageCircle size={14} /> WhatsApp
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {!loading && bookings.length === 0 && (
           <EmptyState

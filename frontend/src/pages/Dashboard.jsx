@@ -368,9 +368,13 @@ export default function Dashboard() {
               {loading ? '...' : data?.stats.totalBookings}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Active ledger</span>
-              <span>&middot;</span>
               <span>All-time bookings</span>
+              {data?.stats.cancelledTrips > 0 && (
+                <>
+                  <span>&middot;</span>
+                  <span className="text-rose-500 font-semibold">{data.stats.cancelledTrips} cancelled</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -390,9 +394,15 @@ export default function Dashboard() {
               {loading ? '...' : formatCurrency(data?.stats.revenue30Days || 0)}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+100%</span>
-              <span>&middot;</span>
-              <span>Last 30 days sales</span>
+              {data?.stats.revenue30DaysChangePct != null && (
+                <>
+                  <span className={`font-semibold ${data.stats.revenue30DaysChangePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {data.stats.revenue30DaysChangePct >= 0 ? '+' : ''}{data.stats.revenue30DaysChangePct}%
+                  </span>
+                  <span>vs previous 30 days</span>
+                </>
+              )}
+              {data?.stats.revenue30DaysChangePct == null && <span>Last 30 days sales</span>}
             </div>
           </div>
         </div>

@@ -93,7 +93,7 @@ export default function QuotationPreview() {
         <div className="relative max-w-3xl mx-auto flex flex-col items-center mt-4">
           <p className="text-[11px] text-white/80 uppercase tracking-[0.2em] font-semibold mb-3">{settings.companyName || 'Personalized Travel'} presents</p>
           <h1
-            className="text-3xl sm:text-4xl font-extrabold text-white leading-tight max-w-xl px-2"
+            className="text-2xl sm:text-4xl font-extrabold text-white leading-tight max-w-xl px-2"
             style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}
           >
             {quotation.tripName}
@@ -255,7 +255,7 @@ export default function QuotationPreview() {
                     </button>
 
                     {isExpanded && (
-                      <div className="px-5 pb-5 pl-[4.25rem] border-t border-slate-100 pt-3 bg-slate-50/30">
+                      <div className="px-5 pb-5 pl-5 sm:pl-[4.25rem] border-t border-slate-100 pt-3 bg-slate-50/30">
                         <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">
                           {d.description || 'Outline details not specified.'}
                         </p>

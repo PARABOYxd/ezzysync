@@ -22,6 +22,12 @@ const MONTHS_LIST = [
   { val: '12', label: 'December' },
 ];
 
+// YYYY-MM-DD in the viewer's own timezone - toISOString() would shift an
+// Indian local midnight back to the previous day.
+function toLocalDay(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function BillingAnalytics() {
   const { user } = useAuth();
   const toast = useToast();
@@ -32,8 +38,10 @@ export default function BillingAnalytics() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
-  // Dashboard Filters
-  const [filterYear, setFilterYear] = useState(() => String(new Date().getFullYear())); // Default to current year
+  // Departure-based filters. Year used to default to the current year, so
+  // "All Time" silently hid every trip departing in any other year and the
+  // totals never matched the dashboard.
+  const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterTrip, setFilterTrip] = useState('all');
   
@@ -42,16 +50,17 @@ export default function BillingAnalytics() {
 
   const isAdmin = user?.role !== 'TEAM_MEMBER';
 
+  const customRangeInvalid = dateRangePreset === 'custom' && customStartDate && customEndDate && customStartDate > customEndDate;
+
   const dateParams = useMemo(() => {
     const params = {};
     if (dateRangePreset === 'last30') {
       const d = new Date();
       d.setDate(d.getDate() - 30);
-      params.startDate = d.toISOString().split('T')[0];
+      params.startDate = toLocalDay(d);
     } else if (dateRangePreset === 'thisMonth') {
       const d = new Date();
-      const start = new Date(d.getFullYear(), d.getMonth(), 1);
-      params.startDate = start.toISOString().split('T')[0];
+      params.startDate = toLocalDay(new Date(d.getFullYear(), d.getMonth(), 1));
     } else if (dateRangePreset === 'custom') {
       if (customStartDate) params.startDate = customStartDate;
       if (customEndDate) params.endDate = customEndDate;
@@ -60,12 +69,13 @@ export default function BillingAnalytics() {
   }, [dateRangePreset, customStartDate, customEndDate]);
 
   useEffect(() => {
+    if (customRangeInvalid) return;
     setLoading(true);
     dashboardService.getBillingAnalytics(dateParams)
       .then(setData)
       .catch(() => toast.error('Could not load billing analytics.'))
       .finally(() => setLoading(false));
-  }, [dateParams, toast]);
+  }, [dateParams, customRangeInvalid, toast]);
 
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
@@ -236,7 +246,7 @@ export default function BillingAnalytics() {
           
           {/* Date Range Preset */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date Interval</span>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Booked On</span>
             <div className="relative">
               <select
                 value={dateRangePreset}
@@ -258,7 +268,7 @@ export default function BillingAnalytics() {
 
           {/* Year Filter */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Year</span>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Departure Year</span>
             <div className="relative">
               <select
                 value={filterYear}
@@ -280,7 +290,7 @@ export default function BillingAnalytics() {
 
           {/* Month Filter */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Month</span>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Departure Month</span>
             <div className="relative">
               <select
                 value={filterMonth}
@@ -367,6 +377,9 @@ export default function BillingAnalytics() {
                 className="bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer"
               />
             </div>
+            {customRangeInvalid && (
+              <p className="col-span-2 text-xs font-semibold text-rose-600">Start date must be on or before the end date.</p>
+            )}
           </div>
         )}
       </div>
@@ -418,7 +431,7 @@ export default function BillingAnalytics() {
             <MapPin size={20} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-slate-400 leading-tight mb-1 font-medium">Total Bookings</p>
+            <p className="text-xs text-slate-400 leading-tight mb-1 font-medium">Active Bookings <span className="text-slate-300">(excl. cancelled)</span></p>
             <p className="text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-none">{totalBookings}</p>
           </div>
         </div>

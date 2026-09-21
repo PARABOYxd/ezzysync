@@ -204,7 +204,8 @@ async function countLeadsByAssignee(tenantId, { startDate, endDate } = {}) {
     params.push(startDate);
   }
   if (endDate) {
-    sql += ` AND created_at <= $${paramIndex++}`;
+    // Inclusive of the whole end day - `<= '2026-09-30'` stopped at midnight.
+    sql += ` AND created_at < ($${paramIndex++}::date + INTERVAL '1 day')`;
     params.push(endDate);
   }
   sql += ` GROUP BY assigned_to`;
@@ -241,6 +242,21 @@ async function existsByPhone(tenantId, phone) {
     [tenantId, phone, `%${phone}`]
   );
   return rows.length > 0;
+}
+
+/** An open enquiry (not Won/Lost) for the same number, compared on the last 10
+ * digits so "+91 98765 43210" and "9876543210" are recognised as one person. */
+async function findActiveByPhone(tenantId, phone) {
+  const digits = String(phone || '').replace(/\D/g, '').slice(-10);
+  if (digits.length < 7) return null;
+  const { rows } = await query(
+    `SELECT * FROM leads
+     WHERE tenant_id = $1 AND deleted = FALSE AND stage NOT IN ('Won', 'Lost')
+       AND regexp_replace(phone, '\\D', '', 'g') LIKE $2
+     ORDER BY created_at DESC LIMIT 1`,
+    [tenantId, `%${digits}`]
+  );
+  return rows[0] || null;
 }
 
 /** The most recently active lead for this phone, full row - used to fill in
@@ -383,6 +399,7 @@ module.exports = {
   listPool,
   claimLead,
   existsByPhone,
+  findActiveByPhone,
   findByPhone,
   recomputeAllPriorities,
 };

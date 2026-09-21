@@ -145,6 +145,7 @@ async function processIncomingWebhook(body) {
               source: 'WhatsApp',
               stage: 'New',
               notes: `Auto-captured from first WhatsApp message: "${text}"`,
+              bypassDuplicateCheck: true,
             },
             'WhatsApp Bot'
           );

@@ -103,12 +103,12 @@ export default function DashboardLayout() {
 
         {/* Top Grace Notice Banner when Trial/Subscription Expired (Non-blocking) */}
         {isExpired && (
-          <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold shadow-md shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-black/25 text-white font-black text-[10px] uppercase tracking-wider shrink-0">
+          <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white px-3 sm:px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 text-xs font-semibold shadow-md shrink-0">
+            <div className="flex items-start sm:items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-black/25 text-white font-black text-[10px] uppercase tracking-wider shrink-0 mt-0.5 sm:mt-0">
                 {lapsedPlanId ? 'Plan Ended' : 'Trial Ended'}
               </span>
-              <span>
+              <span className="leading-snug">
                 {lapsedPlanId
                   ? 'Your subscription has ended. AI Travel Tools are paused.'
                   : 'Your 30-day free trial has ended. AI Travel Tools & automation are paused.'}
@@ -118,14 +118,14 @@ export default function DashboardLayout() {
             <button
               type="button"
               onClick={() => setPaywallOpen(true)}
-              className="px-3.5 py-1.5 bg-white text-orange-700 hover:bg-orange-50 font-extrabold rounded-lg transition shadow-xs cursor-pointer shrink-0"
+              className="w-full sm:w-auto text-center px-3.5 py-1.5 bg-white text-orange-700 hover:bg-orange-50 font-extrabold rounded-lg transition shadow-xs cursor-pointer shrink-0"
             >
               {lapsedPlanId ? 'Renew Subscription ➔' : 'Upgrade Plan ➔'}
             </button>
           </div>
         )}
 
-        <main className="flex-1 p-4 md:p-8 bg-[var(--bg-page)] w-full max-w-full overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 md:p-8 bg-[var(--bg-page)] w-full max-w-full overflow-x-hidden">
           <Outlet />
         </main>
       </div>

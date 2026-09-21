@@ -303,7 +303,7 @@ export default function FollowUps() {
         ) : (
           <div />
         )}
-        <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40">
+        <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40 overflow-x-auto no-scrollbar w-full sm:w-auto max-w-full">
           {[
             { id: 'pending', label: 'Pending Leads' },
             { id: 'all', label: 'All' },
@@ -314,7 +314,7 @@ export default function FollowUps() {
             <button
               key={tab.id}
               onClick={() => setCurrentSegment(tab.id)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 cursor-pointer ${
                 currentSegment === tab.id
                   ? 'bg-white dark:bg-zinc-900 text-[#F97316] shadow-xs'
                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300'

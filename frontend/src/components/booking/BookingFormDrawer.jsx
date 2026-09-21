@@ -19,6 +19,7 @@ import AiAutofillPanel from './AiAutofillPanel.jsx';
 import CustomerInfoTab from './CustomerInfoTab.jsx';
 import TripDetailsTab from './TripDetailsTab.jsx';
 import FinancialsTab from './FinancialsTab.jsx';
+import { quotationRef } from '../../utils/quotationRef';
 
 const emptyForm = {
   customerName: '', email: '', phone: '', emergencyContact: '', trip: '', departure: '',
@@ -66,7 +67,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
         // would otherwise silently drop an existing booking into "Other".
         if (booking?.trip) {
           const found = booking.sourceQuotationId
-            ? list.find((q) => (q.quotation_id || q.id) === booking.sourceQuotationId)
+            ? list.find((q) => quotationRef(q) === booking.sourceQuotationId)
             : list.find((q) => (q.trip_name || q.tripName) === booking.trip);
           if (!found) setTripOther(true);
         }

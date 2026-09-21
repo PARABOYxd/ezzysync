@@ -43,6 +43,25 @@ async function createLead(tenantId, data, createdBy) {
 
   const customerName = data.customerName || 'New Inquiry';
   data = { ...data, nextFollowUpDate: parseOptionalDate(data.nextFollowUpDate, 'Next follow-up date') };
+
+  // The form has always shown an "Active Enquiry Found" choice for this, but
+  // nothing ever raised it, so the same customer piled up as parallel leads.
+  if (data.phone && !data.bypassDuplicateCheck) {
+    const existing = await leadRepository.findActiveByPhone(tenantId, data.phone);
+    if (existing) {
+      const err = new Error('An active enquiry already exists for this contact.');
+      err.status = 409;
+      err.details = {
+        existingLead: {
+          leadId: existing.lead_id,
+          customerName: existing.customer_name,
+          interest: existing.interest,
+          stage: existing.stage,
+        },
+      };
+      throw err;
+    }
+  }
   const customerId = await customerService.upsertFromContact(tenantId, {
     name: customerName, email: data.email, phone: data.phone,
   });
@@ -108,6 +127,7 @@ async function bulkImportLeads(tenantId, rows, createdBy) {
         source: 'Manual',
         stage: 'New',
         notes: 'Imported from bulk CSV upload.',
+        bypassDuplicateCheck: true,
       }, createdBy);
       result.created += 1;
     } catch (err) {

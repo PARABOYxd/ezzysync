@@ -6,6 +6,7 @@ import {
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import FormRow from '../ui/FormRow.jsx';
+import { quotationRef } from '../../utils/quotationRef';
 
 const TRAVEL_STATUSES = ['Confirming', 'Booked', 'Completed', 'Cancelled', 'Refunded'];
 
@@ -127,7 +128,7 @@ export default function TripDetailsTab({
   // an existing link; falls back to a name match only for older bookings
   // saved before that reference existed.
   const matchedQuotation = form.sourceQuotationId
-    ? quotations.find((q) => (q.quotation_id || q.id) === form.sourceQuotationId)
+    ? quotations.find((q) => quotationRef(q) === form.sourceQuotationId)
     : quotations.find((q) => {
         const name = q.trip_name || q.tripName || '';
         return name && form.trip && name.toLowerCase() === form.trip.toLowerCase();
@@ -173,7 +174,7 @@ export default function TripDetailsTab({
               } else {
                 setTripOther(false);
                 const selected = quotations.find((q) => (q.trip_name || q.tripName || '') === val);
-                setForm({ ...form, trip: val, sourceQuotationId: selected?.quotation_id || selected?.id || '' });
+                setForm({ ...form, trip: val, sourceQuotationId: quotationRef(selected) });
                 if (errors.trip) setErrors({ ...errors, trip: '' });
               }
             }}

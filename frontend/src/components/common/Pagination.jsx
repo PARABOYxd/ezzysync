@@ -46,7 +46,7 @@ export default function Pagination({
           type="button"
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
           title="Previous page"
         >
           <ChevronLeft size={14} />
@@ -67,7 +67,7 @@ export default function Pagination({
               key={p}
               type="button"
               onClick={() => onPageChange(p)}
-              className={`min-w-[32px] h-8 px-2 rounded-lg font-semibold transition ${
+              className={`min-w-[36px] h-9 px-2.5 rounded-lg font-semibold transition ${
                 isActive
                   ? 'bg-brand-600 text-white shadow-sm'
                   : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800'
@@ -82,7 +82,7 @@ export default function Pagination({
           type="button"
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
           title="Next page"
         >
           <span className="hidden sm:inline">Next</span>

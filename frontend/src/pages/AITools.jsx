@@ -221,7 +221,7 @@ export default function AITools() {
 
       {/* Premium Hero Header */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center space-y-3">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-zinc-100">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800 dark:text-zinc-100">
           Supercharge Your Travel Agency with Generative AI
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 leading-relaxed max-w-2xl">
@@ -275,9 +275,9 @@ export default function AITools() {
                 onChange={(e) => setTripName(e.target.value)}
                 inputClassName="text-xs"
               />
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Input
-                  className="col-span-1"
+                  className="sm:col-span-1"
                   label="Duration (Days)"
                   type="number"
                   min={1}
@@ -288,7 +288,7 @@ export default function AITools() {
                   inputClassName="text-xs"
                 />
                 <Input
-                  className="col-span-2"
+                  className="sm:col-span-2"
                   label="Travel Style / Special Requests"
                   placeholder="e.g. luxury, family friendly, veg meals only"
                   value={itineraryNotes}

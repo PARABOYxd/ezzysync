@@ -120,8 +120,9 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
       onSaved?.();
       onClose();
     } catch (err) {
-      if (err.response?.status === 409 && err.response?.data?.existingLead) {
-        setDuplicateWarning(err.response.data.existingLead);
+      const existingLead = err.response?.data?.details?.existingLead;
+      if (err.response?.status === 409 && existingLead) {
+        setDuplicateWarning(existingLead);
         toast.warning('An active enquiry already exists for this contact.');
       } else {
         toast.error(err.response?.data?.message || 'Could not save lead.');

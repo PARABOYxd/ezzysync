@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Layers } from 'lucide-react';
+import { Layers, PlaneTakeoff } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import EmptyState from '../common/EmptyState.jsx';
+
+// Falls back to a neutral icon - it used to fall back to an unrelated stock
+// photo of a person, shown on every trip without its own banner.
+function TripThumb({ src }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center bg-brand-50 text-brand-500 dark:bg-brand-950/20 border border-slate-100 dark:border-zinc-800">
+        <PlaneTakeoff size={18} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-100 dark:border-zinc-800 shrink-0 shadow-sm"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function UpcomingDepartures({ departures }) {
   if (!departures?.length) {
@@ -31,7 +52,7 @@ export default function UpcomingDepartures({ departures }) {
           const batchId = batchData?.batchId || batchData?.id || idx;
           const bookingId = bookingData?.bookingId || bookingData?.id || idx;
           const key = isBatch ? `batch-${batchId}` : `booking-${bookingId}`;
-          const imageUrl = (isBatch ? batchData?.bannerUrl : bookingData?.bannerUrl) || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWCnZIAMEWJEcSm9t5zlxrrW526rXBpZYl5QOjMHHhf51_d878RkgnsbGq&s=10';
+          const imageUrl = isBatch ? batchData?.bannerUrl : bookingData?.bannerUrl;
           
           return (
             <Link
@@ -40,14 +61,7 @@ export default function UpcomingDepartures({ departures }) {
               className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-800/10 hover:border-slate-200 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer transition text-left"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <img 
-                  src={imageUrl} 
-                  alt="Banner" 
-                  className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-100 dark:border-zinc-800 shrink-0 shadow-sm"
-                  onError={(e) => {
-                    e.target.src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWCnZIAMEWJEcSm9t5zlxrrW526rXBpZYl5QOjMHHhf51_d878RkgnsbGq&s=10';
-                  }}
-                />
+                <TripThumb src={imageUrl} />
                 {isBatch ? (
                   <div className="min-w-0 flex-1">
                     <span className="text-[13px] font-bold text-slate-800 dark:text-zinc-100 truncate block">

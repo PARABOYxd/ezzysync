@@ -1,12 +1,23 @@
 import React from 'react';
-import { Briefcase, Calendar, Paperclip, FileText, Loader2, CalendarPlus } from 'lucide-react';
+import { Briefcase, Calendar, Paperclip, FileText, Loader2, CalendarPlus, X } from 'lucide-react';
 import { mediaTypeOf, mediaNameOf } from '../../utils/whatsappMessageFormatters';
 
-export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia, onCreateBooking, creatingBooking }) {
+export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia, onCreateBooking, creatingBooking, onClose }) {
   return (
-    <div className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
+    <div className="w-full md:w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
       <div>
-        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Customer 360°</h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer 360°</h4>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="md:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              aria-label="Close panel"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60">
           <p className="font-bold text-sm text-slate-900 dark:text-white">{selectedChat.customer_name || 'Guest'}</p>
           <p className="text-xs text-slate-500 mt-0.5">+{selectedChat.phone}</p>

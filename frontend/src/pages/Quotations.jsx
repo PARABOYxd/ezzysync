@@ -185,7 +185,7 @@ export default function Quotations() {
               const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
               const durationText = `${q.itineraryDays?.length || 1}D${nights > 0 ? ` / ${nights}N` : ''}`;
               return (
-                <div key={q.quotationId} className="group relative flex flex-col bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 min-h-[250px] max-w-[270px] w-full mx-auto sm:mx-0">
+                <div key={q.quotationId} className="group relative flex flex-col bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 min-h-[250px] w-full sm:max-w-[270px]">
                   
                   {/* Card Cover Image (Uses banner_url if uploaded, falls back to default nature photo) */}
                   <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-zinc-800 border-b border-slate-100 dark:border-zinc-800/60">
@@ -211,28 +211,28 @@ export default function Quotations() {
                   </div>
 
                   {/* Card Bottom Solid Footer Strip (Actions on left, Price on right) */}
-                  <div className="bg-brand-600 dark:bg-brand-700 px-3 py-2 flex justify-between items-center text-white text-xs font-bold border-t border-brand-500/10">
+                  <div className="bg-brand-600 dark:bg-brand-700 px-3 py-1.5 flex justify-between items-center text-white text-xs font-bold border-t border-brand-500/10">
                     
-                    {/* Embedded Action Icon Buttons (white icons with subtle background hover) */}
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Embedded Action Icon Buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => copyPreviewLink(q.id, q.quotationId)}
-                        className="p-1 rounded hover:bg-white/10 text-white/90 hover:text-white transition"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition"
                         title="Copy public link"
                       >
                         {copiedId === q.quotationId ? (
-                          <Check size={13} className="text-emerald-300" />
+                          <Check size={14} className="text-emerald-300" />
                         ) : (
-                          <Copy size={13} />
+                          <Copy size={14} />
                         )}
                       </button>
                       {canCreate && (
                         <button
                           onClick={() => handleDuplicate(q.quotationId)}
-                          className="p-1 rounded hover:bg-white/10 text-white/90 hover:text-white transition"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition"
                           title="Duplicate"
                         >
-                          <Files size={13} />
+                          <Files size={14} />
                         </button>
                       )}
                       {canEdit && (
@@ -241,29 +241,29 @@ export default function Quotations() {
                             setEditingQuotation(q);
                             setFormOpen(true);
                           }}
-                          className="p-1 rounded hover:bg-white/10 text-white/90 hover:text-white transition"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition"
                           title="Edit"
                         >
-                          <Edit size={13} />
+                          <Edit size={14} />
                         </button>
                       )}
                       {canEdit && q.status !== 'Accepted' && (
                         <button
                           onClick={() => handleConvertToBooking(q)}
                           disabled={convertingId === q.quotationId}
-                          className="p-1 rounded hover:bg-white/10 text-white/90 hover:text-white transition disabled:opacity-50"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition disabled:opacity-50"
                           title="Convert to Booking - use when the customer confirmed by phone/in person"
                         >
-                          <CheckCircle size={13} />
+                          <CheckCircle size={14} />
                         </button>
                       )}
                       {canDelete && (
                         <button
                           onClick={() => setDeleteTarget(q)}
-                          className="p-1 rounded hover:bg-rose-600/30 text-rose-200 hover:text-rose-100 transition"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-600/30 active:bg-rose-600/50 text-rose-200 hover:text-rose-100 transition"
                           title="Delete"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>

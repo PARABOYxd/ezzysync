@@ -270,19 +270,19 @@ export default function Hotels() {
                 {canEdit && (
                   <button
                     onClick={() => openEditModal(h)}
-                    className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 transition"
+                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 transition"
                     title="Edit Property"
                   >
-                    <Edit2 size={13} />
+                    <Edit2 size={15} />
                   </button>
                 )}
                 {canDelete && (
                   <button
                     onClick={() => handleDelete(h.id, h.name)}
-                    className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition"
+                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition"
                     title="Delete Property"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={15} />
                   </button>
                 )}
               </div>
@@ -353,27 +353,27 @@ export default function Hotels() {
                   </button>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {contacts.map((contact, idx) => (
-                    <div key={idx} className="flex gap-3 items-end">
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-end p-3 sm:p-0 bg-slate-50/70 sm:bg-transparent dark:bg-zinc-800/40 sm:dark:bg-transparent rounded-xl sm:rounded-none">
                       <div className="flex-1">
-                        {idx === 0 && <label className="label">Contact Name</label>}
+                        <label className="label text-xs sm:text-sm">Contact Name</label>
                         <Input
                           placeholder="e.g. Sunil Sharma"
                           value={contact.name}
                           onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
                         />
                       </div>
-                      <div className="w-28 sm:w-36">
-                        {idx === 0 && <label className="label">Role/Title</label>}
+                      <div className="w-full sm:w-36">
+                        <label className="label text-xs sm:text-sm">Role/Title</label>
                         <Input
                           placeholder="e.g. Sales Manager"
                           value={contact.role}
                           onChange={(e) => handleContactChange(idx, 'role', e.target.value)}
                         />
                       </div>
-                      <div className="w-32 sm:w-44">
-                        {idx === 0 && <label className="label">Phone / Email</label>}
+                      <div className="w-full sm:w-44">
+                        <label className="label text-xs sm:text-sm">Phone / Email</label>
                         <Input
                           placeholder="Phone/Email"
                           value={contact.phone}
@@ -384,7 +384,7 @@ export default function Hotels() {
                         type="button"
                         onClick={() => removeContactRow(idx)}
                         disabled={contacts.length === 1}
-                        className="p-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition mb-0.5 disabled:opacity-50"
+                        className="p-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition self-end sm:self-auto mb-0.5 disabled:opacity-50"
                         title="Remove contact"
                       >
                         <Trash2 size={15} />
@@ -395,7 +395,7 @@ export default function Hotels() {
               </div>
 
               {/* Room and Rates management */}
-              <div className="space-y-3.5 border-t border-slate-100 pt-4">
+              <div className="space-y-3.5 border-t border-slate-100 dark:border-zinc-800 pt-4">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Room categories & tariff rates</h4>
                   <button type="button" onClick={addRoomRow} className="btn-secondary py-1 px-3 text-xs gap-1">
@@ -403,19 +403,19 @@ export default function Hotels() {
                   </button>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {rooms.map((room, idx) => (
-                    <div key={idx} className="flex gap-3 items-end">
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-end p-3 sm:p-0 bg-slate-50/70 sm:bg-transparent dark:bg-zinc-800/40 sm:dark:bg-transparent rounded-xl sm:rounded-none">
                       <div className="flex-1">
-                        {idx === 0 && <label className="label">Room Category Type</label>}
+                        <label className="label text-xs sm:text-sm">Room Category Type</label>
                         <Input
                           placeholder="e.g. Deluxe Room"
                           value={room.roomType}
                           onChange={(e) => handleRoomChange(idx, 'roomType', e.target.value)}
                         />
                       </div>
-                      <div className="w-28 sm:w-36">
-                        {idx === 0 && <label className="label">B2B Cost Price (INR)</label>}
+                      <div className="w-full sm:w-36">
+                        <label className="label text-xs sm:text-sm">B2B Cost Price (INR)</label>
                         <Input
                           placeholder="Cost ₹"
                           type="number"
@@ -423,8 +423,8 @@ export default function Hotels() {
                           onChange={(e) => handleRoomChange(idx, 'costPrice', e.target.value)}
                         />
                       </div>
-                      <div className="w-28 sm:w-36">
-                        {idx === 0 && <label className="label">Selling Price (INR)</label>}
+                      <div className="w-full sm:w-36">
+                        <label className="label text-xs sm:text-sm">Selling Price (INR)</label>
                         <Input
                           placeholder="Sell ₹"
                           type="number"
@@ -436,7 +436,7 @@ export default function Hotels() {
                         type="button"
                         onClick={() => removeRoomRow(idx)}
                         disabled={rooms.length === 1}
-                        className="p-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition mb-0.5 disabled:opacity-50"
+                        className="p-2.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition self-end sm:self-auto mb-0.5 disabled:opacity-50"
                         title="Remove category"
                       >
                         <Trash2 size={15} />

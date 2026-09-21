@@ -15,7 +15,7 @@ async function captureLeadByPublicKey(publicLeadKey, { customerName, email, phon
 
   return leadService.createLead(
     tenantId,
-    { customerName, email, phone, interest, source: 'Landing Page' },
+    { customerName, email, phone, interest, source: 'Landing Page', bypassDuplicateCheck: true },
     'Landing Page Widget'
   );
 }

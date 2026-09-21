@@ -45,7 +45,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950 px-4 relative overflow-hidden">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-slate-50 dark:bg-zinc-950 px-4 py-8 relative overflow-hidden">
       
       {/* Background Decorative Glows */}
       <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-brand-300/10 dark:bg-brand-900/20 filter blur-[90px] -z-10"></div>

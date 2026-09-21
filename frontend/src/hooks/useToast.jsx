@@ -28,6 +28,7 @@ export function ToastProvider({ children }) {
     success: (msg) => push(msg, 'success'),
     error: (msg) => push(msg, 'error'),
     info: (msg) => push(msg, 'info'),
+    warning: (msg) => push(msg, 'warning'),
   };
 
   return (
@@ -43,7 +44,7 @@ export function ToastProvider({ children }) {
             // whitespace-pre-line so the reference id lands on its own line;
             // break-words so a long id cannot push the toast off screen.
             className={`rounded-xl px-4 py-3 shadow-soft text-sm font-medium text-white animate-[fadeIn_.2s_ease] cursor-pointer whitespace-pre-line break-words ${
-              t.type === 'success' ? 'bg-emerald-600' : t.type === 'error' ? 'bg-red-600' : 'bg-slate-800'
+              t.type === 'success' ? 'bg-emerald-600' : t.type === 'error' ? 'bg-red-600' : t.type === 'warning' ? 'bg-amber-600' : 'bg-slate-800'
             }`}
           >
             {t.message}

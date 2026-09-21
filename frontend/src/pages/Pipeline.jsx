@@ -144,7 +144,27 @@ export default function Pipeline() {
       ) : (
         /* True Horizontal Kanban Rail with continuous fixed column widths */
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4 pt-1 min-h-[520px]">
+          {/* Mobile Stage Selector Rail */}
+          <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto no-scrollbar py-1 mb-2">
+            {STAGES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById(`stage-${s}`);
+                  el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }}
+                className="px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <span>{s}</span>
+                <span className="text-[10px] bg-slate-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full font-bold">
+                  {columns[s]?.length || 0}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 min-h-[520px] snap-x snap-mandatory">
             {STAGES.map((stage) => {
               const stageDeals = columns[stage] || [];
               const headerColor = STAGE_HEADER_COLORS[stage] || 'border-t-slate-400 text-slate-700 bg-slate-50';
@@ -152,7 +172,8 @@ export default function Pipeline() {
               return (
                 <div
                   key={stage}
-                  className="w-72 sm:w-80 shrink-0 flex flex-col rounded-xl border border-slate-200/90 bg-slate-50/60 shadow-sm"
+                  id={`stage-${stage}`}
+                  className="w-[85vw] xs:w-72 sm:w-80 shrink-0 flex flex-col rounded-xl border border-slate-200/90 bg-slate-50/60 shadow-sm snap-center"
                 >
                   {/* Column Header */}
                   <div

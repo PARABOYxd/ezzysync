@@ -25,8 +25,8 @@ async function listBookings(tenantId, includeDeleted = false) {
  * column storing an ISO string, not a real timestamp) the same way the JS
  * version did with `.slice(0, 10)`.
  */
-async function getDashboardCounts(tenantId, { teamMember = null, today, thirtyDaysAgo } = {}) {
-  const values = [tenantId, today, thirtyDaysAgo];
+async function getDashboardCounts(tenantId, { teamMember = null, today, thirtyDaysAgo, sixtyDaysAgo } = {}) {
+  const values = [tenantId, today, thirtyDaysAgo, sixtyDaysAgo];
   let teamClause = '';
   if (teamMember) {
     values.push(teamMember);
@@ -47,7 +47,11 @@ async function getDashboardCounts(tenantId, { teamMember = null, today, thirtyDa
        COALESCE(SUM(net_profit) FILTER (WHERE travel_status != 'Cancelled'), 0) AS total_profit,
        COALESCE(SUM(total_amount) FILTER (
          WHERE travel_status != 'Cancelled' AND LEFT(booking_timestamp, 10) >= $3
-       ), 0) AS revenue_30_days
+       ), 0) AS revenue_30_days,
+       COALESCE(SUM(total_amount) FILTER (
+         WHERE travel_status != 'Cancelled' AND LEFT(booking_timestamp, 10) >= $4
+           AND LEFT(booking_timestamp, 10) < $3
+       ), 0) AS revenue_prev_30_days
      FROM bookings
      WHERE tenant_id = $1 AND deleted = FALSE ${teamClause}`,
     values

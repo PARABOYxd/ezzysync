@@ -77,7 +77,7 @@ export default function CustomerProfile() {
               </div>
             </div>
           </div>
-          <div className="flex gap-8 text-xs border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100 dark:border-zinc-800 w-full sm:w-auto">
+          <div className="flex justify-between sm:justify-start gap-4 sm:gap-8 text-xs border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100 dark:border-zinc-800 w-full sm:w-auto">
             <div>
               <span className="block text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-wide mb-1">First Seen</span>
               <span className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-zinc-300"><Calendar size={13} /> {formatDate(customer.first_seen_at)}</span>

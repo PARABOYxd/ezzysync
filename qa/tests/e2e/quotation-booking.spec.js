@@ -1,94 +1,114 @@
-import { test, expect } from '@playwright/test';
-import { setupAuthenticatedSession } from '../helpers/authHelper.js';
+import { test, expect, expectToast, drawer, unique, apiJson, inr, daysFromNow } from '../support/fixtures.js';
+import { createLead } from '../support/seed.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+test.describe.configure({ mode: 'serial' });
 
-test.describe('Quotations & Itinerary to Booking Workflow', () => {
+test.describe('Quotation to booking', () => {
+  const tripName = unique('QA Kerala Backwaters 5N6D');
+  const price = 27500;
+  let quotation;
+  let lead;
 
-  test.beforeEach(async ({ page }) => {
-    await setupAuthenticatedSession(page);
+  test('quotation form requires a trip name', async ({ page }) => {
+    await page.goto('/quotations');
+    await page.getByRole('button', { name: /Create Quotation/ }).click();
+    const form = drawer(page, 'Create Itinerary');
+    await form.getByRole('button', { name: 'Create Itinerary' }).click();
+    await expect(form.getByText('Trip / Package name is required.')).toBeVisible();
   });
 
-  test('TC-QUOTE-01: Create Quotation / Itinerary via Modal and Sync with API', async ({ page }) => {
-    await page.goto(`${BASE_URL}/quotations`);
-    await page.waitForLoadState('networkidle');
+  test('creates a quotation with a price and a day plan; stored exactly', async ({ page, api }) => {
+    await page.goto('/quotations');
+    await page.getByRole('button', { name: /Create Quotation/ }).click();
+    const form = drawer(page, 'Create Itinerary');
+    await form.getByLabel('Trip / Itinerary Name').fill(tripName);
+    await form.getByLabel('Package Price (₹)').fill(String(price));
+    await form.getByLabel('Day Title / Milestone').first().fill('Arrival in Kochi');
 
-    // Click Create Quotation button
-    const createBtn = page.locator('button:has-text("Create Quotation"), button:has-text("Create Quotation / Itinerary")').first();
-    await expect(createBtn).toBeVisible({ timeout: 10000 });
-    await createBtn.click();
+    const created = page.waitForResponse((r) => r.request().method() === 'POST' && /\/api\/quotations$/.test(r.url()));
+    await form.getByRole('button', { name: 'Create Itinerary' }).click();
+    ({ quotation } = await apiJson(await created, 201));
+    await expectToast(page, 'Itinerary created successfully.');
 
-    // Verify Modal opens
-    const modal = page.locator('div[role="dialog"]').first();
-    await expect(modal).toBeVisible();
-
-    const uniqueTrip = `QA_Trip_${Date.now()}`;
-    const uniqueCustomer = `QA_Traveler_${Date.now()}`;
-
-    // Fill Trip and Price inputs scoped to drawer
-    const tripInput = modal.locator('input[placeholder*="Kerala" i], input[placeholder*="Trip" i]').first();
-    const priceInput = modal.locator('input[placeholder*="45000" i], input[type="number"]').first();
-    const day1TitleInput = modal.locator('input[placeholder*="Day 1" i], input[placeholder*="Milestone" i]').first();
-
-    await expect(tripInput).toBeVisible();
-    await tripInput.fill(uniqueTrip);
-    if (await priceInput.isVisible()) await priceInput.fill('45000');
-    if (await day1TitleInput.isVisible()) await day1TitleInput.fill('Arrival & Hotel Check-in');
-
-    // Click Create Itinerary
-    const submitBtn = modal.locator('button:has-text("Create Itinerary")').first();
-    await expect(submitBtn).toBeVisible();
-
-    const [quoteRes] = await Promise.all([
-      page.waitForResponse(res => res.url().includes('/api/quotations') && res.request().method() === 'POST'),
-      submitBtn.click(),
-    ]);
-    expect([200, 201]).toContain(quoteRes.status());
-
-    // Verify quotation card appears in grid
-    await page.waitForTimeout(1000);
-    const tripCard = page.locator(`text=${uniqueTrip}`).first();
-    await expect(tripCard).toBeVisible({ timeout: 8000 });
+    expect(quotation.tripName).toBe(tripName);
+    expect(quotation.priceQuote).toBe(price);
+    expect(quotation.itineraryDays[0].title).toBe('Arrival in Kochi');
+    await expect(page.getByText(tripName).first()).toBeVisible();
   });
 
-  test('TC-QUOTE-02: Convert Quotation directly to Confirmed Booking', async ({ page }) => {
-    await page.goto(`${BASE_URL}/quotations`);
-    await page.waitForLoadState('networkidle');
+  test('marking a lead Won opens conversion pre-filled from the quotation', async ({ page, api }) => {
+    lead = await createLead(api, { customerName: unique('QA Buyer'), interest: tripName, travelers: 2 });
 
-    // Find first quotation card with Convert to Booking action
-    const convertBtn = page.locator('button[title*="Convert to Booking" i]').first();
-    if (await convertBtn.isVisible()) {
-      const [acceptRes] = await Promise.all([
-        page.waitForResponse(res => res.url().includes('/accept') || res.url().includes('/bookings')),
-        convertBtn.click(),
-      ]);
-      expect([200, 201]).toContain(acceptRes.status());
+    await page.goto(`/leads?search=${encodeURIComponent(lead.customerName)}`);
+    await page.locator('tbody tr', { hasText: lead.customerName }).getByTitle('Edit Lead').click();
+    const edit = drawer(page, 'Edit Lead');
+    await edit.getByLabel('Pipeline Stage').selectOption('Won');
+    await edit.getByRole('button', { name: 'Save Changes' }).click();
+    await expectToast(page, 'Please complete the booking conversion to mark this lead as Won.');
 
-      // Verify success notification
-      const toast = page.locator('text=Booking created');
-      await expect(toast).toBeVisible({ timeout: 5000 });
-
-      // Navigate to /bookings and verify booking appears
-      await page.goto(`${BASE_URL}/bookings`);
-      await page.waitForLoadState('networkidle');
-      const table = page.locator('table').first();
-      await expect(table).toBeVisible();
-    }
+    const convert = drawer(page, 'Convert Lead to Booking');
+    await expect(convert).toBeVisible();
+    await expect(convert.getByLabel('Customer Name')).toHaveValue(lead.customerName);
+    await expect(convert.locator('select')).toHaveValue(tripName);
+    await expect(convert.getByLabel('Price Per Person (₹)')).toHaveValue(String(price));
+    await expect(convert.getByLabel('Number of Travelers')).toHaveValue('2');
+    await expect(convert.getByText(`Total: ${inr(2 * price).replace('₹', '₹')}`)).toBeVisible();
   });
 
-  // Parameterized Pricing & Traveler Count Matrix
-  const pricingMatrix = [
-    { travelers: 1, pricePerPerson: 15000, expectedTotal: 15000 },
-    { travelers: 2, pricePerPerson: 22000, expectedTotal: 44000 },
-    { travelers: 4, pricePerPerson: 18500, expectedTotal: 74000 },
-    { travelers: 10, pricePerPerson: 12000, expectedTotal: 120000 },
-  ];
+  test('conversion refuses a past departure date', async ({ page }) => {
+    const convert = await reopenConvert(page, lead);
+    await convert.getByLabel('Departure Date').fill(daysFromNow(-2));
+    await convert.getByRole('button', { name: 'Create Booking' }).click();
+    await expectToast(page, 'Departure date must be in the future.');
+  });
 
-  for (const item of pricingMatrix) {
-    test(`TC-QUOTE-CALC: Pricing logic for ${item.travelers} traveler(s) @ ₹${item.pricePerPerson} = ₹${item.expectedTotal}`, async () => {
-      const computed = item.travelers * item.pricePerPerson;
-      expect(computed).toBe(item.expectedTotal);
-    });
-  }
+  test('converts to a booking with the right total and quotation link', async ({ page, api }) => {
+    const convert = await reopenConvert(page, lead);
+    await convert.getByLabel('Departure Date').fill(daysFromNow(30));
+    await convert.getByLabel('Number of Travelers').fill('3');
+    await expect(convert.getByText(`Total: ${inr(3 * price)}`)).toBeVisible();
 
+    const converted = page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes(`/leads/${lead.leadId}/convert`));
+    await convert.getByRole('button', { name: 'Create Booking' }).click();
+    const result = await apiJson(await converted, 201);
+    await expectToast(page, 'Lead converted to booking!');
+
+    const bookingId = result.booking.bookingId;
+    const { booking } = await apiJson(await api.get(`bookings/${bookingId}`), 200);
+    expect(booking.trip).toBe(tripName);
+    expect(booking.members).toBe(3);
+    expect(booking.pricePerPerson).toBe(price);
+    expect(booking.totalAmount).toBe(3 * price);
+    expect(booking.remaining).toBe(3 * price);
+    expect(booking.customerName).toBe(lead.customerName);
+    // Same reference the quotation accept flow writes, so the "already
+    // booked" checks see this booking too.
+    expect(booking.sourceQuotationId).toBe(quotation.quotationId);
+
+    const { lead: after } = await apiJson(await api.get(`leads/${lead.leadId}`), 200);
+    expect(after.stage).toBe('Won');
+    expect(after.convertedBookingId).toBe(bookingId);
+
+    await page.goto(`/bookings?search=${bookingId}`);
+    const row = page.locator('tbody tr', { hasText: lead.customerName });
+    await expect(row).toBeVisible();
+    await expect(row).toContainText(inr(3 * price));
+  });
+
+  test('a lead cannot be converted twice', async ({ api }) => {
+    const res = await api.post(`leads/${lead.leadId}/convert`, { data: { departure: daysFromNow(40), members: 1, pricePerPerson: 100 } });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).message).toContain('already been converted');
+  });
 });
+
+async function reopenConvert(page, lead) {
+  await page.goto(`/leads?search=${encodeURIComponent(lead.customerName)}`);
+  await page.locator('tbody tr', { hasText: lead.customerName }).getByTitle('Edit Lead').click();
+  const edit = drawer(page, 'Edit Lead');
+  await edit.getByLabel('Pipeline Stage').selectOption('Won');
+  await edit.getByRole('button', { name: 'Save Changes' }).click();
+  const convert = drawer(page, 'Convert Lead to Booking');
+  await expect(convert).toBeVisible();
+  return convert;
+}

@@ -1,125 +1,90 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loginThroughUi, expectToast } from '../support/fixtures.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-const TEST_USERNAME = process.env.TEST_USERNAME || 'qa_tester@test.local';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || 'Password@123';
+// Every test here starts logged out, in its own fresh browser context.
+async function loggedOutPage(browser, testInfo) {
+  // storageState must be emptied explicitly - otherwise newContext() inherits
+  // the worker's logged-in session from the config.
+  const context = await browser.newContext({
+    baseURL: testInfo.project.use.baseURL,
+    storageState: { cookies: [], origins: [] },
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem('journeyflow_tour_status', 'completed');
+    localStorage.setItem('journeyflow_tour_done', 'true');
+  });
+  return context.newPage();
+}
 
-test.describe('Authentication & Access Control Workflow', () => {
+test.describe('Authentication', () => {
+  test('empty submit shows field errors and never calls the API', async ({ browser }, testInfo) => {
+    const page = await loggedOutPage(browser, testInfo);
+    let loginCalls = 0;
+    page.on('request', (r) => { if (r.url().endsWith('/auth/login')) loginCalls += 1; });
 
-  test('TC-AUTH-01: Empty login form submission displays inline validation errors', async ({ page }) => {
-    await page.goto(`${BASE_URL}/login`);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/login');
+    await page.getByRole('button', { name: 'Login', exact: true }).click();
 
-    // Attempt to submit empty form
-    const submitBtn = page.locator('button[type="submit"]');
-    await expect(submitBtn).toBeVisible();
-    await submitBtn.click();
-
-    // Verify validation error messages render under inputs
-    const emailError = page.locator('text=Email address is required.');
-    const passwordError = page.locator('text=Password is required.');
-    await expect(emailError).toBeVisible();
-    await expect(passwordError).toBeVisible();
-
-    // Ensure user stays on /login
-    expect(page.url()).toContain('/login');
+    await expect(page.getByText('Email address is required.')).toBeVisible();
+    await expect(page.getByText('Password is required.')).toBeVisible();
+    expect(loginCalls).toBe(0);
+    await expect(page).toHaveURL(/\/login$/);
   });
 
-  test('TC-AUTH-02: Invalid email format triggers client-side validation without API call', async ({ page }) => {
-    await page.goto(`${BASE_URL}/login`);
-    await page.waitForLoadState('networkidle');
-
-    let apiCallMade = false;
-    page.on('request', req => {
-      if (req.url().includes('/api/auth/login')) apiCallMade = true;
-    });
-
-    await page.fill('input[type="email"]', 'not-an-email');
-    await page.fill('input[type="password"]', 'Short1!');
-    await page.click('button[type="submit"]');
-
-    const errorMsg = page.locator('text=Enter a valid email address.');
-    await expect(errorMsg).toBeVisible();
-    expect(apiCallMade).toBe(false);
+  test('malformed email is rejected client-side', async ({ browser }, testInfo) => {
+    const page = await loggedOutPage(browser, testInfo);
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('not-an-email');
+    await page.getByLabel('Password').fill('whatever123');
+    await page.getByRole('button', { name: 'Login', exact: true }).click();
+    await expect(page.getByText('Enter a valid email address.')).toBeVisible();
   });
 
-  test('TC-AUTH-03: Valid credentials log in successfully, sync API response & redirect to Dashboard', async ({ page }) => {
-    // Suppress tour before login
-    await page.addInitScript(() => {
-      localStorage.setItem('journeyflow_tour_status', 'completed');
-      localStorage.setItem('journeyflow_tour_done', 'true');
-    });
+  test('wrong password is rejected by the server with a readable message', async ({ browser, account }, testInfo) => {
+    const page = await loggedOutPage(browser, testInfo);
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(account.email);
+    await page.getByLabel('Password').fill(`${account.password}-wrong`);
+    const res = page.waitForResponse((r) => r.url().endsWith('/auth/login'));
+    await page.getByRole('button', { name: 'Login', exact: true }).click();
 
-    await page.goto(`${BASE_URL}/login`);
-    await page.waitForLoadState('networkidle');
+    expect((await res).status()).toBe(401);
+    await expectToast(page, 'Invalid email or password.');
+    await expect(page).toHaveURL(/\/login$/);
+    expect(await page.evaluate(() => localStorage.getItem('hf_token'))).toBeNull();
+  });
 
-    await page.fill('input[type="email"]', TEST_USERNAME);
-    await page.fill('input[type="password"]', TEST_PASSWORD);
+  test('unknown account gets the same message - no account enumeration', async ({ browser }, testInfo) => {
+    const page = await loggedOutPage(browser, testInfo);
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(`nobody-${Date.now()}@ezzysync.test`);
+    await page.getByLabel('Password').fill('SomePassword1!');
+    const res = page.waitForResponse((r) => r.url().endsWith('/auth/login'));
+    await page.getByRole('button', { name: 'Login', exact: true }).click();
+    expect((await res).status()).toBe(401);
+    await expectToast(page, 'Invalid email or password.');
+  });
 
-    // Click submit and wait for API response
-    const [loginResponse] = await Promise.all([
-      page.waitForResponse(res => res.url().includes('/api/auth/login')),
-      page.click('button[type="submit"]'),
-    ]);
-
-    expect([200, 429]).toContain(loginResponse.status());
-
-    if (loginResponse.status() === 200) {
-      await page.waitForURL('**/dashboard', { timeout: 10000 });
-      expect(page.url()).toContain('/dashboard');
-
-      // Verify token in localStorage
-      const token = await page.evaluate(() => localStorage.getItem('hf_token'));
-      expect(token).toBeTruthy();
+  test('protected pages redirect to login when signed out', async ({ browser }, testInfo) => {
+    const page = await loggedOutPage(browser, testInfo);
+    for (const route of ['/dashboard', '/bookings', '/billing', '/leads']) {
+      await page.goto(route);
+      await expect(page).toHaveURL(/\/login$/);
     }
   });
 
-  test('TC-AUTH-04: Logout flow clears session and redirects back to /login', async ({ page }) => {
-    // Setup pre-authenticated session
-    const { setupAuthenticatedSession } = await import('../helpers/authHelper.js');
-    await setupAuthenticatedSession(page);
+  test('valid login lands on the dashboard as this tenant, then logout ends the session', async ({ browser, account }, testInfo) => {
+    const page = await loggedOutPage(browser, testInfo);
+    await loginThroughUi(page, account);
+    await expectToast(page, 'Welcome back!');
+    await expect(page.getByText(account.companyName).first()).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('hf_token'))).toBeTruthy();
 
-    await page.goto(`${BASE_URL}/dashboard`);
-    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Logout' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    expect(await page.evaluate(() => localStorage.getItem('hf_token'))).toBeNull();
 
-    // Click Logout in sidebar
-    const logoutBtn = page.locator('aside button:has-text("Logout"), button:has-text("Logout")').first();
-    await expect(logoutBtn).toBeVisible();
-    await logoutBtn.click();
-
-    // Verify redirected to login
-    await page.waitForURL('**/login', { timeout: 10000 });
-    expect(page.url()).toContain('/login');
-
-    // Verify tokens removed
-    const tokenAfter = await page.evaluate(() => localStorage.getItem('hf_token'));
-    expect(tokenAfter).toBeNull();
+    // The old session must not come back on navigation.
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/login$/);
   });
-
-  // Parameterized Route Guard Verification Matrix
-  const protectedRoutes = [
-    '/dashboard',
-    '/leads',
-    '/pipeline',
-    '/follow-ups',
-    '/bookings',
-    '/upcoming-trips',
-    '/quotations',
-    '/invoices',
-    '/customers',
-    '/settings',
-    '/team',
-    '/hotels',
-  ];
-
-  for (const route of protectedRoutes) {
-    test(`TC-AUTH-GUARD: Unauthenticated direct access to ${route} redirects to /login`, async ({ page }) => {
-      await page.goto(`${BASE_URL}${route}`);
-      await page.waitForLoadState('networkidle');
-
-      // Must be redirected to /login
-      expect(page.url()).toContain('/login');
-    });
-  }
-
 });

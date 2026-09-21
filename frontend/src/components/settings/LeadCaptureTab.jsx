@@ -122,13 +122,13 @@ export default function LeadCaptureTab() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-zinc-800 rounded-xl p-4">
             <div>
-              <p className="text-sm font-semibold text-slate-700">Regenerate Capture Link</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-zinc-200">Regenerate Capture Link</p>
               <p className="text-xs text-slate-400 mt-0.5">Invalidates the current embed everywhere it's published. Use if the link has leaked.</p>
             </div>
-            <Button type="button" variant="ghost" onClick={handleRegenerateKey} disabled={regenerating} className="text-xs gap-1.5">
-              <RefreshCw size={14} /> {regenerating ? 'Regenerating...' : 'Regenerate'}
+            <Button type="button" variant="ghost" onClick={handleRegenerateKey} disabled={regenerating} className="text-xs gap-1.5 shrink-0">
+              <RefreshCw size={14} className={regenerating ? 'animate-spin' : ''} /> {regenerating ? 'Regenerating...' : 'Regenerate'}
             </Button>
           </div>
         </>

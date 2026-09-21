@@ -62,7 +62,7 @@ export default function Sidebar({ open, onClose }) {
           to={to}
           onClick={onClose}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] font-medium transition select-none relative ${
+            `flex items-center gap-3 px-3 h-10 sm:h-9 rounded-lg text-[13.5px] sm:text-[13px] font-medium transition select-none relative ${
               isActive 
                 ? 'bg-[#FFF7ED] dark:bg-zinc-900 text-[#F97316] font-semibold border-l-2 border-[#F97316] rounded-l-none' 
                 : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/40 hover:text-slate-900 dark:hover:text-zinc-100'
@@ -98,34 +98,52 @@ export default function Sidebar({ open, onClose }) {
     ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  // Lock body scroll when mobile sidebar is open
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
   return (
     <>
-      {open && <div className="fixed inset-0 bg-slate-900/40 z-30 md:hidden" onClick={onClose} />}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-40 md:hidden transition-opacity animate-fade-in" 
+          onClick={onClose} 
+          aria-hidden="true"
+        />
+      )}
       <aside
         id="tour-sidebar"
-        className={`fixed md:sticky top-0 z-40 h-screen w-[240px] bg-[#FBFCFD] dark:bg-zinc-950 border-r border-[var(--border)] flex flex-col
-        transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+        className={`fixed md:sticky top-0 z-50 md:z-20 h-screen w-[270px] max-w-[85vw] md:w-[240px] bg-[#FBFCFD] dark:bg-zinc-950 border-r border-[var(--border)] flex flex-col shadow-2xl md:shadow-none
+        transition-transform duration-250 ease-out ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Logo Area */}
-        <div className="flex items-center justify-between px-5 h-[56px] border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-5 h-[56px] border-b border-[var(--border)] shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#F97316] text-white flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-[#F97316] text-white flex items-center justify-center shadow-xs">
               <Compass size={16} />
             </div>
             <span className="font-bold text-slate-800 dark:text-zinc-100 text-sm tracking-tight">EzzySync</span>
           </div>
           <button
-            className="md:hidden text-[var(--text-light)]"
+            className="md:hidden p-2 -mr-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition cursor-pointer"
             onClick={onClose}
             aria-label="Close sidebar navigation"
             title="Close sidebar"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Navigation Group list */}
-        <nav className="flex-1 px-2 py-2 overflow-y-auto space-y-1 no-scrollbar">
+        <nav className="flex-1 px-2.5 py-2 overflow-y-auto space-y-1 overscroll-contain">
           {renderSection('Main', mainLinks)}
           {renderSection('Sales', salesLinks)}
           {renderSection('Billing', billingLinks)}

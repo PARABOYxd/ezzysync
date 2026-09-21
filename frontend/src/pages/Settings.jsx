@@ -158,11 +158,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Tabs Navigator */}
-      <div className="flex gap-2 border-b border-slate-100 pb-px overflow-x-auto whitespace-nowrap no-scrollbar">
+      <div className="flex gap-2 border-b border-slate-100 dark:border-zinc-800 pb-px overflow-x-auto whitespace-nowrap no-scrollbar">
         <button
           onClick={() => setActiveTab('general')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'general'
-            ? 'border-brand-600 text-brand-700'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition shrink-0 min-h-[44px] ${activeTab === 'general'
+            ? 'border-brand-600 text-brand-700 dark:text-brand-400'
             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
             }`}
         >
@@ -171,8 +171,8 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab('invoice')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'invoice'
-            ? 'border-brand-600 text-brand-700'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition shrink-0 min-h-[44px] ${activeTab === 'invoice'
+            ? 'border-brand-600 text-brand-700 dark:text-brand-400'
             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
             }`}
         >
@@ -183,8 +183,8 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('whatsapp')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'whatsapp'
-              ? 'border-brand-600 text-brand-700'
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition shrink-0 min-h-[44px] ${activeTab === 'whatsapp'
+              ? 'border-brand-600 text-brand-700 dark:text-brand-400'
               : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
               }`}
           >
@@ -196,8 +196,8 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('instagram')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'instagram'
-              ? 'border-brand-600 text-brand-700'
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition shrink-0 min-h-[44px] ${activeTab === 'instagram'
+              ? 'border-brand-600 text-brand-700 dark:text-brand-400'
               : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
               }`}
           >
@@ -209,8 +209,8 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('leadCapture')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'leadCapture'
-              ? 'border-brand-600 text-brand-700'
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition shrink-0 min-h-[44px] ${activeTab === 'leadCapture'
+              ? 'border-brand-600 text-brand-700 dark:text-brand-400'
               : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
               }`}
           >

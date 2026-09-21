@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { ChevronDown } from 'lucide-react';
 import Label from './Label.jsx';
 import Helper from './Helper.jsx';
@@ -15,9 +15,11 @@ export default function Select({
   inputClassName = '',
   ...props
 }) {
+  const generatedId = useId();
+  const inputId = props.id || generatedId;
   return (
     <div className={className}>
-      <Label required={required} accent={accentAsterisk}>{label}</Label>
+      <Label htmlFor={inputId} required={required} accent={accentAsterisk}>{label}</Label>
       <div className="relative">
         {Icon && (
           <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -30,6 +32,8 @@ export default function Select({
             ${error ? 'border-red-400 focus:ring-red-500/15 focus:border-red-400' : ''}
             ${inputClassName}`}
           {...props}
+          id={inputId}
+          aria-required={required || undefined}
         >
           {options.map((opt) => {
             const isObj = typeof opt === 'object' && opt !== null;
