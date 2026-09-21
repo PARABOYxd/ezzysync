@@ -23,6 +23,7 @@ reports/traces/*.zip
 !reports/traces/.gitkeep
 
 # 5. Generated test reports (Keep folder structure, ignore dynamic run output)
+reports/e2e-html/
 reports/index.html
 reports/*.html
 reports/bugs.json

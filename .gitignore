@@ -44,16 +44,6 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-sessions/
-backend/sessions/
-
-# Media that landed on local disk because R2 was not configured. These are
-# real customer photos and PDFs from WhatsApp chats - 49 MB of them at the
-# time of writing - and they belong in object storage, never in git history,
-# where they cannot be deleted afterwards.
-uploads/
-backend/uploads/
-backend/private-uploads/
 
 # QA Test System: Local environment, secrets, and generated artifacts
 qa/.env
@@ -64,11 +54,7 @@ qa/reports/screenshots/*.png
 !qa/reports/screenshots/.gitkeep
 qa/reports/traces/*.zip
 !qa/reports/traces/.gitkeep
-qa/reports/index.html
-qa/reports/bugs.json
-qa/reports/coverage.md
-qa/reports/test-summary.md
-qa/reports/application-map.md
-qa/reports/bug-report.md
+qa/reports/e2e-html/
+qa/reports/*.html
 qa/test-results/
 

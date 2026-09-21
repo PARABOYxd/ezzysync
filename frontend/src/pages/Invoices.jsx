@@ -151,7 +151,7 @@ export default function Invoices() {
       <BookingViewDrawer
         open={!!viewingBookingId}
         onClose={() => setViewingBookingId(null)}
-        bookingId={viewingBookingId}
+        booking={bookings.find(b => b.bookingId === viewingBookingId)}
         onRefresh={() => {
           bookingService
             .getBookings({ search: debouncedSearch, sort: 'newest', page, limit: 15 })

@@ -55,6 +55,9 @@ export default function Drawer({ open, onClose, title, children, size = 'md' }) 
       {/* Drawer Surface */}
       <div 
         ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : 'Side Drawer'}
         className={`relative bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 h-full flex flex-col shadow-2xl transition-transform duration-200 ease-out transform translate-x-0 ${widthClass}`}
       >
         {/* Header: 64px tall */}

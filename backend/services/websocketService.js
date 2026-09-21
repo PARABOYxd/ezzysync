@@ -1,10 +1,19 @@
-const ws = require('ws');
+let ws;
+try {
+  ws = require('ws');
+} catch (e) {
+  // ws optional or fallback
+}
 const logger = require('../utils/logger');
 
 let wss;
 const clients = new Set();
 
 function init(server) {
+  if (!ws) {
+    logger.warn('WebSocket library (ws) not available.');
+    return;
+  }
   wss = new ws.Server({ server });
   logger.info('WebSocket Server initialized.');
 

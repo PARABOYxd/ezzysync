@@ -9,17 +9,20 @@
     "qa:production": "node scripts/run-production-qa.js",
     "qa:adversarial": "node scripts/run-adversarial-qa.js",
     "qa:deep": "node scripts/run-deep-qa.js",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report reports/e2e-html",
     "report": "node scripts/open-report.js",
-    "clean": "node scripts/clean-reports.js",
-    "qa:all": "node run-all.js",
-    "qa:matrix": "node matrix/index.js",
-    "qa:backend": "node run-all.js --skip-matrix",
-    "qa:quick": "node run-all.js --skip-vitest --concurrency=12"
+    "clean": "node scripts/clean-reports.js"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.73",
     "dotenv": "^16.4.7",
     "openqa": "0.0.10",
     "playwright": "^1.50.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }
