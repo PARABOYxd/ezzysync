@@ -14,10 +14,16 @@ const { createTenant, resetTenantData, unique } = helpers;
  *
  * Every test below either reproduces an incident this project already had
  * (a cheap plan silently replacing an active expensive one, the amount
- * coming from the browser instead of the price list) or documents a gap
- * that is still open (the webhook route accepting an unsigned payload) so
- * it cannot be tightened without a test noticing.
+ * coming from the browser instead of the price list) or closes a gap that
+ * was open (the webhook route accepting an unsigned payload).
  */
+
+/** A webhook request signed the way Razorpay signs it: HMAC of the raw bytes. */
+function signedWebhook(body) {
+  const rawBody = Buffer.from(JSON.stringify(body));
+  const signature = crypto.createHmac('sha256', env.razorpayWebhookSecret).update(rawBody).digest('hex');
+  return { headers: { 'x-razorpay-signature': signature }, rawBody, body };
+}
 
 function mockRes() {
   const res = { statusCode: 200, body: null };
@@ -231,14 +237,10 @@ describe('Payments', () => {
         tenantId: tenant.tenantId, userId: tenant.userId, orderId, planId: 'PRO', amount: 249900,
       });
 
-      const req = {
-        headers: { 'x-razorpay-signature': 'irrelevant-see-next-test' },
-        rawBody: undefined,
-        body: {
-          event: 'order.paid',
-          payload: { order: { entity: { id: orderId } }, payment: { entity: { id: unique('pay') } } },
-        },
-      };
+      const req = signedWebhook({
+        event: 'order.paid',
+        payload: { order: { entity: { id: orderId } }, payment: { entity: { id: unique('pay') } } },
+      });
       const res = mockRes();
       await paymentController.handleRazorpayWebhook(req, res);
 
@@ -254,11 +256,9 @@ describe('Payments', () => {
         tenantId: tenant.tenantId, userId: tenant.userId, orderId, planId: 'SOLO', amount: 99900,
       });
 
-      const req = {
-        headers: {},
-        rawBody: undefined,
-        body: { event: 'payment.failed', payload: { payment: { entity: { order_id: orderId, id: unique('pay') } } } },
-      };
+      const req = signedWebhook({
+        event: 'payment.failed', payload: { payment: { entity: { order_id: orderId, id: unique('pay') } } },
+      });
       const res = mockRes();
       await paymentController.handleRazorpayWebhook(req, res);
 
@@ -267,12 +267,10 @@ describe('Payments', () => {
       expect(rows[0].status).toBe('failed');
     });
 
-    it('KNOWN GAP: a webhook with no signature header is processed instead of refused', async () => {
-      // handleRazorpayWebhook only verifies when `signature && req.rawBody`
-      // are both present; neither is set here, and verification is skipped
-      // rather than the request being rejected. If this guard is tightened to
-      // refuse an unsigned webhook, this test's expectation of a plan change
-      // should flip to expecting a 400 - that is the point of writing it down.
+    it('refuses a webhook with no signature, and does not change the plan', async () => {
+      // This was a documented gap: with no header, verification was skipped
+      // and the plan was upgraded. Anyone able to create an order could post
+      // `order.paid` for it and never pay.
       const tenant = await createTenant({ planId: 'FREE' });
       const orderId = unique('order');
       await paymentRepository.createPaymentRecord({
@@ -290,17 +288,32 @@ describe('Payments', () => {
       const res = mockRes();
       await paymentController.handleRazorpayWebhook(req, res);
 
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(400);
       const { rows } = await query('SELECT plan_id FROM tenants WHERE id = $1', [tenant.tenantId]);
-      expect(rows[0].plan_id).toBe('SOLO');
+      expect(rows[0].plan_id).toBe('FREE');
+    });
+
+    it('refuses a webhook whose signature does not match the body', async () => {
+      const tenant = await createTenant({ planId: 'FREE' });
+      const orderId = unique('order');
+      await paymentRepository.createPaymentRecord({
+        tenantId: tenant.tenantId, userId: tenant.userId, orderId, planId: 'SOLO', amount: 99900,
+      });
+      const req = signedWebhook({ event: 'order.paid', payload: { order: { entity: { id: 'some-other-order' } } } });
+      req.body = { event: 'order.paid', payload: { order: { entity: { id: orderId } } } };
+      req.rawBody = Buffer.from(JSON.stringify(req.body));
+
+      const res = mockRes();
+      await paymentController.handleRazorpayWebhook(req, res);
+      expect(res.statusCode).toBe(400);
+      const { rows } = await query('SELECT plan_id FROM tenants WHERE id = $1', [tenant.tenantId]);
+      expect(rows[0].plan_id).toBe('FREE');
     });
 
     it('ignores an event for an order it has never seen', async () => {
-      const req = {
-        headers: {},
-        rawBody: undefined,
-        body: { event: 'order.paid', payload: { order: { entity: { id: 'no-such-order' } }, payment: { entity: { id: 'x' } } } },
-      };
+      const req = signedWebhook({
+        event: 'order.paid', payload: { order: { entity: { id: 'no-such-order' } }, payment: { entity: { id: 'x' } } },
+      });
       const res = mockRes();
       await paymentController.handleRazorpayWebhook(req, res);
       expect(res.statusCode).toBe(200); // Razorpay still gets a 200 so it stops retrying

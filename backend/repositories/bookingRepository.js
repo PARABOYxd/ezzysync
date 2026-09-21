@@ -245,7 +245,10 @@ async function insertBooking(tenantId, bookingId, data, now, paid, totalAmount, 
      RETURNING *`,
     [
       tenantId, bookingId, data.customerName, data.email || '', data.phone, data.emergencyContact || '',
-      data.trip, data.departure, data.pickup || '', Number(data.members || 0), Number(data.pricePerPerson || 0),
+      // An Enquiry may not have a trip or date yet (bookingValidators only
+      // require them from Booked on), but both columns are NOT NULL - so every
+      // early-stage booking without them was refused by the database.
+      data.trip || '', data.departure || '', data.pickup || '', Number(data.members || 0), Number(data.pricePerPerson || 0),
       totalAmount, paid, remaining, data.teamMember || '', travelStatus, paymentStatus, now,
       data.notes || '', createdBy || '', now,
       hotelCost, flightCost, transportCost, otherCost, netProfit,
@@ -453,7 +456,11 @@ async function insertFollowUp(tenantId, bookingIdText, note, activityType, nextF
     [tenantId, bookingIdText]
   );
   if (bRows.length === 0) {
-    throw new Error('Booking not found.');
+    // 404, not a bare Error: the tenant filter above is what makes this
+    // "not found" for another tenant's id, and a bare Error surfaced as a 500.
+    const err = new Error('Booking not found.');
+    err.status = 404;
+    throw err;
   }
   const bookingUuid = bRows[0].id;
 
@@ -487,67 +494,105 @@ async function listPayments(tenantId, bookingIdText) {
 }
 
 /**
+ * Runs `fn` inside one transaction on one connection.
+ *
+ * The payment functions below read a booking's running total, change it and
+ * write it back. Done as separate statements on the pool, two payments
+ * recorded at the same moment both read the old total and the later write
+ * erased the earlier one - the ledger showed two rows and the booking counted
+ * one. The row lock (SELECT ... FOR UPDATE) makes the second wait for the
+ * first, and the transaction keeps the ledger row and the total together.
+ */
+async function inTransaction(fn) {
+  const { pool } = require('../config/db');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+function totalsAfter(totalAmount, paid) {
+  const remaining = Math.max(Number(totalAmount || 0) - paid, 0);
+  const paymentStatus = remaining <= 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+  return { remaining, paymentStatus };
+}
+
+/**
  * Logs one payment and rolls it straight into the booking's running totals
  * - the alternative (log the row, then a separate request recomputes
  * paid/remaining) leaves a window where the two disagree if that second
  * call never happens.
  */
 async function insertPayment(tenantId, bookingIdText, { amount, method, reference, paidOn, notes, createdBy }) {
-  const { rows: bRows } = await query(
-    `SELECT id, total_amount, paid FROM bookings WHERE tenant_id = $1 AND booking_id = $2`,
-    [tenantId, bookingIdText]
-  );
-  if (bRows.length === 0) {
-    return null;
-  }
-  const booking = bRows[0];
-  const newPaid = Number(booking.paid || 0) + Number(amount);
-  const newRemaining = Math.max(Number(booking.total_amount || 0) - newPaid, 0);
-  const paymentStatus = newRemaining <= 0 ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+  return inTransaction(async (client) => {
+    const { rows: bRows } = await client.query(
+      `SELECT id, total_amount, paid FROM bookings WHERE tenant_id = $1 AND booking_id = $2 FOR UPDATE`,
+      [tenantId, bookingIdText]
+    );
+    if (bRows.length === 0) {
+      return null;
+    }
+    const booking = bRows[0];
+    const newPaid = Number(booking.paid || 0) + Number(amount);
+    const { remaining: newRemaining, paymentStatus } = totalsAfter(booking.total_amount, newPaid);
 
-  const { rows: pRows } = await query(
-    `INSERT INTO booking_payments (tenant_id, booking_id, amount, method, reference, paid_on, notes, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING *`,
-    [tenantId, booking.id, amount, method || 'Cash', reference || '', paidOn, notes || '', createdBy || '']
-  );
+    const { rows: pRows } = await client.query(
+      `INSERT INTO booking_payments (tenant_id, booking_id, amount, method, reference, paid_on, notes, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [tenantId, booking.id, amount, method || 'Cash', reference || '', paidOn, notes || '', createdBy || '']
+    );
 
-  await query(
-    `UPDATE bookings SET paid = $1, remaining = $2, payment_status = $3 WHERE id = $4`,
-    [newPaid, newRemaining, paymentStatus, booking.id]
-  );
+    await client.query(
+      `UPDATE bookings SET paid = $1, remaining = $2, payment_status = $3 WHERE id = $4`,
+      [newPaid, newRemaining, paymentStatus, booking.id]
+    );
 
-  return { payment: pRows[0], paid: newPaid, remaining: newRemaining, paymentStatus };
+    return { payment: pRows[0], paid: newPaid, remaining: newRemaining, paymentStatus };
+  });
 }
 
 async function deletePayment(tenantId, bookingIdText, paymentId) {
-  const { rows: bRows } = await query(
-    `SELECT id, total_amount, paid FROM bookings WHERE tenant_id = $1 AND booking_id = $2`,
-    [tenantId, bookingIdText]
-  );
-  if (bRows.length === 0) {
-    throw new Error('Booking not found.');
-  }
-  const booking = bRows[0];
+  return inTransaction(async (client) => {
+    const { rows: bRows } = await client.query(
+      `SELECT id, total_amount, paid FROM bookings WHERE tenant_id = $1 AND booking_id = $2 FOR UPDATE`,
+      [tenantId, bookingIdText]
+    );
+    if (bRows.length === 0) {
+      // 404, not a bare Error: the tenant filter above is what makes this
+      // "not found" for another tenant's id, and a bare Error surfaced as a 500.
+      const err = new Error('Booking not found.');
+      err.status = 404;
+      throw err;
+    }
+    const booking = bRows[0];
 
-  const { rows: delRows } = await query(
-    `DELETE FROM booking_payments WHERE tenant_id = $1 AND booking_id = $2 AND id = $3 RETURNING amount`,
-    [tenantId, booking.id, paymentId]
-  );
-  if (delRows.length === 0) {
-    return null;
-  }
+    const { rows: delRows } = await client.query(
+      `DELETE FROM booking_payments WHERE tenant_id = $1 AND booking_id = $2 AND id = $3 RETURNING amount`,
+      [tenantId, booking.id, paymentId]
+    );
+    if (delRows.length === 0) {
+      return null;
+    }
 
-  const newPaid = Math.max(Number(booking.paid || 0) - Number(delRows[0].amount), 0);
-  const newRemaining = Math.max(Number(booking.total_amount || 0) - newPaid, 0);
-  const paymentStatus = newRemaining <= 0 ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+    const newPaid = Math.max(Number(booking.paid || 0) - Number(delRows[0].amount), 0);
+    const { remaining: newRemaining, paymentStatus } = totalsAfter(booking.total_amount, newPaid);
 
-  await query(
-    `UPDATE bookings SET paid = $1, remaining = $2, payment_status = $3 WHERE id = $4`,
-    [newPaid, newRemaining, paymentStatus, booking.id]
-  );
+    await client.query(
+      `UPDATE bookings SET paid = $1, remaining = $2, payment_status = $3 WHERE id = $4`,
+      [newPaid, newRemaining, paymentStatus, booking.id]
+    );
 
-  return { paid: newPaid, remaining: newRemaining, paymentStatus };
+    return { paid: newPaid, remaining: newRemaining, paymentStatus };
+  });
 }
 
 /*

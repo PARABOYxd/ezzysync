@@ -90,6 +90,24 @@ export function generate(ctx) {
         'The outstanding balance did not move with the payments.',
         { remaining: b.remaining, total: b.total_amount ?? b.totalAmount });
 
+      // The paid total is the ledger's to move, not the edit form's.
+      await request({ method: 'put', path: `/api/bookings/${bookingId}`, token: ctx.users.memberA.token, body: { paid: 20000, notes: 'QA ledger bypass attempt' } });
+      const afterPut = await request({ method: 'get', path: `/api/bookings/${bookingId}`, token: admin() });
+      const bp = afterPut.body?.data || afterPut.body?.booking || afterPut.body;
+      assert('paid-not-settable-by-update', num(bp.paid) === 12000, SEVERITY.critical,
+        'A booking update set the paid amount directly. Anyone with bookings.update could mark a trip paid with no payment in the ledger behind it.',
+        { paid: bp.paid, expected: 12000 });
+
+      // Five payments at once must all land.
+      const before = num(bp.paid);
+      await Promise.all([100, 200, 300, 400, 500].map((amount) =>
+        request({ method: 'post', path: `/api/bookings/${bookingId}/payments`, token: admin(), body: { amount, method: 'UPI' } })));
+      const afterBurst = await request({ method: 'get', path: `/api/bookings/${bookingId}`, token: admin() });
+      const bb = afterBurst.body?.data || afterBurst.body?.booking || afterBurst.body;
+      assert('concurrent-payments-all-counted', num(bb.paid) === before + 1500, SEVERITY.critical,
+        'Payments recorded at the same moment were not all added to the booking total - one overwrote another, so money received is missing from the balance.',
+        { paid: bb.paid, expected: before + 1500 });
+
       const negative = await request({ method: 'post', path: `/api/bookings/${bookingId}/payments`, token: admin(), body: { amount: -5000, method: 'Cash' } });
       assert('negative-payment-refused', negative.status >= 400, SEVERITY.high,
         'A payment of a negative amount was accepted, which silently reduces what a customer has paid with no audit trail of a refund.',
@@ -255,21 +273,23 @@ export function generate(ctx) {
   cases.push(makeScriptCase({
     rule: name,
     title: 'Regenerating the lead-capture key retires the old one',
+    // Run on tenant B: tenant A's key is baked into cases generated before
+    // this script runs, and rotating it would invalidate them.
     tags: ['settings', 'security', 'public-form'],
     run: async ({ request, assert }) => {
-      const before = await request({ method: 'get', path: '/api/settings/lead-capture-key', token: admin() });
+      const before = await request({ method: 'get', path: '/api/settings/lead-capture-key', token: ctx.users.adminB.token });
       const oldKey = before.body?.publicLeadKey || before.body?.key || before.body?.leadCaptureKey;
       if (!oldKey) {
         assert('lead-key-readable', false, SEVERITY.low, 'The lead capture key could not be read, so rotation could not be checked.', { body: before.body });
         return;
       }
 
-      const regen = await request({ method: 'post', path: '/api/settings/lead-capture-key/regenerate', token: admin() });
+      const regen = await request({ method: 'post', path: '/api/settings/lead-capture-key/regenerate', token: ctx.users.adminB.token });
       assert('regenerate-succeeds', regen.status < 400, SEVERITY.medium, 'Rotating the public lead key failed.', { status: regen.status });
 
       const withOld = await request({
         method: 'post', path: `/api/public/leads/${encodeURIComponent(oldKey)}`,
-        body: { name: 'QA Rotated Key', phone: ctx.newPhone() },
+        body: { customerName: 'QA Rotated Key', phone: ctx.newPhone() },
       });
       assert('old-key-stops-working', withOld.status >= 400, SEVERITY.high,
         'A lead-capture key still accepts submissions after being rotated. Rotation is the only remedy when a key leaks, so it has to take effect immediately.',
@@ -331,6 +351,32 @@ export function generate(ctx) {
       assert('seat-limit-enforced', refusedAt != null, SEVERITY.high,
         'More team members were created than the tenant\'s plan allows. A paid limit that the API does not enforce is not a limit.',
         { limit, refusedAt });
+    },
+  }));
+
+  cases.push(makeScriptCase({
+    rule: name,
+    title: 'An update cannot delete a record - deleting needs the delete permission',
+    tags: ['rbac', 'security', 'mass-assignment'],
+    run: async ({ request, assert }) => {
+      // memberA holds leads.update; the question is whether update alone can
+      // do what only leads.delete should.
+      for (const [label, createPath, body, idKeys, base] of [
+        ['lead', '/api/leads', { customerName: 'QA Undeletable', phone: ctx.newPhone() }, ['lead_id', 'leadId'], '/api/leads'],
+        ['booking', '/api/bookings', { customerName: 'QA Undeletable', phone: ctx.newPhone(), travelStatus: 'Enquiry' }, ['booking_id', 'bookingId'], '/api/bookings'],
+      ]) {
+        const created = await request({ method: 'post', path: createPath, token: admin(), body });
+        const id = idOf(created.body, idKeys);
+        if (!id) {
+          assert(`${label}-created`, false, SEVERITY.medium, `Could not create the ${label} this check needs.`, { status: created.status });
+          continue;
+        }
+        await request({ method: 'put', path: `${base}/${id}`, token: ctx.users.memberA.token, body: { deleted: true } });
+        const after = await request({ method: 'get', path: `${base}/${id}`, token: admin() });
+        assert(`${label}-update-cannot-delete`, after.status === 200, SEVERITY.critical,
+          `Sending {"deleted": true} to the ${label} update route removed the ${label}. Soft delete is implemented as an update, so any user with the update permission - every team member by default - could delete records the delete permission is meant to protect.`,
+          { status: after.status });
+      }
     },
   }));
 

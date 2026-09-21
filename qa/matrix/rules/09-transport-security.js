@@ -93,7 +93,7 @@ export function generate(ctx) {
       title: 'The public lead-capture form still accepts an unknown origin (deliberate exception)',
       method: 'post',
       path: `/api/public/leads/${encodeURIComponent(leadKey)}`,
-      body: { name: 'QA CORS Probe', phone: ctx.newPhone() },
+      body: { customerName: 'QA CORS Probe', phone: ctx.newPhone() },
       headers: { Origin: 'https://some-agency-website.qa.invalid' },
       checks: [
         {

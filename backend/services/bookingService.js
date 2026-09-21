@@ -36,6 +36,12 @@ async function createBooking(tenantId, data, createdBy) {
   const bookingId = `BK-${Date.now()}-${uuidv4().slice(0, 4).toUpperCase()}`;
   const now = new Date().toISOString();
   const paid = Number(data.paid || 0);
+  // Also reached from lead conversion, which has no request validator.
+  if (!Number.isFinite(paid) || paid < 0) {
+    const err = new Error('Amount paid must be a number of 0 or more.');
+    err.status = 400;
+    throw err;
+  }
   const travelStatus = data.travelStatus || 'Confirming';
   const paymentStatus = data.paymentStatus || (remaining <= 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending');
 

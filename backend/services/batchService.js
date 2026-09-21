@@ -16,7 +16,9 @@ async function listBatches(tenantId) {
 
 async function createBatch(tenantId, data, createdBy) {
   if (data.status && !BATCH_STATUSES.includes(data.status)) {
-    throw new Error('Invalid batch status.');
+    const err = new Error('Invalid batch status.');
+    err.status = 400;
+    throw err;
   }
 
   const seq = await batchRepository.nextBatchSeq();
@@ -35,7 +37,9 @@ async function updateBatch(tenantId, batchId, updates) {
   }
 
   if (updates.status && !BATCH_STATUSES.includes(updates.status)) {
-    throw new Error('Invalid batch status.');
+    const err = new Error('Invalid batch status.');
+    err.status = 400;
+    throw err;
   }
 
   const merged = { ...existing, ...updates };

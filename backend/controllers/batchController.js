@@ -1,4 +1,5 @@
 const batchService = require('../services/batchService');
+const { withoutProtectedFields } = require('../utils/protectedFields');
 const auditService = require('../services/auditService');
 
 async function list(req, res, next) {
@@ -32,7 +33,8 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const batch = await batchService.updateBatch(req.user.tenantId, req.params.id, req.body);
+    const updates = withoutProtectedFields(req.body, ['batchId', 'batch_id']);
+    const batch = await batchService.updateBatch(req.user.tenantId, req.params.id, updates);
     await auditService.logAction(req, 'UPDATE_TOUR_BATCH', { batchId: req.params.id, updates: Object.keys(req.body) });
     res.json({ batch });
   } catch (err) {
@@ -74,6 +76,10 @@ async function unlink(req, res, next) {
   try {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ message: 'bookingId is required.' });
+    // The batch in the URL was never looked at, so a request naming any
+    // batch id - even another tenant's - unlinked the record anyway.
+    const batch = await batchService.getBatchByBatchId(req.user.tenantId, req.params.id);
+    if (!batch) return res.status(404).json({ message: 'Tour batch not found.' });
     const booking = await batchService.unlinkBooking(req.user.tenantId, bookingId);
     await auditService.logAction(req, 'UNLINK_BOOKING_FROM_BATCH', { batchId: req.params.id, bookingId });
     res.json({ booking });
@@ -98,6 +104,10 @@ async function unlinkLead(req, res, next) {
   try {
     const { leadId } = req.body;
     if (!leadId) return res.status(400).json({ message: 'leadId is required.' });
+    // The batch in the URL was never looked at, so a request naming any
+    // batch id - even another tenant's - unlinked the record anyway.
+    const batch = await batchService.getBatchByBatchId(req.user.tenantId, req.params.id);
+    if (!batch) return res.status(404).json({ message: 'Tour batch not found.' });
     const lead = await batchService.unlinkLead(req.user.tenantId, leadId);
     await auditService.logAction(req, 'UNLINK_LEAD_FROM_BATCH', { batchId: req.params.id, leadId });
     res.json({ lead });

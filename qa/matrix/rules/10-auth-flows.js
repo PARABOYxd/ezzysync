@@ -75,7 +75,22 @@ export function generate(ctx) {
     tags: ['auth', 'security', 'registration', 'otp'],
     run: async ({ request, assert }) => {
       const email = `${ctx.uniq('otpread')}@qa.invalid`;
-      const res = await request({ method: 'post', path: '/api/auth/register/send-otp', body: { email } });
+
+      // Stand in for the inbox: record the code the server generates, the
+      // way a real user would read it from the email. The token can no
+      // longer be decoded for it, which is exactly what is checked below.
+      // No mail provider exists in the harness, so the send is replaced by
+      // a mailbox that just keeps the code.
+      const emailService = backendRequire('./services/emailService');
+      const realSend = emailService.sendRegistrationOTPEmail;
+      let emailedOtp = null;
+      emailService.sendRegistrationOTPEmail = async ({ otp }) => { emailedOtp = otp; };
+      let res;
+      try {
+        res = await request({ method: 'post', path: '/api/auth/register/send-otp', body: { email } });
+      } finally {
+        emailService.sendRegistrationOTPEmail = realSend;
+      }
 
       if (res.status !== 200 || !res.body?.regToken) {
         assert('send-otp-usable', res.status < 500, SEVERITY.medium,
@@ -93,8 +108,12 @@ export function generate(ctx) {
         { payloadKeys: Object.keys(decoded) }
       );
 
-      // The rest of the sequence, using whatever the token actually carries.
-      if (decoded.otp) {
+      assert('regToken-does-not-contain-emailed-code', !emailedOtp || !Object.values(decoded).some((v) => String(v) === emailedOtp), SEVERITY.high,
+        'The emailed code appears somewhere in the token payload.', {});
+
+      // The rest of the sequence, using the code from the "inbox".
+      if (emailedOtp) {
+        decoded.otp = emailedOtp;
         const password = 'QaFlowPassword123';
         const reg = await request({
           method: 'post', path: '/api/auth/register',

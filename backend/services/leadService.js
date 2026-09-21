@@ -15,6 +15,23 @@ function normalizePhone(phone = '') {
   return String(phone).replace(/\D/g, '');
 }
 
+/**
+ * A follow-up date from the client, as something Postgres will store and we
+ * can read back. Postgres takes far more than dates here - 'infinity',
+ * 'epoch', 'now' - and 'infinity' comes back as a value that crashes every
+ * read of the row, so only real, finite dates get through.
+ */
+function parseOptionalDate(value, label) {
+  if (value === undefined || value === null || value === '') return null;
+  const d = typeof value === 'string' || value instanceof Date ? new Date(value) : new Date(NaN);
+  if (!Number.isFinite(d.getTime())) {
+    const err = new Error(`${label} must be a valid date.`);
+    err.status = 400;
+    throw err;
+  }
+  return d.toISOString();
+}
+
 async function getLeadById(tenantId, leadId) {
   const row = await leadRepository.getLeadById(tenantId, leadId);
   return rowToLead(row);
@@ -25,6 +42,7 @@ async function createLead(tenantId, data, createdBy) {
   const now = new Date().toISOString();
 
   const customerName = data.customerName || 'New Inquiry';
+  data = { ...data, nextFollowUpDate: parseOptionalDate(data.nextFollowUpDate, 'Next follow-up date') };
   const customerId = await customerService.upsertFromContact(tenantId, {
     name: customerName, email: data.email, phone: data.phone,
   });
@@ -109,6 +127,9 @@ async function updateLead(tenantId, leadId, updates, updatedByUser) {
     throw err;
   }
 
+  if (updates.nextFollowUpDate !== undefined) {
+    updates = { ...updates, nextFollowUpDate: parseOptionalDate(updates.nextFollowUpDate, 'Next follow-up date') };
+  }
   const merged = { ...existing, ...updates };
   const updatedAt = new Date().toISOString();
 
@@ -154,7 +175,10 @@ async function getFollowUps(tenantId, leadId) {
 }
 
 async function addFollowUp(tenantId, leadId, { note, activityType, nextFollowUpDate, createdBy }) {
-  return leadRepository.insertFollowUp(tenantId, leadId, note, activityType, nextFollowUpDate, createdBy);
+  return leadRepository.insertFollowUp(
+    tenantId, leadId, note, activityType,
+    parseOptionalDate(nextFollowUpDate, 'Next follow-up date'), createdBy
+  );
 }
 
 /**

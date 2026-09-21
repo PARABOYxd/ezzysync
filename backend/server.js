@@ -6,6 +6,7 @@ const path = require('path');
 const env = require('./config/env');
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
+const { flattenQuery } = require('./middleware/flattenQuery');
 const { ensureSchema } = require('./config/db');
 const { runMigrations } = require('./config/migrations');
 const { initScheduler } = require('./jobs/cronJobs');
@@ -123,6 +124,7 @@ app.use(
   })
 );
 app.use(requestLogger);
+app.use(flattenQuery);
 app.use('/api', apiLimiter);
 app.use("/api/google", googleRoutes);
 const { requireActiveSubscription } = require('./middleware/planMiddleware');

@@ -24,7 +24,9 @@ const ALL_VERBS = ['get', 'post', 'put', 'patch', 'delete'];
  * Traversal attempts are percent-encoded on purpose. An unencoded `..` is
  * collapsed by the HTTP client before the request is sent, so `/api/leads/../users`
  * arrives as `/api/users` and a 200 proves nothing except that the client
- * normalises paths. The encoded forms reach the server intact.
+ * normalises paths. The %2f-encoded forms reach the server intact; `%2e%2e`
+ * on its own does not - WHATWG URL parsing treats it as `..` and collapses it
+ * client-side too, so it is left out.
  */
 const UNKNOWN_PATHS = [
   '/api/does-not-exist',
@@ -37,7 +39,6 @@ const UNKNOWN_PATHS = [
   '/api/leads%00',
   '/uploads/%2e%2e%2f.env',
   '/media/%2e%2e%2f%2e%2e%2fbackend%2f.env',
-  '/api/leads/%2e%2e/users',
 ];
 
 export function generate(ctx) {
@@ -73,9 +74,12 @@ export function generate(ctx) {
           noServerError(SEVERITY.high),
           {
             label: 'unregistered-verb-refused',
-            fn: (res) => res.status === 404 || res.status === 405 || res.status === 401 || res.status === 403,
+            // Any refusal is fine: `PUT /expenses/templates` legitimately
+            // lands on `PUT /expenses/:id` and is rejected there with a 400.
+            // What must not happen is a 2xx from some other handler.
+            fn: (res) => res.status >= 400 && res.status < 500,
             severity: SEVERITY.medium,
-            why: 'A verb this route does not register was answered with something other than 404/405. It fell through to another handler, which may not carry the same guards.',
+            why: 'A verb this route does not register was answered with a success. It fell through to another handler, which may not carry the same guards.',
           },
           bodyDoesNotLeak(['node_modules', 'at Layer.', 'at Function.']),
         ],

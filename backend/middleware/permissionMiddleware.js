@@ -24,6 +24,17 @@ function requirePermission(moduleKey, action) {
 }
 
 /**
+ * For the few owner-only surfaces that have no module in the permission
+ * matrix (settings, connected accounts). Gating those on a module/action the
+ * matrix does not define looked configurable but never was: normalizePermissions
+ * only writes known actions, so the check always failed for team members.
+ */
+function requireAdmin(req, res, next) {
+  if (req.user.role === 'ADMIN') return next();
+  return res.status(403).json({ message: 'Access denied. Admin permission required.' });
+}
+
+/**
  * Custom middleware to restrict phone (mobile number) editing.
  * Gates updating the phone field for team members who do not have explicit permissions.
  */
@@ -57,5 +68,6 @@ async function restrictPhoneEdit(req, res, next) {
 
 module.exports = {
   requirePermission,
+  requireAdmin,
   restrictPhoneEdit
 };

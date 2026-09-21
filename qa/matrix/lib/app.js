@@ -59,6 +59,7 @@ export function buildApp() {
   );
 
   app.use(requestLogger);
+  app.use(backendRequire('./middleware/flattenQuery').flattenQuery);
   app.use('/api', apiLimiter);
 
   const mount = (p, ...handlers) => app.use(p, ...handlers);

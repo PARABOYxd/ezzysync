@@ -18,7 +18,7 @@
  */
 import { ENDPOINTS } from '../lib/inventory.js';
 import { makeCase, resolvePath } from '../lib/case.js';
-import { isForbidden, notForbidden, noServerError, SEVERITY } from '../lib/expect.js';
+import { isForbidden, notForbidden, noServerError, noCrash, SEVERITY } from '../lib/expect.js';
 
 export const name = 'authorization';
 export const description = 'Role and permission gates, from both sides: denied users kept out, permitted users let in.';
@@ -79,7 +79,7 @@ export function generate(ctx) {
         token: ctx.users.memberA.token,
         checks: [
           notForbidden(endpoint.destructive ? SEVERITY.low : SEVERITY.high),
-          noServerError(endpoint.externals ? SEVERITY.low : SEVERITY.high),
+          noCrash(endpoint, endpoint.externals ? SEVERITY.low : SEVERITY.high),
         ],
         tags: ['rbac', 'granted'],
         meta: { permission: endpoint.permission.join('.') },
@@ -97,7 +97,7 @@ export function generate(ctx) {
         token: ctx.users.adminA.token,
         checks: [
           { label: 'admin-not-blocked', fn: (res) => res.status !== 401 && res.status !== 403, severity: SEVERITY.high, why: 'The tenant owner was refused their own data. Admins bypass the permission matrix by design.' },
-          noServerError(endpoint.externals || endpoint.heavy ? SEVERITY.low : SEVERITY.high),
+          noCrash(endpoint, endpoint.externals || endpoint.heavy ? SEVERITY.low : SEVERITY.high),
         ],
         tags: ['rbac', 'admin'],
       }));
@@ -119,7 +119,7 @@ export function generate(ctx) {
       body: endpoint.sample ? endpoint.sample(ctx) : undefined,
       token: ctx.users.deniedA.token,
       checks: [
-        noServerError(SEVERITY.medium),
+        noCrash(endpoint, SEVERITY.medium),
         { label: 'ungated-route-observed', fn: () => true, severity: SEVERITY.info, why: 'Recorded for review: any authenticated user of the tenant can call this.' },
       ],
       tags: ['rbac', 'ungated', 'review'],

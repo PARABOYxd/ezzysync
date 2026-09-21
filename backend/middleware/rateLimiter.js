@@ -5,7 +5,10 @@ const env = require('../config/env');
  * IP+email keys the bucket per targeted account too, so distributing
  * requests across IPs no longer resets the counter for that account. */
 function ipAndEmailKey(req) {
-  const email = (req.body?.email || '').trim().toLowerCase();
+  // The limiter runs before validation, so a number or an array here used to
+  // throw on .trim() and turn every such login attempt into a 500.
+  const raw = req.body?.email;
+  const email = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
   return email ? `${req.ip}:${email}` : req.ip;
 }
 

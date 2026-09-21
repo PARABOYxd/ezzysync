@@ -1,11 +1,11 @@
 const quotationService = require('../services/quotationService');
+const { pageParams } = require('../utils/pagination');
 const settingsService = require('../services/settingsService');
 const auditService = require('../services/auditService');
 
 async function list(req, res, next) {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const { page, limit } = pageParams(req.query);
     const { search, status } = req.query;
 
     const result = await quotationService.listQuotationsPaged(req.user.tenantId, {

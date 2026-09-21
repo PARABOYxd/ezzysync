@@ -6,6 +6,7 @@ const authController = appRequire('../controllers/authController');
 const { requireAuth } = appRequire('../middleware/authMiddleware');
 const userService = appRequire('../services/userService');
 const tokenService = appRequire('../services/tokenService');
+const otpService = appRequire('../services/otpService');
 const env = appRequire('../config/env');
 const jwt = appRequire('jsonwebtoken');
 const { authHeaderFor, resetTenantData, unique } = helpers;
@@ -27,7 +28,11 @@ function mockRes() {
 
 function regTokenFor({ email, otp, expiryMs = 15 * 60 * 1000 }) {
   return jwt.sign(
-    { email: email.toLowerCase(), otp, expiry: new Date(Date.now() + expiryMs).toISOString() },
+    {
+      email: email.toLowerCase(),
+      otpHash: otpService.registrationOtpDigest(email, otp),
+      expiry: new Date(Date.now() + expiryMs).toISOString(),
+    },
     env.jwtSecret,
     { expiresIn: '15m' }
   );

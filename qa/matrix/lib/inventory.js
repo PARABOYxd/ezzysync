@@ -151,7 +151,8 @@ export const ENDPOINTS = [
   { id: 'leads.importPreview', method: 'post', path: '/api/leads/import/preview', auth: 'required', permission: ['leads', 'create'], upload: true, skipHappy: true },
   {
     id: 'leads.importAnalyze', method: 'post', path: '/api/leads/import/analyze', auth: 'required', permission: ['leads', 'create'],
-    body: { headers: f(T.json), rows: f(T.json) }, sample: () => ({ headers: ['Name', 'Phone'], rows: [['QA Name', '9876543210']] }),
+    body: { rows: req(T.json), mapping: req(T.json), defaults: f(T.json) },
+    sample: () => ({ rows: [['QA Name', '9876543210']], mapping: { customerName: 0, phone: 1 } }),
   },
   {
     id: 'leads.importRun', method: 'post', path: '/api/leads/import', auth: 'required', permission: ['leads', 'create'], mutating: true,
@@ -160,8 +161,8 @@ export const ENDPOINTS = [
   },
   {
     id: 'leads.bulkImport', method: 'post', path: '/api/leads/bulk-import', auth: 'required', permission: ['leads', 'create'], mutating: true,
-    body: { leads: req(T.json) },
-    sample: (ctx) => ({ leads: [{ customerName: 'QA Bulk', phone: ctx.newPhone(), source: 'Manual' }] }),
+    body: { rows: req(T.json) },
+    sample: (ctx) => ({ rows: [{ customerName: 'QA Bulk', phone: ctx.newPhone(), source: 'Manual' }] }),
   },
   {
     id: 'leads.broadcast', method: 'post', path: '/api/leads/broadcast', auth: 'required', permission: ['leads', 'update'], mutating: true,
@@ -202,7 +203,9 @@ export const ENDPOINTS = [
   },
   {
     id: 'leads.claim', method: 'post', path: '/api/leads/:id/claim', auth: 'required', permission: ['leads', 'update'], mutating: true,
-    params: { id: 'lead' }, body: {}, sample: () => ({}),
+    // The seeded lead gets claimed by an earlier rule, so a happy-path claim
+    // is a correct 409. Covered by the RBAC and isolation rules instead.
+    params: { id: 'lead' }, body: {}, sample: () => ({}), skipHappy: true,
   },
   {
     id: 'leads.remove', method: 'delete', path: '/api/leads/:id', auth: 'required', permission: ['leads', 'delete'],
@@ -344,6 +347,9 @@ export const ENDPOINTS = [
     id: 'batches.link', method: 'post', path: '/api/batches/:id/link', auth: 'required', permission: ['tourBatches', 'update'], mutating: true,
     params: { id: 'batch' }, body: { bookingId: req(T.id), force: f(T.bool) },
     sample: (ctx) => ({ bookingId: ctx.res.A.booking }),
+    // Linking enforces a trip/date match with the batch, which earlier rules
+    // edit; business-rules builds a matching pair and tests linking there.
+    skipHappy: true,
   },
   {
     id: 'batches.unlink', method: 'post', path: '/api/batches/:id/unlink', auth: 'required', permission: ['tourBatches', 'update'], mutating: true,
@@ -359,12 +365,9 @@ export const ENDPOINTS = [
   },
 
   // ------------------------------------------------------------- expenses
-  // The router gates on billing.write, an action the permission matrix does
-  // not define - so only ADMIN can ever get through. Recorded here as it is,
-  // and the RBAC rule reports the mismatch rather than hiding it.
-  { id: 'expenses.list', method: 'get', path: '/api/expenses', auth: 'required', permission: ['billing', 'write'], list: true },
+  { id: 'expenses.list', method: 'get', path: '/api/expenses', auth: 'required', permission: ['expenses', 'read'], list: true },
   {
-    id: 'expenses.create', method: 'post', path: '/api/expenses', auth: 'required', permission: ['billing', 'write'], mutating: true,
+    id: 'expenses.create', method: 'post', path: '/api/expenses', auth: 'required', permission: ['expenses', 'create'], mutating: true,
     body: {
       title: req(T.string), amount: req(T.float, { min: 0 }), category: f(T.string),
       link_type: f(T.string), booking_id: f(T.id), batch_id: f(T.id), vendor_name: f(T.string), status: f(T.string),
@@ -372,18 +375,19 @@ export const ENDPOINTS = [
     sample: () => ({ title: 'QA Expense', amount: 2500, category: 'Transport', link_type: 'general' }),
   },
   {
-    id: 'expenses.update', method: 'put', path: '/api/expenses/:id', auth: 'required', permission: ['billing', 'write'], mutating: true,
-    params: { id: 'expense' }, body: { title: f(T.string), amount: f(T.float, { min: 0 }), status: f(T.string) },
-    sample: () => ({ title: 'QA Expense Updated', amount: 2600 }),
+    id: 'expenses.update', method: 'put', path: '/api/expenses/:id', auth: 'required', permission: ['expenses', 'update'], mutating: true,
+    // PUT replaces the whole expense, so the sample is the whole expense.
+    params: { id: 'expense' }, body: { title: req(T.string), amount: req(T.float, { min: 0 }), category: f(T.string), link_type: f(T.string), status: f(T.string) },
+    sample: () => ({ title: 'QA Expense Updated', amount: 2600, category: 'Transport', link_type: 'general', status: 'Pending' }),
   },
-  { id: 'expenses.remove', method: 'delete', path: '/api/expenses/:id', auth: 'required', permission: ['billing', 'write'], params: { id: 'expense' }, destructive: true },
-  { id: 'expenses.templates', method: 'get', path: '/api/expenses/templates', auth: 'required', permission: ['billing', 'write'], list: true },
+  { id: 'expenses.remove', method: 'delete', path: '/api/expenses/:id', auth: 'required', permission: ['expenses', 'delete'], params: { id: 'expense' }, destructive: true },
+  { id: 'expenses.templates', method: 'get', path: '/api/expenses/templates', auth: 'required', permission: ['expenses', 'read'], list: true },
   {
-    id: 'expenses.upsertTemplate', method: 'post', path: '/api/expenses/templates', auth: 'required', permission: ['billing', 'write'], mutating: true,
-    body: { name: f(T.string), items: f(T.json) },
-    sample: () => ({ name: 'QA Template', items: [{ title: 'Hotel', amount: 1000, category: 'Hotel' }] }),
+    id: 'expenses.upsertTemplate', method: 'post', path: '/api/expenses/templates', auth: 'required', permission: ['expenses', 'update'], mutating: true,
+    body: { trip_name: req(T.string), template_name: f(T.string), hotel_cost_per_pax: f(T.float), transport_cost_per_pax: f(T.float) },
+    sample: () => ({ trip_name: 'QA Goa Package', template_name: 'Standard', hotel_cost_per_pax: 4000, transport_cost_per_pax: 1500 }),
   },
-  { id: 'expenses.deleteTemplate', method: 'delete', path: '/api/expenses/templates/:id', auth: 'required', permission: ['billing', 'write'], params: { id: 'unknownNumeric' }, destructive: true, skipHappy: true },
+  { id: 'expenses.deleteTemplate', method: 'delete', path: '/api/expenses/templates/:id', auth: 'required', permission: ['expenses', 'delete'], params: { id: 'unknownNumeric' }, destructive: true, skipHappy: true },
 
   // ------------------------------------------------------------ dashboard
   { id: 'dashboard.get', method: 'get', path: '/api/dashboard', auth: 'required', list: true },
@@ -436,7 +440,8 @@ export const ENDPOINTS = [
     sample: () => ({ companyName: 'QA Settings Co' }),
   },
   { id: 'settings.leadCaptureKey', method: 'get', path: '/api/settings/lead-capture-key', auth: 'required' },
-  { id: 'settings.regenerateLeadKey', method: 'post', path: '/api/settings/lead-capture-key/regenerate', auth: 'required', adminOnly: true, mutating: true, skipHappy: true },
+  // Destructive in effect: it retires the key every embedded form is using.
+  { id: 'settings.regenerateLeadKey', method: 'post', path: '/api/settings/lead-capture-key/regenerate', auth: 'required', adminOnly: true, mutating: true, skipHappy: true, destructive: true },
   {
     id: 'settings.whatsappRequest', method: 'post', path: '/api/settings/whatsapp-request', auth: 'required',
     body: { phone: f(T.phone), note: f(T.text) }, sample: (ctx) => ({ phone: ctx.newPhone(), note: 'QA setup request' }),
@@ -470,13 +475,13 @@ export const ENDPOINTS = [
   { id: 'whatsapp.chatMessages', method: 'get', path: '/api/whatsapp/chats/:chatId/messages', auth: 'required', params: { chatId: 'chat' } },
   {
     id: 'whatsapp.sendChatMessage', method: 'post', path: '/api/whatsapp/chats/:chatId/send', auth: 'required',
-    params: { chatId: 'chat' }, body: { message: req(T.text) }, sample: () => ({ message: 'QA chat message' }), externals: true,
+    params: { chatId: 'chat' }, body: { text: req(T.text), templateName: f(T.string) }, sample: () => ({ text: 'QA chat message' }), externals: true,
   },
   { id: 'whatsapp.readChat', method: 'post', path: '/api/whatsapp/chats/:chatId/read', auth: 'required', params: { chatId: 'chat' }, mutating: true },
   {
     id: 'whatsapp.updateChatManagement', method: 'put', path: '/api/whatsapp/chats/:chatId/management', auth: 'required', mutating: true,
-    params: { chatId: 'chat' }, body: { customerName: f(T.string), assignedTo: f(T.string), notes: f(T.text) },
-    sample: () => ({ customerName: 'QA Chat Renamed' }),
+    params: { chatId: 'chat' }, body: { managedBy: req(T.enum, { values: ['ai', 'human'] }) },
+    sample: () => ({ managedBy: 'human' }),
   },
 
   // --------------------------------------------------- whatsapp templates
@@ -555,23 +560,23 @@ export const ENDPOINTS = [
   { id: 'instagram.verifyWebhook', method: 'get', path: '/api/instagram/webhook', auth: 'webhook', skipHappy: true },
   { id: 'instagram.receiveWebhook', method: 'post', path: '/api/instagram/webhook', auth: 'webhook', body: { object: f(T.string), entry: f(T.json) }, sample: () => ({ object: 'instagram', entry: [] }) },
   {
-    id: 'instagramDirect.login', method: 'post', path: '/api/instagram-direct/login', auth: 'required', permission: ['settings', 'update'],
+    id: 'instagramDirect.login', method: 'post', path: '/api/instagram-direct/login', auth: 'required', adminOnly: true,
     body: { username: req(T.string), password: req(T.string) }, sample: () => ({ username: 'qa_user', password: 'qa_password' }),
     externals: true, heavy: true, skipHappy: true,
   },
   {
-    id: 'instagramDirect.verify', method: 'post', path: '/api/instagram-direct/verify', auth: 'required', permission: ['settings', 'update'],
+    id: 'instagramDirect.verify', method: 'post', path: '/api/instagram-direct/verify', auth: 'required', adminOnly: true,
     body: { code: req(T.string) }, sample: () => ({ code: '123456' }), externals: true, skipHappy: true,
   },
-  { id: 'instagramDirect.status', method: 'get', path: '/api/instagram-direct/status', auth: 'required', permission: ['settings', 'read'] },
-  { id: 'instagramDirect.disconnect', method: 'post', path: '/api/instagram-direct/disconnect', auth: 'required', permission: ['settings', 'update'], mutating: true },
+  { id: 'instagramDirect.status', method: 'get', path: '/api/instagram-direct/status', auth: 'required', adminOnly: true },
+  { id: 'instagramDirect.disconnect', method: 'post', path: '/api/instagram-direct/disconnect', auth: 'required', adminOnly: true, mutating: true },
 
   // --------------------------------------------------------------- public
   {
     id: 'public.captureLead', method: 'post', path: '/api/public/leads/:publicLeadKey', auth: 'public',
     params: { publicLeadKey: 'leadKey' },
-    body: { name: f(T.string), phone: req(T.phone), email: f(T.email), message: f(T.text) },
-    sample: (ctx) => ({ name: 'QA Public Lead', phone: ctx.newPhone(), email: 'qa.public@qa.invalid' }),
+    body: { customerName: req(T.string), phone: req(T.phone), email: f(T.email), interest: f(T.text) },
+    sample: (ctx) => ({ customerName: 'QA Public Lead', phone: ctx.newPhone(), email: 'qa.public@qa.invalid' }),
     mutating: true, rateLimited: 'public',
   },
   {

@@ -29,6 +29,13 @@ async function verifySubscription(req, res, next) {
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
       return res.status(400).json({ message: 'Missing required payment verification parameters.' });
     }
+    // Razorpay ids and signatures are short ASCII tokens. Anything else is not
+    // a real callback, and a NUL byte in one used to fail the "record this as
+    // a failed payment" insert and come back as a 500.
+    const RAZORPAY_TOKEN = /^[A-Za-z0-9_]{1,128}$/;
+    if (![razorpay_payment_id, razorpay_order_id, razorpay_signature].every((v) => typeof v === 'string' && RAZORPAY_TOKEN.test(v))) {
+      return res.status(400).json({ message: 'Payment verification parameters are not valid.' });
+    }
 
     const verified = paymentService.verifyPaymentSignature({
       razorpay_payment_id,
@@ -94,12 +101,18 @@ async function handleRazorpayWebhook(req, res) {
 
     req.log?.info({ event, orderId: payload?.order?.entity?.id }, 'Razorpay Webhook received');
 
-    if (signature && req.rawBody) {
-      const isValid = paymentService.verifyWebhookSignature(req.rawBody, signature, env.razorpayWebhookSecret);
-      if (!isValid) {
-        req.log?.warn('Razorpay webhook signature verification failed');
-        return res.status(400).json({ message: 'Invalid webhook signature.' });
-      }
+    // Mandatory. It used to be checked only when the header was present, so
+    // leaving the header off skipped verification: anyone who had created an
+    // order (which any logged-in user can) could post `payment.captured` for
+    // it here and get the plan upgraded without paying. Razorpay always signs.
+    if (typeof signature !== 'string' || !signature || !req.rawBody) {
+      req.log?.warn('Razorpay webhook rejected: no signature');
+      return res.status(400).json({ message: 'Invalid webhook signature.' });
+    }
+    const isValid = paymentService.verifyWebhookSignature(req.rawBody, signature, env.razorpayWebhookSecret);
+    if (!isValid) {
+      req.log?.warn('Razorpay webhook signature verification failed');
+      return res.status(400).json({ message: 'Invalid webhook signature.' });
     }
 
     const result = await paymentService.processWebhookEvent({ event, payload, rawResponse: req.body });

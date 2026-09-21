@@ -33,12 +33,33 @@ function fields(req, res) {
 }
 
 /** Dry run: the counts the user sees before committing to a mapping. */
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * The shape the import service assumes, checked before it gets there.
+ *
+ * The service reads `mapping[field]` as a column index and `row[index]` as a
+ * cell, so a missing mapping, a row that is not an array or a default that is
+ * not an object threw deep inside it - a 500 for what is a malformed upload.
+ */
+function importPayloadProblem(body = {}) {
+  const { rows, mapping, defaults } = body;
+  if (!Array.isArray(rows)) return 'No parsed rows were sent.';
+  if (!rows.every(Array.isArray)) return 'Each row must be a list of cells.';
+  if (!isPlainObject(mapping)) return 'Choose which column holds each field before importing.';
+  const badColumn = Object.values(mapping).some((v) => v !== null && v !== '' && !(Number.isInteger(Number(v)) && Number(v) >= 0));
+  if (badColumn) return 'The column mapping is not valid.';
+  if (defaults !== undefined && defaults !== null && !isPlainObject(defaults)) return 'Import defaults are not valid.';
+  return null;
+}
+
 async function analyze(req, res, next) {
   try {
     const { rows, mapping, defaults } = req.body;
-    if (!Array.isArray(rows)) return res.status(400).json({ message: 'No parsed rows were sent.' });
+    const problem = importPayloadProblem(req.body);
+    if (problem) return res.status(400).json({ message: problem });
 
-    const result = await leadImportService.analyze(req.user.tenantId, { rows, mapping, defaults });
+    const result = await leadImportService.analyze(req.user.tenantId, { rows, mapping, defaults: defaults || {} });
     res.json(result);
   } catch (err) {
     next(err);
@@ -47,7 +68,10 @@ async function analyze(req, res, next) {
 
 async function run(req, res, next) {
   try {
-    const { rows, mapping, defaults = {}, duplicateAction } = req.body;
+    const problem = importPayloadProblem(req.body);
+    if (problem) return res.status(400).json({ message: problem });
+    const { rows, mapping, duplicateAction } = req.body;
+    const defaults = req.body.defaults || {};
 
     // A team member who only sees their own leads would otherwise import a
     // pile of leads they cannot then open.

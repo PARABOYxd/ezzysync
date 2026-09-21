@@ -24,6 +24,13 @@ async function getBillingAnalytics(req, res, next) {
       teamMemberName = req.query.member;
     }
     const { startDate, endDate } = req.query;
+    // "0", "-10", "abc" all became Invalid Date further down and the report
+    // crashed building its buckets. A bad range is the caller's mistake.
+    for (const [label, value] of [['Start date', startDate], ['End date', endDate]]) {
+      if (value && !Number.isFinite(new Date(value).getTime())) {
+        return res.status(400).json({ message: `${label} must be a valid date.` });
+      }
+    }
     const data = await bookingService.billingAnalytics(req.user.tenantId, teamMemberName, startDate, endDate);
     res.json(data);
   } catch (err) {

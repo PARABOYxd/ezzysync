@@ -96,7 +96,7 @@ export function generate(ctx) {
         body,
         token,
         checks: [
-          noServerError(SEVERITY.high),
+          noCrash(endpoint, SEVERITY.high),
           isRejected(SEVERITY.high, `"${field}" is documented as required; omitting it must produce a 4xx with a message naming the field, not a silent default or a crash.`),
           bodyDoesNotLeak(LEAK_NEEDLES),
         ],
@@ -118,7 +118,7 @@ export function generate(ctx) {
         body,
         token,
         checks: [
-          noServerError(SEVERITY.high),
+          noCrash(endpoint, SEVERITY.high),
           {
             label: 'no-mass-assignment',
             fn: (res) => {

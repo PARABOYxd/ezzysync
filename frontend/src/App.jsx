@@ -75,7 +75,7 @@ export default function App() {
         <Route path="/customers" element={<RequirePermission module="customers"><Customers /></RequirePermission>} />
         <Route path="/customers/:id" element={<RequirePermission module="customers"><CustomerProfile /></RequirePermission>} />
         <Route path="/billing" element={<RequirePermission module="billing"><BillingAnalytics /></RequirePermission>} />
-        <Route path="/expenses" element={<RequirePermission module="billing" action="write"><Expenses /></RequirePermission>} />
+        <Route path="/expenses" element={<RequirePermission module="expenses"><Expenses /></RequirePermission>} />
       </Route>
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

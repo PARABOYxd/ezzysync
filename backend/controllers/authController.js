@@ -26,12 +26,17 @@ function publicUser(user) {
 // shared by the standalone verify-otp step and the final register step so
 // both apply the exact same rules.
 function checkRegistrationOTP(regToken, email, otp) {
+  // Types first: express-validator's notEmpty() lets 0 and false through, and
+  // a non-string here either skipped the check or threw inside it.
+  if (typeof regToken !== 'string' || typeof email !== 'string' || typeof otp !== 'string') {
+    return { error: { status: 400, message: 'Verification token expired or invalid. Please restart registration.' } };
+  }
   try {
     const decoded = jwt.verify(regToken, env.jwtSecret);
     if (decoded.email.toLowerCase() !== email.toLowerCase()) {
       return { error: { status: 400, message: 'Email mismatch with verification token.' } };
     }
-    if (decoded.otp !== otp) {
+    if (!otpService.registrationOtpMatches(email, otp, decoded.otpHash)) {
       return { error: { status: 400, message: 'Invalid OTP. Please check the code sent to your email.' } };
     }
     if (new Date(decoded.expiry) < new Date()) {
@@ -47,11 +52,11 @@ async function register(req, res, next) {
   try {
     const { email, password, name, companyName, otp, regToken } = req.body;
 
-    // If regToken provided, verify OTP from token before creating account
-    if (regToken) {
-      const { error } = checkRegistrationOTP(regToken, email, otp);
-      if (error) return res.status(error.status).json({ message: error.message });
-    }
+    // Always verified. This used to run only `if (regToken)`, so any falsy
+    // value that got past validation (0, false) created an account with no
+    // email verification at all.
+    const { error } = checkRegistrationOTP(regToken, email, otp);
+    if (error) return res.status(error.status).json({ message: error.message });
 
     const user = await userService.createUser({ email, password, name, companyName });
     const { token, refreshToken } = await tokenService.issueTokenPair(user);
@@ -81,8 +86,10 @@ async function sendRegistrationOTP(req, res, next) {
     }
     const { otp, expiry } = otpService.generateOTP();
     // Encode email + otp + expiry in a short-lived JWT (regToken)
+    // Carries a keyed digest of the code, never the code itself - see
+    // otpService.registrationOtpDigest.
     const regToken = jwt.sign(
-      { email: email.toLowerCase(), otp, expiry },
+      { email: email.toLowerCase(), otpHash: otpService.registrationOtpDigest(email, otp), expiry },
       env.jwtSecret,
       { expiresIn: '15m' }
     );
@@ -155,6 +162,9 @@ async function refresh(req, res) {
     }
 
     const tokenHash = tokenService.hashRefreshToken(refreshToken);
+    if (!tokenHash) {
+      return res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
+    }
     const stored = await refreshTokenRepository.findValidRefreshToken(tokenHash);
     if (!stored) {
       return res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
@@ -173,12 +183,16 @@ async function refresh(req, res) {
   }
 }
 
-async function logout(req, res) {
-  const { refreshToken } = req.body;
-  if (refreshToken) {
-    await refreshTokenRepository.revokeRefreshToken(tokenService.hashRefreshToken(refreshToken));
+async function logout(req, res, next) {
+  try {
+    const tokenHash = tokenService.hashRefreshToken(req.body?.refreshToken);
+    if (tokenHash) {
+      await refreshTokenRepository.revokeRefreshToken(tokenHash);
+    }
+    res.json({ message: 'Logged out.' });
+  } catch (err) {
+    next(err);
   }
-  res.json({ message: 'Logged out.' });
 }
 
 async function forgotPassword(req, res, next) {

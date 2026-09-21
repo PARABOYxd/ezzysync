@@ -7,7 +7,7 @@ async function parseTicketOrChat(req, res, next) {
     const file = req.file;
 
     if (!aiService.isConfigured()) {
-      return res.status(500).json({ message: 'Gemini API Key is not configured on the server.' });
+      return res.status(503).json({ message: 'Gemini API Key is not configured on the server.' });
     }
 
     if (file) {
@@ -40,7 +40,7 @@ async function parseItineraryPdf(req, res, next) {
       return res.status(400).json({ message: 'Only PDF files are supported.' });
     }
     if (!aiService.isConfigured()) {
-      return res.status(500).json({ message: 'Gemini API Key is not configured on the server.' });
+      return res.status(503).json({ message: 'Gemini API Key is not configured on the server.' });
     }
 
     const quotationPlan = await aiService.extractItineraryFromPdf({ file });
@@ -63,7 +63,7 @@ async function generateItinerary(req, res, next) {
     }
 
     if (!aiService.isConfigured()) {
-      return res.status(500).json({ message: 'Gemini API Key is not configured.' });
+      return res.status(503).json({ message: 'Gemini API Key is not configured.' });
     }
 
     const durationDays = Math.max(1, Math.min(15, Number(days) || 3));
@@ -124,7 +124,7 @@ async function whatsappReply(req, res, next) {
     }
 
     if (!aiService.isConfigured()) {
-      return res.status(500).json({ message: 'Gemini API Key is not configured.' });
+      return res.status(503).json({ message: 'Gemini API Key is not configured.' });
     }
 
     const { reply, booking } = await aiService.generateWhatsappReply(

@@ -1,7 +1,9 @@
 const { body } = require('express-validator');
 
 const PHONE_PATTERN = /^[0-9+\-\s()]{7,15}$/;
-const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+// One @, nothing but non-space non-@ either side. \S+@\S+ let "a@@b.com"
+// and "a@b@c.com" through, and the voucher email then bounced.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUSES_REQUIRING_FULL_DETAILS = ['Booked', 'Completed'];
 
 /**
@@ -49,7 +51,15 @@ function numericWhenBooked(field, min, message, { withDefault }) {
   });
 }
 
+// An advance taken at creation is the opening balance the ledger then adds
+// to, so it has to be a real, non-negative amount.
+const advancePaid = body('paid')
+  .optional({ values: 'falsy' })
+  .isFloat({ min: 0, max: 1e12 })
+  .withMessage('Amount paid must be a number of 0 or more.');
+
 const createBookingValidators = [
+  advancePaid,
   body('phone').matches(PHONE_PATTERN).withMessage('A valid phone number is required.'),
   requiredWhenBooked('customerName', 'Customer name is required when status is Booked or Completed.', { withDefault: true }),
   emailWhenBooked({ withDefault: true }),

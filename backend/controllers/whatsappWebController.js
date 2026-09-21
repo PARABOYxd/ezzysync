@@ -74,6 +74,8 @@ async function getChatMessages(req, res, next) {
       const canonicalChatId = messages[messages.length - 1].chat_id;
       chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, canonicalChatId);
     }
+    // Neither a chat nor any messages under this id for this tenant.
+    if (!chat && messages.length === 0) return res.status(404).json({ message: 'Chat not found' });
 
     // The agent needs to know what WhatsApp will actually accept here before
     // they type, not after the send silently fails.
@@ -153,6 +155,12 @@ async function toggleChatAi(req, res, next) {
   try {
     const { chatId } = req.params;
     const { enabled } = req.body;
+
+    // The update below is tenant-scoped, so another tenant's chat was never
+    // actually changed - but the response still said success, and a caller
+    // could not tell "toggled" from "that chat is not yours". Look first.
+    const chat = await whatsappWebRepository.findChatById(req.user.tenantId, chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     await whatsappWebRepository.setChatAiEnabled(req.user.tenantId, chatId, enabled);
 
@@ -268,11 +276,11 @@ async function startChat(req, res, next) {
   try {
     const { phone, message } = req.body;
     if (!phone) return res.status(400).json({ message: 'phone is required.' });
+    if (!whatsappSendService.isDialablePhone(phone)) {
+      return res.status(400).json({ message: 'Enter a valid phone number (10 to 15 digits).' });
+    }
 
     const normalized = whatsappSendService.toWhatsAppNumber(phone);
-    if (normalized.length < 10) {
-      return res.status(400).json({ message: 'Enter a valid phone number (10 or 12 digits).' });
-    }
 
     const tenantId = req.user.tenantId;
 

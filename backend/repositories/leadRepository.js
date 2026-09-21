@@ -1,8 +1,11 @@
 const { query } = require('../config/db');
 
+// Deleted leads are soft-deleted, so without the filter a "deleted" lead kept
+// opening from its own URL, and could still be edited, converted, claimed or
+// broadcast to. Nothing restores a deleted lead, so nothing needs to see one.
 async function getLeadById(tenantId, leadId) {
   const { rows } = await query(
-    `SELECT * FROM leads WHERE tenant_id = $1 AND lead_id = $2`,
+    `SELECT * FROM leads WHERE tenant_id = $1 AND lead_id = $2 AND deleted IS NOT TRUE`,
     [tenantId, leadId]
   );
   return rows[0];
@@ -144,11 +147,15 @@ async function listFollowUps(tenantId, leadIdText) {
 
 async function insertFollowUp(tenantId, leadIdText, note, activityType, nextFollowUpDate, createdBy) {
   const { rows: lRows } = await query(
-    `SELECT id FROM leads WHERE tenant_id = $1 AND lead_id = $2`,
+    `SELECT id FROM leads WHERE tenant_id = $1 AND lead_id = $2 AND deleted IS NOT TRUE`,
     [tenantId, leadIdText]
   );
   if (lRows.length === 0) {
-    throw new Error('Lead not found.');
+    // 404, not a bare Error: the tenant filter above is what makes this
+    // "not found" for another tenant's id, and a bare Error surfaced as a 500.
+    const err = new Error('Lead not found.');
+    err.status = 404;
+    throw err;
   }
   const leadUuid = lRows[0].id;
 

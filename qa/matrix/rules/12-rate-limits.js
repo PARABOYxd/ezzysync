@@ -102,7 +102,7 @@ export function generate(ctx) {
       for (let i = 1; i <= 70 && limitedAt == null; i += 1) {
         const res = await request({
           method: 'post', path: `/api/public/leads/${encodeURIComponent(key)}`, ip,
-          body: { name: `QA Flood ${i}`, phone: ctx.newPhone() },
+          body: { customerName: `QA Flood ${i}`, phone: ctx.newPhone() },
         });
         if (res.status === 429) limitedAt = i;
         else if (res.status < 400) accepted += 1;

@@ -4,6 +4,7 @@ const settingsService = require('../services/settingsService');
 const invoiceService = require('../services/invoiceService');
 const whatsappService = require('../services/whatsappService');
 const whatsappWebService = require('../services/whatsappWebService');
+const whatsappSendService = require('../services/whatsappSendService');
 const whatsappWebhookService = require('../services/whatsappWebhookService');
 const whatsappWebRepository = require('../repositories/whatsappWebRepository');
 const whatsappRepo = require('../repositories/whatsappRepository');
@@ -229,6 +230,9 @@ async function startNewChat(req, res, next) {
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ message: 'Phone number is required.' });
+    if (!whatsappSendService.isDialablePhone(phone)) {
+      return res.status(400).json({ message: 'Enter a valid phone number (10 to 15 digits).' });
+    }
 
     const cleanPhone = normalizePhone(phone);
     const tenantId = req.user.tenantId;
@@ -252,6 +256,8 @@ async function startNewChat(req, res, next) {
  */
 async function getChatMessages(req, res, next) {
   try {
+    const chat = await whatsappRepo.findChatById(req.user.tenantId, req.params.chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found.' });
     const messages = (await whatsappRepo.getChatMessages(req.user.tenantId, req.params.chatId))
       .map((m) => ({ ...m, media_url: r2Service.resolveMediaUrl(m.media_url) }));
     // Was a console.log of every message body - customer conversations printed
@@ -269,6 +275,16 @@ async function sendChatMessage(req, res, next) {
   try {
     const { chatId } = req.params;
     const { text, mediaLink, mediaType, filename, templateName, languageCode } = req.body;
+
+    // Something has to be sent, and checked before anything changes: this
+    // used to switch the chat's AI off and then fail at the provider with a
+    // 500 when the body was empty.
+    const hasText = typeof text === 'string' && text.trim() !== '';
+    const hasMedia = typeof mediaLink === 'string' && mediaLink.trim() !== '';
+    const hasTemplate = typeof templateName === 'string' && templateName.trim() !== '';
+    if (!hasText && !hasMedia && !hasTemplate) {
+      return res.status(400).json({ message: 'Type a message, attach a file or pick a template to send.' });
+    }
 
     // Find the chat details to get the phone number
     const chat = await whatsappRepo.findChatById(req.user.tenantId, chatId);
@@ -363,17 +379,27 @@ async function sendChatMessage(req, res, next) {
 
     // Send using current WhatsApp service
     const mockBooking = { phone: chat.phone, bookingId: 'CHAT' };
-    const result = await whatsappService.sendWhatsAppMessage(
-      mockBooking,
-      settings,
-      mediaLink,
-      text,
-      mediaType,
-      filename,
-      templateName,
-      languageCode,
-      templateComponents
-    );
+    let result;
+    try {
+      result = await whatsappService.sendWhatsAppMessage(
+        mockBooking,
+        settings,
+        mediaLink,
+        text,
+        mediaType,
+        filename,
+        templateName,
+        languageCode,
+        templateComponents
+      );
+    } catch (sendErr) {
+      // Meta unreachable or refusing is a provider failure (502), not a bug
+      // in this server - and it should not reach the agent as "something
+      // went wrong on our side". A deliberate 4xx from the service stands.
+      if (sendErr.status && sendErr.status < 500) throw sendErr;
+      req.log?.error({ err: sendErr, chatId }, 'WhatsApp send failed');
+      return res.status(502).json({ message: 'WhatsApp did not accept the message. Please try again in a moment.' });
+    }
     const messageId = result?.messages?.[0]?.id || null;
 
     // Save as outbound message (storing media parameters in the database)
@@ -403,6 +429,7 @@ async function sendChatMessage(req, res, next) {
 async function readChat(req, res, next) {
   try {
     const chat = await whatsappRepo.resetUnreadCount(req.user.tenantId, req.params.chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found.' });
     res.json({ chat });
   } catch (err) {
     next(err);

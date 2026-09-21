@@ -1,4 +1,6 @@
 const bookingService = require('../services/bookingService');
+const { withoutProtectedFields } = require('../utils/protectedFields');
+const { pageParams } = require('../utils/pagination');
 const auditService = require('../services/auditService');
 const settingsService = require('../services/settingsService');
 const invoiceService = require('../services/invoiceService');
@@ -7,8 +9,7 @@ const { shouldScopeToSelf } = require('../config/permissions');
 
 async function list(req, res, next) {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const { page, limit } = pageParams(req.query);
     const { status, trip, departureFrom, departureTo, createdFrom, createdTo, search, sort } = req.query;
     const teamMember = shouldScopeToSelf(req.user, 'bookings') ? req.user.name : req.query.teamMember;
 
@@ -92,7 +93,17 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const booking = await bookingService.updateBooking(req.user.tenantId, req.params.id, req.body, req.user.name || req.user.email);
+    // `paid` moves only through the payments ledger (POST/DELETE
+    // /:id/payments), which records who took what and when. Accepted here it
+    // let anyone with bookings.update mark a booking paid with no payment
+    // behind it. The edit form already locks the field and sends back the
+    // value it last read, so ignoring it changes nothing for the UI.
+    // total/remaining are derived from members, price and paid.
+    const updates = withoutProtectedFields(req.body, [
+      'bookingId', 'booking_id', 'customerId', 'customer_id',
+      'paid', 'remaining', 'totalAmount', 'total_amount',
+    ]);
+    const booking = await bookingService.updateBooking(req.user.tenantId, req.params.id, updates, req.user.name || req.user.email);
     await auditService.logAction(req, 'UPDATE_LEAD', { bookingId: req.params.id, updates: Object.keys(req.body) });
     res.json({ booking });
   } catch (err) {
@@ -139,6 +150,10 @@ async function exportCSV(req, res, next) {
 
 async function listFollowUps(req, res, next) {
   try {
+    // A list for another tenant's (or a deleted) record used to come back as
+    // an empty 200, indistinguishable from a real record with no history.
+    const booking = await bookingService.getBookingById(req.user.tenantId, req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
     const logs = await bookingService.getFollowUps(req.user.tenantId, req.params.id);
     res.json({ followUps: logs });
   } catch (err) {

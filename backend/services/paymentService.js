@@ -115,7 +115,11 @@ function verifyWebhookSignature(rawBody, signature, webhookSecret) {
     .createHmac('sha256', secret)
     .update(rawBody)
     .digest('hex');
-  return expectedSignature === signature;
+  // Constant-time, so the comparison does not leak how many leading
+  // characters of a forged signature were right.
+  const a = Buffer.from(expectedSignature);
+  const b = Buffer.from(String(signature));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 /**
@@ -201,15 +205,21 @@ function describeOrderCreationError(err) {
 
   const errDesc = err.error?.description || err.response?.data?.error?.description || err.message;
 
+  // 502, not 401: this is our Razorpay key being refused, not the user's
+  // session, and the frontend treats any 401 as "session expired" - it would
+  // refresh the token, retry, and eventually sign the user out.
   if (err.statusCode === 401 || err.response?.status === 401 || errDesc === 'Authentication failed') {
     return {
-      status: 401,
+      status: 502,
       message: 'Razorpay Authentication Failed: Please check your Key ID and Key Secret in Razorpay Dashboard (Settings > API Keys).',
       code: 'RAZORPAY_AUTH_FAILED',
     };
   }
 
-  return { status: 500, message: errDesc || 'Failed to initiate payment order.', code: null };
+  // Razorpay itself was unreachable or refused the order. The caller logs the
+  // detail; the browser gets a message that does not echo the provider's
+  // (or the network stack's) raw error text.
+  return { status: 502, message: 'Could not reach the payment provider. Please try again in a moment.', code: null };
 }
 
 /**

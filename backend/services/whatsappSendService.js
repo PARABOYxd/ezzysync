@@ -177,6 +177,22 @@ function toWhatsAppNumber(phone) {
   return digits.length === 10 ? `91${digits}` : digits;
 }
 
+/**
+ * Whether client input is a number WhatsApp could actually deliver to.
+ *
+ * Both "start chat" routes used to strip every non-digit and carry on, so
+ * "not-a-phone" became an empty string and opened a chat with no number at
+ * all, and a numeric (non-string) phone crashed the replace() call. Same
+ * character rule the lead and booking validators use, plus a digit count
+ * that fits E.164 once the India prefix is applied.
+ */
+const PHONE_INPUT = /^[0-9+\-\s()]{7,20}$/;
+function isDialablePhone(phone) {
+  if (typeof phone !== 'string' || !PHONE_INPUT.test(phone.trim())) return false;
+  const digits = toWhatsAppNumber(phone);
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 /** The existing chat for this number, or a new one the business opened. */
 async function findOrStartChat(tenantId, { phone, customerName = '', aiEnabled = false }) {
   const normalized = toWhatsAppNumber(phone);
@@ -196,4 +212,4 @@ async function findOrStartChat(tenantId, { phone, customerName = '', aiEnabled =
   });
 }
 
-module.exports = { sendText, sendTemplate, chooseTransportForNewChat, toWhatsAppNumber, findOrStartChat };
+module.exports = { isDialablePhone, sendText, sendTemplate, chooseTransportForNewChat, toWhatsAppNumber, findOrStartChat };

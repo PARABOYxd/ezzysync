@@ -20,7 +20,12 @@ function signAccessToken(user) {
   );
 }
 
+// Only ever called with a string we issued; anything else is client input
+// that crypto would throw on. Returning null lets callers treat it as the
+// unknown token it is instead of crashing - and in logout, which had no
+// try/catch, that throw escaped Express and took the whole process down.
 function hashRefreshToken(token) {
+  if (typeof token !== 'string' || token.length === 0) return null;
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 

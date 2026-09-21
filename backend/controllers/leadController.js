@@ -1,12 +1,13 @@
 const leadService = require('../services/leadService');
+const { withoutProtectedFields } = require('../utils/protectedFields');
+const { pageParams } = require('../utils/pagination');
 const auditService = require('../services/auditService');
 const broadcastService = require('../services/broadcastService');
 const { shouldScopeToSelf } = require('../config/permissions');
 
 async function list(req, res, next) {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const { page, limit } = pageParams(req.query);
     const { stage, priority, search, sort, createdFrom, createdTo } = req.query;
     const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : req.query.assignedTo;
 
@@ -63,7 +64,8 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const lead = await leadService.updateLead(req.user.tenantId, req.params.id, req.body, req.user.name || req.user.email);
+    const updates = withoutProtectedFields(req.body, ['leadId', 'lead_id', 'convertedBookingId', 'converted_booking_id', 'customerId', 'customer_id']);
+    const lead = await leadService.updateLead(req.user.tenantId, req.params.id, updates, req.user.name || req.user.email);
     await auditService.logAction(req, 'UPDATE_LEAD_ENTRY', { leadId: req.params.id, updates: Object.keys(req.body) });
     res.json({ lead });
   } catch (err) {
@@ -105,6 +107,10 @@ async function convert(req, res, next) {
 
 async function listFollowUps(req, res, next) {
   try {
+    // A list for another tenant's (or a deleted) record used to come back as
+    // an empty 200, indistinguishable from a real record with no history.
+    const lead = await leadService.getLeadById(req.user.tenantId, req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found.' });
     const logs = await leadService.getFollowUps(req.user.tenantId, req.params.id);
     res.json({ followUps: logs });
   } catch (err) {
