@@ -89,10 +89,11 @@ export default function WhatsAppChat() {
   const [startChatPhone, setStartChatPhone] = useState('');
   const [startChatMsg, setStartChatMsg] = useState('');
   const [startingChat, setStartingChat] = useState(false);
+  const [sendingVoucherType, setSendingVoucherType] = useState(null);
+  const [sendingReminderType, setSendingReminderType] = useState(null);
   const [convertLeadOpen, setConvertLeadOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState(null);
   const [loadingLeadToConvert, setLoadingLeadToConvert] = useState(false);
-  const [sendingReminderType, setSendingReminderType] = useState(null);
 
   const isSelectedIg = selectedChat?.phone?.startsWith('IG_') || selectedChat?.chat_id?.startsWith('IG_');
   const selectedIgHandle = isSelectedIg ? selectedChat?.phone?.replace('IG_', '') : '';
@@ -373,36 +374,6 @@ export default function WhatsAppChat() {
     }
   };
 
-  const handleSendChatReminder = async (type) => {
-    const bookingId = selectedChat?.formatted_booking_id || selectedChat?.booking_uuid || selectedChat?.booking_id;
-    if (!bookingId) {
-      toast.error('No booking linked to this conversation.');
-      return;
-    }
-    setSendingReminderType(type);
-    try {
-      const res = await bookingService.sendBookingReminder(bookingId, { type, channel: 'both' });
-      if (res.success && !res.skipped) {
-        toast.success(
-          type === 'payment'
-            ? `Payment due reminder sent to ${selectedChat.customer_name || 'customer'}!`
-            : `Trip departure reminder sent to ${selectedChat.customer_name || 'customer'}!`
-        );
-        const data = await whatsappWebService.getChatMessages(selectedChat.id);
-        setMessages(data.messages || []);
-        loadChats();
-      } else if (res.skipped) {
-        toast.info(res.reason || 'Reminder was already sent today.');
-      } else {
-        toast.error(res.whatsappError || res.emailError || 'Failed to dispatch reminder.');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send reminder via WhatsApp.');
-    } finally {
-      setSendingReminderType(null);
-    }
-  };
-
   const clearAttachment = () => {
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
     setAttachments([]);
@@ -645,6 +616,26 @@ export default function WhatsAppChat() {
     }
   };
 
+  const handleSendReminder = async (type) => {
+    if (!selectedChat?.id) return;
+    setSendingReminderType(type);
+    try {
+      if (type === 'departure') {
+        const trip = selectedChat.booking_trip || 'your upcoming trip';
+        await whatsappWebService.sendMessage(selectedChat.id, `✈️ *Travel Briefing & Alert*\nHello! Your trip *${trip}* is coming up soon. Please ensure you have all vouchers and tickets handy!`);
+      } else if (type === 'payment') {
+        const rem = Number(selectedChat.remaining || 0).toLocaleString('en-IN');
+        await whatsappWebService.sendMessage(selectedChat.id, `💳 *Payment Reminder*\nHello! This is a gentle reminder that a balance of *₹${rem}* is pending for your booking. Please settle at your earliest convenience.`);
+      }
+      toast.success('Reminder sent successfully!');
+      await loadChatMessages(selectedChat.id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not send reminder.');
+    } finally {
+      setSendingReminderType(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
       {/* Top Banner: Connection & AI Status Bar */}
@@ -778,7 +769,7 @@ export default function WhatsAppChat() {
             sendingVoucherType={sendingVoucherType}
             onSendVoucher={handleSendChatVoucher}
             sendingReminderType={sendingReminderType}
-            onSendReminder={handleSendChatReminder}
+            onSendReminder={handleSendReminder}
             onViewMedia={setViewingMedia}
             onCreateBooking={handleOpenCreateBooking}
             creatingBooking={loadingLeadToConvert}

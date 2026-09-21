@@ -45,6 +45,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# User Uploads & Media Storage (Passports, Vouchers, Invoices)
+uploads/
+**/uploads/
+private-uploads/
+**/private-uploads/
+
+
 # QA Test System: Local environment, secrets, and generated artifacts
 qa/.env
 qa/**/.env
@@ -57,4 +64,6 @@ qa/reports/traces/*.zip
 qa/reports/e2e-html/
 qa/reports/*.html
 qa/test-results/
+qa/generated-tests/
+
 
