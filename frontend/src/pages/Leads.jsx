@@ -50,8 +50,6 @@ export default function Leads() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const [importOpen, setImportOpen] = useState(false);
-
   const [poolCount, setPoolCount] = useState(0);
   const [poolOpen, setPoolOpen] = useState(false);
   const socketRef = useRef(null);

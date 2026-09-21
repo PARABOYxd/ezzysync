@@ -474,7 +474,6 @@ async function insertFollowUp(tenantId, bookingIdText, note, activityType, nextF
   return fRows[0];
 }
 
-<<<<<<< HEAD
 async function listPayments(tenantId, bookingIdText) {
   const { rows } = await query(
     `SELECT p.*
@@ -551,14 +550,6 @@ async function deletePayment(tenantId, bookingIdText, paymentId) {
   return { paid: newPaid, remaining: newRemaining, paymentStatus };
 }
 
-async function getUpcomingDepartures(daysAhead) {
-  // Get all Booked bookings with departure date = today + daysAhead.
-  // Requires an email OR a phone, not just an email - a WhatsApp-only
-  // booking (no email on file at all) used to never get a departure
-  // reminder of any kind, even though the reminder can go out over WhatsApp
-  // just as well. daysAhead is parameterized, not interpolated, since it can
-  // now come from a settings value rather than only a hardcoded caller.
-=======
 /*
  * `departure` is free TEXT. DATE(departure) threw on the first row holding
  * something like "15 Oct", and that one row failed the whole run for every
@@ -577,7 +568,6 @@ const DEPARTS_IN_DAYS = `
  * is still being confirmed is a promise the agency has not made yet.
  */
 async function getUpcomingDepartures(daysAhead) {
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
   const { rows } = await query(
     `SELECT b.*, t.company_name, t.id as tenant_uuid_id
      FROM bookings b
@@ -585,12 +575,7 @@ async function getUpcomingDepartures(daysAhead) {
      JOIN settings s ON s.tenant_id = b.tenant_id AND s.auto_reminders_enabled = TRUE
      WHERE b.deleted = FALSE
        AND b.travel_status = 'Booked'
-<<<<<<< HEAD
-       AND DATE(b.departure) = CURRENT_DATE + ($1 * INTERVAL '1 day')
-       AND ((b.email IS NOT NULL AND b.email != '') OR (b.phone IS NOT NULL AND b.phone != ''))`,
-=======
        AND ${DEPARTS_IN_DAYS}`,
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
     [daysAhead]
   );
   return rows;
@@ -665,13 +650,10 @@ module.exports = {
   getActiveBookingsByCustomer,
   getUpcomingDepartures,
   existsByPhone,
-<<<<<<< HEAD
   listPayments,
   insertPayment,
   deletePayment,
-=======
   getPendingPaymentBookings,
   claimReminder,
   finishReminder,
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
 };

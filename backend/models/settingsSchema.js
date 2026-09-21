@@ -1,11 +1,7 @@
 const DEFAULT_KEYS = [
   'companyName', 'companyLogoUrl', 'invoiceFooter', 'emailSenderName', 'whatsappNumber', 'gstNumber', 'address',
-<<<<<<< HEAD
   'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms', 'autoSendInvoice',
-  'autoSendInvoiceEmail', 'autoSendInvoiceWhatsapp',
-=======
-  'invoiceAccentColor', 'invoiceLayout', 'invoiceTitle', 'invoiceShowGst', 'invoiceShowPaymentStatus', 'invoiceTerms', 'autoSendInvoice', 'autoRemindersEnabled',
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
+  'autoSendInvoiceEmail', 'autoSendInvoiceWhatsapp', 'autoRemindersEnabled',
   'whatsappPhoneNumberId', 'whatsappAccessToken', 'whatsappWabaId', 'whatsappBusinessId', 'whatsappAppSecret',
   'instagramUsername', 'instagramAccountId', 'instagramAccessToken', 'whatsappAiAutoReply', 'whatsappDefaultChatMode',
   'paymentAccountName', 'paymentUpiId', 'paymentQrUrl'
@@ -37,12 +33,9 @@ const COLUMN_MAP = {
   invoiceShowPaymentStatus: 'invoice_show_payment_status',
   invoiceTerms: 'invoice_terms',
   autoSendInvoice: 'auto_send_invoice',
-<<<<<<< HEAD
   autoSendInvoiceEmail: 'auto_send_invoice_email',
   autoSendInvoiceWhatsapp: 'auto_send_invoice_whatsapp',
-=======
   autoRemindersEnabled: 'auto_reminders_enabled',
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
   whatsappPhoneNumberId: 'whatsapp_phone_number_id',
   whatsappAccessToken: 'whatsapp_access_token',
   whatsappWabaId: 'whatsapp_waba_id',
@@ -73,11 +66,7 @@ function rowToSettings(row, { includeSecrets = false } = {}) {
       obj[k] = val !== undefined ? !!val : true;
     } else if (k === 'whatsappAiAutoReply') {
       obj[k] = val !== undefined && val !== null ? !!val : true;
-<<<<<<< HEAD
-    } else if (k === 'autoSendInvoice' || k === 'autoSendInvoiceEmail' || k === 'autoSendInvoiceWhatsapp') {
-=======
-    } else if (k === 'autoSendInvoice' || k === 'autoRemindersEnabled') {
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
+    } else if (k === 'autoSendInvoice' || k === 'autoSendInvoiceEmail' || k === 'autoSendInvoiceWhatsapp' || k === 'autoRemindersEnabled') {
       obj[k] = !!val;
     } else if (k === 'whatsappDefaultChatMode') {
       obj[k] = val || 'ai';

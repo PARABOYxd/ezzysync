@@ -65,6 +65,8 @@ async function createChat(tenantId, { phone, transport = 'web', aiEnabled = fals
 
 /** Removes everything a test made, in foreign-key order. */
 async function resetTenantData() {
+  await query('DELETE FROM booking_payments');
+  await query('DELETE FROM bookings');
   await query('DELETE FROM whatsapp_messages');
   await query('DELETE FROM whatsapp_chats');
   await query('DELETE FROM whatsapp_templates');

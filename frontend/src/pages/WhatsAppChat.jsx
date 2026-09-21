@@ -89,14 +89,10 @@ export default function WhatsAppChat() {
   const [startChatPhone, setStartChatPhone] = useState('');
   const [startChatMsg, setStartChatMsg] = useState('');
   const [startingChat, setStartingChat] = useState(false);
-  const [sendingVoucherType, setSendingVoucherType] = useState(null);
-<<<<<<< HEAD
   const [convertLeadOpen, setConvertLeadOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState(null);
   const [loadingLeadToConvert, setLoadingLeadToConvert] = useState(false);
-=======
   const [sendingReminderType, setSendingReminderType] = useState(null);
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
 
   const isSelectedIg = selectedChat?.phone?.startsWith('IG_') || selectedChat?.chat_id?.startsWith('IG_');
   const selectedIgHandle = isSelectedIg ? selectedChat?.phone?.replace('IG_', '') : '';
@@ -358,7 +354,6 @@ export default function WhatsAppChat() {
     }
   };
 
-<<<<<<< HEAD
   // Reuses ConvertLeadDrawer instead of a separate form - same conversion
   // endpoint, same pre-fill logic, just launched from the chat instead of
   // the Leads pipeline. Needs the full lead record (departure date, email,
@@ -375,7 +370,9 @@ export default function WhatsAppChat() {
       toast.error(err.response?.data?.message || 'Could not load this lead.');
     } finally {
       setLoadingLeadToConvert(false);
-=======
+    }
+  };
+
   const handleSendChatReminder = async (type) => {
     const bookingId = selectedChat?.formatted_booking_id || selectedChat?.booking_uuid || selectedChat?.booking_id;
     if (!bookingId) {
@@ -403,7 +400,6 @@ export default function WhatsAppChat() {
       toast.error(err.response?.data?.message || 'Failed to send reminder via WhatsApp.');
     } finally {
       setSendingReminderType(null);
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
     }
   };
 

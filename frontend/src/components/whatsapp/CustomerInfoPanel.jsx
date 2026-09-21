@@ -2,11 +2,7 @@ import React from 'react';
 import { Briefcase, Calendar, Paperclip, FileText, Loader2, CalendarPlus } from 'lucide-react';
 import { mediaTypeOf, mediaNameOf } from '../../utils/whatsappMessageFormatters';
 
-<<<<<<< HEAD
-export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, onViewMedia, onCreateBooking, creatingBooking }) {
-=======
-export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia }) {
->>>>>>> 0b72d21 (feat(reminders): Implement automated trip and payment reminders)
+export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia, onCreateBooking, creatingBooking }) {
   return (
     <div className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
       <div>

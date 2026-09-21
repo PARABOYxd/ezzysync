@@ -725,6 +725,7 @@ describe('Bookings', () => {
         );
         await db.query(`UPDATE tenants SET plan_expires_at = now() - interval '1 day' WHERE id = $1`, [tenant.tenantId]);
 
+        sends = 0;
         const stats = await reminderService.runDailyRemindersCron();
         expect(sends).toBe(0);
         expect(stats.skippedExpiredPlan).toBeGreaterThanOrEqual(1);
@@ -739,6 +740,7 @@ describe('Bookings', () => {
           tenant.tenantId, bookingData({ departure: tomorrowIst(), phone: '9876543210', email: '', travelStatus: 'Booked' }), 'agent@test.com'
         );
 
+        sends = 0;
         const stats = await reminderService.runDailyRemindersCron();
         expect(sends).toBe(1);
         expect(stats.oneDayAlerts).toBe(1);
