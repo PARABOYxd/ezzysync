@@ -46,4 +46,8 @@ export function primeEnv() {
   process.env.ENABLE_INSTAGRAM = 'true';
   process.env.ENABLE_WHATSAPP_WEB = 'true';
   process.env.ENABLE_AI_AUTOPILOT = 'true';
+  // Self sign-up is off in production for now, but the registration and OTP
+  // code is still there to be switched back on - so the matrix keeps testing
+  // it. The flag itself is covered by backend/tests/selfSignup.test.mjs.
+  process.env.ENABLE_SELF_SIGNUP = 'true';
 }

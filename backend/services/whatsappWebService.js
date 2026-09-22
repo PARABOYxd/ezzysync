@@ -379,6 +379,25 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
         const isRestart = statusCode === DisconnectReason.restartRequired;
         const nextStatus = isRestart ? 'connecting' : 'disconnected';
 
+        // Never paired: a QR was shown and nobody scanned it before it
+        // expired. Reconnecting here minted a fresh session and QR every five
+        // seconds, forever - for an agency that clicked Connect and walked
+        // away, and even for a tenant that had since been deleted. Each round
+        // does Signal key work on the main thread; in the QA run a handful of
+        // these loops froze the whole API for up to 46 seconds at a time.
+        // Stop, and let the person ask for a new QR when they are ready.
+        const paired = Boolean(state.creds?.me?.id);
+        if (!paired && !isRestart) {
+          try {
+            sock.ev.removeAllListeners();
+            sock.end();
+          } catch (e) {}
+          activeSockets.delete(tenantId);
+          await whatsappWebRepository.setSessionStatus(tenantId, 'disconnected').catch(() => {});
+          logger.info({ tenantId, statusCode }, 'WhatsApp QR expired without a scan - not reconnecting until the user asks for a new one');
+          return;
+        }
+
         activeSockets.set(tenantId, { sock: null, qr: null, status: nextStatus });
         await whatsappWebRepository.setSessionStatus(tenantId, nextStatus);
         if (shouldReconnect) {

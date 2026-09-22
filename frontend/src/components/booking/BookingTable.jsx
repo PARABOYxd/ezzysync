@@ -138,7 +138,7 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
                   </button>
                 )}
                 {canDownload && (
-                  <button onClick={() => onSendInvoice(b)} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800 transition min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer" title="Invoice">
+                  <button onClick={() => onSendInvoice(b)} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800 transition min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer" title="Email invoice to customer" aria-label="Email invoice to customer">
                     <FileText size={15} />
                   </button>
                 )}

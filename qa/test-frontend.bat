@@ -1,120 +1,72 @@
 @echo off
-setlocal enabledelayedexpansion
-title EzzySync / LeadCRM - Complete Frontend Automated Test Suite
-color 0b
+rem ============================================================================
+rem  FRONTEND QA - real browser, real UI, no AI.
+rem  Playwright tests in tests\e2e against the running app. Starts the backend
+rem  (5001) and the frontend (5173) if they are not already up. Each test makes
+rem  its own temporary tenant in your dev database and deletes it afterwards.
+rem ============================================================================
+setlocal
+title EzzySync QA - Frontend
+cd /d "%~dp0"
+set ROOT=%~dp0..
 
-set QA_DIR=%~dp0
-if "%QA_DIR:~-1%"=="\" set QA_DIR=%QA_DIR:~0,-1%
-set ROOT_DIR=%QA_DIR%\..
+echo [*] Making sure the Playwright browser is installed...
+call npx playwright install chromium >nul 2>nul
 
-cd /d "%ROOT_DIR%"
-
-echo ===============================================================================
-echo            EZZYSYNC / LEADCRM - COMPLETE FRONTEND QA TEST SUITE
-echo ===============================================================================
-echo.
-
-rem Check Node
-where node >nul 2>nul
-if %errorlevel% neq 0 (
-    color 0c
-    echo [ERROR] Node.js is not found in PATH!
-    pause
-    exit /b 1
-)
-
-rem Check Backend
-echo [*] Checking Backend API on port 5001...
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:5001/api/health' -TimeoutSec 2 -UseBasicParsing; exit 0 } catch { exit 1 }" >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [!] Backend server is NOT running. Starting Backend in background...
-    start "EzzySync Backend Server" /min cmd /c "cd /d \"%ROOT_DIR%\backend\" && node server.js"
-    timeout /t 3 /nobreak >nul
-) else (
-    echo [OK] Backend server is running on port 5001.
-)
-
-rem Check Frontend
-echo [*] Checking Frontend Dev Server on port 5173...
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:5173' -TimeoutSec 2 -UseBasicParsing; exit 0 } catch { exit 1 }" >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [!] Frontend server is NOT running. Starting Frontend in background...
-    start "EzzySync Frontend Server" /min cmd /c "cd /d \"%ROOT_DIR%\frontend\" && npm run dev"
-    timeout /t 4 /nobreak >nul
-) else (
-    echo [OK] Frontend server is running on port 5173.
-)
+call :ensure_up "http://localhost:5001/api/health" "Backend on 5001" "%ROOT%\backend" "node server.js" 8
+if errorlevel 1 exit /b 1
+call :ensure_up "http://localhost:5173" "Frontend on 5173" "%ROOT%\frontend" "npm run dev" 15
+if errorlevel 1 exit /b 1
 
 echo.
-echo ===============================================================================
-echo                           CHOOSE SPEED ^& TEST MODE
-echo ===============================================================================
-echo  [1] SLOW MOTION (Aankhon ke samne slow ^& clear dikhega, 1 Window, 700ms delay)
-echo  [2] FAST LIVE BROWSER (Real-time speed, live Chrome popup)
-echo  [3] TURBO BACKGROUND (Fastest, background headless)
-echo ===============================================================================
-choice /c 123 /n /t 10 /d 1 /m "Your Choice [1/2/3] (Default: 1 in 10s): "
-
-cd /d "%QA_DIR%"
-
-if errorlevel 3 goto MODE_HEADLESS
-if errorlevel 2 goto MODE_FAST
-if errorlevel 1 goto MODE_SLOW
-
-:MODE_SLOW
-echo.
-echo [*] Starting in SLOW MOTION (700ms delay, 1 clean browser window)...
-set SLOWMO=700
-set HEADLESS=false
-set WORKERS=1
-call npx playwright test --headed
-goto POST_TEST
-
-:MODE_FAST
-echo.
-echo [*] Starting in FAST LIVE BROWSER MODE...
-set SLOWMO=
-set HEADLESS=false
-call npx playwright test --headed
-goto POST_TEST
-
-:MODE_HEADLESS
-echo.
-echo [*] Starting in TURBO BACKGROUND MODE (Fastest headless)...
-set SLOWMO=
+echo  [1] Full        - every page, role, button and form + business flows, background (default)
+echo  [2] Quick       - business flows only (tests\e2e), about a minute
+echo  [3] Live        - full run, watch the browser
+echo  [4] Slow motion - business flows, one window, 700ms per step
+choice /c 1234 /n /t 8 /d 1 /m "Mode [1/2/3/4] (1 in 8s): "
+set MODE=%errorlevel%
 set HEADLESS=true
-call npx playwright test
-goto POST_TEST
-
-:POST_TEST
-set TEST_EXIT_CODE=%errorlevel%
+set SLOWMO=
+set WORKERS=4
+set HEADED=
+set SCOPE=
+if %MODE%==2 set SCOPE=tests/e2e& set WORKERS=3
+if %MODE%==3 set HEADLESS=false& set HEADED=--headed
+if %MODE%==4 set SCOPE=tests/e2e& set HEADLESS=false& set HEADED=--headed& set SLOWMO=700& set WORKERS=1
 
 echo.
-if %TEST_EXIT_CODE% equ 0 (
-    color 0a
-    echo ===============================================================================
-    echo                     [SUCCESS] ALL FRONTEND TESTS COMPLETED!
-    echo ===============================================================================
-) else (
-    color 0c
-    echo ===============================================================================
-    echo                     [INFO] TEST RUN FINISHED
-    echo ===============================================================================
+call npx playwright test %SCOPE% %HEADED%
+set RESULT=%errorlevel%
+
+if %RESULT%==0 (echo. & echo [OK] All frontend tests passed.) else (echo. & echo [!!] Some frontend tests failed - see the report.)
+if not defined QA_NO_OPEN (
+    if %MODE%==1 start "" "%~dp0reports\ui-matrix-report.html"
+    if %MODE%==3 start "" "%~dp0reports\ui-matrix-report.html"
+    start "" "%~dp0reports\e2e-html\index.html"
 )
 
-echo.
-echo -------------------------------------------------------------------------------
-echo [V] View Interactive HTML Report in Browser
-echo [E] Exit
-echo -------------------------------------------------------------------------------
-choice /c VE /n /m "Choose [V/E] (Auto-exits in 15s): " /t 15 /d E
+if not defined QA_NO_PAUSE pause
+exit /b %RESULT%
 
-if errorlevel 2 goto END
-if errorlevel 1 goto VIEW_REPORT
-
-:VIEW_REPORT
-start "" "%QA_DIR%\reports\e2e-html\index.html"
-
-:END
-echo.
-pause
+rem ---------------------------------------------------------------------------
+rem  :ensure_up URL NAME DIR COMMAND WAIT_SECONDS
+rem ---------------------------------------------------------------------------
+:ensure_up
+powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%~1' -TimeoutSec 2 -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }" >nul 2>nul
+if not errorlevel 1 (
+    echo [OK] %~2 is running.
+    exit /b 0
+)
+echo [*] %~2 is not running - starting it...
+start "EzzySync %~2" /min cmd /c "cd /d "%~3" && %~4"
+for /l %%i in (1,1,%~5) do (
+    timeout /t 2 /nobreak >nul
+    powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%~1' -TimeoutSec 2 -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }" >nul 2>nul
+    if not errorlevel 1 (
+        echo [OK] %~2 is up.
+        exit /b 0
+    )
+)
+echo [ERROR] %~2 did not start. Check the minimised "EzzySync %~2" window.
+if not defined QA_NO_PAUSE pause
+exit /b 1

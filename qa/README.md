@@ -2,22 +2,34 @@
 
 Two systems live here, and they answer different questions.
 
-## 1. The matrix - one command, everything (start here)
+## Three files, that is all
 
-```bash
-cd qa
-npm run qa:all
-```
+| Double-click | What it tests | Needs |
+| --- | --- | --- |
+| `test-backend.bat` | Backend unit/integration suite (real Postgres) + ~14,500 generated API cases: auth, permissions, tenant isolation, validation, fuzzing, business rules, rate limits | Postgres running. Nothing else - it builds and drops its own database |
+| `test-frontend.bat` | Real browser, real UI (Playwright, no AI). **Full** (default): the UI matrix - every page x 3 roles x desktop/phone, every button, tab, dropdown option and search box, every create form x every field x bad values - plus the business flows. **Quick**: business flows only, about a minute | Starts backend (5001) and frontend (5173) itself if they are not up |
+| `test-both.bat` | Backend first, then frontend, one PASS/FAIL line for each at the end | Both of the above |
 
-Preflight, the 185 hand-written backend tests, and ~13,900 generated API cases
-covering authentication, permissions, tenant isolation, field validation,
-path and query fuzzing, request shapes, the HTTP contract, security headers,
-the login/registration/reset flows, rate limits and the business invariants.
-About eight minutes, against a throwaway database it creates and drops, with
-outbound network severed so nothing reaches a real provider.
+Same thing from a terminal: `npm run test:backend`, `npm run test:frontend`.
 
-Full documentation: **[MATRIX.md](MATRIX.md)**. Report:
-`reports/matrix-report.html`.
+Reports: `reports/matrix-report.html` (backend), `reports/ui-matrix-report.html` (frontend use cases, grouped by what broke) and `reports/e2e-html/index.html` (Playwright's own, with screenshots and traces). They open by themselves when a run finishes.
+
+### What the UI matrix checks (`tests/ui-matrix/`)
+
+| Rule | Asks |
+| --- | --- |
+| `01-page-health` | Every page renders for admin, full member and no-permission member, on desktop and phone: no JS error, no API 500, no white screen, the right user is let in or redirected, survives a refresh, fits a phone. Plus accessibility: every button named, every field labelled, every image with alt text (warnings) |
+| `02-navigation` | Every sidebar link per role; links to modules a user cannot open are hidden; back/forward; every protected page sends a signed-out visitor to login; wrong URLs and bad ids show a page, not a crash |
+| `03-every-button` | Every button, tab, link, checkbox, dropdown option and search box on every page, for admin and member, desktop and phone. After each press: nothing broke, drawers close again, links land somewhere that renders |
+| `04-every-form` | Every Add/New form, every field, each with blank, spaces, 5,000 chars, script tags, SQL, emoji, extreme numbers and dates - then Save. Must not crash or run the script; the list is reloaded afterwards to catch stored script injection |
+
+Buttons that would reach outside the test tenant (send, pay, connect Google/WhatsApp) or destroy the data the walk needs (delete, logout) are not pressed - they are listed by name in the report. The browser also refuses every request to a host that is not the app itself.
+
+Adding a page: add it to `tests/ui-matrix/lib/inventory.js`. A test fails if `frontend/src/App.jsx` has a route the inventory does not.
+
+Frontend tests create a temporary tenant in your dev database for each test file and delete it afterwards (`KEEP_QA_DATA=true` keeps it for debugging). Backend tests never touch your dev database.
+
+How the backend matrix works, and how to add a route to it: **[MATRIX.md](MATRIX.md)**.
 
 ## 2. The autonomous browser explorer
 
@@ -61,10 +73,6 @@ npm run qa -- --headed
 npm run clean
 ```
 
-Or double-click the one-click Windows batch files:
-- `doctor.bat`
-- `run-qa.bat`
-- `clean-reports.bat`
 
 ---
 

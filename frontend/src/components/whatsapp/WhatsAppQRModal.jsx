@@ -27,6 +27,14 @@ export default function WhatsAppQRModal({ isOpen, onClose, onConnected }) {
     }
   };
 
+  // Escape closes it, like every other panel in the app.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -92,6 +100,7 @@ export default function WhatsAppQRModal({ isOpen, onClose, onConnected }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close WhatsApp linking"
             className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -150,6 +159,15 @@ export default function WhatsAppQRModal({ isOpen, onClose, onConnected }) {
                     <img src={qrCode} alt="WhatsApp QR Code" className="w-56 h-56 rounded-lg object-contain" />
                     <div className="absolute inset-0 rounded-2xl border-2 border-emerald-500/30 pointer-events-none" />
                   </div>
+                ) : status === 'disconnected' && !loading ? (
+                  // The server stops an unscanned session once its QR expires
+                  // rather than minting new ones forever - so say so, instead
+                  // of spinning on "Generating QR code" that will never come.
+                  <div className="w-56 h-56 flex flex-col items-center justify-center gap-3 text-slate-500 text-center">
+                    <QrCode className="w-8 h-8 text-slate-400" />
+                    <span className="text-xs font-medium">The QR code expired before it was scanned.</span>
+                    <span className="text-[11px] text-slate-400/80">Get a new one when your phone is ready.</span>
+                  </div>
                 ) : (
                   <div className="w-56 h-56 flex flex-col items-center justify-center gap-3 text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
@@ -164,7 +182,7 @@ export default function WhatsAppQRModal({ isOpen, onClose, onConnected }) {
                   className="mt-4 flex items-center gap-1.5 text-xs text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Click to reload QR code</span>
+                  <span>{status === 'disconnected' ? 'Get a new QR code' : 'Click to reload QR code'}</span>
                 </button>
               </div>
 

@@ -91,6 +91,10 @@ function loadEnv() {
     },
     tokenEncryptionKey: process.env.TOKEN_ENCRYPTION_KEY,
     features: {
+      // Off by default: accounts are created by the EzzySync team and a
+      // visitor can only request access. Turning it on restores email
+      // registration and "Continue with Google" together.
+      selfSignup: process.env.ENABLE_SELF_SIGNUP === 'true',
       instagram: process.env.ENABLE_INSTAGRAM === 'true',
       whatsappWeb: process.env.ENABLE_WHATSAPP_WEB !== 'false',
       aiAutopilot: process.env.ENABLE_AI_AUTOPILOT !== 'false',

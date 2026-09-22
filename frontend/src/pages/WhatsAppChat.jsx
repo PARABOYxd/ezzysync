@@ -666,10 +666,12 @@ export default function WhatsAppChat() {
           ) : (
             <button
               onClick={() => setIsQrModalOpen(true)}
+              aria-label="Scan QR to link WhatsApp"
+              title="Scan QR to link WhatsApp"
               className="flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 rounded-lg border border-emerald-300 dark:border-emerald-800 transition-colors shadow-sm shrink-0 cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Scan QR</span>
+              <span className="hidden sm:inline">Scan QR</span>
             </button>
           )}
         </div>

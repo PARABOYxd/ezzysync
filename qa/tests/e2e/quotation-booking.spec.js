@@ -42,9 +42,9 @@ test.describe('Quotation to booking', () => {
     await page.goto(`/leads?search=${encodeURIComponent(lead.customerName)}`);
     await page.locator('tbody tr', { hasText: lead.customerName }).getByTitle('Edit Lead').click();
     const edit = drawer(page, 'Edit Lead');
+    // Choosing Won hands straight over to the conversion drawer - a lead is
+    // only Won once a booking exists, so there is nothing to save first.
     await edit.getByLabel('Pipeline Stage').selectOption('Won');
-    await edit.getByRole('button', { name: 'Save Changes' }).click();
-    await expectToast(page, 'Please complete the booking conversion to mark this lead as Won.');
 
     const convert = drawer(page, 'Convert Lead to Booking');
     await expect(convert).toBeVisible();
@@ -107,7 +107,6 @@ async function reopenConvert(page, lead) {
   await page.locator('tbody tr', { hasText: lead.customerName }).getByTitle('Edit Lead').click();
   const edit = drawer(page, 'Edit Lead');
   await edit.getByLabel('Pipeline Stage').selectOption('Won');
-  await edit.getByRole('button', { name: 'Save Changes' }).click();
   const convert = drawer(page, 'Convert Lead to Booking');
   await expect(convert).toBeVisible();
   return convert;

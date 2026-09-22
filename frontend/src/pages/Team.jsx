@@ -89,6 +89,10 @@ export default function Team() {
     planInfo.usage.teamMembers >= planInfo.limits.maxTeamMembers;
 
   useEffect(() => {
+    // Non-admins are redirected below, before fetchMembers is ever declared -
+    // calling it anyway threw "Cannot access 'fetchMembers' before
+    // initialization" and left a blank page instead of the redirect.
+    if (user?.role !== 'ADMIN') return;
     fetchMembers();
     // Seats are enforced server-side; reading them here is what lets the page
     // say so up front instead of letting the agent fill in a form and hit a

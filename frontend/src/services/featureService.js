@@ -1,6 +1,9 @@
 import api from './api';
 
 let cachedFeatures = {
+  // Off until the backend says otherwise, so the sign-up and Google buttons
+  // never flash up for a moment on a deployment that has them switched off.
+  selfSignup: false,
   instagram: false,
   whatsappWeb: true,
   aiAutopilot: true,

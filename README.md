@@ -47,6 +47,8 @@ Database-controlled subscription settings enforce usage caps and unlock premium 
 * Automatic tenant creation for first-time signups, or instant secure linking for existing email accounts.
 * Encrypted session tokens returned via secure callback redirects.
 
+> **Currently switched off.** Self sign-up - email registration and "Continue with Google" - is behind `ENABLE_SELF_SIGNUP` in `backend/.env` and is `false` by default. While it is off, the EzzySync team creates each account (email + password), the login page shows **Request access** instead, and requests land in the `walkthrough_requests` table. Set `ENABLE_SELF_SIGNUP=true` and restart the backend to bring both back. (Connecting Gmail for sending invoices is a separate integration and is not affected.)
+
 ### 5. Audit Logging Trail
 Every critical data mutation or permission change is tracked for security:
 * Actions like `CREATE_LEAD`, `UPDATE_LEAD`, `DELETE_LEAD`, and `TEAM_MEMBER_CREATED` are stored in the `audit_logs` table.

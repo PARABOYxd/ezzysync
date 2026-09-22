@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { copyText } from '../../utils/clipboard.js';
 import * as settingsService from '../../services/settingsService';
 import { API_BASE_URL } from '../../services/api';
 import { useToast } from '../../hooks/useToast.jsx';
@@ -88,9 +89,9 @@ export default function LeadCaptureTab() {
 
   const embedSnippet = buildEmbedSnippet(publicLeadKey);
 
-  const handleCopySnippet = () => {
-    navigator.clipboard.writeText(embedSnippet);
-    toast.success('Embed code copied to clipboard.');
+  const handleCopySnippet = async () => {
+    if (await copyText(embedSnippet)) toast.success('Embed code copied to clipboard.');
+    else toast.error('Could not copy automatically - select the code and copy it by hand.');
   };
 
   return (

@@ -11,7 +11,12 @@ const settingsService = require('./settingsService');
 const whatsappRepository = require('../repositories/whatsappRepository');
 const voucherPdfService = require('./voucherPdfService');
 const r2Service = require('./r2Service');
-const whatsappSendService = require('./whatsappSendService');
+// Required where it is used, not here. whatsappSendService -> whatsappWebService
+// -> aiService -> this file is a require cycle: when the cron jobs load
+// whatsappSendService first, this module received its half-built exports
+// ({}), and every booking confirmation and trip reminder failed with
+// "findOrStartChat is not a function" - logged as a warning, never sent.
+const whatsappSendService = () => require('./whatsappSendService');
 const emailService = require('./emailService');
 const logger = require('../utils/logger').child({ module: 'bookingService' });
 
@@ -586,12 +591,12 @@ async function sendBookingConfirmation(tenantId, booking, { userId = null } = {}
 
   if (booking.phone) {
     try {
-      const chat = await whatsappSendService.findOrStartChat(tenantId, {
+      const chat = await whatsappSendService().findOrStartChat(tenantId, {
         phone: booking.phone,
         customerName: booking.customerName,
       });
       const messageText = `Hello *${booking.customerName}*! ✅\n\nYour booking for *${booking.trip}* is confirmed!\n\n📅 Departure: ${booking.departure || 'To be confirmed'}\n👥 Travelers: ${booking.members}\n💰 Total: ₹${booking.totalAmount}\n💳 Paid: ₹${booking.paid}\n\nWe're excited to have you travel with us — reach out here anytime.\n\n— ${companyName}`;
-      await whatsappSendService.sendText(tenantId, { chat, userId, messageText });
+      await whatsappSendService().sendText(tenantId, { chat, userId, messageText });
       result.whatsappSent = true;
     } catch (err) {
       result.whatsappError = err.code === 'WHATSAPP_WINDOW_CLOSED'
@@ -707,7 +712,7 @@ async function sendVoucherToWhatsApp(tenantId, bookingId, { type = 'hotel', cust
 
   // Opens the chat on whichever connection can deliver, with the number in
   // WhatsApp form (bookings usually hold a bare 10-digit number).
-  const chat = await whatsappSendService.findOrStartChat(tenantId, {
+  const chat = await whatsappSendService().findOrStartChat(tenantId, {
     phone: booking.phone,
     customerName: booking.customerName,
   });
@@ -743,7 +748,7 @@ async function sendVoucherToWhatsApp(tenantId, bookingId, { type = 'hotel', cust
   let sentToWhatsApp = false;
   let whatsappError = null;
   try {
-    whatsappResult = await whatsappSendService.sendText(tenantId, {
+    whatsappResult = await whatsappSendService().sendText(tenantId, {
       chat,
       userId,
       messageText: voucherText,

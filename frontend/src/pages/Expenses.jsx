@@ -393,13 +393,13 @@ export default function Expenses() {
                     <Td className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleOpenEdit(exp)}
+                          onClick={() => handleOpenEdit(exp)} title="Edit expense" aria-label="Edit expense"
                           className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-slate-500 hover:text-brand-600 transition"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
-                          onClick={() => handleDelete(exp.id)}
+                          onClick={() => handleDelete(exp.id)} title="Delete expense" aria-label="Delete expense"
                           className="p-1 hover:bg-red-50 dark:hover:bg-red-950/10 rounded text-slate-400 hover:text-red-500 transition"
                         >
                           <Trash2 size={14} />
@@ -479,13 +479,13 @@ export default function Expenses() {
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100/80 dark:border-zinc-800/80">
                 <button
-                  onClick={() => handleOpenEdit(exp)}
+                  onClick={() => handleOpenEdit(exp)} title="Edit expense" aria-label="Edit expense"
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-50 transition min-h-[36px]"
                 >
                   <Edit2 size={13} /> Edit
                 </button>
                 <button
-                  onClick={() => handleDelete(exp.id)}
+                  onClick={() => handleDelete(exp.id)} title="Delete expense" aria-label="Delete expense"
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-100 transition min-h-[36px]"
                 >
                   <Trash2 size={13} /> Delete
@@ -650,13 +650,13 @@ export default function Expenses() {
                         <Td className="py-2 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => handleEditTemplate(t)}
+                              onClick={() => handleEditTemplate(t)} title="Edit cost template" aria-label="Edit cost template"
                               className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-slate-500 hover:text-brand-600 transition"
                             >
                               <Edit2 size={12} />
                             </button>
                             <button
-                              onClick={() => handleDeleteTemplate(t.id)}
+                              onClick={() => handleDeleteTemplate(t.id)} title="Delete cost template" aria-label="Delete cost template"
                               className="p-1 hover:bg-red-50 dark:hover:bg-red-950/10 rounded text-slate-400 hover:text-red-500 transition"
                             >
                               <Trash2 size={12} />

@@ -214,7 +214,7 @@ export default function ChatThread({
               <span className="truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">{selectedChat.customer_name || (isSelectedIg ? `@${selectedIgHandle}` : 'WhatsApp Contact')}</span>
               {isSelectedIg ? (
                 <span className="text-[10px] font-extrabold bg-pink-100 text-pink-700 px-1.5 sm:px-2 py-0.5 rounded-full border border-pink-200 flex items-center gap-1 shrink-0">
-                  <Instagram size={10} /> <span className="hidden xs:inline">Instagram</span> Direct
+                  <Instagram size={10} /> <span className="hidden sm:inline">Instagram</span> Direct
                 </span>
               ) : (
                 <span className="text-[11px] sm:text-xs font-normal text-slate-500 whitespace-nowrap shrink-0">+{selectedChat.phone}</span>

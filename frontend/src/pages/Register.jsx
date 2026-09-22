@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Compass, Mail, ArrowRight, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -7,8 +7,10 @@ import Input from '../components/ui/Input.jsx';
 import Textarea from '../components/ui/Textarea.jsx';
 import Button from '../components/ui/Button.jsx';
 import { API_BASE_URL } from '../services/api.js';
+import { fetchFeatures, getFeatures } from '../services/featureService.js';
+import RequestAccess from '../components/auth/RequestAccess.jsx';
 
-export default function Register() {
+function SelfRegister() {
   const { register } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -373,4 +375,18 @@ export default function Register() {
       </div>
     </div>
   );
+}
+
+/**
+ * Self sign-up is behind ENABLE_SELF_SIGNUP on the backend. With it off, the
+ * EzzySync team creates accounts and this page becomes a request form.
+ */
+export default function Register() {
+  const [selfSignup, setSelfSignup] = useState(getFeatures().selfSignup === true);
+  useEffect(() => {
+    let alive = true;
+    fetchFeatures().then((f) => { if (alive) setSelfSignup(f.selfSignup === true); });
+    return () => { alive = false; };
+  }, []);
+  return selfSignup ? <SelfRegister /> : <RequestAccess />;
 }

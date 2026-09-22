@@ -1,7 +1,7 @@
 /**
  * One command, every stage.
  *
- * `npm run qa:all` from this directory. It checks the machine can run a QA
+ * `test-backend.bat` (or `npm run test:backend`) from this directory. It checks the machine can run a QA
  * pass at all, runs the existing backend suite, runs the generated matrix,
  * and writes a single combined report - so "is the app healthy" is one
  * command and one page rather than four tools and a memory of which ones

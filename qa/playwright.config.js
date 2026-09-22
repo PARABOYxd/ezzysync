@@ -7,7 +7,9 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  // tests/e2e: hand-written business flows. tests/ui-matrix: every page,
+  // role, button and form, generated from an inventory.
+  testDir: './tests',
   // Old specs that forged an admin JWT into a real tenant - kept for
   // reference, never run by default. See README.
   testIgnore: ['**/legacy/**'],
@@ -22,6 +24,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html', { outputFolder: 'reports/e2e-html', open: 'never' }],
+    ['./tests/ui-matrix/reporter.js', { outputDir: 'reports' }],
   ],
   outputDir: 'test-results',
   use: {

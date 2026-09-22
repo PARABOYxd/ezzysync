@@ -4,20 +4,18 @@ One command runs everything:
 
 ```bash
 cd qa
-npm run qa:all
+npm run test:backend
 ```
 
-Or double-click `run-all.bat`, which does the same and opens the report.
+Or double-click `test-backend.bat`, which does the same and opens the report.
 
 That single pass takes about eight minutes and does three things: it checks the
-machine can run a QA pass at all, it runs the 185 hand-written backend tests,
-and it generates and runs ~13,900 API cases against a throwaway database. It
+machine can run a QA pass at all, it runs the hand-written backend tests (218 today),
+and it generates and runs ~14,500 API cases against a throwaway database. It
 finishes with one summary and one HTML report.
 
 ```
-npm run qa:all        preflight + backend suite + matrix   (~8 min)
-npm run qa:backend    preflight + backend suite only       (~2 min)
-npm run qa:quick      preflight + matrix only              (~6 min)
+npm run test:backend  preflight + backend suite + matrix   (~8 min)
 npm run qa:matrix     the matrix on its own, no wrapper
 ```
 

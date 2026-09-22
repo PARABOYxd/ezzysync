@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { copyText } from '../utils/clipboard.js';
 import { Plus, Search, Copy, Check, Trash2, Edit, Files, MapPin, CheckCircle } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -74,9 +75,12 @@ export default function Quotations() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  const copyPreviewLink = (uuid, qId) => {
+  const copyPreviewLink = async (uuid, qId) => {
     const link = `${window.location.origin}/quote-preview/${uuid}`;
-    navigator.clipboard.writeText(link);
+    if (!(await copyText(link))) {
+      toast.error(`Could not copy automatically. The link is: ${link}`);
+      return;
+    }
     setCopiedId(qId);
     toast.success('Preview link copied to clipboard!');
     setTimeout(() => setCopiedId(null), 2000);

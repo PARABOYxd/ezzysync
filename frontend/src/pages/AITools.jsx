@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { copyText } from '../utils/clipboard.js';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Brain, Bot, FileCheck, ArrowRight, Star, ShieldAlert, Lock } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
@@ -312,9 +313,9 @@ export default function AITools() {
                   <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-zinc-500">Generated Itinerary</span>
                   <div className="flex gap-3">
                     <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatedItinerary);
-                        toast.success('Itinerary copied to clipboard!');
+                      onClick={async () => {
+                        if (await copyText(generatedItinerary)) toast.success('Itinerary copied to clipboard!');
+                        else toast.error('Could not copy automatically - select the text and copy it by hand.');
                       }}
                       className="text-[10px] text-brand-600 dark:text-brand-400 font-bold hover:underline"
                     >

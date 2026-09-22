@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Compass } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import { API_BASE_URL } from '../services/api.js';
+import { fetchFeatures, getFeatures } from '../services/featureService.js';
 
 export default function Login() {
   const { login } = useAuth();
@@ -14,6 +15,27 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  // Google sign-in and "Create account" only exist while self sign-up is on
+  // (ENABLE_SELF_SIGNUP on the backend); otherwise the team creates accounts.
+  const [selfSignup, setSelfSignup] = useState(getFeatures().selfSignup === true);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    let alive = true;
+    fetchFeatures().then((f) => { if (alive) setSelfSignup(f.selfSignup === true); });
+    return () => { alive = false; };
+  }, []);
+
+  // The backend sends an old "Continue with Google" link back here. Keyed on
+  // the query value alone: useToast hands out a new object every render, so
+  // listing it as a dependency would re-fire this on every toast it shows.
+  const signInError = searchParams.get('error');
+  useEffect(() => {
+    if (signInError === 'signup_disabled') {
+      toast.info('Google sign-in is not available. Log in with the email and password our team gave you.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signInError]);
 
   const validate = () => {
     const e = {};
@@ -102,6 +124,7 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Login'}
           </Button>
 
+          {selfSignup && (<>
           <div className="relative my-4 flex items-center justify-center">
             <div className="border-t border-slate-100 dark:border-zinc-800 w-full"></div>
             <span className="absolute bg-white dark:bg-zinc-900 px-3 text-[10px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wider">or</span>
@@ -134,11 +157,12 @@ export default function Login() {
             </svg>
             Continue with Google
           </button>
+          </>)}
 
           <div className="text-center text-xs text-slate-400 pt-2">
-            Don't have an account?{' '}
+            {selfSignup ? "Don't have an account?" : 'Need an account?'}{' '}
             <Link to="/register" className="text-brand-600 hover:text-brand-700 font-bold hover:underline">
-              Create account
+              {selfSignup ? 'Create account' : 'Request access'}
             </Link>
           </div>
         </form>

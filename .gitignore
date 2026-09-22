@@ -67,3 +67,6 @@ qa/test-results/
 qa/generated-tests/
 
 
+
+# WhatsApp Web (QR) login keys, one folder per tenant. Credentials - never commit.
+backend/sessions/
