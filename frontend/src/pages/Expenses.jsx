@@ -296,6 +296,7 @@ export default function Expenses() {
           {/* Category Filter */}
           <select
             value={filterCategory}
+                aria-label="Filter by category"
             onChange={(e) => setFilterCategory(e.target.value)}
             className="flex-1 md:w-[150px] bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer shadow-sm"
           >
@@ -308,6 +309,7 @@ export default function Expenses() {
           {/* Link Type Filter */}
           <select
             value={filterLinkType}
+                aria-label="Filter by link type"
             onChange={(e) => setFilterLinkType(e.target.value)}
             className="flex-1 md:w-[150px] bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer shadow-sm"
           >

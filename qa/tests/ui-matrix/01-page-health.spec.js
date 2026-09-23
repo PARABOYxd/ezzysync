@@ -93,7 +93,10 @@ for (const route of APP_ROUTES) {
         }, { level: 'warn' });
 
         await uc(`${where}: no console errors`, async () => {
-          expect(monitor.newConsoleErrors(), 'console errors').toEqual([]);
+          // The text, not just the count: "console errors" in a report tells
+          // the reader nothing they can act on.
+          const errors = monitor.newConsoleErrors();
+          if (errors.length) throw new Error(`console error: ${errors.join(' | ').slice(0, 300)}`);
         }, { level: 'warn' });
 
         if (vpName === 'mobile') {
@@ -141,7 +144,8 @@ for (const route of PUBLIC_ROUTES) {
         expect(new URL(page.url()).pathname).toBe(new URL(target, baseURL).pathname);
       });
       await uc(`${where}: no console errors`, async () => {
-        expect(monitor.newConsoleErrors()).toEqual([]);
+        const errors = monitor.newConsoleErrors();
+        if (errors.length) throw new Error(`console error: ${errors.join(' | ').slice(0, 300)}`);
       }, { level: 'warn' });
       if (vpName === 'mobile') {
         await uc(`${where}: fits a phone screen`, async () => {

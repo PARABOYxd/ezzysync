@@ -250,6 +250,7 @@ export default function BillingAnalytics() {
             <div className="relative">
               <select
                 value={dateRangePreset}
+                aria-label="Booked on"
                 onChange={(e) => setDateRangePreset(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
               >
@@ -272,6 +273,7 @@ export default function BillingAnalytics() {
             <div className="relative">
               <select
                 value={filterYear}
+                aria-label="Departure year"
                 onChange={(e) => setFilterYear(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
               >
@@ -294,6 +296,7 @@ export default function BillingAnalytics() {
             <div className="relative">
               <select
                 value={filterMonth}
+                aria-label="Departure month"
                 onChange={(e) => setFilterMonth(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
               >
@@ -337,6 +340,7 @@ export default function BillingAnalytics() {
             <div className="relative">
               <select
                 value={selectedMembers[0] || ''}
+                aria-label="Filter by team member"
                 onChange={(e) => setSelectedMembers(e.target.value ? [e.target.value] : [])}
                 disabled={!isAdmin}
                 className="w-full bg-slate-50 disabled:opacity-60 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer appearance-none pr-8 shadow-sm"
@@ -364,6 +368,7 @@ export default function BillingAnalytics() {
               <input
                 type="date"
                 value={customStartDate}
+                aria-label="Start date"
                 onChange={(e) => setCustomStartDate(e.target.value)}
                 className="bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer"
               />
@@ -373,6 +378,7 @@ export default function BillingAnalytics() {
               <input
                 type="date"
                 value={customEndDate}
+                aria-label="End date"
                 onChange={(e) => setCustomEndDate(e.target.value)}
                 className="bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer"
               />
@@ -522,6 +528,7 @@ export default function BillingAnalytics() {
             
             <select
               value={ledgerGroupBy}
+                aria-label="Group ledger by"
               onChange={(e) => setLedgerGroupBy(e.target.value)}
               className="bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1 text-xs font-semibold focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer shadow-sm animate-none"
             >

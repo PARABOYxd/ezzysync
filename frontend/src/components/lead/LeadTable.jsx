@@ -40,6 +40,7 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
                 <input
                   type="checkbox"
                   checked={allSelected}
+                  aria-label="Select all leads on this page"
                   onChange={() => onToggleSelectAll(leads.map((l) => l.leadId), !allSelected)}
                   className="rounded text-brand-600 focus:ring-brand-500/20 border-slate-300"
                 />
@@ -64,6 +65,7 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
                     <input
                       type="checkbox"
                       checked={selectedIds.has(l.leadId)}
+                      aria-label={`Select lead ${l.customerName || l.leadId}`}
                       onChange={() => onToggleSelect(l.leadId)}
                       className="rounded text-brand-600 focus:ring-brand-500/20 border-slate-300"
                     />
@@ -134,6 +136,7 @@ export default function LeadTable({ leads, loading, onView, onEdit, onDelete, on
                   <input
                     type="checkbox"
                     checked={selectedIds.has(l.leadId)}
+                    aria-label={`Select lead ${l.customerName || l.leadId}`}
                     onChange={() => onToggleSelect(l.leadId)}
                     className="mt-1 rounded text-brand-600 focus:ring-brand-500/20 border-slate-300"
                   />

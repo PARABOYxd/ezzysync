@@ -59,6 +59,7 @@ export function buildApp() {
   );
 
   app.use(requestLogger);
+  app.use(backendRequire('./utils/eventLoopMonitor').trackInFlight);
   app.use(backendRequire('./middleware/flattenQuery').flattenQuery);
   app.use('/api', apiLimiter);
 

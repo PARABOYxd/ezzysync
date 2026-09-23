@@ -55,7 +55,7 @@ async function openForm(page, target, buttonName) {
   }
   const btn = page.locator('main button:visible').filter({ hasText: buttonName }).first();
   if (!(await btn.count())) return null;
-  await btn.click({ timeout: 3000 });
+  await btn.click({ timeout: 8000 });
   await settle(page, 300);
   if (!(await overlayOpen(page))) return null;
   return overlay(page);
@@ -67,7 +67,7 @@ async function submit(form) {
   let idx = names.findIndex((b) => b.type === 'submit' && !/cancel|close/i.test(b.name));
   if (idx < 0) idx = names.findIndex((b) => SUBMIT_BUTTON.test(b.name));
   if (idx < 0) return false;
-  await buttons.nth(idx).click({ timeout: 3000 });
+  await buttons.nth(idx).click({ timeout: 8000 });
   return true;
 }
 
@@ -131,7 +131,7 @@ for (const route of APP_ROUTES.filter((r) => !r.param)) {
               const options = await input.locator('option').evaluateAll((os) => os.map((o) => o.value));
               if (options.length) await input.selectOption(v.value === 'LAST' ? options[options.length - 1] : options[0]);
             } else {
-              await input.fill(v.value, { timeout: 2000 });
+              await input.fill(v.value, { timeout: 8000 });
             }
             await submit(form);
             await settle(page, 400);

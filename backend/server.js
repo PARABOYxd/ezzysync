@@ -7,6 +7,7 @@ const env = require('./config/env');
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 const { flattenQuery } = require('./middleware/flattenQuery');
+const { startEventLoopMonitor, trackInFlight } = require('./utils/eventLoopMonitor');
 const { ensureSchema } = require('./config/db');
 const { runMigrations } = require('./config/migrations');
 const { initScheduler } = require('./jobs/cronJobs');
@@ -124,6 +125,7 @@ app.use(
   })
 );
 app.use(requestLogger);
+app.use(trackInFlight);
 app.use(flattenQuery);
 app.use('/api', apiLimiter);
 app.use("/api/google", googleRoutes);
@@ -235,6 +237,7 @@ async function start() {
         'NO EMAIL ROUTE IS CONFIGURED - registration OTPs and password resets will fail'
       );
     }
+    startEventLoopMonitor();
     initScheduler();
     whatsappWebService.autoInitConnectedSessions();
     if (env.features.instagram) {

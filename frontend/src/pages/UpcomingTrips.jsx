@@ -150,6 +150,7 @@ export default function UpcomingTrips() {
               <input
                 type="date"
                 value={dateFilter}
+                aria-label="Filter by departure date"
                 onChange={(e) => setDateFilter(e.target.value)}
                 className="w-full text-sm bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 dark:text-zinc-200 transition"
               />
