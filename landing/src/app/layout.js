@@ -49,18 +49,18 @@ export const metadata = {
     type: "website",
     images: [
       {
-        url: "/dashboard_mockup.jpg",
-        width: 1200,
-        height: 630,
+        url: "/logo.png",
+        width: 500,
+        height: 500,
         alt: "EzzySync — Best Travel CRM Software for Tour Operators & Travel Agencies",
       }
     ]
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "EzzySync™ | Best Travel CRM Software for Tour Operators & Travel Agencies",
     description: "EzzySync is the #1 cloud-based Travel CRM software in India for tour operators and travel agencies. Automate WhatsApp leads, generate day-wise itineraries, issue GST quotations (SAC 998555), and manage bookings on one unified dashboard. Start free trial.",
-    images: ["/dashboard_mockup.jpg"],
+    images: ["/logo.png"],
   },
 };
 

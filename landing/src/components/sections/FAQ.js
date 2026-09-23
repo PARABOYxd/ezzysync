@@ -18,7 +18,7 @@ export default function FAQ({ items, heading = "Frequently Asked Questions" }) {
           <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
             Got Questions?
           </span>
-          <h2 className="font-semibold text-3xl sm:text-4xl tracking-[-0.03em] text-slate-950">
+          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
             {heading}
           </h2>
           <p className="text-slate-600 text-sm sm:text-base leading-relaxed">

@@ -1,132 +1,126 @@
-"use client";
-
 import React from "react";
-import { Check, X, ArrowRight } from "lucide-react";
+import { Check, X, Minus } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 
-const comparisonFeatures = [
-  {
-    name: "Day-Wise Travel Itinerary Builder",
-    ezzysync: "Built-in day-by-day builder with reusable hotel & tour templates",
-    generic: "Not available (Requires third-party tools)",
-    manual: "Manual copy-pasting in Word or Canva",
-  },
-  {
-    name: "Official Meta WhatsApp Cloud API",
-    ezzysync: "1 Shared agency number with multi-agent live chat",
-    generic: "Paid add-on per conversation or expensive third-party bot",
-    manual: "Scattered across employees' personal phones",
-  },
-  {
-    name: "Tour Operator SAC 998555 Invoicing",
-    ezzysync: "Automatic GST travel invoices & itemized quotes",
-    generic: "Generic invoices without tour SAC codes or meal plans",
-    manual: "Manual Excel invoices prone to calculation errors",
-  },
-  {
-    name: "Hotel & Driver Service Vouchers",
-    ezzysync: "1-Click generation of driver duty slips & hotel vouchers",
-    generic: "Not supported",
-    manual: "Typed manually each time in Word or Photoshop",
-  },
-  {
-    name: "Multi-Milestone Payment Tracking",
-    ezzysync: "Advance, hotel installment & balance tracking + Razorpay sync",
-    generic: "Single transaction logging, no milestone schedules",
-    manual: "Checking bank screenshots in WhatsApp chats",
-  },
-  {
-    name: "Supplier Costing & Profit Margin Protection",
-    ezzysync: "Auto-calculates gross & net profit before sending quote",
-    generic: "Requires complex custom spreadsheet formulas",
-    manual: "Mental math leading to margin erosion and losses",
-  },
-  {
-    name: "Multi-Agent Data Privacy & Protection",
-    ezzysync: "Coordinators only see their leads; client numbers protected",
-    generic: "Complex enterprise tier pricing required",
-    manual: "Zero security; staff can download entire client list",
-  },
+// yes = built in, partial = possible with add-ons/workarounds, no = not really
+const rows = [
+  { name: "Day-wise itinerary builder", ezzysync: "yes", manual: "no", generic: "no" },
+  { name: "Shared WhatsApp inbox for the team", ezzysync: "yes", manual: "no", generic: "partial" },
+  { name: "GST quotes with tour operator SAC", ezzysync: "yes", manual: "partial", generic: "partial" },
+  { name: "Advance & balance tracking per trip", ezzysync: "yes", manual: "partial", generic: "no" },
+  { name: "Hotel vouchers & driver duty slips", ezzysync: "yes", manual: "no", generic: "no" },
 ];
 
-export default function ComparisonMatrix({ crmUrl }) {
-  const trialUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+const columns = [
+  { key: "ezzysync", label: "EzzySync" },
+  { key: "manual", label: "Excel + WhatsApp" },
+  { key: "generic", label: "Generic CRM" },
+];
 
+const statusLabel = { yes: "Built in", partial: "Partly / with add-ons", no: "Not available" };
+
+function Mark({ value }) {
+  if (value === "yes") {
+    return (
+      <span className="inline-flex w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 items-center justify-center">
+        <Check className="w-4 h-4 stroke-[3]" aria-hidden="true" />
+        <span className="sr-only">{statusLabel.yes}</span>
+      </span>
+    );
+  }
+  if (value === "partial") {
+    return (
+      <span className="inline-flex w-7 h-7 rounded-full bg-amber-50 text-amber-600 items-center justify-center">
+        <Minus className="w-4 h-4 stroke-[3]" aria-hidden="true" />
+        <span className="sr-only">{statusLabel.partial}</span>
+      </span>
+    );
+  }
   return (
-    <section className="py-20 sm:py-28 bg-[#fafafa] border-b border-slate-200 scroll-mt-16">
-      <div className="max-w-[1240px] mx-auto px-5 sm:px-6 space-y-12">
-        
-        {/* Section Heading */}
-        <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3.5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
-            Why Travel Agencies Choose EzzySync
-          </span>
+    <span className="inline-flex w-7 h-7 rounded-full bg-rose-50 text-rose-500 items-center justify-center">
+      <X className="w-4 h-4 stroke-[3]" aria-hidden="true" />
+      <span className="sr-only">{statusLabel.no}</span>
+    </span>
+  );
+}
 
-          <h2 className="font-extrabold text-3xl sm:text-4xl lg:text-[2.65rem] tracking-[-0.03em] text-slate-950">
-            EzzySync vs Disconnected Tools &amp; Generic CRMs
+export default function ComparisonMatrix() {
+  return (
+    <section id="compare" className="py-20 sm:py-28 bg-[#fafafa] border-b border-slate-200 scroll-mt-16">
+      <div className="max-w-[1000px] mx-auto px-5 sm:px-6 space-y-10 sm:space-y-12">
+        <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">Compare</span>
+          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
+            Why not just Excel or a generic CRM?
           </h2>
-
-          <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            Generic sales CRMs were built for software or real estate. See why leading travel businesses switch to a platform engineered specifically for tourism operations.
+          <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
+            Generic CRMs were built for software and real estate sales. Travel needs itineraries, quotes and vouchers.
           </p>
         </ScrollReveal>
 
-        {/* Comparison Table */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden max-w-5xl mx-auto">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-xs uppercase tracking-wider text-slate-500 font-bold">
-                  <th className="py-4 px-6 w-2/5">Capability</th>
-                  <th className="py-4 px-6 w-1/3 bg-brand-50/60 text-brand-700 border-x border-brand-100">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-brand-600" />
-                      <span>EzzySync Travel CRM</span>
-                    </div>
+        {/* Desktop table */}
+        <div className="hidden md:block bg-white rounded-3xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-200 text-sm">
+                <th scope="col" className="py-4 px-6 font-semibold text-slate-500">Capability</th>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    scope="col"
+                    className={`py-4 px-6 text-center font-bold ${
+                      c.key === "ezzysync" ? "bg-brand-50 text-brand-700" : "text-slate-700"
+                    }`}
+                  >
+                    {c.label}
                   </th>
-                  <th className="py-4 px-6 w-1/4 text-slate-500">Generic CRMs / Excel</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                {comparisonFeatures.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 px-6 font-semibold text-slate-900">
-                      {row.name}
-                    </td>
-                    <td className="py-4 px-6 bg-brand-50/30 text-slate-900 font-medium border-x border-brand-100/60">
-                      <div className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
-                        <span>{row.ezzysync}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-slate-500">
-                      <div className="flex items-start gap-2">
-                        <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                        <span>{row.generic}</span>
-                      </div>
-                    </td>
-                  </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Footer Callout inside Table */}
-          <div className="p-6 bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <div className="font-bold text-base text-white">Ready to streamline your travel agency operations?</div>
-              <div className="text-xs text-slate-400">Join hundreds of travel planners running on EzzySync.</div>
-            </div>
-            <a
-              href={trialUrl}
-              className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm transition-all shadow-md flex items-center gap-2 flex-shrink-0"
-            >
-              <span>Start Free Trial</span>
-              <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((row) => (
+                <tr key={row.name}>
+                  <th scope="row" className="py-4 px-6 font-medium text-slate-900 text-[15px]">{row.name}</th>
+                  {columns.map((c) => (
+                    <td key={c.key} className={`py-4 px-6 text-center ${c.key === "ezzysync" ? "bg-brand-50/50" : ""}`}>
+                      <Mark value={row[c.key]} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
+        {/* Mobile cards */}
+        <ul className="md:hidden space-y-3">
+          {rows.map((row) => (
+            <li key={row.name} className="bg-white rounded-2xl border border-slate-200 p-4">
+              <div className="font-semibold text-slate-900 mb-3">{row.name}</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {columns.map((c) => (
+                  <div
+                    key={c.key}
+                    className={`rounded-xl py-2.5 px-1 flex flex-col items-center gap-1.5 ${
+                      c.key === "ezzysync" ? "bg-brand-50" : "bg-slate-50"
+                    }`}
+                  >
+                    <Mark value={row[c.key]} />
+                    <span className={`text-[11px] leading-tight ${c.key === "ezzysync" ? "font-bold text-brand-700" : "text-slate-600"}`}>
+                      {c.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <p className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs sm:text-sm text-slate-500">
+          <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-600" /> Built in</span>
+          <span className="inline-flex items-center gap-1.5"><Minus className="w-4 h-4 text-amber-600" /> Partly / with add-ons</span>
+          <span className="inline-flex items-center gap-1.5"><X className="w-4 h-4 text-rose-500" /> Not available</span>
+        </p>
       </div>
     </section>
   );

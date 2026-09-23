@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ShieldCheck, RefreshCcw, Download } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 import { PLAN_PRICE_LABEL } from "@/data/plans";
 
@@ -19,7 +19,7 @@ export default function Pricing({ crmUrl }) {
             Predictable Pricing
           </span>
 
-          <h2 className="font-semibold text-3xl sm:text-4xl lg:text-[2.6rem] tracking-[-0.03em] text-slate-950">
+          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
             Straightforward Plans for Growing Agencies
           </h2>
 
@@ -60,7 +60,7 @@ export default function Pricing({ crmUrl }) {
                   <span className="ml-1.5 text-xs text-slate-500 font-medium">/month</span>
                 </div>
 
-                <ul className="space-y-3 text-xs sm:text-sm text-slate-600">
+                <ul className="space-y-3 text-sm text-slate-600">
                   <li className="flex gap-2 items-center">
                     <Check className="w-4 h-4 text-brand-600 flex-shrink-0" />
                     <span>1 Dedicated Agent Login</span>
@@ -117,7 +117,7 @@ export default function Pricing({ crmUrl }) {
                   <span className="ml-1.5 text-xs text-slate-500 font-medium">/month</span>
                 </div>
 
-                <ul className="space-y-3 text-xs sm:text-sm text-slate-700">
+                <ul className="space-y-3 text-sm text-slate-700">
                   <li className="flex gap-2 items-center font-medium text-slate-900">
                     <Check className="w-4 h-4 text-brand-600 flex-shrink-0" />
                     <span>Up to 5 Team Agent Logins</span>
@@ -136,11 +136,11 @@ export default function Pricing({ crmUrl }) {
                   </li>
                   <li className="flex gap-2 items-center">
                     <Check className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                    <span>Day-Wise Modular Itineraries</span>
+                    <span>AI Itinerary Generator + Day-Wise Builder</span>
                   </li>
                   <li className="flex gap-2 items-center">
                     <Check className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                    <span>Razorpay Webhook Auto-Reconciliation</span>
+                    <span>Razorpay Payments Auto-Matched</span>
                   </li>
                   <li className="flex gap-2 items-center">
                     <Check className="w-4 h-4 text-brand-600 flex-shrink-0" />
@@ -174,7 +174,7 @@ export default function Pricing({ crmUrl }) {
                   <span className="ml-1.5 text-xs text-slate-500 font-medium">/annual</span>
                 </div>
 
-                <ul className="space-y-3 text-xs sm:text-sm text-slate-600">
+                <ul className="space-y-3 text-sm text-slate-600">
                   <li className="flex gap-2 items-center font-medium text-slate-900">
                     <Check className="w-4 h-4 text-brand-600 flex-shrink-0" />
                     <span>Unlimited Agent Logins &amp; Roles</span>
@@ -210,6 +210,18 @@ export default function Pricing({ crmUrl }) {
           </ScrollReveal>
 
         </div>
+
+        <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-slate-600">
+          <li className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" /> Payments secured by Razorpay
+          </li>
+          <li className="flex items-center gap-2">
+            <RefreshCcw className="w-4 h-4 text-emerald-600" /> Cancel or switch plans anytime
+          </li>
+          <li className="flex items-center gap-2">
+            <Download className="w-4 h-4 text-emerald-600" /> Export your data anytime
+          </li>
+        </ul>
 
       </div>
     </section>

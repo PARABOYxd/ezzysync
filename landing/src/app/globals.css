@@ -91,7 +91,20 @@ body {
   animation-delay: var(--reveal-delay, 0ms);
 }
 
+/* Gentle bob for the hero's floating status cards */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-y {
+  animation: float-y 5s ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .float-y {
+    animation: none;
+  }
   .reveal,
   .reveal.is-visible {
     opacity: 1;

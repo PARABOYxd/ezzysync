@@ -1,17 +1,35 @@
 import React from "react";
 import Navbar from "../components/layout/Navbar";
 import Hero from "../components/sections/Hero";
+import TrustStrip from "../components/sections/TrustStrip";
 import Problem from "../components/sections/Problem";
-import ProductTour from "../components/sections/ProductTour";
+import FlowDiagram from "../components/sections/FlowDiagram";
+import FeatureZigZag from "../components/sections/FeatureZigZag";
+import FreeItineraryTeaser from "../components/sections/FreeItineraryTeaser";
+import Testimonials from "../components/sections/Testimonials";
 import ComparisonMatrix from "../components/sections/ComparisonMatrix";
-import TravelOSShowcase from "../components/sections/TravelOSShowcase";
 import Pricing from "../components/sections/Pricing";
 import LiveDemoSection from "../components/sections/LiveDemoSection";
 import FAQ from "../components/sections/FAQ";
+import FinalCTA from "../components/sections/FinalCTA";
 import Footer from "../components/layout/Footer";
+import StickyWidgets from "../components/common/StickyWidgets";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { faqData } from "@/data/landingData";
+
+// The six objections that matter most on the homepage. The full list stays in
+// landingData for the other pages; the FAQPage JSON-LD below must match what
+// is actually rendered, so both read from this subset.
+const HOME_FAQ_QUESTIONS = [
+  "Can I import my existing Excel leads?",
+  "Can multiple team members use EzzySync?",
+  "Can I connect my WhatsApp Business number?",
+  "Can I create quotations and itineraries?",
+  "How does the trial work?",
+  "Can I cancel anytime?",
+];
+const homeFaqs = faqData.filter((item) => HOME_FAQ_QUESTIONS.includes(item.q));
 
 export default function Home() {
   const crmUrl = getCrmUrl();
@@ -20,7 +38,7 @@ export default function Home() {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      "mainEntity": faqData.map((item) => ({
+      "mainEntity": homeFaqs.map((item) => ({
         "@type": "Question",
         "name": item.q,
         "acceptedAnswer": {
@@ -87,31 +105,23 @@ export default function Home() {
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        {/* 1. Commercial Hero with Live Float Widgets & Lead Sources */}
         <Hero crmUrl={crmUrl} />
-
-        {/* 2. Before vs After: Disconnected Manual Operations vs EzzySync */}
+        <TrustStrip />
         <Problem />
-
-        {/* 3. Interactive Live Studio Tour */}
-        <ProductTour />
-
-        {/* 4. Comparison: EzzySync vs Generic CRMs & Disconnected Tools */}
-        <ComparisonMatrix crmUrl={crmUrl} />
-
-        {/* 5. Travel Operating System (Lifecycle + Agency Personas) */}
-        <TravelOSShowcase crmUrl={crmUrl} />
-
-        {/* 6. Predictable Transparent Pricing */}
+        <FlowDiagram />
+        <FeatureZigZag />
+        <FreeItineraryTeaser />
+        <Testimonials />
+        <ComparisonMatrix />
         <Pricing crmUrl={crmUrl} />
-
-        {/* 7. 1-on-1 Personalized Live Demo & WhatsApp Consultation */}
         <LiveDemoSection crmUrl={crmUrl} />
-
-        {/* 8. Objection-Busting FAQ */}
-        <FAQ />
+        <FAQ items={homeFaqs} />
+        <FinalCTA crmUrl={crmUrl} />
       </main>
       <Footer crmUrl={crmUrl} />
+      {/* Keeps the footer clear of the mobile sticky CTA bar */}
+      <div className="md:hidden h-20 bg-slate-950" aria-hidden="true" />
+      <StickyWidgets crmUrl={crmUrl} />
     </div>
   );
 }

@@ -30,15 +30,16 @@ export default function LiveDemoSection({ crmUrl }) {
           {/* Left Column: Commercial Value & Trust */}
           <div className="lg:col-span-6 space-y-5">
             <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
-              Personalized Agency Walkthrough
+              Live demo
             </span>
 
-            <h2 className="font-extrabold text-3xl sm:text-4xl text-slate-950 tracking-tight leading-tight">
-              See How EzzySync Fits Your Daily Agency Workflow
+            <h2 className="font-bold text-3xl sm:text-4xl text-slate-950 tracking-tight leading-tight">
+              15-minute demo, aapki agency ke hisaab se
             </h2>
 
             <p className="text-slate-600 text-base leading-relaxed">
-              Every travel agency is unique. Connect directly with our travel automation consultant for a 15-minute live screen demo tailored to your inquiries, itineraries, and team size.
+              Connect with our team for a personalized 15-minute live screen walkthrough. Bring a real inquiry — we&apos;ll
+              show you how it goes from WhatsApp to quote to booking inside EzzySync.
             </p>
 
             <div className="space-y-3 pt-2 text-sm text-slate-700">
@@ -56,14 +57,14 @@ export default function LiveDemoSection({ crmUrl }) {
               </div>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center gap-5 text-xs text-slate-500 font-mono">
+            <div className="pt-2 flex flex-wrap items-center gap-5 text-sm text-slate-500">
               <span className="flex items-center gap-1.5">
                 <PhoneCall className="w-3.5 h-3.5 text-brand-600" />
-                <span>Direct Sales Line: +91 88266 10820</span>
+                <span>Sales: +91 88266 10820</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Zero Commitment Required</span>
+                <span>No commitment required</span>
               </span>
             </div>
           </div>
