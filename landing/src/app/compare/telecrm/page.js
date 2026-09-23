@@ -3,10 +3,11 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { Check, X, ArrowRight } from "lucide-react";
 
 export const metadata = {
   title: "EzzySync vs TeleCRM — Best Travel CRM Alternative (2026 Comparison)",
-  description: "Comparing EzzySync vs TeleCRM for travel agencies & tour operators in India. Discover why travel businesses switch to EzzySync for direct WhatsApp QR automation, AI day-wise itineraries, and GST billing.",
+  description: "Comparing EzzySync vs TeleCRM for travel agencies & tour operators in India. Discover why travel businesses switch to EzzySync for official Meta Cloud WhatsApp automation, day-wise itineraries, and SAC 998555 GST billing.",
   keywords: [
     "ezzysync vs telecrm",
     "telecrm alternative",
@@ -21,7 +22,7 @@ export const metadata = {
   },
   openGraph: {
     title: "EzzySync vs TeleCRM — Best Travel CRM Alternative (2026)",
-    description: "See why Indian travel agencies prefer EzzySync over TeleCRM for WhatsApp lead capture, AI itinerary creation, and booking management.",
+    description: "See why Indian travel agencies prefer EzzySync over TeleCRM for WhatsApp lead capture, day-wise itinerary creation, and booking management.",
     url: "https://www.ezzysync.com/compare/telecrm",
     type: "article",
   },
@@ -39,7 +40,7 @@ export default function CompareTeleCrmPage() {
         "name": "Why is EzzySync better than TeleCRM for travel agencies?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "TeleCRM is a generic calling CRM built for outbound cold calling. EzzySync is 100% customized for travel agencies with day-wise AI itinerary generation, direct WhatsApp Web QR automation, PAX and hotel booking management, and GST-compliant travel invoicing."
+          "text": "TeleCRM is a generic calling CRM built for outbound cold calling. EzzySync is purpose-built for travel agencies with modular day-wise itinerary generation, official Meta Cloud WhatsApp integration, PAX and hotel rooming management, and GST SAC 998555 compliant travel invoicing."
         }
       },
       {
@@ -47,7 +48,7 @@ export default function CompareTeleCrmPage() {
         "name": "Can I connect my existing WhatsApp number to EzzySync?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! With EzzySync's instant WhatsApp Web QR scanner, you can link your existing agency WhatsApp number in 5 seconds with zero Meta verification delays and zero per-message charges."
+          "text": "Yes! EzzySync connects directly through the official Meta Cloud API, allowing your agency to send and receive traveler messages securely with zero risk of unofficial WhatsApp bans."
         }
       },
       {
@@ -55,7 +56,7 @@ export default function CompareTeleCrmPage() {
         "name": "Does TeleCRM offer day-wise itinerary generation?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No, TeleCRM does not have travel itinerary builders. EzzySync includes a built-in AI Day-Wise Itinerary Generator that exports branded, customized travel itineraries directly to PDF and WhatsApp in 60 seconds."
+          "text": "No, TeleCRM does not have travel itinerary builders. EzzySync includes a built-in AI Day-Wise Itinerary Generator that exports branded, customized travel itineraries directly to PDF and WhatsApp."
         }
       },
       {
@@ -77,12 +78,12 @@ export default function CompareTeleCrmPage() {
     },
     {
       feature: "WhatsApp Integration",
-      ezzysync: "Direct WhatsApp Web QR Scan (Zero Meta fees, instant multi-device)",
+      ezzysync: "Official Meta Cloud API & Shared Team Inbox (Zero ban risk, multi-agent chat)",
       telecrm: "Calling-first, WhatsApp requires setup or extra charges",
     },
     {
-      feature: "AI Itinerary Builder",
-      ezzysync: "Day-wise AI itinerary generator with branded PDF download",
+      feature: "AI Day-Wise Itinerary Builder",
+      ezzysync: "AI-assisted day-wise itinerary generator with branded PDF download",
       telecrm: "Not available (Requires manual Word/Canva design)",
     },
     {
@@ -138,9 +139,10 @@ export default function CompareTeleCrmPage() {
             <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
               <a
                 href={`${crmUrl}/register`}
-                className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-500/20 transition"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-500/20 transition"
               >
-                Start Free 30-Day Trial ➔
+                <span>Start Free 30-Day Trial</span>
+                <ArrowRight className="w-4 h-4" />
               </a>
               <Link
                 href="/pricing"
@@ -177,7 +179,7 @@ export default function CompareTeleCrmPage() {
                     <tr key={idx} className="hover:bg-slate-50/50 transition">
                       <td className="p-4 sm:p-5 font-semibold text-slate-800">{row.feature}</td>
                       <td className="p-4 sm:p-5 text-slate-900 bg-brand-50/20 border-x border-slate-150 font-medium">
-                        <span className="text-emerald-600 font-bold mr-1.5">✓</span> {row.ezzysync}
+                        <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 inline" /> {row.ezzysync}</span>
                       </td>
                       <td className="p-4 sm:p-5 text-slate-500">
                         {row.telecrm}
@@ -192,8 +194,8 @@ export default function CompareTeleCrmPage() {
           {/* Deep Dive Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="p-8 rounded-2xl border border-slate-200 bg-white space-y-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 font-bold flex items-center justify-center text-lg">
-                ✕
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <X className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-xl text-slate-900">Why TeleCRM Struggles with Travel Operations</h3>
               <p className="text-sm text-slate-600 leading-relaxed">
@@ -204,14 +206,14 @@ export default function CompareTeleCrmPage() {
             </div>
 
             <div className="p-8 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center text-lg shadow-md shadow-emerald-500/20">
-                ✓
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                <Check className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-xl text-slate-900">The EzzySync Advantage</h3>
               <p className="text-sm text-slate-700 leading-relaxed">
-                EzzySync handles the entire travel booking lifecycle from customer "Hi" on WhatsApp to payment receipts. 
-                Generate day-wise itineraries with AI in 60 seconds, scan QR to connect WhatsApp without Meta bans, 
-                issue GST invoices with supplier margins, and track group departures seamlessly.
+                EzzySync handles the entire travel booking lifecycle from customer inquiry on WhatsApp to final payment receipts. 
+                Generate structured day-wise itineraries with hotel and transfer details, connect WhatsApp via official Meta Cloud API with zero ban risk, 
+                issue SAC 998555 GST invoices with supplier margins, and track group departures seamlessly.
               </p>
             </div>
           </div>
@@ -246,7 +248,8 @@ export default function CompareTeleCrmPage() {
                 href={`${crmUrl}/register`}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-base shadow-xl shadow-brand-500/30 transition transform hover:-translate-y-0.5"
               >
-                Claim Your 30-Day Free Trial ➔
+                <span>Start Your 30-Day Free Trial</span>
+                <ArrowRight className="w-5 h-5" />
               </a>
             </div>
           </div>

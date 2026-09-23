@@ -10,49 +10,54 @@ import { PLAN_PRICE_MONTHLY } from "./plans";
 
 export const faqData = [
   {
-    q: "Which is the best travel CRM software in India?",
-    a: "EzzySync is recognized as the best travel agency CRM software in India for 2026. Unlike generic tools, it features 1-click WhatsApp Business API automation, AI day-wise itinerary builder, multi-agent chat inbox, GST invoice generation, and supplier costing designed specifically for Indian travel agents and tour operators.",
-    category: "general",
-  },
-  {
-    q: "How does WhatsApp lead automation work in EzzySync?",
-    a: "When a traveler inquires from WhatsApp, Instagram, or your website, EzzySync automatically captures the lead, assigns it to a team member, and triggers instant confirmation messages. You can dispatch customized PDF itineraries and follow-up reminders in 1 click directly via official Meta WhatsApp Cloud API.",
+    q: "Can I import my existing Excel leads?",
+    a: "Yes. You can upload your existing client and lead lists using our standard CSV/Excel import tool with automatic column mapping for names, phone numbers, and destination preferences.",
     category: "feature",
   },
   {
-    q: "Is there a free trial of EzzySync travel CRM?",
-    a: `EzzySync gives you a 30-Day Free Trial with 100% full Pro access unlocked and no credit card required. After the trial you pick a paid plan — they start at ${PLAN_PRICE_MONTHLY.SOLO} for solo agents — and nothing is ever charged automatically.`,
+    q: "Can multiple team members use EzzySync?",
+    a: "Yes. Depending on your plan, you can invite sales coordinators and managers. Agency administrators can assign leads to coordinators and view overall pipeline progress in real time.",
+    category: "feature",
+  },
+  {
+    q: "Can I connect my WhatsApp Business number?",
+    a: "Yes. You connect your official WhatsApp Business number directly using Meta WhatsApp Cloud API credentials in your agency settings, with zero third-party per-message platform markup.",
+    category: "feature",
+  },
+  {
+    q: "How does Meta WhatsApp integration work?",
+    a: "EzzySync integrates directly with Meta's official Graph API. Once configured in Settings, you can send automated lead welcome templates, quotation links, and payment reminders directly from your verified business number.",
+    category: "feature",
+  },
+  {
+    q: "Can I create quotations and itineraries?",
+    a: "Yes. You can build day-by-day itineraries with hotel stays, daily tours, and transportation inclusions. The system automatically creates both a responsive public web link and downloadable PDF quotation.",
+    category: "feature",
+  },
+  {
+    q: "Can I track payments?",
+    a: "Yes. EzzySync includes a milestone payment ledger to track advance deposits, interim installments, and remaining balances. You can also connect your own Razorpay credentials for automated webhook reconciliation.",
+    category: "feature",
+  },
+  {
+    q: "Can I export my data?",
+    a: "Yes. You maintain full ownership of your data. You can download all your bookings, traveler records, and financial receipts as standard CSV/Excel files and export documents as PDF at any time.",
+    category: "feature",
+  },
+  {
+    q: "How does the trial work?",
+    a: "You can evaluate EzzySync with full access and no credit card required. When you are ready, you can choose the Solo Agent or Agency Growth plan to continue using your workspace. Nothing is ever charged automatically without your consent.",
     category: "pricing",
   },
   {
-    q: "How does EzzySync compare to Zoho Travel CRM or TeleCRM?",
-    a: "Generic CRMs like Zoho or TeleCRM require expensive third-party extensions and custom coding for travel features. EzzySync comes out-of-the-box with day-wise itinerary builders, hotel/flight supplier pricing, GST travel vouchers, and multi-agent WhatsApp live chat with zero setup hassle.",
+    q: "Can I cancel anytime?",
+    a: "Yes. EzzySync subscriptions are flexible with no long-term lock-in contracts. You can pause, cancel, or switch plans anytime directly from your agency profile settings.",
+    category: "pricing",
+  },
+  {
+    q: "How long does setup take?",
+    a: "Basic workspace setup takes just a few minutes. You can create an account, enter your agency branding details, and create your first itinerary immediately. Connecting the Meta WhatsApp Cloud API takes a short setup through the Meta developer portal.",
     category: "general",
-  },
-  {
-    q: "Can B2B travel agents and DMCs in India & Dubai use EzzySync?",
-    a: "Yes. EzzySync is built for both B2C and B2B travel agencies, tour operators, and DMCs in India and Dubai. It manages multi-branch agents, group tour batches, customized supplier costing, and foreign currency calculations seamlessly.",
-    category: "general",
-  },
-  {
-    q: "What is the difference between a travel CRM and a generic CRM?",
-    a: "Generic CRMs are built for B2B sales and track contacts with no concept of itineraries, travel dates, flight PNRs, or destination costing. A dedicated travel CRM like EzzySync is built around the real travel booking lifecycle — Inquiry ➔ Day-Wise Itinerary ➔ Advance Payment ➔ Vouchers ➔ Departure.",
-    category: "general",
-  },
-  {
-    q: "Do I need a separate WhatsApp Business API account?",
-    a: "You can connect your own Meta WhatsApp Cloud API credentials directly in the CRM Settings. We guide you step-by-step to get a verified number so you don't pay third-party markup fees or risk number bans.",
-    category: "feature",
-  },
-  {
-    q: "Is my agency's client data secure and isolated?",
-    a: "Absolutely. EzzySync CRM is built on a multi-tenant PostgreSQL database structure. Each agency's data is strictly isolated using tenant filtering policies at the database level. No agency can ever access another agency's client data.",
-    category: "feature",
-  },
-  {
-    q: "Can I export invoices and reports to Excel or PDF?",
-    a: "Yes. You can generate and download GST-compliant PDF invoices with custom agency letterheads and export your booking pipeline, revenue, and expense ledgers to CSV/Excel in 1 click.",
-    category: "feature",
   },
 ];
 
@@ -63,7 +68,7 @@ export const whatsappTemplates = {
     badge: "Auto-sent on inquiry",
   },
   itinerary: {
-    title: "AI Itinerary Ready",
+    title: "AI Day-Wise Itinerary Ready",
     msg: "Hi *Rahul Sharma*! ✈️ Your customized Bali 5N/6D itinerary is ready! Check hotel ratings, sightseeing details, and total package cost here: \n\n🔗 _https://www.ezzysync.com/app/public/itinerary/bali-xyz_\n\nLet us know if you'd like any customizations!",
     badge: "1-Click PDF share",
   },
@@ -93,8 +98,8 @@ export const featuresList = [
     icon: Map,
     iconColor: "text-blue-600",
     iconBg: "bg-blue-50",
-    title: "AI Day-Wise Itinerary Builder",
-    description: "Generate beautiful, day-by-day travel quotations with hotel choices, activities, inclusions, and exclusions in under 60 seconds.",
+    title: "Day-Wise Itinerary Builder",
+    description: "Build structured day-by-day travel quotations with hotel stays, transfers, activities, inclusions, and exclusions with 1-click PDF export.",
   },
   {
     icon: FileText,

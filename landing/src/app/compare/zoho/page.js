@@ -3,6 +3,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { Check, X, ArrowRight } from "lucide-react";
 
 export const metadata = {
   title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
@@ -21,7 +22,7 @@ export const metadata = {
   },
   openGraph: {
     title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
-    description: "Why travel agencies choose EzzySync over Zoho CRM: zero setup time, built-in AI day-wise itineraries, direct WhatsApp Web integration, and GST billing.",
+    description: "Why travel agencies choose EzzySync over Zoho CRM: zero setup time, built-in day-wise itineraries, official Meta Cloud WhatsApp integration, and SAC 998555 GST billing.",
     url: "https://www.ezzysync.com/compare/zoho",
     type: "article",
   },
@@ -39,7 +40,7 @@ export default function CompareZohoPage() {
         "name": "Why is EzzySync better than Zoho CRM for a travel agency?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Zoho CRM is a generic tool designed for software and enterprise sales. Setting it up for travel requires hiring consultants and buying extra add-ons like Zoho Books and Zoho Desk. EzzySync is 100% pre-configured for travel agents out of the box with day-wise itineraries, PAX tracking, supplier margins, and WhatsApp multi-device sync."
+          "text": "Zoho CRM is a generic tool designed for software and enterprise sales. Setting it up for travel requires hiring consultants and buying extra add-ons like Zoho Books and Zoho Desk. EzzySync is 100% pre-configured for travel agents out of the box with day-wise itineraries, PAX tracking, supplier margins, and official Meta WhatsApp shared inboxes."
         }
       },
       {
@@ -47,7 +48,7 @@ export default function CompareZohoPage() {
         "name": "Can I generate travel itineraries in Zoho CRM?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. Zoho CRM has no native travel itinerary builder. With EzzySync, you can create day-wise visual itineraries with flight, hotel, and sightseeing details in under 60 seconds with AI."
+          "text": "No. Zoho CRM has no native travel itinerary builder. With EzzySync, you can create structured day-wise visual itineraries with AI, hotel categories, transfers, and sightseeing details with branded PDF export."
         }
       },
       {
@@ -55,7 +56,7 @@ export default function CompareZohoPage() {
         "name": "How does WhatsApp integration compare between Zoho and EzzySync?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Zoho requires third-party marketplace extensions or complicated Meta Cloud API webhook setups with per-message fees. EzzySync allows you to simply scan a QR code from your phone and start chatting and automating 24/7 with zero extra charges."
+          "text": "Zoho requires third-party marketplace extensions or complicated custom webhook setups with per-message fees. EzzySync integrates directly with the official Meta Cloud API, providing shared multi-agent inboxes, verified message templates, and automated itinerary dispatch with zero ban risk and zero third-party connector fees."
         }
       },
       {
@@ -81,13 +82,13 @@ export default function CompareZohoPage() {
       zoho: "3 to 6 Weeks — Requires developer customization & custom modules",
     },
     {
-      feature: "AI Day-Wise Itinerary Creator",
-      ezzysync: "Built-in AI engine generates branded PDF itineraries in 60s",
+      feature: "AI Day-Wise Travel Itinerary Creator",
+      ezzysync: "Built-in AI day-wise itinerary builder with branded PDF export",
       zoho: "Not supported (Requires Canva or manual Word documents)",
     },
     {
       feature: "WhatsApp Integration",
-      ezzysync: "Instant QR Multi-Device Sync (No Meta approval delays or fees)",
+      ezzysync: "Official Meta Cloud API & Shared Team Inbox (Zero ban risk, native automation)",
       zoho: "Requires 3rd-party marketplace plugins and Meta Cloud API fees",
     },
     {
@@ -137,9 +138,10 @@ export default function CompareZohoPage() {
             <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
               <a
                 href={`${crmUrl}/register`}
-                className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-500/20 transition"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-500/20 transition"
               >
-                Start Free 30-Day Trial ➔
+                <span>Start Free 30-Day Trial</span>
+                <ArrowRight className="w-4 h-4" />
               </a>
               <Link
                 href="/pricing"
@@ -176,7 +178,7 @@ export default function CompareZohoPage() {
                     <tr key={idx} className="hover:bg-slate-50/50 transition">
                       <td className="p-4 sm:p-5 font-semibold text-slate-800">{row.feature}</td>
                       <td className="p-4 sm:p-5 text-slate-900 bg-brand-50/20 border-x border-slate-150 font-medium">
-                        <span className="text-emerald-600 font-bold mr-1.5">✓</span> {row.ezzysync}
+                        <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 inline" /> {row.ezzysync}</span>
                       </td>
                       <td className="p-4 sm:p-5 text-slate-500">
                         {row.zoho}
@@ -191,8 +193,8 @@ export default function CompareZohoPage() {
           {/* Deep Dive Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="p-8 rounded-2xl border border-slate-200 bg-white space-y-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 font-bold flex items-center justify-center text-lg">
-                ✕
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <X className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-xl text-slate-900">The Problem with Zoho CRM for Travel</h3>
               <p className="text-sm text-slate-600 leading-relaxed">
@@ -201,12 +203,12 @@ export default function CompareZohoPage() {
             </div>
 
             <div className="p-8 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center text-lg shadow-md shadow-emerald-500/20">
-                ✓
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                <Check className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-xl text-slate-900">The EzzySync Solution</h3>
               <p className="text-sm text-slate-700 leading-relaxed">
-                EzzySync is built from the ground up for travel professionals. The day you sign up, your travel lead stages, quotation templates, AI itinerary builder, and multi-device WhatsApp QR scanner are ready to go. No developers, no extra subscriptions, and zero setup delays.
+                EzzySync is built from the ground up for travel professionals. The day you sign up, your travel lead stages, quotation templates, day-wise itinerary builder, SAC 998555 GST invoicing, and official Meta WhatsApp Cloud API integration are ready to go. No developers, no extra subscriptions, and zero setup delays.
               </p>
             </div>
           </div>
@@ -241,7 +243,8 @@ export default function CompareZohoPage() {
                 href={`${crmUrl}/register`}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-base shadow-xl shadow-brand-500/30 transition transform hover:-translate-y-0.5"
               >
-                Claim Your 30-Day Free Trial ➔
+                <span>Start Your 30-Day Free Trial</span>
+                <ArrowRight className="w-5 h-5" />
               </a>
             </div>
           </div>

@@ -3,6 +3,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import DemoForm from "../../components/sections/DemoForm";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { ClipboardList, Calendar, KeyRound } from "lucide-react";
 
 export const metadata = {
   title: "Contact EzzySync — Book a Free Travel CRM Walkthrough",
@@ -49,18 +50,18 @@ export default function ContactPage() {
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 bg-white bg-grid-pattern overflow-hidden">
+        <section className="relative pt-12 pb-12 sm:pt-16 sm:pb-16 bg-white bg-grid-pattern overflow-hidden">
           <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-brand-100/20 filter blur-[110px] -z-10" aria-hidden="true"></div>
           
           <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
               
               {/* Left Column: Contact Text Details */}
-              <div className="lg:col-span-5 text-center lg:text-left space-y-6">
-                <h1 className="load-in font-semibold text-slate-950 text-[clamp(2.25rem,5vw,3.5rem)] lg:text-[3.25rem] leading-[1.1] tracking-[-0.02em]" style={{ "--reveal-delay": "0ms" }}>
+              <div className="lg:col-span-5 text-center lg:text-left space-y-4">
+                <h1 className="load-in font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] leading-[1.2] tracking-tight" style={{ "--reveal-delay": "0ms" }}>
                   Talk to EzzySync
                 </h1>
-                <p className="load-in text-slate-500 text-base sm:text-lg leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
+                <p className="load-in text-slate-600 text-sm sm:text-base leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
                   Book a free walkthrough and we'll show you how EzzySync fits your agency's booking workflow. Let's configure your isolated workspace together.
                 </p>
                 <div className="load-in flex flex-wrap justify-center lg:justify-start gap-2 pt-2" style={{ "--reveal-delay": "160ms" }}>
@@ -76,7 +77,9 @@ export default function ContactPage() {
                 <div className="max-w-md mx-auto space-y-3.5 relative z-10 font-sans text-xs">
                   {/* Step 1 */}
                   <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center text-sm">📝</div>
+                    <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600">
+                      <ClipboardList className="w-4 h-4" />
+                    </div>
                     <div className="space-y-0.5">
                       <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 1</div>
                       <p className="font-semibold text-slate-900 text-xs">Submit the walkthrough form below</p>
@@ -89,7 +92,9 @@ export default function ContactPage() {
 
                   {/* Step 2 */}
                   <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-50 flex items-center justify-center text-sm">📅</div>
+                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <Calendar className="w-4 h-4" />
+                    </div>
                     <div className="space-y-0.5">
                       <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 2</div>
                       <p className="font-semibold text-slate-900 text-xs">Schedule a slot for your live demo meet</p>
@@ -102,7 +107,9 @@ export default function ContactPage() {
 
                   {/* Step 3 */}
                   <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-500 flex items-center justify-center text-sm text-white font-bold">🚀</div>
+                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+                      <KeyRound className="w-4 h-4" />
+                    </div>
                     <div className="space-y-0.5">
                       <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 3</div>
                       <p className="font-semibold text-slate-900 text-xs">Get your custom sandbox database credentials</p>

@@ -3,10 +3,11 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import FreeItineraryTool from "@/components/tools/FreeItineraryTool";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { Sparkles, FileText, MessageSquare } from "lucide-react";
 
 export const metadata = {
   title: "Free AI Travel Itinerary Builder & Generator (No Login Required) | EzzySync",
-  description: "Create professional day-wise travel itineraries in 30 seconds with AI. Free branded PDF download for travel agents & tour operators. 100% free with zero sign-up.",
+  description: "Create professional day-wise travel itineraries with AI. Free branded PDF download for travel agents & tour operators with zero sign-up required.",
   keywords: [
     "free travel itinerary builder",
     "ai itinerary generator",
@@ -22,7 +23,7 @@ export const metadata = {
   },
   openGraph: {
     title: "Free AI Travel Itinerary Builder & Generator (No Login Required)",
-    description: "Generate customized day-wise itineraries for Dubai, Goa, Kashmir, Bali and 100+ destinations in 30 seconds with AI. Download branded PDF instantly.",
+    description: "Generate customized day-wise itineraries for Dubai, Goa, Kashmir, Bali and 100+ destinations with AI. Download branded PDF with agency header.",
     url: "https://www.ezzysync.com/free-itinerary-builder",
     type: "website",
   },
@@ -106,19 +107,19 @@ export default function FreeItineraryBuilderPage() {
       />
       <Navbar crmUrl={crmUrl} />
 
-      <main className="relative pt-24 pb-20 sm:pt-32">
-        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-14">
+      <main className="relative pt-8 pb-14 sm:pt-12 sm:pb-16">
+        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-8 sm:space-y-10">
           
           {/* Header */}
-          <div id="generator-hero" className="text-center max-w-3xl mx-auto space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-200">
-              ⚡ 100% Free AI Tool for Travel Agents
+          <div id="generator-hero" className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-600 block">
+              Free AI Travel Utility
             </span>
-            <h1 className="font-extrabold text-slate-950 text-3xl sm:text-5xl tracking-[-0.02em] leading-[1.15]">
+            <h1 className="font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] tracking-tight leading-[1.2]">
               Free AI Travel Itinerary Builder
             </h1>
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              Create beautiful, day-wise travel itineraries in <strong>30 seconds</strong>. 
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto">
+              Create structured, day-wise travel itineraries with AI in moments. 
               Add your agency branding, download a printable PDF, or copy formatted text for WhatsApp — no login required.
             </p>
           </div>
@@ -128,27 +129,33 @@ export default function FreeItineraryBuilderPage() {
 
           {/* SEO Content: Why use this tool */}
           <div id="why-use-section" className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
-              <span className="text-2xl">⚡</span>
-              <h3 className="font-bold text-slate-900 text-base">Save 2 Hours Per Inquiry</h3>
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-base">Save Hours Per Inquiry</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Stop manually typing Word documents or editing Canva templates. Let AI craft complete sightseeing, hotel stays, and transfers in seconds.
+                Stop manually typing Word documents or editing generic templates. Build complete sightseeing, hotel stays, and transfers in moments.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
-              <span className="text-2xl">📄</span>
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                <FileText className="w-5 h-5" />
+              </div>
               <h3 className="font-bold text-slate-900 text-base">Instant Branded PDF</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
                 Clean, professional PDF formatting with your company name, contact number, inclusions, exclusions, and travel tips.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
-              <span className="text-2xl">💬</span>
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                <MessageSquare className="w-5 h-5" />
+              </div>
               <h3 className="font-bold text-slate-900 text-base">WhatsApp-Optimized Text</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Copy bulleted itinerary highlights formatted specifically for WhatsApp messaging with emojis and bold headers.
+                Copy bulleted itinerary highlights formatted specifically for WhatsApp messaging with clear headers and traveler details.
               </p>
             </div>
           </div>

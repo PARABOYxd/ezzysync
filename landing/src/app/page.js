@@ -1,17 +1,17 @@
 import React from "react";
 import Navbar from "../components/layout/Navbar";
 import Hero from "../components/sections/Hero";
-import Highlights from "../components/sections/Highlights";
-import Workflow from "../components/sections/Workflow";
-import WhatsAppDemo from "../components/sections/WhatsAppDemo";
-import SocialProof from "../components/sections/SocialProof";
-import Features from "../components/sections/Features";
-import WhyEzzySync from "../components/sections/WhyEzzySync";
+import Problem from "../components/sections/Problem";
+import ProductTour from "../components/sections/ProductTour";
+import ComparisonMatrix from "../components/sections/ComparisonMatrix";
+import TravelOSShowcase from "../components/sections/TravelOSShowcase";
 import Pricing from "../components/sections/Pricing";
+import LiveDemoSection from "../components/sections/LiveDemoSection";
 import FAQ from "../components/sections/FAQ";
 import Footer from "../components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
+import { faqData } from "@/data/landingData";
 
 export default function Home() {
   const crmUrl = getCrmUrl();
@@ -19,18 +19,32 @@ export default function Home() {
   const pageJsonLd = [
     {
       "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqData.map((item) => ({
+        "@type": "Question",
+        "name": item.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.a
+        }
+      }))
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "EzzySync",
+      "name": "EzzySync Travel CRM",
       "url": "https://www.ezzysync.com",
       "logo": "https://www.ezzysync.com/logo.png",
+      "telephone": "+91-8826610820",
       "contactPoint": {
         "@type": "ContactPoint",
-        "email": "jainpayal0201@gmail.com",
-        "contactType": "customer support"
+        "telephone": "+91-8826610820",
+        "email": "support@ezzysync.com",
+        "contactType": "customer service"
       },
       "sameAs": [
         "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
-        "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr" 
+        "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr"
       ]
     },
     {
@@ -40,22 +54,10 @@ export default function Home() {
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "url": "https://www.ezzysync.com",
-      "description": "The #1 Travel CRM Software in India for travel agents and tour operators. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and track bookings with multi-agent dashboards.",
-      // No aggregateRating here on purpose.
-      //
-      // Three different counts were being declared for the same product - 142
-      // in the layout, 240 on the home page and 218 on the itinerary builder -
-      // at 4.9 stars, for a product a couple of months old, with no reviews
-      // shown anywhere on the site. Google requires ratings to be genuine and
-      // visible on the page; markup like this is what triggers a "Spammy
-      // structured markup" manual action, which suppresses the whole domain in
-      // search. Put it back only when there are real reviews to point at.
+      "description": "The #1 Travel CRM Software in India for tour operators and travel agents. Automate WhatsApp leads, generate day-wise itineraries, issue GST quotations, and track bookings.",
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "INR",
-        // No free tier is listed: after the 30-day trial a workspace locks
-        // until a paid plan is chosen, so advertising a ₹0 offer to Google
-        // would be advertising something we don't sell.
         "lowPrice": PLAN_PRICE_RUPEES.SOLO,
         "highPrice": PLAN_PRICE_RUPEES.PRO,
         "offerCount": "2",
@@ -85,14 +87,28 @@ export default function Home() {
       />
       <Navbar crmUrl={crmUrl} />
       <main>
+        {/* 1. Commercial Hero with Live Float Widgets & Lead Sources */}
         <Hero crmUrl={crmUrl} />
-        <Highlights />
-        <Workflow />
-        <WhatsAppDemo />
-        <SocialProof />
-        <Features />
-        <WhyEzzySync />
+
+        {/* 2. Before vs After: Disconnected Manual Operations vs EzzySync */}
+        <Problem />
+
+        {/* 3. Interactive Live Studio Tour */}
+        <ProductTour />
+
+        {/* 4. Comparison: EzzySync vs Generic CRMs & Disconnected Tools */}
+        <ComparisonMatrix crmUrl={crmUrl} />
+
+        {/* 5. Travel Operating System (Lifecycle + Agency Personas) */}
+        <TravelOSShowcase crmUrl={crmUrl} />
+
+        {/* 6. Predictable Transparent Pricing */}
         <Pricing crmUrl={crmUrl} />
+
+        {/* 7. 1-on-1 Personalized Live Demo & WhatsApp Consultation */}
+        <LiveDemoSection crmUrl={crmUrl} />
+
+        {/* 8. Objection-Busting FAQ */}
         <FAQ />
       </main>
       <Footer crmUrl={crmUrl} />

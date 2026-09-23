@@ -6,6 +6,7 @@ import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
+import { Clock, TrendingUp } from "lucide-react";
 
 export const metadata = {
   title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
@@ -105,18 +106,18 @@ export default function PricingPage() {
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 bg-white bg-grid-pattern overflow-hidden">
+        <section className="relative pt-12 pb-12 sm:pt-16 sm:pb-16 bg-white bg-grid-pattern overflow-hidden">
           <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-brand-100/20 filter blur-[110px] -z-10" aria-hidden="true"></div>
           
           <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
               
               {/* Left Column: Pricing Text */}
-              <div className="lg:col-span-5 text-center lg:text-left space-y-6">
-                <h1 className="load-in font-semibold text-slate-950 text-[clamp(2.25rem,5vw,3.5rem)] lg:text-[3.25rem] leading-[1.1] tracking-[-0.02em]" style={{ "--reveal-delay": "0ms" }}>
+              <div className="lg:col-span-5 text-center lg:text-left space-y-4">
+                <h1 className="load-in font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] leading-[1.2] tracking-tight" style={{ "--reveal-delay": "0ms" }}>
                   Travel CRM pricing for every agency size
                 </h1>
-                <p className="load-in text-slate-500 text-base sm:text-lg leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
+                <p className="load-in text-slate-600 text-sm sm:text-base leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
                   Try everything free for 30 days, then pick the plan that fits your booking volume. No hidden setup fees or markup charges on any plan.
                 </p>
                 <div className="load-in flex flex-wrap justify-center lg:justify-start gap-2 pt-2" style={{ "--reveal-delay": "160ms" }}>
@@ -140,17 +141,21 @@ export default function PricingPage() {
 
                     <div className="grid grid-cols-2 gap-3.5">
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
-                        <span className="text-[18px]">🕒</span>
+                        <div className="w-8 h-8 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                          <Clock className="w-4 h-4" />
+                        </div>
                         <div className="mt-3">
                           <p className="text-lg font-bold text-slate-900 leading-tight">Hours</p>
-                          <p className="text-[10px] text-slate-400 font-medium">Saved each week</p>
+                          <p className="text-[10px] text-slate-500 font-medium">Saved each week</p>
                         </div>
                       </div>
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
-                        <span className="text-[18px]">📈</span>
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
                         <div className="mt-3">
                           <p className="text-lg font-bold text-slate-900 leading-tight">Higher</p>
-                          <p className="text-[10px] text-slate-400 font-medium">Lead Conversion</p>
+                          <p className="text-[10px] text-slate-500 font-medium">Lead Conversion</p>
                         </div>
                       </div>
                     </div>
