@@ -4,11 +4,14 @@ import ScrollReveal from "../ScrollReveal";
 
 export default function WhyEzzySync() {
   return (
-    <section id="why-ezzysync" aria-labelledby="why-ezzysync-heading" className="py-16 sm:py-32 bg-slate-50 relative z-10">
+    <section id="why-ezzysync" aria-labelledby="why-ezzysync-heading" className="py-20 sm:py-28 bg-slate-50 border-b border-slate-200 relative z-10 scroll-mt-20">
       <div className="max-w-[1100px] mx-auto px-5 sm:px-6 space-y-10 sm:space-y-14">
         <ScrollReveal className="text-center max-w-2xl mx-auto space-y-3">
-          <h2 id="why-ezzysync-heading" className="font-semibold text-3xl sm:text-4xl tracking-[-0.02em] text-slate-950">
-            Why EzzySync is the best travel CRM for agencies
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
+            Capability Comparison
+          </span>
+          <h2 id="why-ezzysync-heading" className="font-extrabold text-3xl sm:text-4xl tracking-[-0.02em] text-slate-950">
+            Why EzzySync is the Purpose-Built Travel CRM
           </h2>
           <p className="text-slate-500 text-base sm:text-lg leading-relaxed max-w-[55ch] mx-auto">
             EzzySync is a travel CRM and booking management platform that replaces spreadsheets, scattered

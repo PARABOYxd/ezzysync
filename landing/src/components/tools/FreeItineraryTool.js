@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   Eye,
   FileCheck2,
+  X,
 } from "lucide-react";
 import { generateFreeItinerary } from "@/lib/api";
 import {
@@ -392,7 +393,7 @@ export default function FreeItineraryTool({ crmUrl }) {
           <span className="font-bold">Itinerary Studio (AI & Editor)</span>
         </button>
 
-        <span className="text-slate-300 font-bold">➔</span>
+        <ArrowRight size={14} className="text-slate-300 shrink-0" />
 
         <button
           type="button"
@@ -614,7 +615,8 @@ export default function FreeItineraryTool({ crmUrl }) {
                         ) : (
                           <>
                             <Sparkles size={16} />
-                            Generate / Update with AI ➔
+                            <span>Generate / Update with AI</span>
+                            <ArrowRight size={14} />
                           </>
                         )}
                       </button>
@@ -710,20 +712,20 @@ export default function FreeItineraryTool({ crmUrl }) {
                         className="w-full text-base sm:text-xl font-black text-slate-900 bg-slate-50 focus:bg-white border-2 border-slate-200 focus:border-brand-500 rounded-xl px-4 py-2.5 outline-none transition"
                       />
                       <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-slate-600 pt-1">
-                        <span className="px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
-                          📍 {itinerary.destination}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
+                          <MapPin size={13} className="text-brand-600" /> {itinerary.destination}
                         </span>
-                        <span className="px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
-                          📅 {itinerary.days.length} Days / {Math.max(1, itinerary.days.length - 1)} Nights
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
+                          <Calendar size={13} className="text-slate-500" /> {itinerary.days.length} Days / {Math.max(1, itinerary.days.length - 1)} Nights
                         </span>
                         {itinerary.agencyName && (
-                          <span className="px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
-                            🏢 {itinerary.agencyName}
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
+                            <Building2 size={13} className="text-slate-500" /> {itinerary.agencyName}
                           </span>
                         )}
                         {itinerary.phone && (
-                          <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 font-semibold border border-emerald-100">
-                            📞 {itinerary.phone}
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 font-semibold border border-emerald-100">
+                            <Phone size={13} className="text-emerald-600" /> {itinerary.phone}
                           </span>
                         )}
                       </div>
@@ -835,7 +837,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                               className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-emerald-200 text-xs text-slate-800"
                             >
                               <span className="flex items-center gap-2 flex-1">
-                                <span className="text-emerald-600 font-bold">✓</span>
+                                <Check size={13} className="text-emerald-600 shrink-0" />
                                 <span>{inc}</span>
                               </span>
                               <button
@@ -892,7 +894,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                               className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-rose-200 text-xs text-slate-800"
                             >
                               <span className="flex items-center gap-2 flex-1">
-                                <span className="text-rose-500 font-bold">✕</span>
+                                <X size={13} className="text-rose-500 shrink-0" />
                                 <span>{exc}</span>
                               </span>
                               <button
@@ -950,7 +952,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                             className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-amber-200 text-xs text-slate-800"
                           >
                             <span className="flex items-center gap-2 flex-1">
-                              <span className="text-amber-500 font-bold">💡</span>
+                              <Lightbulb size={13} className="text-amber-500 shrink-0" />
                               <span>{tip}</span>
                             </span>
                             <button
@@ -1099,11 +1101,13 @@ export default function FreeItineraryTool({ crmUrl }) {
                   {itinerary.title}
                 </h1>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1.5 font-medium">
-                  <span>
-                    📅 {itinerary.days.length} Days / {Math.max(1, itinerary.days.length - 1)} Nights
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar size={13} className="text-slate-500" /> {itinerary.days.length} Days / {Math.max(1, itinerary.days.length - 1)} Nights
                   </span>
                   <span>•</span>
-                  <span>📍 {itinerary.destination}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin size={13} className="text-brand-600" /> {itinerary.destination}
+                  </span>
                 </div>
               </div>
 
@@ -1115,12 +1119,14 @@ export default function FreeItineraryTool({ crmUrl }) {
                   {itinerary.agencyName || "EzzySync Partner Agency"}
                 </p>
                 {itinerary.phone && (
-                  <p className="text-xs text-brand-700 font-semibold mt-0.5">
-                    📞 {itinerary.phone}
+                  <p className="text-xs text-brand-700 font-semibold mt-0.5 inline-flex items-center gap-1">
+                    <Phone size={11} className="text-brand-700" /> {itinerary.phone}
                   </p>
                 )}
                 {itinerary.email && (
-                  <p className="text-xs text-slate-500 mt-0.5">✉️ {itinerary.email}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 inline-flex items-center gap-1">
+                    <Mail size={11} className="text-slate-400" /> {itinerary.email}
+                  </p>
                 )}
               </div>
             </div>
@@ -1165,20 +1171,20 @@ export default function FreeItineraryTool({ crmUrl }) {
                   {itinerary.inclusions.length > 0 ? (
                     itinerary.inclusions.map((inc, iIdx) => (
                       <li key={iIdx} className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">✓</span>
+                        <Check size={13} className="text-emerald-600 shrink-0 mt-0.5" />
                         <span>{inc}</span>
                       </li>
                     ))
                   ) : (
                     <>
                       <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">✓</span> Daily Breakfast at Hotel
+                        <Check size={13} className="text-emerald-600 shrink-0 mt-0.5" /> Daily Breakfast at Hotel
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">✓</span> AC Private Vehicle for transfers & sightseeing
+                        <Check size={13} className="text-emerald-600 shrink-0 mt-0.5" /> AC Private Vehicle for transfers & sightseeing
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">✓</span> Tolls, Parking & Driver Allowances
+                        <Check size={13} className="text-emerald-600 shrink-0 mt-0.5" /> Tolls, Parking & Driver Allowances
                       </li>
                     </>
                   )}
@@ -1195,20 +1201,20 @@ export default function FreeItineraryTool({ crmUrl }) {
                   {itinerary.exclusions.length > 0 ? (
                     itinerary.exclusions.map((exc, eIdx) => (
                       <li key={eIdx} className="flex items-start gap-2">
-                        <span className="text-rose-500 font-bold">✕</span>
+                        <X size={13} className="text-rose-500 shrink-0 mt-0.5" />
                         <span>{exc}</span>
                       </li>
                     ))
                   ) : (
                     <>
                       <li className="flex items-start gap-2">
-                        <span className="text-rose-500 font-bold">✕</span> Flights & Train Tickets
+                        <X size={13} className="text-rose-500 shrink-0 mt-0.5" /> Flights & Train Tickets
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-rose-500 font-bold">✕</span> Personal Expenses, Tips & Laundry
+                        <X size={13} className="text-rose-500 shrink-0 mt-0.5" /> Personal Expenses, Tips & Laundry
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-rose-500 font-bold">✕</span> Monument Entry Fees & Optional Activities
+                        <X size={13} className="text-rose-500 shrink-0 mt-0.5" /> Monument Entry Fees & Optional Activities
                       </li>
                     </>
                   )}
@@ -1254,15 +1260,16 @@ export default function FreeItineraryTool({ crmUrl }) {
                 Want to send WhatsApp Itineraries & GST Invoices in 1 Click?
               </h3>
               <p className="text-xs sm:text-sm text-brand-100 leading-relaxed">
-                Connect your WhatsApp via QR code, auto-capture leads, manage bookings, and let 24x7 AI handle inquiries.
+                Connect your official WhatsApp via Meta Cloud API, auto-capture inquiries, generate day-wise itineraries, and manage tour operations.
               </p>
             </div>
 
             <a
               href={`${crmUrl}/register`}
-              className="shrink-0 px-8 py-4 bg-white hover:bg-slate-50 text-brand-700 font-extrabold text-sm rounded-2xl shadow-xl transition transform hover:scale-105"
+              className="shrink-0 inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-slate-50 text-brand-700 font-extrabold text-sm rounded-2xl shadow-xl transition transform hover:scale-105"
             >
-              Start 30-Day Free Trial ➔
+              <span>Start Free Evaluation</span>
+              <ArrowRight size={16} />
             </a>
           </div>
         </div>

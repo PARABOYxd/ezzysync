@@ -9,8 +9,8 @@ const geist = Geist({
 });
 
 export const metadata = {
-  title: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation & AI Itineraries",
-  description: "EzzySync is the best travel agency CRM software in India & Dubai. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and manage bookings on one unified travel CRM dashboard. Start 30-day free trial.",
+  title: "EzzySync™ | Best Travel CRM Software for Tour Operators & Travel Agencies",
+  description: "EzzySync is the #1 cloud-based Travel CRM software in India for tour operators and travel agencies. Automate WhatsApp leads, generate day-wise itineraries, issue GST quotations (SAC 998555), and manage bookings on one unified dashboard. Start free trial.",
   metadataBase: new URL("https://www.ezzysync.com"),
   keywords: [
     "travel crm",
@@ -23,24 +23,14 @@ export const metadata = {
     "travel agency crm software",
     "best travel agency crm",
     "best travel agency crm software 2026",
-    "travel crm free",
-    "free travel crm",
-    "travel crm software free",
-    "travel crm dashboard",
-    "travel agency crm dashboard",
-    "travel crm features",
-    "travel crm demo",
+    "travel quotation software",
+    "itinerary builder software",
+    "tour operator crm",
+    "travel lead management software",
+    "whatsapp travel crm",
     "b2b travel crm",
     "travel crm india",
-    "travel agency crm dubai",
-    "lead automated",
-    "whatsapp lead automate",
-    "whatsapp travel crm",
-    "travel crm login",
-    "zoho travel crm alternative",
-    "sembark travel crm alternative",
-    "tour operator crm",
-    "travel booking management software",
+    "tour management software",
     "ezzysync"
   ],
   alternates: {
@@ -51,25 +41,25 @@ export const metadata = {
     follow: true,
   },
   openGraph: {
-    title: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation & AI Itineraries",
-    description: "EzzySync is the best travel agency CRM software in India & Dubai. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and manage bookings on one unified travel CRM dashboard. Start 30-day free trial.",
+    title: "EzzySync™ | Best Travel CRM Software for Tour Operators & Travel Agencies",
+    description: "EzzySync is the #1 cloud-based Travel CRM software in India for tour operators and travel agencies. Automate WhatsApp leads, generate day-wise itineraries, issue GST quotations (SAC 998555), and manage bookings on one unified dashboard. Start free trial.",
     url: "https://www.ezzysync.com",
-    siteName: "EzzySync",
-    locale: "en_US",
+    siteName: "EzzySync Travel CRM",
+    locale: "en_IN",
     type: "website",
     images: [
       {
         url: "/dashboard_mockup.jpg",
         width: 1200,
         height: 630,
-        alt: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation",
+        alt: "EzzySync — Best Travel CRM Software for Tour Operators & Travel Agencies",
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "EzzySync — Best Travel CRM Software with WhatsApp Lead Automation & AI Itineraries",
-    description: "EzzySync is the best travel agency CRM software in India & Dubai. Automate WhatsApp leads, generate day-wise AI itineraries in 60s, issue GST invoices, and manage bookings on one unified travel CRM dashboard. Start 30-day free trial.",
+    title: "EzzySync™ | Best Travel CRM Software for Tour Operators & Travel Agencies",
+    description: "EzzySync is the #1 cloud-based Travel CRM software in India for tour operators and travel agencies. Automate WhatsApp leads, generate day-wise itineraries, issue GST quotations (SAC 998555), and manage bookings on one unified dashboard. Start free trial.",
     images: ["/dashboard_mockup.jpg"],
   },
 };
@@ -80,13 +70,15 @@ export default function RootLayout({ children }) {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "EzzySync",
-      "alternateName": ["EasySync", "EssySync", "Ezzy Sync", "EasySync CRM", "EzzySync CRM", "EasySync Travel CRM"],
+      "alternateName": ["EzzySync CRM", "EzzySync Travel CRM", "EasySync Travel CRM"],
       "url": "https://www.ezzysync.com",
       "logo": "https://www.ezzysync.com/logo.png",
+      "telephone": "+91-8826610820",
       "contactPoint": {
         "@type": "ContactPoint",
-        "email": "jainpayal0201@gmail.com",
-        "contactType": "customer support"
+        "telephone": "+91-8826610820",
+        "email": "support@ezzysync.com",
+        "contactType": "customer service"
       },
       "sameAs": [
         "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
@@ -97,7 +89,7 @@ export default function RootLayout({ children }) {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "EzzySync Travel CRM",
-      "alternateName": ["EasySync", "EssySync", "Ezzy Sync", "EasySync CRM"],
+      "alternateName": ["EzzySync", "EzzySync CRM"],
       "url": "https://www.ezzysync.com",
       "potentialAction": {
         "@type": "SearchAction",
@@ -110,29 +102,21 @@ export default function RootLayout({ children }) {
       "@type": "SoftwareApplication",
       "name": "EzzySync Travel CRM",
       "applicationCategory": "BusinessApplication",
-      "operatingSystem": "All (Web-based Cloud CRM)",
+      "operatingSystem": "All (Cloud-Based SaaS)",
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "INR",
-        "description": "30-Day Free Trial"
+        "description": "Free Evaluation Account"
       },
-      // No aggregateRating here on purpose.
-      //
-      // Three different counts were being declared for the same product - 142
-      // in the layout, 240 on the home page and 218 on the itinerary builder -
-      // at 4.9 stars, for a product a couple of months old, with no reviews
-      // shown anywhere on the site. Google requires ratings to be genuine and
-      // visible on the page; markup like this is what triggers a "Spammy
-      // structured markup" manual action, which suppresses the whole domain in
-      // search. Put it back only when there are real reviews to point at.
-      "description": "All-in-one Travel CRM software with direct WhatsApp lead capture, AI day-wise itinerary builder, GST invoice generator, and booking management for travel agencies.",
+      "description": "All-in-one Travel CRM software with direct WhatsApp lead capture, day-wise itinerary builder, GST invoice generator, and booking management for tour operators and travel agencies.",
       "featureList": [
-        "Direct WhatsApp Web QR Multi-Device Integration",
-        "AI Day-Wise Travel Itinerary Generator with PDF",
-        "GST-Compliant Travel Invoice & Quotation Designer",
+        "Official Meta WhatsApp Cloud API Integration",
+        "Day-Wise Travel Itinerary Generator with PDF",
+        "Tour Operator SAC 998555 GST Invoicing & Quotations",
         "Lead Management & Follow-up Tracking Pipeline",
-        "Group Tour & Batch Departure Management"
+        "Hotel & Driver Service Vouchers",
+        "Razorpay Webhook Milestone Payment Sync"
       ]
     }
   ];
@@ -157,4 +141,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-

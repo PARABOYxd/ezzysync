@@ -1,40 +1,158 @@
 "use client";
+
 import React from "react";
 import Link from "next/link";
-import { PlaneTakeoff } from "lucide-react";
+import { MessageSquare, PhoneCall, Mail, MapPin } from "lucide-react";
 
 export default function Footer({ crmUrl }) {
+  const loginUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+
   return (
-    <footer className="bg-white border-t border-slate-200 py-16 sm:py-24">
-      <div className="max-w-[1100px] mx-auto px-5 sm:px-6 flex flex-col items-center gap-8 text-center">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
-          <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
-            <img src="/logo.png" alt="EzzySync logo" className="w-full h-full object-contain" />
+    <footer className="bg-slate-950 text-slate-400 border-t border-slate-800 pt-16 pb-12 text-xs sm:text-sm">
+      <div className="max-w-[1240px] mx-auto px-5 sm:px-6 space-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+          
+          {/* Col 1: Brand & Contact Info */}
+          <div className="lg:col-span-2 space-y-4">
+            <Link href="/" className="flex items-center gap-2.5">
+              <img src="/logo-icon.png" alt="EzzySync logo" className="h-8 w-auto object-contain" />
+              <span className="font-bold tracking-tight text-lg text-white">EzzySync Travel CRM</span>
+            </Link>
+
+            <p className="text-slate-400 text-xs sm:text-[13px] leading-relaxed max-w-sm">
+              The #1 dedicated cloud CRM software built for travel agents, tour operators, and DMCs in India. Manage WhatsApp leads, day-wise itineraries, GST quotations, and milestone bookings.
+            </p>
+
+            <div className="space-y-2 text-xs text-slate-300 pt-1 font-mono">
+              <div className="flex items-center gap-2">
+                <PhoneCall className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
+                <span>Sales: +91 88266 10820</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>WhatsApp: +91 88266 10820 (Mon - Sat, 10 AM - 7 PM)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
+                <span>support@ezzysync.com</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
+                <span>India • 100% Cloud SaaS Platform</span>
+              </div>
+            </div>
           </div>
-          <span className="font-bold tracking-tight text-[17px] text-slate-900">EzzySync</span>
-        </Link>
 
-        {/* One row of links */}
-        <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-500">
-          <Link href="/features" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Features</Link>
-          <Link href="/free-itinerary-builder" className="hover:text-brand-600 font-semibold text-brand-700 transition-colors focus-visible:outline-none">Free Itinerary Maker</Link>
-          <Link href="/pricing" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Pricing</Link>
-          <Link href="/about" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">About</Link>
-          <Link href="/blog" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Blog</Link>
-          <Link href="/contact" className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Contact</Link>
-          <a href={`${crmUrl}/login`} className="hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:text-slate-900">Sign in</a>
-        </nav>
+          {/* Col 2: Core Modules */}
+          <div className="space-y-3">
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Travel Modules</h4>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link href="/features" className="hover:text-white transition-colors">
+                  Travel Lead Management
+                </Link>
+              </li>
+              <li>
+                <Link href="/features" className="hover:text-white transition-colors">
+                  WhatsApp Cloud API
+                </Link>
+              </li>
+              <li>
+                <Link href="/free-itinerary-builder" className="hover:text-white transition-colors flex items-center gap-1.5">
+                  <span>Day-Wise Itinerary Builder</span>
+                  <span className="bg-brand-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded">FREE</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/features" className="hover:text-white transition-colors">
+                  GST SAC 998555 Invoicing
+                </Link>
+              </li>
+              <li>
+                <Link href="/features" className="hover:text-white transition-colors">
+                  Hotel &amp; Cab Vouchers
+                </Link>
+              </li>
+              <li>
+                <Link href="/features" className="hover:text-white transition-colors">
+                  Razorpay Webhook Payments
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-        <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400">
-          <Link href="/terms" className="hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:text-slate-600">Terms</Link>
-          <Link href="/privacy" className="hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:text-slate-600">Privacy</Link>
-          <Link href="/refund-policy" className="hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:text-slate-600">Refund Policy</Link>
-        </nav>
+          {/* Col 3: Competitor Comparisons */}
+          <div className="space-y-3">
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Compare CRMs</h4>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link href="/compare/telecrm" className="hover:text-white transition-colors">
+                  EzzySync vs TeleCRM
+                </Link>
+              </li>
+              <li>
+                <Link href="/compare/zoho" className="hover:text-white transition-colors">
+                  EzzySync vs Zoho CRM
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">
+                  Solo Agent Plan
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">
+                  Agency Growth Pro Plan
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">
+                  Enterprise DMCs
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-        <p className="text-xs text-slate-400">
-          &copy; {new Date().getFullYear()} EzzySync CRM. All rights reserved.
-        </p>
+          {/* Col 4: Company & Legal */}
+          <div className="space-y-3">
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Company &amp; Legal</h4>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link href="/about" className="hover:text-white transition-colors">About EzzySync</Link>
+              </li>
+              <li>
+                <Link href="/blog" className="hover:text-white transition-colors">Travel Business Blog</Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-white transition-colors">Contact Sales &amp; Support</Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              </li>
+              <li>
+                <Link href="/refund-policy" className="hover:text-white transition-colors">Refund &amp; Cancellation</Link>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+          <div>
+            &copy; {new Date().getFullYear()} EzzySync Technologies. All rights reserved. Built for travel agencies across India.
+          </div>
+          <div className="flex items-center gap-4">
+            <a href={loginUrl} className="hover:text-white transition-colors">Agency Login</a>
+            <span>•</span>
+            <a href="https://wa.me/918826610820" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
+              Chat on WhatsApp
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );

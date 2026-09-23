@@ -1,57 +1,77 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { faqData as defaultFaqData } from "../../data/landingData";
 import ScrollReveal from "../ScrollReveal";
 
-export default function FAQ({ items, heading = "Got questions? We have answers." }) {
+export default function FAQ({ items, heading = "Frequently Asked Questions" }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const faqData = items || defaultFaqData;
 
   return (
-    <section id="faq" className="py-16 sm:py-32 bg-slate-50">
-      <div className="max-w-[720px] mx-auto px-5 sm:px-6 space-y-12">
-
+    <section id="faq" className="py-20 sm:py-28 bg-[#fafafa] text-slate-900 border-t border-slate-200/80 scroll-mt-16">
+      <div className="max-w-[760px] mx-auto px-5 sm:px-6 space-y-12">
+        
+        {/* Section Heading */}
         <ScrollReveal className="text-center space-y-3">
-          <h2 className="font-semibold text-2xl sm:text-3xl tracking-[-0.02em] text-slate-950">
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
+            Got Questions?
+          </span>
+          <h2 className="font-semibold text-3xl sm:text-4xl tracking-[-0.03em] text-slate-950">
             {heading}
           </h2>
+          <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+            Direct answers to common operational questions from travel agency owners.
+          </p>
         </ScrollReveal>
 
-        <ScrollReveal delay={80} className="space-y-3">
-          {faqData.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-xl border border-slate-200 overflow-hidden"
-            >
-              <button
-                onClick={() => setOpenFaqIndex(openFaqIndex === idx ? -1 : idx)}
-                aria-expanded={openFaqIndex === idx}
-                aria-controls={`faq-answer-${idx}`}
-                id={`faq-question-${idx}`}
-                className="w-full text-left p-4 sm:p-5 font-medium text-slate-900 flex justify-between items-center gap-4 focus:outline-none hover:bg-slate-50/60 focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xl cursor-pointer transition-colors"
-              >
-                <span className="text-sm sm:text-base">{item.q}</span>
-                {openFaqIndex === idx ? (
-                  <ChevronUp className="w-4.5 h-4.5 text-slate-400 flex-shrink-0" aria-hidden="true" focusable="false" />
-                ) : (
-                  <ChevronDown className="w-4.5 h-4.5 text-slate-400 flex-shrink-0" aria-hidden="true" focusable="false" />
-                )}
-              </button>
+        {/* Minimalist Accordion */}
+        <ScrollReveal delay={60} className="space-y-3">
+          {faqData.map((item, idx) => {
+            const isOpen = openFaqIndex === idx;
+            return (
               <div
-                id={`faq-answer-${idx}`}
-                role="region"
-                aria-labelledby={`faq-question-${idx}`}
-                className={`px-4 sm:px-5 text-slate-500 text-sm border-t border-slate-100 leading-relaxed transition-all duration-300 overflow-hidden ${
-                  openFaqIndex === idx ? "max-h-[400px] py-4 sm:py-5 opacity-100" : "max-h-0 py-0 opacity-0 border-t-0"
-                }`}
+                key={idx}
+                className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs transition-colors"
               >
-                {item.a}
+                <button
+                  type="button"
+                  onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
+                  aria-expanded={isOpen}
+                  className="w-full text-left p-5 sm:p-6 font-semibold text-slate-900 flex justify-between items-center gap-4 cursor-pointer hover:bg-slate-50/60 transition-colors"
+                >
+                  <span className="text-sm sm:text-[15px] leading-snug">{item.q}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-brand-600" : ""
+                    }`}
+                  />
+                </button>
+                {isOpen && (
+                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-slate-600 text-xs sm:text-sm leading-relaxed border-t border-slate-100 pt-3">
+                    {item.a}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </ScrollReveal>
+
+        {/* Support Prompt */}
+        <div className="pt-2 text-center">
+          <p className="text-xs sm:text-sm text-slate-500">
+            Have a question about your specific agency workflow?{" "}
+            <a
+              href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20have%20a%20question%20about%20the%20travel%20CRM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-600 font-semibold hover:underline"
+            >
+              Chat directly on WhatsApp with our team →
+            </a>
+          </p>
+        </div>
 
       </div>
     </section>

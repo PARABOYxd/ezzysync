@@ -30,7 +30,7 @@ const highlights = [
     color: "text-amber-600",
     bg: "bg-amber-50",
     title: "Instant PDF invoices",
-    description: "Generate PDF breakdown sheets, receipts, and invoices in seconds with a single click. Maintain structured billing routes, taxes, and balance payments.",
+    description: "Generate PDF breakdown sheets, receipts, and invoices with a single click. Maintain structured billing routes, SAC codes, and balance payments.",
     badge: "One-click export",
   },
 ];
