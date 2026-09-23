@@ -16,7 +16,7 @@ function InboxVisual() {
         </div>
       </div>
       <div className="bg-white rounded-xl rounded-tl-sm px-3 py-2 max-w-[80%] shadow-2xs">
-        Hi, Bali 5N/6D honeymoon package chahiye, December mein. Budget 1.2L.
+        Hi, looking for a Bali 5N/6D honeymoon package in December. Budget around ₹1.2L.
       </div>
       <div className="bg-[#d9fdd3] rounded-xl rounded-tr-sm px-3 py-2 max-w-[80%] ml-auto shadow-2xs">
         Hi Neha! Here&apos;s your day-wise Bali plan with 2 hotel options 👇
@@ -131,7 +131,7 @@ function LedgerVisual() {
 const features = [
   {
     eyebrow: "Shared WhatsApp inbox",
-    title: "Poori team, ek WhatsApp number",
+    title: "One WhatsApp number for your whole team",
     body: "Connect your official business number once. Your sales team replies from the same inbox, every chat is assigned to someone, and nothing lives on a personal phone.",
     points: ["Up to 5 team logins on Agency Growth", "Every chat linked to its lead", "No per-message markup from us"],
     Visual: InboxVisual,
@@ -152,7 +152,7 @@ const features = [
   },
   {
     eyebrow: "Payments & vouchers",
-    title: "Kisne kitna diya, kitna baaki — ek nazar mein",
+    title: "See who paid and what's due at a glance",
     body: "Log every advance and instalment against the trip. When it's confirmed, issue hotel vouchers and driver duty slips without retyping anything.",
     points: ["Advance & balance tracked per booking", "Razorpay payments matched automatically", "Hotel vouchers & driver duty slips"],
     Visual: LedgerVisual,
@@ -162,7 +162,7 @@ const features = [
 export default function FeatureZigZag() {
   return (
     <section id="features" className="py-20 sm:py-28 bg-white scroll-mt-16">
-      <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-16 sm:space-y-24">
+      <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-16 sm:space-y-20">
         <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">Features</span>
           <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">

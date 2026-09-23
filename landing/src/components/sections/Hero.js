@@ -18,18 +18,18 @@ export default function Hero({ crmUrl }) {
   return (
     <section className="relative pt-12 pb-16 sm:pt-16 sm:pb-24 bg-[#fafbfc] border-b border-slate-200 overflow-hidden">
       <div className="max-w-[1240px] mx-auto px-5 sm:px-6">
-        <div className="text-center space-y-5 max-w-4xl mx-auto">
+        <div className="text-center space-y-5 max-w-5xl mx-auto">
           <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold">
             <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
-            WhatsApp inquiry se confirmed booking tak — sab ek jagah
+            From WhatsApp inquiry to confirmed booking
           </span>
 
-          <h1 className="font-bold text-slate-950 text-3xl sm:text-5xl lg:text-[3.25rem] leading-[1.12] tracking-tight">
-            Travel CRM Software for <br className="hidden sm:inline" />
-            <span className="text-brand-600">Indian Tour Operators &amp; Travel Agencies</span>
+          <h1 className="font-bold text-slate-950 text-[2rem] sm:text-5xl lg:text-[3rem] leading-[1.12] tracking-tight text-balance">
+            <span className="sm:block">Travel CRM Software</span>{" "}
+            <span className="sm:block text-brand-600">for Tour Operators &amp; Travel Agencies</span>
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto text-pretty">
             Capture every inquiry, build day-wise itineraries, send branded GST quotes on WhatsApp and track
             advance payments — without Excel sheets or lost chats.
           </p>
@@ -49,7 +49,7 @@ export default function Hero({ crmUrl }) {
               className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-[15px] transition-all flex items-center justify-center gap-2"
             >
               <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
-              WhatsApp pe Demo
+              Get a Demo on WhatsApp
             </a>
           </div>
 

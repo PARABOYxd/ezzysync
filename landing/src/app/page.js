@@ -115,7 +115,7 @@ export default function Home() {
         <ComparisonMatrix />
         <Pricing crmUrl={crmUrl} />
         <LiveDemoSection crmUrl={crmUrl} />
-        <FAQ items={homeFaqs} />
+        <FAQ items={homeFaqs} bgClass="bg-white" />
         <FinalCTA crmUrl={crmUrl} />
       </main>
       <Footer crmUrl={crmUrl} />

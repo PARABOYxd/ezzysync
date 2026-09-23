@@ -16,7 +16,7 @@ export default function FreeItineraryTeaser() {
                 <Sparkles className="w-4 h-4" /> Free tool · No login required
               </span>
               <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
-                Abhi try karo — bina signup ke
+                Try it now, no signup needed
               </h2>
               <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
                 Enter a destination and number of days. Get a day-wise itinerary you can download as a PDF and send
@@ -26,7 +26,7 @@ export default function FreeItineraryTeaser() {
                 href="/free-itinerary-builder"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[15px] transition-colors group"
               >
-                Free itinerary banao
+                Create a Free Itinerary
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>

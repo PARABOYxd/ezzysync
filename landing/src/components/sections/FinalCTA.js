@@ -10,7 +10,7 @@ export default function FinalCTA({ crmUrl }) {
     <section className="bg-gradient-to-br from-brand-600 to-brand-700 text-white">
       <div className="max-w-[1000px] mx-auto px-5 sm:px-6 py-16 sm:py-20 text-center space-y-6">
         <h2 className="font-bold text-3xl sm:text-4xl tracking-tight">
-          Aaj ki inquiries, aaj hi EzzySync mein
+          Stop losing leads in WhatsApp chats
         </h2>
         <p className="text-brand-100 text-base sm:text-lg max-w-xl mx-auto">
           Start free, import your Excel leads, and send your first branded quote today. No credit card required.
@@ -28,7 +28,7 @@ export default function FinalCTA({ crmUrl }) {
             rel="noopener noreferrer"
             className="px-7 py-3.5 rounded-xl border border-white/40 hover:bg-white/10 font-semibold text-[15px] flex items-center justify-center gap-2 transition-colors"
           >
-            <WhatsAppIcon className="w-4 h-4" /> WhatsApp pe Demo
+            <WhatsAppIcon className="w-4 h-4" /> Get a Demo on WhatsApp
           </a>
         </div>
       </div>

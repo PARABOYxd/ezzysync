@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, PhoneCall, Calendar, CheckCircle2, ShieldCheck } from "lucide-react";
+import { PhoneCall, CheckCircle2, ShieldCheck } from "lucide-react";
+import WhatsAppIcon from "../common/WhatsAppIcon";
 import ScrollReveal from "../ScrollReveal";
 
 export default function LiveDemoSection({ crmUrl }) {
@@ -34,7 +35,7 @@ export default function LiveDemoSection({ crmUrl }) {
             </span>
 
             <h2 className="font-bold text-3xl sm:text-4xl text-slate-950 tracking-tight leading-tight">
-              15-minute demo, aapki agency ke hisaab se
+              A 15-minute demo, tailored to your agency
             </h2>
 
             <p className="text-slate-600 text-base leading-relaxed">
@@ -74,7 +75,7 @@ export default function LiveDemoSection({ crmUrl }) {
             <h3 className="font-bold text-xl text-slate-950">
               Schedule a 1-on-1 Live Demo
             </h3>
-            <p className="text-xs text-slate-500 mt-1 mb-5">
+            <p className="text-sm text-slate-500 mt-1 mb-5">
               Fill in your agency details or message us directly on WhatsApp.
             </p>
 
@@ -91,8 +92,8 @@ export default function LiveDemoSection({ crmUrl }) {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Agency Name / Business
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Agency Name *
                   </label>
                   <input
                     type="text"
@@ -100,14 +101,14 @@ export default function LiveDemoSection({ crmUrl }) {
                     placeholder="e.g. Royal Escapes Holidays"
                     value={agencyName}
                     onChange={(e) => setAgencyName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      WhatsApp / Mobile No. *
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      WhatsApp Number *
                     </label>
                     <input
                       type="tel"
@@ -115,19 +116,19 @@ export default function LiveDemoSection({ crmUrl }) {
                       placeholder="+91 98765 43210"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      City / Location
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      City
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. Delhi, Mumbai, Jaipur"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50/50"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
                     />
                   </div>
                 </div>
@@ -136,8 +137,8 @@ export default function LiveDemoSection({ crmUrl }) {
                   type="submit"
                   className="w-full py-3.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Connect via WhatsApp for Instant Demo</span>
+                  <WhatsAppIcon className="w-4 h-4" />
+                  <span>Book My Demo on WhatsApp</span>
                 </button>
 
                 <div className="relative flex py-1 items-center">
@@ -148,9 +149,9 @@ export default function LiveDemoSection({ crmUrl }) {
 
                 <a
                   href={trialUrl}
-                  className="w-full py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs text-center block transition-colors"
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm text-center block transition-colors"
                 >
-                  Start Free Trial Directly →
+                  Or start a free trial →
                 </a>
               </form>
             )}

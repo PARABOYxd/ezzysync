@@ -5,12 +5,12 @@ import { ChevronDown } from "lucide-react";
 import { faqData as defaultFaqData } from "../../data/landingData";
 import ScrollReveal from "../ScrollReveal";
 
-export default function FAQ({ items, heading = "Frequently Asked Questions" }) {
+export default function FAQ({ items, heading = "Frequently Asked Questions", bgClass = "bg-[#fafafa]" }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const faqData = items || defaultFaqData;
 
   return (
-    <section id="faq" className="py-20 sm:py-28 bg-[#fafafa] text-slate-900 border-t border-slate-200/80 scroll-mt-16">
+    <section id="faq" className={`py-20 sm:py-28 ${bgClass} text-slate-900 border-t border-slate-200/80 scroll-mt-16`}>
       <div className="max-w-[760px] mx-auto px-5 sm:px-6 space-y-12">
         
         {/* Section Heading */}

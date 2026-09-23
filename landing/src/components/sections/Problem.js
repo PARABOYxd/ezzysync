@@ -5,20 +5,20 @@ import ScrollReveal from "../ScrollReveal";
 const pains = [
   {
     icon: MessageSquareOff,
-    title: "Leads WhatsApp mein kho jaate hain",
+    title: "Leads get lost in WhatsApp chats",
     body: "Inquiries are spread across 4 staff phones. Nobody knows who replied, follow-ups slip, and the traveler books with someone faster.",
     fix: "One shared inbox + follow-up reminders",
   },
   {
     icon: Clock,
-    title: "Quote banane mein 1–2 ghante",
+    title: "Every quote takes 1–2 hours",
     body: "Copy-pasting hotel rates and day plans into Word or Canva for every small change the client asks for.",
     fix: "Day-wise builder + 1-click PDF quote",
   },
   {
     icon: Receipt,
-    title: "Payment ka hisaab nahi",
-    body: "Scrolling chats for UPI screenshots. No clear record of who paid the advance and whose balance is still due.",
+    title: "No clear record of payments",
+    body: "Scrolling chats for UPI screenshots, with no way to see who paid the advance and whose balance is still due.",
     fix: "Advance & balance ledger for every trip",
   },
 ];

@@ -29,7 +29,7 @@ export default function Navbar({ crmUrl }) {
   return (
     <>
       {/* Top Business Announcement Bar */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800 hidden sm:block">
+      <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800 hidden lg:block">
         <div className="max-w-[1240px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-brand-600 text-white uppercase tracking-wider">

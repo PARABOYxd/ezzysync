@@ -15,7 +15,7 @@ export default function TrustStrip() {
   return (
     <section aria-label="Platform highlights" className="bg-white border-b border-slate-200">
       <div className="max-w-[1240px] mx-auto px-5 sm:px-6 py-8 sm:py-10">
-        <ul className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
           {badges.map(({ icon: Icon, title, sub }) => (
             <li key={title} className="flex items-start gap-3">
               <span className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
@@ -23,7 +23,7 @@ export default function TrustStrip() {
               </span>
               <div className="leading-snug">
                 <div className="text-sm font-semibold text-slate-900">{title}</div>
-                <div className="text-xs sm:text-sm text-slate-500">{sub}</div>
+                <div className="text-sm text-slate-500">{sub}</div>
               </div>
             </li>
           ))}
