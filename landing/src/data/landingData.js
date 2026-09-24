@@ -1,11 +1,3 @@
-import {
-  Users,
-  MessageSquare,
-  Map,
-  FileText,
-  Shield,
-  Layers
-} from "lucide-react";
 import { PLAN_PRICE_MONTHLY } from "./plans";
 
 export const faqData = [
@@ -58,69 +50,6 @@ export const faqData = [
     q: "How long does setup take?",
     a: "Basic workspace setup takes just a few minutes. You can create an account, enter your agency branding details, and create your first itinerary immediately. Connecting the Meta WhatsApp Cloud API takes a short setup through the Meta developer portal.",
     category: "general",
-  },
-];
-
-export const whatsappTemplates = {
-  lead: {
-    title: "New Lead Auto-Capture",
-    msg: "Hello *Rahul Sharma*! 👋 Thank you for inquiring with us. We have received your request for the *Bali Honeymoon Tour*. Our travel specialist is customizing your day-wise itinerary right now!",
-    badge: "Auto-sent on inquiry",
-  },
-  itinerary: {
-    title: "AI Day-Wise Itinerary Ready",
-    msg: "Hi *Rahul Sharma*! ✈️ Your customized Bali 5N/6D itinerary is ready! Check hotel ratings, sightseeing details, and total package cost here: \n\n🔗 _https://www.ezzysync.com/app/public/itinerary/bali-xyz_\n\nLet us know if you'd like any customizations!",
-    badge: "1-Click PDF share",
-  },
-  invoice: {
-    title: "Booking & GST Invoice",
-    msg: "Dear *Rahul Sharma*, your trip to Bali is confirmed! 🎉 Please find your official GST travel invoice and booking voucher attached. \n\nAdvance Paid: *₹85,000*\nBalance Due: *₹0*\n\nHave a memorable trip! 🚀",
-    badge: "Auto-sent on payment",
-  },
-};
-
-export const featuresList = [
-  {
-    icon: Users,
-    iconColor: "text-brand-600",
-    iconBg: "bg-brand-50",
-    title: "Lead Automated Pipeline",
-    description: "Auto-capture travel inquiries from WhatsApp, Instagram DMs, Google Ads, and website forms into a centralized travel CRM dashboard with stage tracking.",
-  },
-  {
-    icon: MessageSquare,
-    iconColor: "text-amber-600",
-    iconBg: "bg-amber-50",
-    title: "WhatsApp Lead Automation & Live Chat",
-    description: "Send pre-configured WhatsApp confirmations, automated follow-up sequences, and PDF itineraries via official Meta WhatsApp Cloud API with multi-agent inbox.",
-  },
-  {
-    icon: Map,
-    iconColor: "text-blue-600",
-    iconBg: "bg-blue-50",
-    title: "Day-Wise Itinerary Builder",
-    description: "Build structured day-by-day travel quotations with hotel stays, transfers, activities, inclusions, and exclusions with 1-click PDF export.",
-  },
-  {
-    icon: FileText,
-    iconColor: "text-yellow-600",
-    iconBg: "bg-yellow-50",
-    title: "Automated PDF Invoices",
-    description: "Instantly generate professional PDF invoices detailing cost breakdowns, flight routes, amounts paid, and balance dues.",
-  },
-  {
-    icon: Shield,
-    iconColor: "text-brand-600",
-    iconBg: "bg-brand-50",
-    title: "Multi-Tenant Isolation",
-    description: "Your agency data is completely isolated. A secure multi-tenant architecture ensures that other agencies can view only their own client bookings or settings.",
-  },
-  {
-    icon: Layers,
-    iconColor: "text-slate-600",
-    iconBg: "bg-slate-100",
-    title: "Export & Analytics",
-    description: "Track booking trends and billing metrics on your dashboard. Export your bookings to CSV format for offline reporting and spreadsheets.",
   },
 ];
 

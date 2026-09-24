@@ -165,7 +165,7 @@ const articlesData = {
         <div className="my-10 p-6 rounded-2xl border border-orange-200 bg-orange-50/50 text-center">
           <h3 className="text-lg font-bold text-slate-900 mb-2">Ready to Scale Your Travel Agency?</h3>
           <p className="text-slate-600 text-xs sm:text-sm mb-4">Start your 30-Day Free Trial with full Pro features unlocked. No credit card required.</p>
-          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg transition-colors">Start 30-Day Free Trial</a>
+          <a href={`${globalCrmUrl}/register`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg transition-colors">Start 30-Day Free Trial</a>
         </div>
       </>
     )
@@ -261,7 +261,7 @@ const articlesData = {
         <div className="my-10 p-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 text-center">
           <h3 className="text-lg font-bold text-slate-900 mb-2">Upgrade to Multi-Agent WhatsApp Today</h3>
           <p className="text-slate-600 text-xs sm:text-sm mb-4">Empower your travel agency team with 1-click WhatsApp quotes and automated CRM tracking.</p>
-          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">Connect WhatsApp CRM</a>
+          <a href={`${globalCrmUrl}/register`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">Connect WhatsApp CRM</a>
         </div>
       </>
     )
@@ -633,7 +633,7 @@ const articlesData = {
         <div className="my-10 p-6 rounded-2xl border border-orange-200 bg-orange-50/50 dark:bg-zinc-900 text-center">
           <h3 className="text-lg font-bold text-slate-900 dark:text-zinc-100 mb-2">Start Turning Instagram DMs into Bookings</h3>
           <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm mb-4">Centralize your lead capture, generate custom quotes, and coordinate follow-up alerts in one single screen.</p>
-          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5">Try EzzySync for Free</a>
+          <a href={`${globalCrmUrl}/register`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5">Try EzzySync for Free</a>
         </div>
       </>
     )
@@ -862,7 +862,7 @@ const articlesData = {
         <div className="my-10 p-6 rounded-2xl border border-indigo-200 bg-indigo-50/50 text-center">
           <h3 className="text-lg font-bold text-slate-900 mb-2">Automate Your Travel Agency Today</h3>
           <p className="text-slate-600 text-xs sm:text-sm mb-4">Leverage our B2B travel CRM to auto-generate day-wise quotes, track secure invoicing, and coordinate client leads.</p>
-          <a href={`${globalCrmUrl}/login`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Start Free Trial</a>
+          <a href={`${globalCrmUrl}/register`} className="btn-primary inline-block text-xs font-bold px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Start Free Trial</a>
         </div>
       </>
     )

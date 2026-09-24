@@ -3,10 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { MessageSquare, PhoneCall, Mail, MapPin } from "lucide-react";
+import { getLoginUrl } from "@/lib/crmUrl";
 import { waLink, DISPLAY_PHONE, SUPPORT_EMAIL, SUPPORT_HOURS } from "@/lib/contact";
 
 export default function Footer({ crmUrl }) {
-  const loginUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+  const loginUrl = getLoginUrl(crmUrl);
 
   return (
     <footer className="bg-slate-950 text-slate-400 border-t border-slate-800 pt-16 pb-12 text-xs sm:text-sm">

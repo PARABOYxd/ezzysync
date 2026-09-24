@@ -3,7 +3,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
-import { getCrmUrl } from "@/lib/crmUrl";
+import { getCrmUrl, getTrialUrl } from "@/lib/crmUrl";
 import { TEL_PHONE, DISPLAY_PHONE, SUPPORT_EMAIL, SUPPORT_HOURS, waLink, WA_ABOUT_INQUIRY_TEXT, WA_WALKTHROUGH_TEXT } from "@/lib/contact";
 import {
   MessageSquare,
@@ -48,7 +48,7 @@ export const metadata = {
 
 export default function AboutPage() {
   const crmUrl = getCrmUrl();
-  const trialUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+  const trialUrl = getTrialUrl(crmUrl);
   const generalFaqs = faqData.filter((item) => item.category === "general" || item.category === "feature");
 
   const pageJsonLd = [

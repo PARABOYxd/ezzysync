@@ -6,7 +6,7 @@ import FeaturesDeepDive from "../../components/sections/FeaturesDeepDive";
 import WhyEzzySync from "../../components/sections/WhyEzzySync";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
-import { getCrmUrl } from "@/lib/crmUrl";
+import { getCrmUrl, getTrialUrl } from "@/lib/crmUrl";
 import { waLink, WA_FEATURES_WALKTHROUGH_TEXT, WA_FEATURES_DEMO_TEXT } from "@/lib/contact";
 import {
   ArrowRight,
@@ -47,7 +47,7 @@ export const metadata = {
 
 export default function FeaturesPage() {
   const crmUrl = getCrmUrl();
-  const trialUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+  const trialUrl = getTrialUrl(crmUrl);
   const featureFaqs = faqData.filter((item) => item.category === "feature");
 
   const pageJsonLd = [

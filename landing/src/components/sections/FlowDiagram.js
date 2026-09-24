@@ -173,9 +173,6 @@ export default function FlowDiagram() {
     >
       <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-12">
         <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-400 block">
-            How it works
-          </span>
           <h2 className="font-bold text-3xl sm:text-4xl tracking-tight">
             One booking, six steps, one system
           </h2>
@@ -267,12 +264,7 @@ export default function FlowDiagram() {
             </div>
 
             <div className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 shadow-2xl">
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-                <span className="font-bold text-base">{step.card.heading}</span>
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                  EzzySync
-                </span>
-              </div>
+              <div className="pb-3 mb-3 border-b border-slate-100 font-bold text-base">{step.card.heading}</div>
               <dl className="divide-y divide-slate-100">
                 {step.card.rows.map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between gap-4 py-2.5 text-sm">

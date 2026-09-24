@@ -49,7 +49,6 @@ export default function ComparisonMatrix() {
     <section id="compare" className="py-20 sm:py-28 bg-[#fafafa] border-b border-slate-200 scroll-mt-16">
       <div className="max-w-[1000px] mx-auto px-5 sm:px-6 space-y-10 sm:space-y-12">
         <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">Compare</span>
           <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
             Why not just Excel or a generic CRM?
           </h2>

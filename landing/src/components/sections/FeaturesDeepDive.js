@@ -16,9 +16,10 @@ import {
   Clock,
 } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
+import { getTrialUrl } from "@/lib/crmUrl";
 
 export default function FeaturesDeepDive({ crmUrl }) {
-  const trialUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+  const trialUrl = getTrialUrl(crmUrl);
 
   return (
     <div className="space-y-0 text-slate-900">

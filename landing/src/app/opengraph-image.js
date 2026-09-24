@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -78,7 +77,7 @@ export default async function Image() {
               name: "Rahul Sharma",
               dest: "Goa 4N/5D",
               amount: "₹48,500",
-              status: "Quote sent ✓",
+              status: "Quote sent",
             },
             {
               name: "Priya Patel",
@@ -90,13 +89,13 @@ export default async function Image() {
               name: "Amit Verma",
               dest: "Dubai 5D",
               amount: "₹1,20,000",
-              status: "Advance paid ✓",
+              status: "Advance paid",
             },
             {
               name: "Pooja Malhotra",
               dest: "Kerala 5D",
               amount: "₹54,000",
-              status: "Voucher issued ✓",
+              status: "Voucher issued",
             },
           ].map((item) => (
             <div
@@ -117,7 +116,7 @@ export default async function Image() {
                 {item.name}
               </div>
               <div style={{ color: "#94a3b8", fontSize: 12 }}>
-                {item.dest} · {item.amount}
+                {`${item.dest} · ${item.amount}`}
               </div>
               <div
                 style={{ color: "#4ade80", fontSize: 12, fontWeight: 600 }}

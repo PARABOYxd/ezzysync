@@ -12,22 +12,12 @@ export default function FAQ({ items, heading = "Frequently Asked Questions", bgC
 
   return (
     <section id="faq" className={`py-20 sm:py-28 ${bgClass} text-slate-900 border-t border-slate-200/80 scroll-mt-16`}>
-      <div className="max-w-[760px] mx-auto px-5 sm:px-6 space-y-12">
+      <div className="max-w-[760px] mx-auto px-5 sm:px-6 space-y-10">
         
-        {/* Section Heading */}
-        <ScrollReveal className="text-center space-y-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
-            Got Questions?
-          </span>
-          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
-            {heading}
-          </h2>
-          <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-            Direct answers to common operational questions from travel agency owners.
-          </p>
+        <ScrollReveal className="text-center">
+          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">{heading}</h2>
         </ScrollReveal>
 
-        {/* Minimalist Accordion */}
         <ScrollReveal delay={60} className="space-y-3">
           {faqData.map((item, idx) => {
             const isOpen = openFaqIndex === idx;
@@ -50,7 +40,7 @@ export default function FAQ({ items, heading = "Frequently Asked Questions", bgC
                   />
                 </button>
                 {isOpen && (
-                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-slate-600 text-xs sm:text-sm leading-relaxed border-t border-slate-100 pt-3">
+                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-3">
                     {item.a}
                   </div>
                 )}
@@ -62,14 +52,14 @@ export default function FAQ({ items, heading = "Frequently Asked Questions", bgC
         {/* Support Prompt */}
         <div className="pt-2 text-center">
           <p className="text-xs sm:text-sm text-slate-500">
-            Have a question about your specific agency workflow?{" "}
+            Question not listed?{" "}
             <a
               href={waLink(WA_QUESTION_TEXT)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-600 font-semibold hover:underline"
             >
-              Chat directly on WhatsApp with our team →
+              Ask us on WhatsApp
             </a>
           </p>
         </div>

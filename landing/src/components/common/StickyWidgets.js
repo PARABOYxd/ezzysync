@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import WhatsAppIcon from "./WhatsAppIcon";
 import { waLink, WA_DEMO_TEXT } from "@/lib/contact";
+import { getTrialUrl } from "@/lib/crmUrl";
 
 /**
  * Floating WhatsApp button (md and up) and a bottom CTA bar (below md).
@@ -10,7 +11,7 @@ import { waLink, WA_DEMO_TEXT } from "@/lib/contact";
  * same two actions are already on screen.
  */
 export default function StickyWidgets({ crmUrl }) {
-  const loginUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
+  const trialUrl = getTrialUrl(crmUrl);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function StickyWidgets({ crmUrl }) {
         aria-hidden={!shown}
       >
         <a
-          href={loginUrl}
+          href={trialUrl}
           tabIndex={shown ? 0 : -1}
           className="flex-1 py-3 rounded-xl bg-brand-600 text-white font-semibold text-sm text-center"
         >

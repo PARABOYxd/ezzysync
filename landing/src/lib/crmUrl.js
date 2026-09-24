@@ -15,3 +15,13 @@ export function getCrmUrl() {
   }
   return url;
 }
+
+/** New visitors: the CRM's self-signup page. */
+export function getTrialUrl(crmUrl = getCrmUrl()) {
+  return `${crmUrl}/register`;
+}
+
+/** Existing customers only. */
+export function getLoginUrl(crmUrl = getCrmUrl()) {
+  return `${crmUrl}/login`;
+}

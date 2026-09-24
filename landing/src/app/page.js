@@ -1,6 +1,5 @@
 import React from "react";
 import Navbar from "../components/layout/Navbar";
-import SectionNav from "../components/sections/SectionNav";
 import Hero from "../components/sections/Hero";
 import TrustStrip from "../components/sections/TrustStrip";
 import Problem from "../components/sections/Problem";
@@ -12,14 +11,12 @@ import ComparisonMatrix from "../components/sections/ComparisonMatrix";
 import Pricing from "../components/sections/Pricing";
 import LiveDemoSection from "../components/sections/LiveDemoSection";
 import FAQ from "../components/sections/FAQ";
-import FinalCTA from "../components/sections/FinalCTA";
 import Footer from "../components/layout/Footer";
 import StickyWidgets from "../components/common/StickyWidgets";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { faqData } from "@/data/landingData";
 import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
-
 
 // The six objections that matter most on the homepage. The full list stays in
 // landingData for the other pages; the FAQPage JSON-LD below must match what
@@ -75,7 +72,7 @@ export default function Home() {
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "url": "https://www.ezzysync.com",
-      "description": "The #1 Travel CRM Software in India for tour operators and travel agents. Automate WhatsApp leads, generate day-wise itineraries, issue GST quotations, and track bookings.",
+      "description": "Travel CRM software for tour operators and travel agents in India. Capture WhatsApp leads, generate day-wise itineraries, issue GST quotations, and track bookings.",
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "INR",
@@ -107,7 +104,6 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
-      <SectionNav />
       <main>
         <Hero crmUrl={crmUrl} />
         <TrustStrip />
@@ -118,9 +114,8 @@ export default function Home() {
         <Testimonials />
         <ComparisonMatrix />
         <Pricing crmUrl={crmUrl} />
+        <FAQ items={homeFaqs} bgClass="bg-slate-50" />
         <LiveDemoSection crmUrl={crmUrl} />
-        <FAQ items={homeFaqs} bgClass="bg-white" />
-        <FinalCTA crmUrl={crmUrl} />
       </main>
       <Footer crmUrl={crmUrl} />
       {/* Keeps the footer clear of the mobile sticky CTA bar */}

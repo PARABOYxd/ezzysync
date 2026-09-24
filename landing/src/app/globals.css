@@ -77,18 +77,14 @@ body {
 /* Scroll-reveal: IntersectionObserver toggles .is-visible, CSS does the animating */
 .reveal {
   opacity: 0;
-  transform: translateY(14px) translateX(var(--reveal-x, 0));
+  transform: translateY(14px);
   transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal.is-visible {
   opacity: 1;
-  transform: translateY(0) translateX(0);
+  transform: translateY(0);
 }
-
-/* Zig-zag directional reveal variants */
-.reveal-left  { --reveal-x: -20px; }
-.reveal-right { --reveal-x: 20px; }
 
 /* Load-in animation for above-the-fold hero content */
 @keyframes fade-up-in {
@@ -104,16 +100,6 @@ body {
 .load-in {
   animation: fade-up-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--reveal-delay, 0ms);
-}
-
-/* Gentle bob for the hero's floating status cards */
-@keyframes float-y {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.float-y {
-  animation: float-y 5s ease-in-out infinite;
-  animation-delay: var(--float-delay, 0s);
 }
 
 /* Card hover lift — desktop only */
@@ -133,9 +119,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .float-y {
-    animation: none;
-  }
   .reveal,
   .reveal.is-visible {
     opacity: 1;
