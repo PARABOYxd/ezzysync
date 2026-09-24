@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seo:audit": "node scripts/seo/audit.mjs",
     "seo:weekly": "node scripts/seo/weekly.mjs",
-    "seo:indexnow": "node scripts/seo/indexnow.mjs"
+    "seo:indexnow": "node scripts/seo/indexnow.mjs",
+    "images:optimize": "node scripts/optimize-images.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.4.1",
