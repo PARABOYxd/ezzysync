@@ -38,6 +38,9 @@ jobs:
       NEXT_PUBLIC_CRM_URL: https://www.ezzysync.com/app
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The PR is pushed with SEO_BOT_TOKEN; stored default credentials would override it.
+          persist-credentials: false
 
       - uses: actions/setup-node@v5
         with:
@@ -70,22 +73,14 @@ jobs:
           status=$?
           set -e
           { echo; echo "## Site audit"; echo; echo '```'; cat audit.txt; echo '```'; } >> "$report"
-          echo "report=landing/$report" >> "$GITHUB_OUTPUT"
-          echo "date=$(date +%F)" >> "$GITHUB_OUTPUT"
-          echo "prefix=$([ $status -eq 0 ] || echo '⚠ audit failed · ')" >> "$GITHUB_OUTPUT"
+          echo "report=$report" >> "$GITHUB_OUTPUT"
+          echo "title=$([ $status -eq 0 ] || echo '⚠ audit failed · ')SEO weekly $(date +%F)" >> "$GITHUB_OUTPUT"
 
+      # Plain git + GitHub API (scripts/seo/open-pr.mjs) instead of a PR action,
+      # so any failure prints the real reason.
       - name: Open pull request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.SEO_BOT_TOKEN || github.token }}
-          branch: seo/weekly
-          delete-branch: true
-          title: "${{ steps.audit.outputs.prefix }}SEO weekly ${{ steps.audit.outputs.date }}"
-          commit-message: "chore(seo): weekly SEO update ${{ steps.audit.outputs.date }}"
-          body-path: ${{ steps.audit.outputs.report }}
-          add-paths: |
-            landing/seo/keywords.csv
-            landing/seo/reports/*.md
-            landing/content/blog/*.md
-            landing/src/content/seoOverrides.json
-            landing/src/content/internalLinks.json
+        env:
+          GH_TOKEN: ${{ secrets.SEO_BOT_TOKEN || github.token }}
+          REPORT: ${{ steps.audit.outputs.report }}
+          PR_TITLE: ${{ steps.audit.outputs.title }}
+        run: node scripts/seo/open-pr.mjs
