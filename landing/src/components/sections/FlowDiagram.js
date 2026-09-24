@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { UserPlus, BellRing, Map, FileCheck, IndianRupee, Ticket } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 
@@ -104,8 +104,73 @@ export default function FlowDiagram() {
   const [active, setActive] = useState(0);
   const step = steps[active];
 
+  const sectionRef = useRef(null);
+  const intervalRef = useRef(null);
+  const pausedRef = useRef(false);
+  const userHasClickedRef = useRef(false);
+  const activeRef = useRef(0);
+
+  // Keep activeRef in sync with state
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
+  useEffect(() => {
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    const startInterval = () => {
+      if (intervalRef.current) return; // already running
+      intervalRef.current = setInterval(() => {
+        if (pausedRef.current || userHasClickedRef.current) return;
+        setActive((prev) => (prev + 1) % steps.length);
+      }, 4000);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          startInterval();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+
+    return () => {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      observer.disconnect();
+    };
+  }, []);
+
+  const handleStepClick = (i) => {
+    userHasClickedRef.current = true;
+    setActive(i);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      userHasClickedRef.current = true;
+      setActive((prev) => (prev + 1) % steps.length);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      userHasClickedRef.current = true;
+      setActive((prev) => (prev - 1 + steps.length) % steps.length);
+    }
+  };
+
   return (
-    <section id="how-it-works" className="py-20 sm:py-28 bg-[#090d16] text-white scroll-mt-16">
+    <section
+      id="how-it-works"
+      ref={sectionRef}
+      className="py-20 sm:py-28 bg-[#090d16] text-white scroll-mt-16"
+    >
       <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-12">
         <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-brand-400 block">
@@ -119,90 +184,104 @@ export default function FlowDiagram() {
           </p>
         </ScrollReveal>
 
-        {/* Step rail */}
-        <div className="relative">
-          <div className="hidden md:block absolute left-[8%] right-[8%] top-7 h-px bg-slate-700" aria-hidden="true" />
-          <div
-            className="hidden md:block absolute left-[8%] top-7 h-px bg-brand-500 transition-all duration-500"
-            style={{ width: `${(active / (steps.length - 1)) * 84}%` }}
-            aria-hidden="true"
-          />
-          <div role="tablist" aria-label="Booking steps" className="relative grid grid-cols-3 md:grid-cols-6 gap-y-6 gap-x-2">
-            {steps.map((s, i) => {
-              const Icon = s.icon;
-              const isActive = i === active;
-              const isDone = i < active;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  id={`flow-tab-${s.id}`}
-                  aria-selected={isActive}
-                  aria-controls="flow-panel"
-                  onClick={() => setActive(i)}
-                  className="flex flex-col items-center gap-2.5 group cursor-pointer"
-                >
-                  <span
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${
-                      isActive
-                        ? "bg-brand-600 border-brand-500 text-white shadow-[0_0_0_6px_rgba(234,88,12,0.2)]"
-                        : isDone
-                          ? "bg-slate-800 border-brand-500/60 text-brand-400"
-                          : "bg-slate-900 border-slate-700 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-200"
-                    }`}
-                  >
-                    <Icon className="w-6 h-6" />
-                  </span>
-                  <span className={`text-sm font-semibold ${isActive ? "text-white" : "text-slate-400"}`}>
-                    <span className="text-slate-500 mr-1">{i + 1}.</span>
-                    {s.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Active step */}
+        {/* Pause auto-advance while user hovers or focuses */}
         <div
-          id="flow-panel"
-          role="tabpanel"
-          aria-labelledby={`flow-tab-${step.id}`}
-          className="grid md:grid-cols-2 gap-8 md:gap-12 items-center bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-10"
+          onMouseEnter={() => { pausedRef.current = true; }}
+          onMouseLeave={() => { pausedRef.current = false; }}
+          onFocus={() => { pausedRef.current = true; }}
+          onBlur={() => { pausedRef.current = false; }}
         >
-          <div className="space-y-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-400">
-              Step {active + 1} of {steps.length}
-            </span>
-            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">{step.title}</h3>
-            <p className="text-slate-300 text-base leading-relaxed">{step.body}</p>
-            {active < steps.length - 1 && (
-              <button
-                type="button"
-                onClick={() => setActive(active + 1)}
-                className="text-sm font-semibold text-brand-400 hover:text-brand-300 cursor-pointer"
-              >
-                Next: {steps[active + 1].label} →
-              </button>
-            )}
+          {/* Step rail */}
+          <div className="relative">
+            <div className="hidden md:block absolute left-[8%] right-[8%] top-7 h-px bg-slate-700" aria-hidden="true" />
+            <div
+              className="hidden md:block absolute left-[8%] top-7 h-px bg-brand-500 transition-[width] duration-700 ease-in-out"
+              style={{ width: `${(active / (steps.length - 1)) * 84}%` }}
+              aria-hidden="true"
+            />
+            <div
+              role="tablist"
+              aria-label="Booking steps"
+              className="relative grid grid-cols-3 md:grid-cols-6 gap-y-6 gap-x-2"
+              onKeyDown={handleKeyDown}
+            >
+              {steps.map((s, i) => {
+                const Icon = s.icon;
+                const isActive = i === active;
+                const isDone = i < active;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="tab"
+                    id={`flow-tab-${s.id}`}
+                    aria-selected={isActive}
+                    aria-controls="flow-panel"
+                    aria-label={`Step ${i + 1}: ${s.label}`}
+                    onClick={() => handleStepClick(i)}
+                    className="flex flex-col items-center gap-2.5 group cursor-pointer"
+                  >
+                    <span
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${
+                        isActive
+                          ? "bg-brand-600 border-brand-500 text-white shadow-[0_0_0_6px_rgba(234,88,12,0.2)]"
+                          : isDone
+                            ? "bg-slate-800 border-brand-500/60 text-brand-400"
+                            : "bg-slate-900 border-slate-700 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-200"
+                      }`}
+                    >
+                      <Icon className="w-6 h-6" />
+                    </span>
+                    <span className={`text-sm font-semibold ${isActive ? "text-white" : "text-slate-400"}`}>
+                      <span className="text-slate-500 mr-1">{i + 1}.</span>
+                      {s.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-              <span className="font-bold text-base">{step.card.heading}</span>
-              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                EzzySync
+          {/* Active step panel */}
+          <div
+            id="flow-panel"
+            role="tabpanel"
+            aria-labelledby={`flow-tab-${step.id}`}
+            className="mt-10 grid md:grid-cols-2 gap-8 md:gap-12 items-center bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-10"
+          >
+            <div className="space-y-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-400">
+                Step {active + 1} of {steps.length}
               </span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">{step.title}</h3>
+              <p className="text-slate-300 text-base leading-relaxed">{step.body}</p>
+              {active < steps.length - 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleStepClick(active + 1)}
+                  className="text-sm font-semibold text-brand-400 hover:text-brand-300 cursor-pointer"
+                >
+                  Next: {steps[active + 1].label} →
+                </button>
+              )}
             </div>
-            <dl className="divide-y divide-slate-100">
-              {step.card.rows.map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-4 py-2.5 text-sm">
-                  <dt className="text-slate-500">{k}</dt>
-                  <dd className="font-semibold text-slate-900 text-right">{v}</dd>
-                </div>
-              ))}
-            </dl>
+
+            <div className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                <span className="font-bold text-base">{step.card.heading}</span>
+                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                  EzzySync
+                </span>
+              </div>
+              <dl className="divide-y divide-slate-100">
+                {step.card.rows.map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-4 py-2.5 text-sm">
+                    <dt className="text-slate-500">{k}</dt>
+                    <dd className="font-semibold text-slate-900 text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           </div>
         </div>
       </div>

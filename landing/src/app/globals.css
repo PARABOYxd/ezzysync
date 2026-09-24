@@ -77,14 +77,18 @@ body {
 /* Scroll-reveal: IntersectionObserver toggles .is-visible, CSS does the animating */
 .reveal {
   opacity: 0;
-  transform: translateY(14px);
+  transform: translateY(14px) translateX(var(--reveal-x, 0));
   transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) translateX(0);
 }
+
+/* Zig-zag directional reveal variants */
+.reveal-left  { --reveal-x: -20px; }
+.reveal-right { --reveal-x: 20px; }
 
 /* Load-in animation for above-the-fold hero content */
 @keyframes fade-up-in {
@@ -112,6 +116,22 @@ body {
   animation-delay: var(--float-delay, 0s);
 }
 
+/* Card hover lift — desktop only */
+@media (hover: hover) {
+  .card-hover {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
+  }
+}
+
+/* Button press scale */
+.btn-press:active {
+  transform: scale(0.98);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .float-y {
     animation: none;
@@ -126,6 +146,14 @@ body {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  .card-hover,
+  .card-hover:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+  .btn-press:active {
+    transform: none !important;
   }
 }
 

@@ -1,16 +1,9 @@
 import React from "react";
-import { ArrowRight, CheckCircle2, Megaphone, Search, Globe, FileSpreadsheet } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import HeroPipelineMockup from "./HeroPipelineMockup";
+import LeadSourcesDiagram from "./LeadSourcesDiagram";
 import WhatsAppIcon from "../common/WhatsAppIcon";
 import { waLink, WA_DEMO_TEXT } from "@/lib/contact";
-
-const leadSources = [
-  { icon: WhatsAppIcon, label: "WhatsApp", iconClass: "text-emerald-600" },
-  { icon: Megaphone, label: "Facebook & Instagram Ads", iconClass: "text-blue-600" },
-  { icon: Search, label: "Google Ads", iconClass: "text-amber-500" },
-  { icon: Globe, label: "Website forms", iconClass: "text-slate-600" },
-  { icon: FileSpreadsheet, label: "Excel import", iconClass: "text-green-700" },
-];
 
 export default function Hero({ crmUrl }) {
   const loginUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
@@ -37,7 +30,7 @@ export default function Hero({ crmUrl }) {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2">
             <a
               href={loginUrl}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group btn-press"
             >
               Start Free Trial
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -46,7 +39,7 @@ export default function Hero({ crmUrl }) {
               href={waLink(WA_DEMO_TEXT)}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-[15px] transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-[15px] transition-all flex items-center justify-center gap-2 btn-press"
             >
               <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
               Get a Demo on WhatsApp
@@ -70,21 +63,11 @@ export default function Hero({ crmUrl }) {
           <HeroPipelineMockup />
         </div>
 
-        <div className="mt-14 sm:mt-16 max-w-4xl mx-auto text-center space-y-4">
+        <div className="mt-14 sm:mt-16 max-w-3xl mx-auto text-center space-y-4">
           <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">
             Leads land automatically from
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            {leadSources.map(({ icon: Icon, label, iconClass }) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-white rounded-lg border border-slate-200 text-sm font-medium text-slate-700"
-              >
-                <Icon className={`w-4 h-4 ${iconClass}`} />
-                {label}
-              </span>
-            ))}
-          </div>
+          <LeadSourcesDiagram />
         </div>
       </div>
     </section>

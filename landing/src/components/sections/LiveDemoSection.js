@@ -5,17 +5,37 @@ import { PhoneCall, CheckCircle2, ShieldCheck } from "lucide-react";
 import WhatsAppIcon from "../common/WhatsAppIcon";
 import ScrollReveal from "../ScrollReveal";
 
+/** Validates an Indian mobile number and returns the normalised +91XXXXXXXXXX form, or null. */
+function validateIndianPhone(raw) {
+  const match = raw.trim().match(/^(?:\+91|91|0)?([6-9]\d{9})$/);
+  return match ? `+91${match[1]}` : null;
+}
+
 export default function LiveDemoSection({ crmUrl }) {
   const [submitted, setSubmitted] = useState(false);
   const [agencyName, setAgencyName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [city, setCity] = useState("");
+  const [preferredTime, setPreferredTime] = useState("");
+
+  const handlePhoneBlur = () => {
+    if (phone && !validateIndianPhone(phone)) {
+      setPhoneError("Please enter a valid 10-digit Indian mobile number.");
+    } else {
+      setPhoneError("");
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!phone) return;
+    const normalised = validateIndianPhone(phone);
+    if (!normalised) {
+      setPhoneError("Please enter a valid 10-digit Indian mobile number.");
+      return;
+    }
     const msg = encodeURIComponent(
-      `Hello EzzySync Team! I want a live demo for my agency: "${agencyName || 'Travel Agency'}" in ${city || 'India'}. Phone: ${phone}`
+      `Hello EzzySync Team! I want a live demo for my agency: "${agencyName || "Travel Agency"}" in ${city || "India"}. WhatsApp: ${normalised} | Preferred time: ${preferredTime || "Flexible"}`
     );
     window.open(`https://wa.me/918826610820?text=${msg}`, "_blank");
     setSubmitted(true);
@@ -27,8 +47,8 @@ export default function LiveDemoSection({ crmUrl }) {
     <section id="demo" className="py-20 sm:py-28 bg-slate-50 text-slate-900 scroll-mt-16 border-t border-b border-slate-200">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center max-w-5xl mx-auto">
-          
-          {/* Left Column: Commercial Value & Trust */}
+
+          {/* Left Column */}
           <div className="lg:col-span-6 space-y-5">
             <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
               Live demo
@@ -70,7 +90,7 @@ export default function LiveDemoSection({ crmUrl }) {
             </div>
           </div>
 
-          {/* Right Column: Clean White Demo Form */}
+          {/* Right Column: Demo Form */}
           <div className="lg:col-span-6 bg-white text-slate-900 rounded-3xl p-7 sm:p-9 shadow-sm border border-slate-200">
             <h3 className="font-bold text-xl text-slate-950">
               Schedule a 1-on-1 Live Demo
@@ -90,61 +110,91 @@ export default function LiveDemoSection({ crmUrl }) {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  <label htmlFor="demo-agency" className="block text-sm font-semibold text-slate-700 mb-1.5">
                     Agency Name *
                   </label>
                   <input
+                    id="demo-agency"
                     type="text"
                     required
                     placeholder="e.g. Royal Escapes Holidays"
                     value={agencyName}
                     onChange={(e) => setAgencyName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    <label htmlFor="demo-phone" className="block text-sm font-semibold text-slate-700 mb-1.5">
                       WhatsApp Number *
                     </label>
                     <input
+                      id="demo-phone"
                       type="tel"
                       required
                       placeholder="+91 98765 43210"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                      onChange={(e) => { setPhone(e.target.value); if (phoneError) setPhoneError(""); }}
+                      onBlur={handlePhoneBlur}
+                      aria-invalid={!!phoneError}
+                      aria-describedby={phoneError ? "phone-error" : undefined}
+                      className={`w-full px-3.5 py-2.5 rounded-xl border text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white ${
+                        phoneError ? "border-rose-400" : "border-slate-300"
+                      }`}
                     />
+                    {phoneError && (
+                      <p id="phone-error" role="alert" className="mt-1 text-xs text-rose-600">
+                        {phoneError}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    <label htmlFor="demo-city" className="block text-sm font-semibold text-slate-700 mb-1.5">
                       City
                     </label>
                     <input
+                      id="demo-city"
                       type="text"
                       placeholder="e.g. Delhi, Mumbai, Jaipur"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
                     />
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor="demo-time" className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Preferred time
+                  </label>
+                  <select
+                    id="demo-time"
+                    value={preferredTime}
+                    onChange={(e) => setPreferredTime(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white"
+                  >
+                    <option value="">Any time (flexible)</option>
+                    <option value="Morning (9am–12pm)">Morning (9am–12pm)</option>
+                    <option value="Afternoon (12pm–4pm)">Afternoon (12pm–4pm)</option>
+                    <option value="Evening (4pm–8pm)">Evening (4pm–8pm)</option>
+                  </select>
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full py-3.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer btn-press"
                 >
                   <WhatsAppIcon className="w-4 h-4" />
                   <span>Book My Demo on WhatsApp</span>
                 </button>
 
                 <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-slate-200"></div>
-                  <span className="flex-shrink mx-3 text-slate-400 text-[11px] uppercase tracking-wider font-semibold">Or</span>
-                  <div className="flex-grow border-t border-slate-200"></div>
+                  <div className="flex-grow border-t border-slate-200" />
+                  <span className="flex-shrink mx-3 text-slate-400 text-xs uppercase tracking-wider font-semibold">Or</span>
+                  <div className="flex-grow border-t border-slate-200" />
                 </div>
 
                 <a

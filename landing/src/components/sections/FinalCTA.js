@@ -18,7 +18,7 @@ export default function FinalCTA({ crmUrl }) {
         <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
           <a
             href={loginUrl}
-            className="px-8 py-3.5 rounded-xl bg-white text-brand-700 hover:bg-brand-50 font-semibold text-[15px] flex items-center justify-center gap-2 transition-colors"
+            className="px-8 py-3.5 rounded-xl bg-white text-brand-700 hover:bg-brand-50 font-semibold text-[15px] flex items-center justify-center gap-2 transition-colors btn-press"
           >
             Start Free Trial <ArrowRight className="w-4 h-4" />
           </a>
@@ -26,7 +26,7 @@ export default function FinalCTA({ crmUrl }) {
             href={waLink(WA_DEMO_TEXT)}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-7 py-3.5 rounded-xl border border-white/40 hover:bg-white/10 font-semibold text-[15px] flex items-center justify-center gap-2 transition-colors"
+            className="px-7 py-3.5 rounded-xl border border-white/40 hover:bg-white/10 font-semibold text-[15px] flex items-center justify-center gap-2 transition-colors btn-press"
           >
             <WhatsAppIcon className="w-4 h-4" /> Get a Demo on WhatsApp
           </a>

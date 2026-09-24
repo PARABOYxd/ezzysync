@@ -5,7 +5,7 @@ import WhatsAppIcon from "../common/WhatsAppIcon";
 
 function InboxVisual() {
   return (
-    <div className="bg-[#efeae2] rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3 text-sm">
+    <div className="bg-[#efeae2] rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3 text-sm card-hover">
       <div className="flex items-center gap-2 pb-3 border-b border-black/5">
         <span className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center">
           <WhatsAppIcon className="w-4 h-4" />
@@ -41,7 +41,7 @@ function ItineraryVisual() {
     ["Day 4", "Sonamarg day trip"],
   ];
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)] p-5 sm:p-6">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)] p-5 sm:p-6 card-hover">
       <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
         <div>
           <div className="font-bold text-slate-900">Kashmir 5N/6D</div>
@@ -69,7 +69,7 @@ function ItineraryVisual() {
 
 function QuoteVisual() {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)] overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)] overflow-hidden card-hover">
       <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
         <div>
           <div className="font-bold">Your Agency Name</div>
@@ -99,7 +99,7 @@ function QuoteVisual() {
 
 function LedgerVisual() {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)] p-5 sm:p-6 space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.08)] p-5 sm:p-6 space-y-4 card-hover">
       <div className="flex items-center justify-between">
         <div>
           <div className="font-bold text-slate-900">Kerala 4N/5D · Pooja Malhotra</div>

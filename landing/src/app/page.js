@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../components/layout/Navbar";
+import SectionNav from "../components/sections/SectionNav";
 import Hero from "../components/sections/Hero";
 import TrustStrip from "../components/sections/TrustStrip";
 import Problem from "../components/sections/Problem";
@@ -17,6 +18,7 @@ import StickyWidgets from "../components/common/StickyWidgets";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { faqData } from "@/data/landingData";
+
 
 // The six objections that matter most on the homepage. The full list stays in
 // landingData for the other pages; the FAQPage JSON-LD below must match what
@@ -104,6 +106,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
+      <SectionNav />
       <main>
         <Hero crmUrl={crmUrl} />
         <TrustStrip />
