@@ -1,30 +1,70 @@
-keyword,search_intent,volume,difficulty,country,target_url,content_type,status,published_at,updated_at
-travel crm,commercial,,,IN,/,homepage,live,2026-07-29,2026-09-24
-travel crm software,commercial,,,IN,/,homepage,live,2026-07-29,2026-09-24
-best travel crm in india,commercial,,,IN,/blog/best-travel-agency-crm-software-india-2026,blog,live,2026-08-30,2026-09-24
-travel agency crm,commercial,,,IN,/solutions/travel-agencies,solution,live,2026-09-24,2026-09-24
-travel agency crm software,commercial,,,IN,/solutions/travel-agencies,solution,live,2026-09-24,2026-09-24
-tour operator crm,commercial,,,IN,/solutions/tour-operators,solution,live,2026-09-24,2026-09-24
-tour operator software,commercial,,,IN,/solutions/tour-operators,solution,live,2026-09-24,2026-09-24
-dmc software,commercial,,,IN,/solutions/tour-operators,solution,live,2026-09-24,2026-09-24
-crm for travel consultants,commercial,,,IN,/solutions/travel-consultants,solution,live,2026-09-24,2026-09-24
-travel business software,commercial,,,IN,/solutions/small-travel-businesses,solution,live,2026-09-24,2026-09-24
-travel lead management software,commercial,,,IN,/features/lead-management,feature,live,2026-09-24,2026-09-24
-manage travel leads,problem,,,IN,/features/lead-management,feature,live,2026-09-24,2026-09-24
-whatsapp crm for travel agents,commercial,,,IN,/features/whatsapp-automation,feature,live,2026-09-24,2026-09-24
-whatsapp travel leads,problem,,,IN,/features/whatsapp-automation,feature,live,2026-09-24,2026-09-24
-whatsapp business api for travel agency,informational,,,IN,/blog/whatsapp-business-api-travel-agency-setup-guide,blog,live,2026-08-28,2026-08-28
-travel itinerary software,commercial,,,IN,/features/itinerary-builder,feature,live,2026-09-24,2026-09-24
-itinerary builder,commercial,,,IN,/free-itinerary-builder,tool,live,2026-09-11,2026-09-11
-free itinerary maker,commercial,,,IN,/free-itinerary-builder,tool,live,2026-09-11,2026-09-11
-travel follow-up software,commercial,,,IN,/features/follow-up-automation,feature,live,2026-09-24,2026-09-24
-travel lead follow-up,problem,,,IN,/features/follow-up-automation,feature,live,2026-09-24,2026-09-24
-how to follow up with travel customers,informational,,,IN,/blog/automate-travel-agency-follow-ups,blog,live,2026-08-26,2026-08-26
-travel booking management software,commercial,,,IN,/features/booking-management,feature,live,2026-09-24,2026-09-24
-travel agency invoice software,commercial,,,IN,/features/booking-management,feature,live,2026-09-24,2026-09-24
-travel agency customer management,problem,,,IN,/features/customer-management,feature,live,2026-09-24,2026-09-24
-zoho crm alternative for travel,commercial,,,IN,/compare/zoho,compare,live,2026-09-01,2026-09-01
-telecrm alternative,commercial,,,IN,/compare/telecrm,compare,live,2026-09-01,2026-09-01
-what is travel crm,informational,,,IN,/resources/what-is-travel-crm,guide,planned,,
-how to manage travel agency leads,informational,,,IN,/blog/how-to-manage-travel-agency-leads,blog,planned,,
-travel agency crm guide,informational,,,IN,/resources/travel-crm-guide,guide,planned,,
+keyword,search_intent,volume,difficulty,country,target_url,content_type,status,published_at,updated_at,source,gsc_impressions,gsc_clicks,gsc_ctr,gsc_position,gsc_updated,notes
+travel crm,commercial,,,IN,/,homepage,live,2026-07-29,2026-09-24,,,,,,,
+travel crm software,commercial,,,IN,/,homepage,live,2026-07-29,2026-09-24,,,,,,,
+best travel crm in india,commercial,,,IN,/blog/best-travel-agency-crm-software-india-2026,blog,live,2026-08-30,2026-09-24,,,,,,,
+travel agency crm,commercial,,,IN,/solutions/travel-agencies,solution,live,2026-09-24,2026-09-24,,,,,,,
+travel agency crm software,commercial,,,IN,/solutions/travel-agencies,solution,live,2026-09-24,2026-09-24,,,,,,,
+tour operator crm,commercial,,,IN,/solutions/tour-operators,solution,live,2026-09-24,2026-09-24,,,,,,,
+tour operator software,commercial,,,IN,/solutions/tour-operators,solution,live,2026-09-24,2026-09-24,,,,,,,
+dmc software,commercial,,,IN,/solutions/tour-operators,solution,live,2026-09-24,2026-09-24,,,,,,,
+crm for travel consultants,commercial,,,IN,/solutions/travel-consultants,solution,live,2026-09-24,2026-09-24,,,,,,,
+travel business software,commercial,,,IN,/solutions/small-travel-businesses,solution,live,2026-09-24,2026-09-24,,,,,,,
+travel lead management software,commercial,,,IN,/features/lead-management,feature,live,2026-09-24,2026-09-24,,,,,,,
+manage travel leads,problem,,,IN,/features/lead-management,feature,live,2026-09-24,2026-09-24,,,,,,,
+whatsapp crm for travel agents,commercial,,,IN,/features/whatsapp-automation,feature,live,2026-09-24,2026-09-24,,,,,,,
+whatsapp travel leads,problem,,,IN,/features/whatsapp-automation,feature,live,2026-09-24,2026-09-24,,,,,,,
+whatsapp business api for travel agency,informational,,,IN,/blog/whatsapp-business-api-travel-agency-setup-guide,blog,live,2026-08-28,2026-08-28,,,,,,,
+travel itinerary software,commercial,,,IN,/features/itinerary-builder,feature,live,2026-09-24,2026-09-24,,,,,,,
+itinerary builder,commercial,,,IN,/free-itinerary-builder,tool,live,2026-09-11,2026-09-11,,,,,,,
+free itinerary maker,commercial,,,IN,/free-itinerary-builder,tool,live,2026-09-11,2026-09-11,,,,,,,
+travel follow-up software,commercial,,,IN,/features/follow-up-automation,feature,live,2026-09-24,2026-09-24,,,,,,,
+travel lead follow-up,problem,,,IN,/features/follow-up-automation,feature,live,2026-09-24,2026-09-24,,,,,,,
+how to follow up with travel customers,informational,,,IN,/blog/automate-travel-agency-follow-ups,blog,live,2026-08-26,2026-08-26,,,,,,,
+travel booking management software,commercial,,,IN,/features/booking-management,feature,live,2026-09-24,2026-09-24,,,,,,,
+travel agency invoice software,commercial,,,IN,/features/booking-management,feature,live,2026-09-24,2026-09-24,,,,,,,
+travel agency customer management,problem,,,IN,/features/customer-management,feature,live,2026-09-24,2026-09-24,,,,,,,
+zoho crm alternative for travel,commercial,,,IN,/compare/zoho,compare,live,2026-09-01,2026-09-01,,,,,,,
+telecrm alternative,commercial,,,IN,/compare/telecrm,compare,live,2026-09-01,2026-09-01,,,,,,,
+what is travel crm,informational,,,IN,/resources/what-is-travel-crm,guide,planned,,,,,,,,,
+how to manage travel agency leads,informational,,,IN,/blog/how-to-manage-travel-agency-leads,blog,planned,,,,,,,,,
+travel agency crm guide,informational,,,IN,/resources/travel-crm-guide,guide,planned,,,,,,,,,
+what is crm in travel industry,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 14 searches
+what software do travel agents use,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 11 searches
+best travel agency crm software,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 6 searches
+travel agency crm software free,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 5 searches
+how to get leads for travel agency,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 5 searches
+best travel crm software in india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 4 searches
+crm for travel agency in india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 4 searches
+how to start a travel agency from home,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 4 searches
+best travel agency software in india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 4 searches
+what is travel agency management,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 4 searches
+itinerary builder for travel agents india,problem,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 4 searches
+best travel crm software,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+what is crm travel agency,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+travel crm software india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+best travel agency accounting software in india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+best travel agency management software,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+how to become a travel agent in india,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+travel agency names in india,problem,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+best crm for travel agency in india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+itinerary builder for travel agents,problem,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+itinerary builder for travel agents free,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+itinerary builder for travel agents online free,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+how to start a travel agency,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+how to start a travel agency in india,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+how to start a travel agency business,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+how to start a travel agency in india from home,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+travel agent follow up email sample,problem,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+how long should it take for a travel agent to get back to you,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+travel agency gst rate,problem,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 3 searches
+travel crm in india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel crm software free,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+what is travel crm software,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+what is travel agent crm,informational,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software for small business,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software free download,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software free,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software in pakistan,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software india,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
+travel agency software in bangladesh,commercial,,,IN,,,idea,,2026-09-24,suggest,,,,,,suggested by 2 searches
