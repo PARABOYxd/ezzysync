@@ -1,8 +1,7 @@
 import React from "react";
-import { Lock, FileCheck, IndianRupee } from "lucide-react";
-import WhatsAppIcon from "../common/WhatsAppIcon";
+import { Lock } from "lucide-react";
 
-// Illustrative sample data only - every name and amount here is made up.
+// Illustrative sample data for the CRM pipeline
 const columns = [
   {
     title: "New Inquiry",
@@ -60,32 +59,13 @@ function LeadCard({ card }) {
   );
 }
 
-function FloatingCard({ icon: Icon, iconClass, title, sub, className, delay }) {
-  return (
-    <div
-      className={`hidden xl:flex absolute items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-[0_12px_32px_rgba(15,23,42,0.14)] px-3.5 py-2.5 float-y ${className}`}
-      style={{ "--float-delay": delay }}
-    >
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconClass}`}>
-        <Icon className="w-4 h-4" />
-      </span>
-      <div className="leading-tight">
-        <div className="text-[13px] font-semibold text-slate-900">{title}</div>
-        <div className="text-[11px] text-slate-500">{sub}</div>
-      </div>
-    </div>
-  );
-}
-
 export default function HeroPipelineMockup() {
   return (
     <div className="relative">
-      <div className="absolute -inset-3 bg-gradient-to-r from-brand-500/15 via-emerald-500/10 to-brand-500/15 rounded-3xl blur-2xl -z-10" />
-
       <div
         role="img"
         aria-label="EzzySync lead pipeline showing travel inquiries moving from new inquiry to vouchers issued, with rupee amounts"
-        className="bg-white rounded-2xl border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.14)] overflow-hidden"
+        className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden"
       >
         {/* Window bar */}
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-200 bg-slate-50">
@@ -131,31 +111,6 @@ export default function HeroPipelineMockup() {
           ))}
         </div>
       </div>
-
-      <FloatingCard
-        icon={WhatsAppIcon}
-        iconClass="bg-emerald-50 text-emerald-600"
-        title="New lead from WhatsApp"
-        sub="+91 98201 xxxxx · Goa family trip"
-        className="-left-20 -top-6"
-        delay="0s"
-      />
-      <FloatingCard
-        icon={FileCheck}
-        iconClass="bg-brand-50 text-brand-600"
-        title="Quote sent ✓"
-        sub="Goa 4N/5D · PDF + mobile link"
-        className="-right-14 bottom-14"
-        delay="1.2s"
-      />
-      <FloatingCard
-        icon={IndianRupee}
-        iconClass="bg-violet-50 text-violet-600"
-        title="₹25,000 advance received"
-        sub="UPI via Razorpay · Pooja Malhotra"
-        className="left-[44%] -bottom-7"
-        delay="2.4s"
-      />
     </div>
   );
 }

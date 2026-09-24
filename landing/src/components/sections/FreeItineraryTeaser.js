@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Sparkles, FileDown } from "lucide-react";
+import { ArrowRight, FileDown } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 
 const examples = ["Goa beach holiday", "Kerala backwaters", "Rajasthan heritage", "Manali & Himachal"];
@@ -13,8 +13,8 @@ export default function FreeItineraryTeaser() {
         <ScrollReveal>
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-50 via-orange-50 to-amber-50 border border-brand-200 p-7 sm:p-12 grid md:grid-cols-[1.2fr_1fr] gap-8 md:gap-12 items-center">
             <div className="space-y-4 z-10">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-700">
-                <Sparkles className="w-4 h-4" /> Free tool · No login required
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-700 block">
+                Free tool · No login required
               </span>
               <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
                 Try it now, no signup needed

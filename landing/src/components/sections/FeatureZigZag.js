@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Sparkles, Hotel, Car } from "lucide-react";
+import { Check, Hotel, Car } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 import WhatsAppIcon from "../common/WhatsAppIcon";
 
@@ -47,8 +47,8 @@ function ItineraryVisual() {
           <div className="font-bold text-slate-900">Kashmir 5N/6D</div>
           <div className="text-xs text-slate-500">2 Adults · Deluxe houseboat + 4★ hotels</div>
         </div>
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md">
-          <Sparkles className="w-3 h-3" /> AI draft
+        <span className="inline-flex items-center text-[11px] font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-md">
+          Day-wise plan
         </span>
       </div>
       <ol className="pt-3 space-y-2.5">
@@ -139,8 +139,8 @@ const features = [
   {
     eyebrow: "Itinerary builder",
     title: "Day-wise itineraries without Word or Canva",
-    body: "Build the trip day by day with hotels, sightseeing and transfers, then share a clean PDF or mobile link. Let AI draft the first version and edit from there.",
-    points: ["Hotels, activities & transfers per day", "Branded PDF + shareable mobile link", "AI itinerary generator on Agency Growth"],
+    body: "Build the trip day by day with hotels, sightseeing and transfers, then share a clean PDF or mobile link with your client in minutes.",
+    points: ["Hotels, activities & transfers per day", "Branded PDF + shareable mobile link", "Save reusable destination templates"],
     Visual: ItineraryVisual,
   },
   {

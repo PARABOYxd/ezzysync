@@ -1,7 +1,6 @@
 import React from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import HeroPipelineMockup from "./HeroPipelineMockup";
-import LeadSourcesDiagram from "./LeadSourcesDiagram";
 import WhatsAppIcon from "../common/WhatsAppIcon";
 import { waLink, WA_DEMO_TEXT } from "@/lib/contact";
 
@@ -12,11 +11,6 @@ export default function Hero({ crmUrl }) {
     <section className="relative pt-12 pb-16 sm:pt-16 sm:pb-24 bg-[#fafbfc] border-b border-slate-200 overflow-hidden">
       <div className="max-w-[1240px] mx-auto px-5 sm:px-6">
         <div className="text-center space-y-5 max-w-5xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold">
-            <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
-            From WhatsApp inquiry to confirmed booking
-          </span>
-
           <h1 className="font-bold text-slate-950 text-[2rem] sm:text-5xl lg:text-[3rem] leading-[1.12] tracking-tight text-balance">
             <span className="sm:block">Travel CRM Software</span>{" "}
             <span className="sm:block text-brand-600">for Tour Operators &amp; Travel Agencies</span>
@@ -63,11 +57,26 @@ export default function Hero({ crmUrl }) {
           <HeroPipelineMockup />
         </div>
 
-        <div className="mt-14 sm:mt-16 max-w-3xl mx-auto text-center space-y-4">
-          <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-            Leads land automatically from
+        <div className="mt-14 sm:mt-16 max-w-3xl mx-auto text-center space-y-3">
+          <p className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+            Auto-capture leads from
           </p>
-          <LeadSourcesDiagram />
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+            {[
+              { label: "WhatsApp Chats", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+              { label: "Facebook & Instagram Ads", color: "bg-blue-50 text-blue-800 border-blue-200" },
+              { label: "Google Ads", color: "bg-amber-50 text-amber-800 border-amber-200" },
+              { label: "Website Forms", color: "bg-indigo-50 text-indigo-800 border-indigo-200" },
+              { label: "Excel / CSV Import", color: "bg-slate-100 text-slate-700 border-slate-200" },
+            ].map((s) => (
+              <span
+                key={s.label}
+                className={`inline-flex items-center px-3 py-1.5 rounded-lg border text-xs sm:text-sm font-medium ${s.color}`}
+              >
+                {s.label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </section>
