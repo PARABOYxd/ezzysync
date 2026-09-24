@@ -245,8 +245,8 @@ export const articlesData = {
             <p className="text-xs text-slate-600">If a customer doesn't respond after receiving a quote, the CRM sends a polite reminder automatically to recover the lead.</p>
           </div>
           <div className="bg-purple-50/50 border border-purple-100 p-4 rounded-xl">
-            <h3 className="font-bold text-purple-900 text-sm mb-1">🔒 Zero Ban Guarantee</h3>
-            <p className="text-xs text-slate-600">Built on Meta's enterprise infrastructure with approved message templates and verified green-tick eligibility.</p>
+            <h3 className="font-bold text-purple-900 text-sm mb-1">🔒 Official, Meta-approved setup</h3>
+            <p className="text-xs text-slate-600">Uses the official Cloud API with Meta-approved message templates, the setup Meta supports for businesses - far less ban risk than unofficial tools.</p>
           </div>
         </div>
 
@@ -468,7 +468,7 @@ export const articlesData = {
                   "name": "How quickly should travel agents respond to Instagram DMs?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Travel agents should aim to respond within 15 minutes. Data shows that travel inquiries responded to within 15 minutes convert at a 4x higher rate compared to those left for 2 hours or more."
+                    "text": "Travel agents should aim to respond within 15 minutes. The traveller is usually asking several agencies at once, and the first clear, personal reply is often the one that wins the booking."
                   }
                 },
                 {
@@ -743,7 +743,7 @@ export const articlesData = {
   "agentic-ai-travel-agency-operations": {
     title: "Beyond Chatbots: How Agentic AI is Automating Travel Agency Operations in 2026",
     metaTitle: "Agentic AI in Travel: Automating Agency Operations (2026 Guide)",
-    metaDescription: "Learn how autonomous AI agents are taking over travel itinerary generation, price tracking, and multi-step follow-ups to save travel agents 20+ hours a week.",
+    metaDescription: "Learn how autonomous AI agents are taking over travel itinerary generation, price tracking, and multi-step follow-ups to take repetitive work off travel agents.",
     date: "August 12, 2026",
     readTime: "6 min read",
     category: "Technology",
