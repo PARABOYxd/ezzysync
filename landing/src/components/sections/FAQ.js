@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { faqData as defaultFaqData } from "../../data/landingData";
 import ScrollReveal from "../ScrollReveal";
+import { waLink, WA_QUESTION_TEXT } from "@/lib/contact";
 
 export default function FAQ({ items, heading = "Frequently Asked Questions", bgClass = "bg-[#fafafa]" }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
@@ -63,7 +64,7 @@ export default function FAQ({ items, heading = "Frequently Asked Questions", bgC
           <p className="text-xs sm:text-sm text-slate-500">
             Have a question about your specific agency workflow?{" "}
             <a
-              href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20have%20a%20question%20about%20the%20travel%20CRM"
+              href={waLink(WA_QUESTION_TEXT)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-600 font-semibold hover:underline"

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { PhoneCall, CheckCircle2, ShieldCheck } from "lucide-react";
 import WhatsAppIcon from "../common/WhatsAppIcon";
 import ScrollReveal from "../ScrollReveal";
+import { waLink, DISPLAY_PHONE } from "@/lib/contact";
 
 /** Validates an Indian mobile number and returns the normalised +91XXXXXXXXXX form, or null. */
 function validateIndianPhone(raw) {
@@ -34,10 +35,8 @@ export default function LiveDemoSection({ crmUrl }) {
       setPhoneError("Please enter a valid 10-digit Indian mobile number.");
       return;
     }
-    const msg = encodeURIComponent(
-      `Hello EzzySync Team! I want a live demo for my agency: "${agencyName || "Travel Agency"}" in ${city || "India"}. WhatsApp: ${normalised} | Preferred time: ${preferredTime || "Flexible"}`
-    );
-    window.open(`https://wa.me/918826610820?text=${msg}`, "_blank");
+    const msg = `Hello EzzySync Team! I want a live demo for my agency: "${agencyName || "Travel Agency"}" in ${city || "India"}. WhatsApp: ${normalised} | Preferred time: ${preferredTime || "Flexible"}`;
+    window.open(waLink(msg), "_blank");
     setSubmitted(true);
   };
 
@@ -81,7 +80,7 @@ export default function LiveDemoSection({ crmUrl }) {
             <div className="pt-2 flex flex-wrap items-center gap-5 text-sm text-slate-500">
               <span className="flex items-center gap-1.5">
                 <PhoneCall className="w-3.5 h-3.5 text-brand-600" />
-                <span>Sales: +91 88266 10820</span>
+                <span>Sales: {DISPLAY_PHONE}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />

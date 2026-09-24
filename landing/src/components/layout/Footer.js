@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { MessageSquare, PhoneCall, Mail, MapPin } from "lucide-react";
+import { waLink, DISPLAY_PHONE, SUPPORT_EMAIL, SUPPORT_HOURS } from "@/lib/contact";
 
 export default function Footer({ crmUrl }) {
   const loginUrl = crmUrl ? `${crmUrl}/login` : "/pricing";
@@ -20,21 +21,21 @@ export default function Footer({ crmUrl }) {
             </Link>
 
             <p className="text-slate-400 text-xs sm:text-[13px] leading-relaxed max-w-sm">
-              The #1 dedicated cloud CRM software built for travel agents, tour operators, and DMCs in India. Manage WhatsApp leads, day-wise itineraries, GST quotations, and milestone bookings.
+              A dedicated cloud CRM software built for travel agents, tour operators, and DMCs in India. Manage WhatsApp leads, day-wise itineraries, GST quotations, and milestone bookings.
             </p>
 
             <div className="space-y-2 text-xs text-slate-300 pt-1 font-mono">
               <div className="flex items-center gap-2">
                 <PhoneCall className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
-                <span>Sales: +91 88266 10820</span>
+                <span>Sales: {DISPLAY_PHONE}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>WhatsApp: +91 88266 10820 (Mon - Sat, 10 AM - 7 PM)</span>
+                <span>WhatsApp: {DISPLAY_PHONE} ({SUPPORT_HOURS})</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
-                <span>support@ezzysync.com</span>
+                <span>{SUPPORT_EMAIL}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
@@ -148,7 +149,7 @@ export default function Footer({ crmUrl }) {
           <div className="flex items-center gap-4">
             <a href={loginUrl} className="hover:text-white transition-colors">Agency Login</a>
             <span>•</span>
-            <a href="https://wa.me/918826610820" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
+            <a href={waLink()} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
               Chat on WhatsApp
             </a>
           </div>

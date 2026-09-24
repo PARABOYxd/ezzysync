@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MessageSquare, ArrowRight } from "lucide-react";
+import { waLink, DISPLAY_PHONE, WA_HEADER_DEMO_TEXT, WA_BOOK_DEMO_TEXT } from "@/lib/contact";
 
 export default function Navbar({ crmUrl }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,13 +40,13 @@ export default function Navbar({ crmUrl }) {
           </div>
           <div className="flex items-center gap-5 text-slate-400">
             <a
-              href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20am%20a%20travel%20agent%20and%20want%20a%20demo"
+              href={waLink(WA_HEADER_DEMO_TEXT)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Sales &amp; Demo: +91 88266 10820</span>
+              <span>Sales &amp; Demo: {DISPLAY_PHONE}</span>
             </a>
             <span className="text-slate-700">|</span>
             <span className="text-slate-300 font-medium">Cloud Platform • No Installation Required</span>
@@ -121,7 +122,7 @@ export default function Navbar({ crmUrl }) {
                 Sign In
               </a>
               <a
-                href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20am%20interested%20in%20a%20live%20demo%20for%20my%20agency"
+                href={waLink(WA_BOOK_DEMO_TEXT)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors"

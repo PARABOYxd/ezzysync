@@ -1,6 +1,7 @@
 import { Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -65,11 +66,11 @@ export default function RootLayout({ children }) {
       "alternateName": ["EzzySync CRM", "EzzySync Travel CRM", "EasySync Travel CRM"],
       "url": "https://www.ezzysync.com",
       "logo": "https://www.ezzysync.com/logo.png",
-      "telephone": "+91-8826610820",
+      "telephone": TEL_PHONE,
       "contactPoint": {
         "@type": "ContactPoint",
-        "telephone": "+91-8826610820",
-        "email": "support@ezzysync.com",
+        "telephone": TEL_PHONE,
+        "email": SUPPORT_EMAIL,
         "contactType": "customer service"
       },
       "sameAs": [

@@ -18,6 +18,7 @@ import StickyWidgets from "../components/common/StickyWidgets";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { faqData } from "@/data/landingData";
+import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
 
 
 // The six objections that matter most on the homepage. The full list stays in
@@ -55,11 +56,11 @@ export default function Home() {
       "name": "EzzySync Travel CRM",
       "url": "https://www.ezzysync.com",
       "logo": "https://www.ezzysync.com/logo.png",
-      "telephone": "+91-8826610820",
+      "telephone": TEL_PHONE,
       "contactPoint": {
         "@type": "ContactPoint",
-        "telephone": "+91-8826610820",
-        "email": "support@ezzysync.com",
+        "telephone": TEL_PHONE,
+        "email": SUPPORT_EMAIL,
         "contactType": "customer service"
       },
       "sameAs": [

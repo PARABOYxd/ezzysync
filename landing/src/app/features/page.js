@@ -7,6 +7,7 @@ import WhyEzzySync from "../../components/sections/WhyEzzySync";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { waLink, WA_FEATURES_WALKTHROUGH_TEXT, WA_FEATURES_DEMO_TEXT } from "@/lib/contact";
 import {
   ArrowRight,
   MessageSquare,
@@ -124,7 +125,7 @@ export default function FeaturesPage() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </a>
                 <a
-                  href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20want%20a%20guided%20walkthrough%20of%20all%20features"
+                  href={waLink(WA_FEATURES_WALKTHROUGH_TEXT)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-[15px] shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -206,7 +207,7 @@ export default function FeaturesPage() {
                   Start Free Evaluation
                 </a>
                 <a
-                  href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20want%20to%20see%20a%20live%20demo%20of%20EzzySync"
+                  href={waLink(WA_FEATURES_DEMO_TEXT)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-semibold text-sm transition-all flex items-center justify-center gap-2"

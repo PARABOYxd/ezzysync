@@ -5,6 +5,7 @@ import Footer from "../../components/layout/Footer";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { TEL_PHONE, DISPLAY_PHONE, SUPPORT_EMAIL, waLink, WA_ABOUT_INQUIRY_TEXT, WA_WALKTHROUGH_TEXT } from "@/lib/contact";
 import {
   Compass,
   ShieldCheck,
@@ -66,7 +67,7 @@ export default function AboutPage() {
       "url": "https://www.ezzysync.com",
       "logo": "https://www.ezzysync.com/logo.png",
       "description": "Dedicated Travel CRM with Meta WhatsApp Business Automation & SAC 998555 Invoicing for Tour Operators.",
-      "telephone": "+91-8826610820",
+      "telephone": TEL_PHONE,
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "New Delhi",
@@ -112,7 +113,7 @@ export default function AboutPage() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </a>
                 <a
-                  href="https://wa.me/918826610820?text=Hello%20EzzySync%20Team!%20I%20would%20like%20to%20know%20more%20about%20EzzySync."
+                  href={waLink(WA_ABOUT_INQUIRY_TEXT)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -477,10 +478,10 @@ export default function AboutPage() {
                     <span className="font-semibold text-slate-900">Headquarters:</span> New Delhi, India
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900">Official WhatsApp:</span> +91 88266 10820
+                    <span className="font-semibold text-slate-900">Official WhatsApp:</span> {DISPLAY_PHONE}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900">Email:</span> support@ezzysync.com
+                    <span className="font-semibold text-slate-900">Email:</span> {SUPPORT_EMAIL}
                   </div>
                 </div>
               </div>
@@ -491,7 +492,7 @@ export default function AboutPage() {
                   Schedule a 15-minute live screen share with our travel automation consultant to see how EzzySync maps to your specific destinations and team structure.
                 </p>
                 <a
-                  href="https://wa.me/918826610820?text=Hi%20EzzySync,%20I%20want%20to%20schedule%20a%20guided%20walkthrough."
+                  href={waLink(WA_WALKTHROUGH_TEXT)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors"
