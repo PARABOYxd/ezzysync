@@ -7,22 +7,13 @@ import { Check, X, ArrowRight } from "lucide-react";
 import { withSeo } from "@/lib/seoOverrides";
 
 export const metadata = withSeo("/compare/zoho", {
-  title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
+  title: "EzzySync vs Zoho CRM for Travel Agencies (2026)",
   description: "EzzySync vs Zoho CRM for travel agencies: setup time, WhatsApp automation, itineraries, GST billing and cost compared for tour operators.",
-  keywords: [
-    "ezzysync vs zoho crm",
-    "zoho crm alternative travel agency",
-    "zoho travel crm alternative",
-    "best travel crm india",
-    "travel agency crm software",
-    "whatsapp travel crm",
-    "tour operator crm"
-  ],
   alternates: {
     canonical: "/compare/zoho",
   },
   openGraph: {
-    title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
+    title: "EzzySync vs Zoho CRM for Travel Agencies (2026)",
     description: "Why travel agencies choose EzzySync over Zoho CRM: zero setup time, built-in day-wise itineraries, official Meta Cloud WhatsApp integration, and SAC 998555 GST billing.",
     url: "https://www.ezzysync.com/compare/zoho",
     type: "article",

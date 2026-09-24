@@ -1,5 +1,5 @@
 import { askJson } from "./lib/llm.mjs";
-import { existingPosts, readText, writeText, today } from "./lib/files.mjs";
+import { existingPosts, readText, writeText, readJson, writeJson, today } from "./lib/files.mjs";
 
 /**
  * Step 4 - write the posts chosen by the planning step.
@@ -27,7 +27,7 @@ const STATS = /\d+(\.\d+)?\s?(%|percent\b)|\b\d+x (faster|more|better)\b/i;
 
 const words = (s) => s.split(/\s+/).filter(Boolean).length;
 
-function validate(d, { sitePaths, takenSlugs, keyword }) {
+function validate(d, { sitePaths, takenSlugs, keyword, minWords = MIN_WORDS, maxWords = MAX_WORDS, mustLink = [] }) {
   const errors = [];
   const md = d.markdown || "";
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(d.slug || "") || d.slug.length > 70) errors.push("slug must be lowercase-kebab-case, max 70 chars");
@@ -39,7 +39,8 @@ function validate(d, { sitePaths, takenSlugs, keyword }) {
   const faq = md.split(/^##\s+frequently asked questions\s*$/im)[1];
   if (!faq || (faq.match(/^###\s/gm) || []).length < 3) errors.push('needs a "## Frequently asked questions" section with at least 3 ### questions');
   const n = words(md);
-  if (n < MIN_WORDS || n > MAX_WORDS) errors.push(`length must be ${MIN_WORDS}-${MAX_WORDS} words (is ${n})`);
+  if (n < minWords || n > maxWords) errors.push(`length must be ${minWords}-${maxWords} words (is ${n})`);
+  for (const href of mustLink) if (!md.includes(`](${href})`)) errors.push(`link to ${href} somewhere relevant in the post`);
   const all = `${d.title}\n${d.metaTitle}\n${d.metaDescription}\n${md}`;
   for (const re of BANNED) if (re.test(all)) errors.push(`remove the phrase matching ${re}`);
   if (STATS.test(all)) errors.push("remove every percentage / statistic - none can be verified");
@@ -65,8 +66,9 @@ Rules you never break:
 PRODUCT FACTS:
 ${facts}`;
 
-function prompt(topic, sitePaths, existing, errors) {
+function prompt(topic, sitePaths, existing, errors, { role, minWords, maxWords, mustLink }) {
   return `Write a blog post.
+${role}
 Main keyword: "${topic.keyword}"
 Also answer: ${(topic.also_covers || []).join("; ") || "-"}
 Working title: ${topic.working_title}
@@ -76,9 +78,10 @@ Structure:
 - Opening paragraph (2-4 sentences) that states the problem and what the reader will be able to do after reading. Use the main keyword naturally in the first 100 words.
 - 4 to 7 ## sections with practical steps, examples, templates or checklists a travel agency can use this week. Use ### sub-sections where helpful. A table where it helps comparison.
 - A "## Frequently asked questions" section with 3-5 ### questions real agency owners ask about this topic, each answered in 2-4 sentences.
-- ${MIN_WORDS}-${MAX_WORDS} words in total.
+- ${minWords}-${maxWords} words in total.
 - Link 2-4 times to the most relevant of these site pages (use the exact path): ${sitePaths.filter((p) => !p.startsWith("/blog/")).join(", ")}
-- It may link to at most 2 related existing posts: ${existing.map((p) => `/blog/${p.slug}`).join(", ")}
+- It may link to related existing posts: ${existing.map((p) => `/blog/${p.slug}`).join(", ")}
+${mustLink.length ? `- It MUST link to each of these, with natural anchor text: ${mustLink.join(", ")}` : ""}
 
 Return JSON:
 {"slug":"kebab-case-from-the-keyword","title":"H1 title, natural, contains the keyword","metaTitle":"30-60 chars","metaDescription":"110-158 chars, says what the reader gets","category":"Guide|Sales|Operations|WhatsApp|Marketing|Finance","excerpt":"1-2 sentences for the blog index","markdown":"the full post body"}
@@ -97,12 +100,30 @@ export default async function writeStep(ctx) {
   const byKeyword = new Map(ctx.keywords.rows.map((r) => [r.keyword, r]));
   ctx.report.posts = [];
   ctx.report.skippedPosts = [];
+  const links = await readJson("src/content/internalLinks.json", []);
 
   for (const topic of plan) {
+    // Pillars are the long hub guides; cluster posts link back to their pillar
+    // and pillars link out to every published cluster post.
+    const row = byKeyword.get(topic.keyword) || {};
+    const isPillar = row.content_type === "pillar";
+    const pillarUrl = !isPillar && row.cluster ? byKeyword.get(row.cluster)?.target_url : "";
+    const clusterUrls = isPillar
+      ? ctx.keywords.rows.filter((r) => r.cluster === topic.keyword && r.keyword !== topic.keyword && r.status === "live" && r.target_url).map((r) => r.target_url)
+      : [];
+    const opts = {
+      role: isPillar
+        ? "This is a PILLAR post: the complete guide on this topic that shorter posts will link to. Cover the whole topic end to end, with a clear table of contents in the first ## section."
+        : row.cluster ? `This is a supporting post in the "${row.cluster}" topic cluster: go deep on this one question.` : "",
+      minWords: isPillar ? 2000 : MIN_WORDS,
+      maxWords: isPillar ? 3800 : MAX_WORDS,
+      mustLink: [...new Set([pillarUrl, ...clusterUrls].filter((u) => u && ctx.sitePaths.includes(u)))],
+    };
+
     let draft, errors;
     for (let attempt = 0; attempt < 2; attempt++) {
-      draft = await askJson({ system: SYSTEM(facts), prompt: prompt(topic, ctx.sitePaths, existing, errors), temperature: 0.6 });
-      errors = validate(draft, { sitePaths: ctx.sitePaths, takenSlugs, keyword: topic.keyword });
+      draft = await askJson({ system: SYSTEM(facts), prompt: prompt(topic, ctx.sitePaths, existing, errors, opts), temperature: 0.6 });
+      errors = validate(draft, { sitePaths: ctx.sitePaths, takenSlugs, keyword: topic.keyword, ...opts });
       if (!errors.length) break;
     }
     if (errors.length) {
@@ -128,8 +149,12 @@ export default async function writeStep(ctx) {
     ctx.sitePaths.push(`/blog/${draft.slug}`);
 
     for (const k of [topic.keyword, ...(topic.also_covers || [])]) {
-      const row = byKeyword.get(k);
-      if (row) Object.assign(row, { status: "live", target_url: `/blog/${draft.slug}`, content_type: "blog", published_at: stamp, updated_at: stamp });
+      const r = byKeyword.get(k);
+      if (r) Object.assign(r, { status: "live", target_url: `/blog/${draft.slug}`, content_type: r.content_type === "pillar" ? "pillar" : "blog", published_at: stamp, updated_at: stamp });
+    }
+    // Every other post mentioning this topic will now link here with it as anchor text.
+    if (topic.keyword.split(" ").length <= 6 && !links.some((l) => l.phrase === topic.keyword)) {
+      links.push({ phrase: topic.keyword, href: `/blog/${draft.slug}`, added: stamp, reason: isPillar ? "pillar post" : "new post" });
     }
     // Sentences that make product claims - listed in the PR for a quick fact check.
     const claims = draft.markdown
@@ -138,5 +163,6 @@ export default async function writeStep(ctx) {
       .map((s) => s.replace(/\s+/g, " ").trim());
     ctx.report.posts.push({ slug: draft.slug, title: draft.title, keyword: topic.keyword, words: words(draft.markdown), claims });
   }
+  await writeJson("src/content/internalLinks.json", links);
   ctx.summary.push(`Blog posts: ${ctx.report.posts.length} written${ctx.report.skippedPosts.length ? `, ${ctx.report.skippedPosts.length} skipped (failed checks)` : ""}`);
 }

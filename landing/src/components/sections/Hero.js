@@ -49,7 +49,7 @@ export default function Hero({ crmUrl }) {
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-500">
-          Leads come in from WhatsApp, Facebook &amp; Instagram ads, Google Ads, your website forms, or an Excel import.
+          Leads come in automatically from WhatsApp, Instagram DMs and your website form — or from an Excel import.
         </p>
       </div>
     </section>

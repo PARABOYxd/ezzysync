@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Check, X, Minus } from "lucide-react";
 import ScrollReveal from "../ScrollReveal";
 
@@ -119,6 +120,13 @@ export default function ComparisonMatrix() {
           <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-600" /> Built in</span>
           <span className="inline-flex items-center gap-1.5"><Minus className="w-4 h-4 text-amber-600" /> Partly / with add-ons</span>
           <span className="inline-flex items-center gap-1.5"><X className="w-4 h-4 text-rose-500" /> Not available</span>
+        </p>
+
+        <p className="text-center text-sm text-slate-600">
+          In detail:{" "}
+          <Link href="/compare/excel" className="font-semibold text-brand-600 hover:underline">Travel CRM vs Excel</Link>
+          {" · "}
+          <Link href="/compare/generic-crm" className="font-semibold text-brand-600 hover:underline">Travel CRM vs generic CRM</Link>
         </p>
       </div>
     </section>

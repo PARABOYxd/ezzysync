@@ -103,7 +103,7 @@ const blogPosts = [
   },
   {
     slug: "automate-travel-agency-follow-ups",
-    title: "How to Automate Travel Agency Follow-Ups and Boost Conversions by 40%",
+    title: "How to Automate Travel Agency Follow-Ups (With a 3-Step Sequence)",
     excerpt: "Struggling to follow up with clients on time? Discover how automating your WhatsApp and email follow-up sequence recovers lost revenue and closes deals faster.",
     date: "August 18, 2026",
     readTime: "6 min read",

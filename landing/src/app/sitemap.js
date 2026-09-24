@@ -1,6 +1,7 @@
 import { getAllPosts } from "@/lib/blog";
 import { overrideDate } from "@/lib/seoOverrides";
 import { featurePages, solutionPages } from "@/content/seoPages";
+import { comparePages } from "@/content/comparePages";
 import { SITE_URL } from "@/lib/siteLinks";
 
 /**
@@ -29,6 +30,8 @@ const staticPages = [
 
 // Date the /features/* and /solutions/* content in content/seoPages.js last changed.
 const SEO_PAGES_UPDATED = "2026-09-24";
+// Date the /compare/* content in content/comparePages.js last changed.
+const COMPARE_PAGES_UPDATED = "2026-09-24";
 
 const toIso = (d) => new Date(d).toISOString();
 // A title/description rewrite by the weekly job counts as a change.
@@ -49,6 +52,11 @@ export default function sitemap() {
     ...solutionPages.map((p) => ({
       url: `${SITE_URL}/solutions/${p.slug}`,
       lastModified: latest(`/solutions/${p.slug}`, SEO_PAGES_UPDATED),
+      priority: 0.8,
+    })),
+    ...comparePages.map((p) => ({
+      url: `${SITE_URL}/compare/${p.slug}`,
+      lastModified: latest(`/compare/${p.slug}`, COMPARE_PAGES_UPDATED),
       priority: 0.8,
     })),
     ...getAllPosts().map((p) => ({

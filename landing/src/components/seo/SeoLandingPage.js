@@ -8,6 +8,7 @@ import { getCrmUrl, getTrialUrl } from "@/lib/crmUrl";
 import { waLink, WA_DEMO_TEXT } from "@/lib/contact";
 import { SITE_URL, linkLabel } from "@/lib/siteLinks";
 import { withSeo } from "@/lib/seoOverrides";
+import { PLAN_PRICE_MONTHLY } from "@/data/plans";
 
 const SECTION_NAME = { features: "Features", solutions: "Solutions" };
 
@@ -198,7 +199,10 @@ export default function SeoLandingPage({ page, kind }) {
           <div className="max-w-[1000px] mx-auto px-5 sm:px-6 flex flex-col md:flex-row md:items-start md:justify-between gap-10">
             <div className="max-w-md">
               <h2 className="font-bold text-2xl tracking-tight text-slate-950">Try it on your own inquiries</h2>
-              <p className="mt-2 text-slate-600">Free trial, no credit card. Import your Excel leads and send your first quote today.</p>
+              <p className="mt-2 text-slate-600">
+                Free trial, no credit card. Import your Excel leads and send your first quote today. Plans from{" "}
+                {PLAN_PRICE_MONTHLY.SOLO} — <Link href="/pricing" className="text-brand-600 font-semibold hover:underline">see pricing</Link>.
+              </p>
               <a
                 href={trialUrl}
                 className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm btn-press"

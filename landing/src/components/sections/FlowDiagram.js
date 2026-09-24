@@ -11,7 +11,7 @@ const steps = [
     icon: UserPlus,
     label: "Inquiry",
     title: "Lead captured automatically",
-    body: "A WhatsApp message, Instagram ad form or website inquiry becomes a lead with source, destination and budget — no copy-paste.",
+    body: "A WhatsApp message, Instagram DM or website inquiry becomes a lead with source, destination and budget — no copy-paste.",
     card: {
       heading: "Rahul Sharma · New lead",
       rows: [

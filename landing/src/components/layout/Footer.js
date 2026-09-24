@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MessageSquare, PhoneCall, Mail, MapPin } from "lucide-react";
 import { getLoginUrl } from "@/lib/crmUrl";
 import { featurePages, solutionPages } from "@/content/seoPages";
+import { comparePages } from "@/content/comparePages";
 import { waLink, DISPLAY_PHONE, SUPPORT_EMAIL, SUPPORT_HOURS } from "@/lib/contact";
 
 export default function Footer({ crmUrl }) {
@@ -66,6 +67,11 @@ export default function Footer({ crmUrl }) {
               {solutionPages.map((p) => (
                 <li key={p.slug}>
                   <Link href={`/solutions/${p.slug}`} className="hover:text-white transition-colors">{p.label}</Link>
+                </li>
+              ))}
+              {comparePages.map((p) => (
+                <li key={p.slug}>
+                  <Link href={`/compare/${p.slug}`} className="hover:text-white transition-colors">{p.label}</Link>
                 </li>
               ))}
               <li>

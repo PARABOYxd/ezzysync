@@ -23,6 +23,9 @@ const MAX_NEW_IDEAS = 40;
 const TRAVEL = /\b(travel|tour|trip|itinerar|holiday|dmc|tourism)/;
 const BUSINESS = /\b(crm|software|agency|agencies|agent|agents|operator|operators|business|lead|leads|quotation|quote|invoice|gst|b2b|dmc|management|system|app|tool|whatsapp|booking engine|builder|maker|template|commission|margin|sales|marketing|customers?)\b/;
 
+// Country-specific searches for markets we don't sell in.
+const OTHER_MARKETS = /\b(pakistan|bangladesh|nepal|sri lanka|nigeria|kenya|philippines|malaysia|indonesia|usa|uk|canada|australia)\b/;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function suggestions(q) {
@@ -61,7 +64,7 @@ export default async function suggestStep(ctx) {
   }
 
   const ideas = [...found.entries()]
-    .filter(([k]) => !known.has(k) && TRAVEL.test(k) && BUSINESS.test(k))
+    .filter(([k]) => !known.has(k) && TRAVEL.test(k) && BUSINESS.test(k) && !OTHER_MARKETS.test(k))
     .sort((a, b) => b[1] - a[1])
     .slice(0, MAX_NEW_IDEAS);
 

@@ -41,7 +41,7 @@ export default function FeaturesDeepDive({ crmUrl }) {
                   Track Every Traveler from Fresh Inquiry to Confirmed Booking
                 </h2>
                 <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                  Eliminate lost inquiries across personal phones. EzzySync captures leads automatically from WhatsApp ads, Meta forms, and your website into an organized visual pipeline with automated coordinator assignment.
+                  Eliminate lost inquiries across personal phones. EzzySync captures leads automatically from WhatsApp, Instagram DMs and your website form into one visual pipeline, and every lead gets an owner.
                 </p>
               </ScrollReveal>
 
@@ -52,7 +52,7 @@ export default function FeaturesDeepDive({ crmUrl }) {
                     <span>Auto-Capture Ingestion</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Meta WhatsApp ads, Facebook leads &amp; web forms ingested instantly.
+                    WhatsApp chats, Instagram DMs &amp; website forms become leads instantly.
                   </p>
                 </div>
 

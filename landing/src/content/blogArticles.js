@@ -64,7 +64,7 @@ export const articlesData = {
         </p>
 
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
-          However, <strong>managing 100+ traveler inquiries on spreadsheets and personal WhatsApp chats results in a 40% lead loss.</strong> Missed follow-ups, delayed quotes, and disorganized hotel vouchers cost travel agencies lakhs in lost revenue every single month.
+          However, <strong>managing 100+ traveler inquiries on spreadsheets and personal WhatsApp chats means some of them slip through.</strong> Missed follow-ups, delayed quotes, and disorganized hotel vouchers cost travel agencies lakhs in lost revenue every single month.
         </p>
 
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
@@ -138,7 +138,7 @@ export const articlesData = {
           </table>
         </div>
 
-        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">1. EzzySync CRM — The #1 All-in-One Travel CRM</h2>
+        <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">1. EzzySync — Travel CRM Built for Indian Agencies</h2>
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
           <strong>EzzySync</strong> is purpose-built from the ground up for Indian travel consultants, agencies, and DMCs. Unlike generic sales tools, EzzySync combines four mission-critical workflows into one unified workspace:
         </p>
@@ -160,7 +160,7 @@ export const articlesData = {
 
         <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">Key Features to Look For in a Travel CRM</h2>
         <ul className="list-disc pl-6 space-y-3 text-slate-600 mb-8 text-[15px]">
-          <li><strong>WhatsApp Native Chat:</strong> Over 90% of Indian travel transactions happen on WhatsApp. Your CRM must support multi-agent live chat and automated follow-up sequences.</li>
+          <li><strong>WhatsApp Native Chat:</strong> Most Indian travel inquiries start on WhatsApp. Your CRM must support multi-agent live chat and follow-up reminders tied to each lead.</li>
           <li><strong>Day-Wise PDF Generator:</strong> Clients demand clean, beautiful itinerary PDFs on their mobile phones. Avoid CRMs that force you to design itineraries on Microsoft Word.</li>
           <li><strong>Stage-by-Stage Kanban Pipeline:</strong> Track inquiries from <em>New Lead</em> ➔ <em>Itinerary Shared</em> ➔ <em>Follow-Up Active</em> ➔ <em>Booking Confirmed</em> ➔ <em>Vouchers Dispatched</em>.</li>
           <li><strong>Affordable Flat Pricing:</strong> Avoid per-user pricing traps that penalize you for growing your team.</li>
@@ -213,7 +213,7 @@ export const articlesData = {
         />
 
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
-          In India, WhatsApp is not just a messaging app—it is the operating system of the entire travel trade. From honeymoon inquiries and corporate offsites to flight reschedule alerts and hotel vouchers, <strong>95% of travel bookings are negotiated and closed on WhatsApp.</strong>
+          In India, WhatsApp is not just a messaging app—it is the operating system of the entire travel trade. From honeymoon inquiries and corporate offsites to flight reschedule alerts and hotel vouchers, <strong>a large share of travel bookings are negotiated and closed on WhatsApp.</strong>
         </p>
 
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
@@ -271,8 +271,8 @@ export const articlesData = {
     )
   },
   "automate-travel-agency-follow-ups": {
-    title: "How to Automate Travel Agency Follow-Ups and Boost Conversions by 40%",
-    metaTitle: "Automate Travel Agency Follow-Ups: Boost Sales by 40%",
+    title: "How to Automate Travel Agency Follow-Ups (With a 3-Step Sequence)",
+    metaTitle: "Travel Agency Follow-Ups: A 3-Step System That Works",
     metaDescription: "Learn how to build a high-converting automated follow-up system for travel agencies. Convert more inquiries using WhatsApp & CRM templates.",
     date: "August 18, 2026",
     readTime: "6 min read",
@@ -293,7 +293,7 @@ export const articlesData = {
                   "name": "Why is follow-up automation crucial for travel agents?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Travel agents deal with multiple platforms (WhatsApp, email, DMs). Follow-up automation ensures no lead is forgotten, sending timely reminders that keep the client engaged and increase the chance of booking by 40%."
+                    "text": "Travel agents deal with multiple platforms (WhatsApp, email, DMs). Follow-up automation ensures no lead is forgotten, reminding the agent at the right time so the client stays engaged and the booking doesn't go to a faster competitor."
                   }
                 },
                 {
@@ -310,7 +310,7 @@ export const articlesData = {
         />
 
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
-          For travel agencies, every inquiry represents a potential high-margin booking. But here is the hard truth: <strong>more than 60% of travel inquiries never close simply because the agency forgot to follow up.</strong>
+          For travel agencies, every inquiry represents a potential high-margin booking. But here is the hard truth: <strong>many travel inquiries never close simply because the agency forgot to follow up.</strong>
         </p>
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
           Between drafting itineraries, checking hotel availability, and handling active travelers, agents get overwhelmed. Following up manually via spreadsheets or scattered WhatsApp chats is exhausting and prone to error.
@@ -328,7 +328,7 @@ export const articlesData = {
 
         <h2 className="text-slate-900 font-bold mt-10 mb-4 text-[22px] tracking-tight">The 3-Step Automated Follow-Up Blueprint</h2>
         <p className="text-[15px] sm:text-[16px] text-slate-600 leading-[1.7] mb-6">
-          By utilizing a travel CRM like <strong>EzzySync</strong>, you can automate this entire cycle. Here is the exact follow-up sequence that boosts booking conversions by up to 40%:
+          By utilizing a travel CRM like <strong>EzzySync</strong>, you get a reminder for every step of this cycle and send each message in one tap. Here is a follow-up sequence that works for most packages:
         </p>
 
         <div className="space-y-6 my-8">

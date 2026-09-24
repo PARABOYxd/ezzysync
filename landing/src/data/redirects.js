@@ -15,6 +15,18 @@ export const redirects = [
   { source: "/login", destination: getLoginUrl() },
   { source: "/signin", destination: getLoginUrl() },
 
+  // Keyword-style URLs people (and other sites) link to. Each intent already
+  // has one page; a second page on the same topic would compete with it.
+  { source: "/travel-crm", destination: "/" },
+  { source: "/travel-agency-crm", destination: "/solutions/travel-agencies" },
+  { source: "/tour-operator-crm", destination: "/solutions/tour-operators" },
+  { source: "/travel-lead-management", destination: "/features/lead-management" },
+  { source: "/travel-booking-software", destination: "/features/booking-management" },
+  { source: "/whatsapp-crm-for-travel-agencies", destination: "/features/whatsapp-automation" },
+  { source: "/travel-itinerary-software", destination: "/features/itinerary-builder" },
+  { source: "/travel-agency-automation", destination: "/features/automation" },
+  { source: "/travel-crm-vs-excel", destination: "/compare/excel" },
+
   // Singular / alternate spellings of real sections.
   { source: "/feature", destination: "/features" },
   { source: "/solution", destination: "/solutions" },

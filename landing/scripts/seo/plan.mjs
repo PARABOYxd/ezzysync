@@ -12,7 +12,7 @@ import { guessIntent } from "./gsc.mjs";
  * Chosen topics land on ctx.postPlan for the writing step.
  */
 
-const POSTS_PER_WEEK = Number(process.env.SEO_POSTS_PER_WEEK || 2);
+const POSTS_PER_WEEK = Number(process.env.SEO_POSTS_PER_WEEK || 3);
 const MAX_CANDIDATES = 60;
 
 const SYSTEM = `You are the SEO lead for EzzySync, a B2B travel CRM sold to Indian travel agencies, tour operators, DMCs and independent travel consultants.
@@ -37,12 +37,20 @@ export default async function planStep(ctx) {
   }
 
   const pages = [...new Set([...ctx.sitePaths])].filter((p) => !p.startsWith("/blog/"));
+  const pillarPublished = (k) => rows.some((r) => r.keyword === k && r.status === "live" && r.target_url);
+  const roleOf = (r) =>
+    r.content_type === "pillar" ? "pillar"
+      : r.cluster ? `cluster of "${r.cluster}" (pillar ${pillarPublished(r.cluster) ? "published" : "not yet published"})`
+      : "-";
   const prompt = `Existing pages (non-blog): ${pages.join(", ")}
 Existing blog posts:
 ${posts.map((p) => `- /blog/${p.slug}: ${p.title}`).join("\n")}
 
-Candidate keywords (keyword | intent | status | impressions):
-${candidates.map((r) => `- ${r.keyword} | ${r.search_intent} | ${r.status} | ${r.gsc_impressions || 0}`).join("\n")}
+Candidate keywords (keyword | intent | status | impressions | role):
+${candidates.map((r) => `- ${r.keyword} | ${r.search_intent} | ${r.status} | ${r.gsc_impressions || 0} | ${roleOf(r)}`).join("\n")}
+
+Topic clusters: a "pillar" is the broad, complete guide on a topic; a "cluster" post answers one narrower question and links back to its pillar.
+When choosing this week's posts, prefer in this order: (1) a pillar that has no post yet, (2) cluster posts whose pillar is already published, (3) anything else worth writing. Don't pick a cluster post before its pillar is published unless you also pick that pillar this week.
 
 For EVERY candidate return a decision:
 - "map" if an existing page or post above already answers that search well - give its path as target_url.
@@ -62,6 +70,9 @@ Return:
   for (const d of plan.decisions || []) {
     const row = byKeyword.get(d.keyword);
     if (!row || !["map", "write", "ignore"].includes(d.action)) continue;
+    // Pillar/cluster topics are an editorial plan - the model can schedule
+    // them but not drop or re-point them.
+    if (row.cluster) continue;
     counts[d.action]++;
     row.updated_at = stamp;
     row.notes = d.reason || row.notes;
@@ -92,6 +103,16 @@ Return:
       return !clash;
     })
     .slice(0, POSTS_PER_WEEK);
+
+  // Until every pillar exists, each week writes at least one of them.
+  const nextPillar = rows.find((r) => r.content_type === "pillar" && r.status === "planned");
+  const hasPillar = ctx.postPlan.some((t) => byKeyword.get(t.keyword)?.content_type === "pillar");
+  if (nextPillar && !hasPillar) {
+    ctx.postPlan = [
+      { keyword: nextPillar.keyword, also_covers: [], working_title: nextPillar.keyword, angle: "The complete, practical guide on this topic for Indian travel agency owners." },
+      ...ctx.postPlan,
+    ].slice(0, POSTS_PER_WEEK);
+  }
 
   ctx.summary.push(`Planning: ${counts.map} mapped to existing pages, ${counts.write} worth a post, ${counts.ignore} ignored; ${ctx.postPlan.length} posts to write this week`);
 }

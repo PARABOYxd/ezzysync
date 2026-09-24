@@ -16,7 +16,9 @@ must not claim it. Update this file when the product changes.
 - 30-day free trial with full Pro access. Cancel or switch plans any time.
 
 ## Leads and pipeline
-- Leads from WhatsApp, Facebook & Instagram ads, Google Ads, website forms, manual entry (walk-in, phone, referral) and Excel/CSV import.
+- Captured automatically: WhatsApp messages (including from click-to-WhatsApp ads), Instagram DMs, and the agency's website form.
+- Added manually or by Excel/CSV import: everything else (walk-ins, phone calls, referrals, Facebook lead forms, Google Ads). The lead's source can be tagged.
+- There is NO direct integration with Facebook/Meta lead-ad forms or Google Ads lead forms.
 - Each lead has source, destination, budget and an assigned agent.
 - Kanban pipeline with drag-and-drop stages (e.g. New, Contacted, Requirements gathered, Won, Lost) and total value per stage.
 - Filter by agent, customer, phone, package or source. Reassign leads.

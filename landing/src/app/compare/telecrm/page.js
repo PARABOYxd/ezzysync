@@ -9,20 +9,11 @@ import { withSeo } from "@/lib/seoOverrides";
 export const metadata = withSeo("/compare/telecrm", {
   title: "EzzySync vs TeleCRM: Travel CRM Comparison (2026)",
   description: "EzzySync vs TeleCRM for Indian travel agencies: WhatsApp Cloud API, day-wise itineraries, GST billing and pricing compared side by side.",
-  keywords: [
-    "ezzysync vs telecrm",
-    "telecrm alternative",
-    "telecrm alternative for travel agency",
-    "best travel crm india",
-    "travel agency crm software",
-    "whatsapp travel crm",
-    "tour operator crm software"
-  ],
   alternates: {
     canonical: "/compare/telecrm",
   },
   openGraph: {
-    title: "EzzySync vs TeleCRM — Best Travel CRM Alternative (2026)",
+    title: "EzzySync vs TeleCRM for Travel Agencies (2026)",
     description: "See why Indian travel agencies prefer EzzySync over TeleCRM for WhatsApp lead capture, day-wise itinerary creation, and booking management.",
     url: "https://www.ezzysync.com/compare/telecrm",
     type: "article",

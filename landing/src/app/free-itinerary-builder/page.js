@@ -9,16 +9,6 @@ import { withSeo } from "@/lib/seoOverrides";
 export const metadata = withSeo("/free-itinerary-builder", {
   title: "Free AI Itinerary Builder for Travel Agents | EzzySync",
   description: "Create professional day-wise travel itineraries with AI. Free branded PDF download for travel agents & tour operators with zero sign-up required.",
-  keywords: [
-    "free travel itinerary builder",
-    "ai itinerary generator",
-    "day wise itinerary maker",
-    "itinerary builder for travel agents",
-    "free travel itinerary template",
-    "travel quotation builder free",
-    "tour operator itinerary software",
-    "ezzysync free tool"
-  ],
   alternates: {
     canonical: "/free-itinerary-builder",
   },

@@ -1,15 +1,78 @@
 [
-  { "phrase": "tour operator", "href": "/solutions/tour-operators" },
-  { "phrase": "dmc", "href": "/solutions/tour-operators" },
-  { "phrase": "itinerary", "href": "/features/itinerary-builder" },
-  { "phrase": "whatsapp", "href": "/features/whatsapp-automation" },
-  { "phrase": "follow-up", "href": "/features/follow-up-automation" },
-  { "phrase": "follow up", "href": "/features/follow-up-automation" },
-  { "phrase": "lead", "href": "/features/lead-management" },
-  { "phrase": "instagram", "href": "/features/lead-management" },
-  { "phrase": "billing", "href": "/features/booking-management" },
-  { "phrase": "invoice", "href": "/features/booking-management" },
-  { "phrase": "booking", "href": "/features/booking-management" },
-  { "phrase": "gst", "href": "/features/booking-management" },
-  { "phrase": "crm", "href": "/solutions/travel-agencies" }
+  {
+    "phrase": "tour operator",
+    "href": "/solutions/tour-operators"
+  },
+  {
+    "phrase": "dmc",
+    "href": "/solutions/tour-operators"
+  },
+  {
+    "phrase": "itinerary",
+    "href": "/features/itinerary-builder"
+  },
+  {
+    "phrase": "whatsapp",
+    "href": "/features/whatsapp-automation"
+  },
+  {
+    "phrase": "follow-up",
+    "href": "/features/follow-up-automation"
+  },
+  {
+    "phrase": "follow up",
+    "href": "/features/follow-up-automation"
+  },
+  {
+    "phrase": "lead",
+    "href": "/features/lead-management"
+  },
+  {
+    "phrase": "instagram",
+    "href": "/features/lead-management"
+  },
+  {
+    "phrase": "billing",
+    "href": "/features/booking-management"
+  },
+  {
+    "phrase": "invoice",
+    "href": "/features/booking-management"
+  },
+  {
+    "phrase": "booking",
+    "href": "/features/booking-management"
+  },
+  {
+    "phrase": "gst",
+    "href": "/features/booking-management"
+  },
+  {
+    "phrase": "crm",
+    "href": "/solutions/travel-agencies"
+  },
+  {
+    "phrase": "spreadsheet",
+    "href": "/compare/excel"
+  },
+  {
+    "phrase": "generic crm",
+    "href": "/compare/generic-crm"
+  },
+  {
+    "phrase": "automation",
+    "href": "/features/automation"
+  },
+  {
+    "phrase": "automate",
+    "href": "/features/automation"
+  },
+  {
+    "phrase": "travel agency crm",
+    "href": "/solutions/travel-agencies"
+  },
+  {
+    "phrase": "tour operator software",
+    "href": "/solutions/tour-operators"
+  }
 ]

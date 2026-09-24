@@ -20,7 +20,8 @@ export async function writeText(p, text) {
 // ---------- seo/keywords.csv ----------
 
 const BASE_COLS = ["keyword", "search_intent", "volume", "difficulty", "country", "target_url", "content_type", "status", "published_at", "updated_at"];
-const EXTRA_COLS = ["source", "gsc_impressions", "gsc_clicks", "gsc_ctr", "gsc_position", "gsc_updated", "notes"];
+// cluster = the pillar keyword this row belongs to (a pillar's cluster is itself).
+const EXTRA_COLS = ["cluster", "source", "gsc_impressions", "gsc_clicks", "gsc_ctr", "gsc_position", "gsc_updated", "notes"];
 
 /** Keyword text safe to store in the CSV (no commas, quotes or newlines). */
 export const cleanKeyword = (s) => String(s).replace(/[",\r\n]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();

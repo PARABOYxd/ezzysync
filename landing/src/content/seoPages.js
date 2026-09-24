@@ -16,15 +16,15 @@ export const featurePages = [
     label: "Lead management",
     metaTitle: "Travel Lead Management Software for Agencies | EzzySync",
     metaDescription:
-      "Capture travel inquiries from WhatsApp, ads, website forms and Excel into one pipeline. Assign leads to staff, track every stage and stop losing bookings.",
+      "Capture travel inquiries from WhatsApp, Instagram, your website form and Excel into one pipeline. Assign leads to staff, track every stage and stop losing bookings.",
     h1: "Travel lead management that keeps every inquiry in one place",
     intro:
-      "A traveler asks about Goa on WhatsApp, another fills your Instagram ad form, a third walks into the office. In EzzySync each of them becomes a lead with a source, a destination, a budget and an owner — so nobody on your team has to ask “who is handling this?”",
+      "A traveler asks about Goa on WhatsApp, another replies to your Instagram ad in DMs, a third walks into the office. In EzzySync each of them ends up as a lead with a source, a destination, a budget and an owner — so nobody on your team has to ask “who is handling this?”",
     sections: [
       {
         title: "Every source lands in the same list",
-        body: "Log walk-ins and phone calls by hand, capture WhatsApp and ad inquiries, or bring your old Excel sheet across with a CSV import. Each lead keeps its source, so you can see which channel actually sends paying travelers.",
-        points: ["WhatsApp, Facebook & Instagram ads, Google Ads, website forms", "Excel / CSV import for your existing leads", "Custom sources such as walk-in or referral"],
+        body: "WhatsApp messages, Instagram DMs and website-form inquiries come in on their own. Walk-ins, calls and leads from other ads are added in a few seconds, and your old Excel sheet comes across with a CSV import. Each lead keeps its source, so you can see which channel actually sends paying travelers.",
+        points: ["WhatsApp (including click-to-WhatsApp ads), Instagram DMs and website forms captured automatically", "Excel / CSV import for your existing leads", "Other sources - Google Ads, walk-ins, referrals - tagged on the lead"],
       },
       {
         title: "A pipeline you can see at a glance",
@@ -38,7 +38,7 @@ export const featurePages = [
       },
     ],
     steps: [
-      "Inquiry arrives on WhatsApp, an ad form, or is typed in by your staff",
+      "Inquiry arrives on WhatsApp, Instagram or your website form, or is typed in by your staff",
       "Lead is created with source, destination and budget",
       "Assigned agent follows up and moves it through the pipeline",
       "Won leads turn into an itinerary, quote and booking",
@@ -291,6 +291,60 @@ export const featurePages = [
     related: ["/features/lead-management", "/features/booking-management", "/solutions/small-travel-businesses"],
   },
 ];
+
+featurePages.push({
+  slug: "automation",
+  label: "Automation",
+  metaTitle: "Travel Agency Automation: What to Automate | EzzySync",
+  metaDescription:
+    "What a travel agency can automate: lead capture, reminders, GST quotes, bookings and payment matching - and what should still be done by a person.",
+  h1: "Travel agency automation, without losing the personal touch",
+  intro:
+    "Travellers book with the agent who replies fast and remembers the details. Automation should take the retyping, chasing and calculating off your team so they can do exactly that. Here is what EzzySync automates, step by step - and what it deliberately leaves to a person.",
+  sections: [
+    {
+      title: "Automated: getting the inquiry in",
+      body: "New inquiries from WhatsApp, Instagram DMs and your website form land as leads with their source, instead of being copied from chats into a sheet. Old Excel lists come across in one CSV import.",
+      points: ["Leads created from WhatsApp, Instagram DMs and website forms", "Source kept on every lead", "One-time Excel / CSV import"],
+    },
+    {
+      title: "Automated: the paperwork",
+      body: "GST and totals are worked out on every quote. An accepted itinerary pre-fills the booking, the booking pre-fills the invoice, and on Agency Growth Razorpay payments are matched to the right booking.",
+      points: ["GST (SAC 998555) and per-person totals on quotes", "Itinerary → booking → invoice without retyping", "Razorpay payments matched to bookings"],
+    },
+    {
+      title: "Automated: remembering",
+      body: "Every lead with a follow-up date shows up on the day it's due, grouped by priority, with a one-tap WhatsApp, call or email button. Nothing depends on someone's memory or a sticky note.",
+      points: ["Daily follow-up list per agent", "Priority / new / pending / no-action buckets", "Full history on each lead"],
+    },
+    {
+      title: "Left to your team, on purpose",
+      body: "EzzySync reminds your agent to follow up and opens the chat - it does not fire off follow-up messages on its own. A generic automated nudge is how travellers learn to ignore an agency; a two-line personal message after checking their dates is how you win the booking.",
+      points: ["Follow-up messages are sent by your agent", "AI itinerary drafts are edited before sending", "Pricing decisions stay with you"],
+    },
+  ],
+  steps: [
+    "Inquiry arrives and becomes a lead automatically",
+    "Agent builds the itinerary; GST quote is calculated",
+    "Accepted quote becomes a booking without retyping",
+    "Payments are logged or matched; invoice goes out on WhatsApp",
+  ],
+  faqs: [
+    {
+      q: "Does EzzySync send automatic follow-up messages?",
+      a: "No. It shows each agent who to follow up today and opens the WhatsApp chat in one tap; the agent writes the message. Automatic WhatsApp alerts are used for events such as a new inquiry or a payment.",
+    },
+    {
+      q: "What is the quickest win from automating a travel agency?",
+      a: "Getting every inquiry into one list with an owner and a follow-up date. Most agencies lose more bookings to forgotten follow-ups than to price.",
+    },
+    {
+      q: "Do I need the WhatsApp Business API to automate?",
+      a: "Lead capture, reminders, quotes and invoices work without it. The official WhatsApp Cloud API adds a shared team inbox on your own number (Agency Growth).",
+    },
+  ],
+  related: ["/features/lead-management", "/features/follow-up-automation", "/pricing"],
+});
 
 export const solutionPages = [
   {

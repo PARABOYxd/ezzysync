@@ -1,4 +1,5 @@
 import { featurePages, solutionPages } from "@/content/seoPages";
+import { comparePages } from "@/content/comparePages";
 import { getPost } from "@/lib/blog";
 import internalLinks from "@/content/internalLinks.json";
 
@@ -24,6 +25,7 @@ export function linkLabel(path) {
   if (section === "features") return featurePages.find((p) => p.slug === slug)?.label;
   if (section === "solutions") return `For ${solutionPages.find((p) => p.slug === slug)?.label.toLowerCase()}`;
   if (section === "blog") return getPost(slug)?.title;
+  if (section === "compare") return comparePages.find((p) => p.slug === slug)?.label;
   return undefined;
 }
 

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { featurePages, solutionPages } from "@/content/seoPages";
+import { comparePages } from "@/content/comparePages";
 import { getAllPosts } from "@/lib/blog";
 import { SITE_URL } from "@/lib/siteLinks";
 
@@ -34,6 +35,9 @@ ${link("/contact", "Contact sales")}
 
 ## Features
 ${featurePages.map((p) => link(`/features/${p.slug}`, p.label, p.metaDescription)).join("\n")}
+
+## Comparisons
+${comparePages.map((p) => link(`/compare/${p.slug}`, p.label, p.metaDescription)).join("\n")}
 
 ## Who it's for
 ${solutionPages.map((p) => link(`/solutions/${p.slug}`, p.label, p.metaDescription)).join("\n")}
