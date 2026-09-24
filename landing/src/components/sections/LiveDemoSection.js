@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { PhoneCall, CheckCircle2 } from "lucide-react";
 import WhatsAppIcon from "../common/WhatsAppIcon";
 import ScrollReveal from "../ScrollReveal";
@@ -53,7 +54,17 @@ Preferred time: ${preferredTime || "Any time"}`;
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center max-w-5xl mx-auto">
 
           {/* Left Column */}
-          <div className="lg:col-span-6 space-y-5">
+          <div className="lg:col-span-6 space-y-6">
+            <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+              <Image
+                src="/images/demo-walkthrough.jpg"
+                alt="EzzySync team member demonstrating live itinerary and CRM workflow on a laptop"
+                fill
+                sizes="(max-width: 1024px) 100vw, 480px"
+                className="object-cover"
+              />
+            </div>
+
             <h2 className="font-bold text-3xl sm:text-4xl text-slate-950 tracking-tight leading-tight">
               See it with one of your own inquiries
             </h2>
