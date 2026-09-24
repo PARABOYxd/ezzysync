@@ -4,8 +4,9 @@ import Footer from "../../components/layout/Footer";
 import LegalContent from "../../components/sections/LegalContent";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_MONTHLY } from "@/data/plans";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/terms", {
   title: "Terms & Conditions — EzzySync",
   description: "The terms that apply when you use EzzySync's travel CRM and booking management platform.",
   alternates: { canonical: "/terms" },
@@ -18,7 +19,7 @@ export const metadata = {
     locale: "en_US",
     type: "website",
   },
-};
+});
 
 export default function TermsPage() {
   const crmUrl = getCrmUrl();

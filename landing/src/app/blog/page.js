@@ -9,7 +9,7 @@ import Footer from "@/components/layout/Footer";
  * telling Google it was a duplicate of the home page rather than a page in
  * its own right. Nothing on it needed to be a client component.
  */
-export const metadata = {
+export const metadata = withSeo("/blog", {
   title: "Travel Agency Blog: WhatsApp, Itineraries & CRM | EzzySync",
   description:
     "Practical guides for Indian travel agencies: converting WhatsApp enquiries, building AI itineraries, GST invoicing, and running a tour business without losing leads.",
@@ -23,8 +23,10 @@ export const metadata = {
     siteName: "EzzySync",
     type: "website",
   },
-};
+});
 import { PLAN_PRICE_LABEL } from "@/data/plans";
+import { withSeo } from "@/lib/seoOverrides";
+import { getMarkdownPosts } from "@/lib/posts";
 
 // Real-world, trending travel agency tech articles with high SEO query match
 const blogPosts = [
@@ -347,6 +349,19 @@ const blogPosts = [
   }
 ];
 
+/** Posts written by the weekly SEO job, newest first, with a plain text thumbnail. */
+function markdownCards() {
+  return getMarkdownPosts().map((p) => ({
+    ...p,
+    thumbnail: (
+      <div className="w-full h-full p-5 flex flex-col justify-between bg-gradient-to-br from-slate-50 to-brand-50/60">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600">{p.category}</span>
+        <span className="text-base font-bold text-slate-800 leading-snug line-clamp-3">{p.keyword || p.title}</span>
+      </div>
+    ),
+  }));
+}
+
 export default function BlogDashboard() {
   let rawCrmUrl = process.env.NEXT_PUBLIC_CRM_URL || "http://localhost:5173";
   if (rawCrmUrl && !rawCrmUrl.startsWith("http://") && !rawCrmUrl.startsWith("https://")) {
@@ -386,7 +401,7 @@ export default function BlogDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {blogPosts.map((post, idx) => (
+            {[...markdownCards(), ...blogPosts].map((post) => (
               <article 
                 key={post.slug} 
                 className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between hover:border-brand-500 hover:shadow-soft transition-all duration-300 group"

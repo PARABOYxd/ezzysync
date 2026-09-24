@@ -4,8 +4,9 @@ import Footer from "../../components/layout/Footer";
 import DemoForm from "../../components/sections/DemoForm";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { ClipboardList, Calendar, KeyRound } from "lucide-react";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/contact", {
   title: "Contact EzzySync — Book a Free Travel CRM Walkthrough",
   description: "Talk to EzzySync about your travel agency's booking workflow. Book a free product walkthrough — no credit card required, response within 24 hours.",
   alternates: {
@@ -28,7 +29,7 @@ export const metadata = {
     title: "Contact EzzySync — Book a Free Travel CRM Walkthrough",
     description: "Talk to EzzySync about your travel agency's booking workflow. Book a free product walkthrough — no credit card required, response within 24 hours.",
   },
-};
+});
 
 export default function ContactPage() {
   const crmUrl = getCrmUrl();

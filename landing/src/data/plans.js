@@ -48,3 +48,53 @@ export const PLAN_PRICE_MONTHLY = {
   SOLO: `${PLAN_PRICE_LABEL.SOLO}/month`,
   PRO: `${PLAN_PRICE_LABEL.PRO}/month`,
 };
+
+/** Plan cards: rendered by the pricing section and /pricing.md. */
+export const PLANS = [
+  {
+    name: "Solo Agent",
+    blurb: "For independent travel planners and consultants.",
+    price: PLAN_PRICE_LABEL.SOLO,
+    period: "/month",
+    features: [
+      "1 login",
+      "Up to 200 inquiries",
+      "Day-wise itinerary builder with PDF",
+      "Quotations and invoices",
+      "Follow-up reminders",
+      "Shared EzzySync WhatsApp number",
+    ],
+    cta: "trial",
+  },
+  {
+    name: "Agency Growth",
+    blurb: "For agencies with a sales team.",
+    price: PLAN_PRICE_LABEL.PRO,
+    period: "/month",
+    features: [
+      "Up to 5 team logins",
+      "Unlimited leads and bookings",
+      "Your own number on the official WhatsApp Cloud API",
+      "Team inbox on one shared number",
+      "AI itinerary generator",
+      "Razorpay payments matched to bookings",
+      "Your letterhead on quotes and PDFs",
+    ],
+    cta: "trial",
+    featured: true,
+  },
+  {
+    name: "Enterprise & DMCs",
+    blurb: "For high-volume operators and multi-branch agencies.",
+    price: "Custom",
+    period: "billed annually",
+    features: [
+      "Unlimited logins and roles",
+      "Multiple branches",
+      "Custom WhatsApp workflows",
+      "Help moving your Excel / CSV data",
+      "Dedicated onboarding",
+    ],
+    cta: "contact",
+  },
+];

@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Search Console service-account key - never commit
+gsc-key.json
+*-service-account*.json

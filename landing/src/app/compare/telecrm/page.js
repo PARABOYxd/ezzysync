@@ -4,8 +4,9 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { Check, X, ArrowRight } from "lucide-react";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/compare/telecrm", {
   title: "EzzySync vs TeleCRM: Travel CRM Comparison (2026)",
   description: "EzzySync vs TeleCRM for Indian travel agencies: WhatsApp Cloud API, day-wise itineraries, GST billing and pricing compared side by side.",
   keywords: [
@@ -26,7 +27,7 @@ export const metadata = {
     url: "https://www.ezzysync.com/compare/telecrm",
     type: "article",
   },
-};
+});
 
 export default function CompareTeleCrmPage() {
   const crmUrl = getCrmUrl();

@@ -20,8 +20,9 @@ import {
   CreditCard,
   ShieldCheck,
 } from "lucide-react";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/features", {
   title: "Travel CRM Features: Leads, Itineraries, Invoices | EzzySync",
   description: "Every EzzySync feature: lead pipeline, shared WhatsApp inbox, day-wise itinerary builder, GST quotes and invoices, vouchers and payment tracking.",
   alternates: {
@@ -44,7 +45,7 @@ export const metadata = {
     title: "Travel CRM Features: Leads, Itineraries, Invoices | EzzySync",
     description: "Every EzzySync feature: lead pipeline, shared WhatsApp inbox, day-wise itinerary builder, GST quotes and invoices, vouchers and payment tracking.",
   },
-};
+});
 
 export default function FeaturesPage() {
   const crmUrl = getCrmUrl();

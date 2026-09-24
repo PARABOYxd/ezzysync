@@ -1,4 +1,5 @@
-import { articlesData } from "@/content/blogArticles";
+import { getAllPosts } from "@/lib/blog";
+import { overrideDate } from "@/lib/seoOverrides";
 import { featurePages, solutionPages } from "@/content/seoPages";
 import { SITE_URL } from "@/lib/siteLinks";
 
@@ -30,27 +31,29 @@ const staticPages = [
 const SEO_PAGES_UPDATED = "2026-09-24";
 
 const toIso = (d) => new Date(d).toISOString();
+// A title/description rewrite by the weekly job counts as a change.
+const latest = (path, ...dates) => toIso([...dates, overrideDate(path)].filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0]);
 
 export default function sitemap() {
   return [
     ...staticPages.map(({ path, updated, priority }) => ({
       url: `${SITE_URL}${path}`,
-      lastModified: toIso(updated),
+      lastModified: latest(path || "/", updated),
       priority,
     })),
     ...featurePages.map((p) => ({
       url: `${SITE_URL}/features/${p.slug}`,
-      lastModified: toIso(SEO_PAGES_UPDATED),
+      lastModified: latest(`/features/${p.slug}`, SEO_PAGES_UPDATED),
       priority: 0.8,
     })),
     ...solutionPages.map((p) => ({
       url: `${SITE_URL}/solutions/${p.slug}`,
-      lastModified: toIso(SEO_PAGES_UPDATED),
+      lastModified: latest(`/solutions/${p.slug}`, SEO_PAGES_UPDATED),
       priority: 0.8,
     })),
-    ...Object.entries(articlesData).map(([slug, a]) => ({
-      url: `${SITE_URL}/blog/${slug}`,
-      lastModified: toIso(a.updated || a.date),
+    ...getAllPosts().map((p) => ({
+      url: `${SITE_URL}/blog/${p.slug}`,
+      lastModified: latest(`/blog/${p.slug}`, p.isoUpdated || p.isoDate),
       priority: 0.7,
     })),
   ];

@@ -17,6 +17,26 @@ import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { faqData } from "@/data/landingData";
 import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
+import { withSeo } from "@/lib/seoOverrides";
+
+const HOME_TITLE = "Travel CRM for Travel Agencies & Tour Operators | EzzySync";
+const HOME_DESCRIPTION =
+  "Travel CRM for Indian agencies and tour operators: WhatsApp leads, day-wise itineraries, GST quotes and payment tracking in one place. Start a free trial.";
+
+export const metadata = withSeo("/", {
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    url: "https://www.ezzysync.com",
+    siteName: "EzzySync Travel CRM",
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title: HOME_TITLE, description: HOME_DESCRIPTION },
+});
 
 // The six objections that matter most on the homepage. The full list stays in
 // landingData for the other pages; the FAQPage JSON-LD below must match what

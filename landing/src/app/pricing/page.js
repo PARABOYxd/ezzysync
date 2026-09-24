@@ -7,8 +7,9 @@ import { faqData } from "../../data/landingData";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { Clock, TrendingUp } from "lucide-react";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/pricing", {
   title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
   description: "EzzySync pricing: 30-day free trial with full Pro access, then a Solo Agent plan, an Agency Growth plan, or custom Enterprise pricing.",
   alternates: {
@@ -31,7 +32,7 @@ export const metadata = {
     title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
     description: "EzzySync pricing: 30-day free trial with full Pro access, then a Solo Agent plan, an Agency Growth plan, or custom Enterprise pricing.",
   },
-};
+});
 
 export default function PricingPage() {
   const crmUrl = getCrmUrl();

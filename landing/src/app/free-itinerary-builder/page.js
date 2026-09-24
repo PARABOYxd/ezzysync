@@ -4,8 +4,9 @@ import Footer from "@/components/layout/Footer";
 import FreeItineraryTool from "@/components/tools/FreeItineraryTool";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { Sparkles, FileText, MessageSquare } from "lucide-react";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/free-itinerary-builder", {
   title: "Free AI Itinerary Builder for Travel Agents | EzzySync",
   description: "Create professional day-wise travel itineraries with AI. Free branded PDF download for travel agents & tour operators with zero sign-up required.",
   keywords: [
@@ -27,7 +28,7 @@ export const metadata = {
     url: "https://www.ezzysync.com/free-itinerary-builder",
     type: "website",
   },
-};
+});
 
 export default function FreeItineraryBuilderPage() {
   const crmUrl = getCrmUrl();

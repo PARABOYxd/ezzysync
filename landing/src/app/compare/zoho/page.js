@@ -4,8 +4,9 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { Check, X, ArrowRight } from "lucide-react";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/compare/zoho", {
   title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
   description: "EzzySync vs Zoho CRM for travel agencies: setup time, WhatsApp automation, itineraries, GST billing and cost compared for tour operators.",
   keywords: [
@@ -26,7 +27,7 @@ export const metadata = {
     url: "https://www.ezzysync.com/compare/zoho",
     type: "article",
   },
-};
+});
 
 export default function CompareZohoPage() {
   const crmUrl = getCrmUrl();

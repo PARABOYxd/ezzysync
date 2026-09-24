@@ -103,7 +103,7 @@ dupes("title");
 dupes("description");
 
 try {
-  const csv = await readFile(new URL("../seo/keywords.csv", import.meta.url), "utf8");
+  const csv = await readFile(new URL("../../seo/keywords.csv", import.meta.url), "utf8");
   const [header, ...rows] = csv.trim().split(/\r?\n/);
   const cols = header.split(",");
   for (const row of rows) {

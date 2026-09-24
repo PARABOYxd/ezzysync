@@ -3,8 +3,9 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import LegalContent from "../../components/sections/LegalContent";
 import { getCrmUrl } from "@/lib/crmUrl";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/privacy", {
   title: "Privacy Policy — EzzySync",
   description: "What data EzzySync collects, why, and how it's kept safe.",
   alternates: { canonical: "/privacy" },
@@ -17,7 +18,7 @@ export const metadata = {
     locale: "en_US",
     type: "website",
   },
-};
+});
 
 export default function PrivacyPage() {
   const crmUrl = getCrmUrl();

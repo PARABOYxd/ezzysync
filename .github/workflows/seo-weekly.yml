@@ -1,0 +1,92 @@
+name: SEO weekly
+
+# Every Monday 9:00 IST the SEO job (landing/scripts/seo/weekly.mjs):
+#   pulls Search Console data, finds new keywords, writes up to 2 checked
+#   blog posts, rewrites under-performing titles, adds internal links.
+# It then builds the site and runs the SEO audit on the result, and opens a
+# pull request whose description is the weekly report. Nothing goes live
+# until that PR is merged.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   GSC_SERVICE_ACCOUNT_JSON  Search Console service-account key (JSON)
+#   GEMINI_API_KEY            AI writer (or OPENAI_API_KEY)
+#   SEO_BOT_TOKEN             optional: a fine-grained token with contents +
+#                             pull-requests write. PRs opened with the default
+#                             token don't trigger CI, so with branch protection
+#                             they can't be merged without it.
+on:
+  schedule:
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: seo-weekly
+  cancel-in-progress: false
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: landing
+    env:
+      NEXT_PUBLIC_CRM_URL: https://www.ezzysync.com/app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Run SEO job
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm run seo:weekly
+
+      # The generated posts and overrides must build, or the PR is useless.
+      - name: Build
+        run: npm run build
+
+      - name: Audit the built site
+        id: audit
+        run: |
+          npx next start -p 3000 > /dev/null 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 1; done
+          report=$(ls -t seo/reports/weekly-*.md | head -1)
+          set +e
+          BASE_URL=http://localhost:3000 node scripts/seo/audit.mjs > audit.txt 2>&1
+          status=$?
+          set -e
+          { echo; echo "## Site audit"; echo; echo '```'; cat audit.txt; echo '```'; } >> "$report"
+          echo "report=landing/$report" >> "$GITHUB_OUTPUT"
+          echo "date=$(date +%F)" >> "$GITHUB_OUTPUT"
+          echo "prefix=$([ $status -eq 0 ] || echo '⚠ audit failed · ')" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SEO_BOT_TOKEN || github.token }}
+          branch: seo/weekly
+          delete-branch: true
+          title: "${{ steps.audit.outputs.prefix }}SEO weekly ${{ steps.audit.outputs.date }}"
+          commit-message: "chore(seo): weekly SEO update ${{ steps.audit.outputs.date }}"
+          body-path: ${{ steps.audit.outputs.report }}
+          labels: seo
+          add-paths: |
+            landing/seo/keywords.csv
+            landing/seo/reports/*.md
+            landing/content/blog/*.md
+            landing/src/content/seoOverrides.json
+            landing/src/content/internalLinks.json

@@ -6,13 +6,14 @@ import Footer from "@/components/layout/Footer";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { solutionPages } from "@/content/seoPages";
 import { SITE_URL } from "@/lib/siteLinks";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/solutions", {
   title: "Travel CRM for Agencies, Tour Operators & Consultants | EzzySync",
   description:
     "See how EzzySync fits your kind of travel business — retail travel agencies, tour operators and DMCs, independent consultants, and small teams.",
   alternates: { canonical: "/solutions" },
-};
+});
 
 export default function SolutionsPage() {
   const crmUrl = getCrmUrl();

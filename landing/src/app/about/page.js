@@ -20,8 +20,9 @@ import {
   PhoneCall,
 } from "lucide-react";
 import WhatsAppIcon from "../../components/common/WhatsAppIcon";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/about", {
   title: "About EzzySync — Travel CRM Built in India",
   description: "EzzySync was built to help Indian travel agents replace scattered WhatsApp chats, Word quotation files, and Excel sheets with one reliable booking workflow.",
   alternates: {
@@ -44,7 +45,7 @@ export const metadata = {
     title: "About EzzySync — Travel CRM Built in India",
     description: "EzzySync was built to help Indian travel agents replace scattered WhatsApp chats, Word quotation files, and Excel sheets with one reliable booking workflow.",
   },
-};
+});
 
 export default function AboutPage() {
   const crmUrl = getCrmUrl();

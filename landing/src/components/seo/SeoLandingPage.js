@@ -7,13 +7,14 @@ import WhatsAppIcon from "../common/WhatsAppIcon";
 import { getCrmUrl, getTrialUrl } from "@/lib/crmUrl";
 import { waLink, WA_DEMO_TEXT } from "@/lib/contact";
 import { SITE_URL, linkLabel } from "@/lib/siteLinks";
+import { withSeo } from "@/lib/seoOverrides";
 
 const SECTION_NAME = { features: "Features", solutions: "Solutions" };
 
 /** Metadata for a /features/* or /solutions/* page. */
 export function seoPageMetadata(page, kind) {
   const path = `/${kind}/${page.slug}`;
-  return {
+  return withSeo(path, {
     title: page.metaTitle,
     description: page.metaDescription,
     alternates: { canonical: path },
@@ -25,7 +26,7 @@ export function seoPageMetadata(page, kind) {
       type: "website",
     },
     twitter: { card: "summary_large_image", title: page.metaTitle, description: page.metaDescription },
-  };
+  });
 }
 
 /**

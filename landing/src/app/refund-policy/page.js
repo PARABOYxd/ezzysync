@@ -4,8 +4,9 @@ import Footer from "../../components/layout/Footer";
 import LegalContent from "../../components/sections/LegalContent";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_MONTHLY } from "@/data/plans";
+import { withSeo } from "@/lib/seoOverrides";
 
-export const metadata = {
+export const metadata = withSeo("/refund-policy", {
   title: "Refund & Cancellation Policy — EzzySync",
   description: "How cancellation and refunds work for EzzySync's paid plans.",
   alternates: { canonical: "/refund-policy" },
@@ -18,7 +19,7 @@ export const metadata = {
     locale: "en_US",
     type: "website",
   },
-};
+});
 
 export default function RefundPolicyPage() {
   const crmUrl = getCrmUrl();

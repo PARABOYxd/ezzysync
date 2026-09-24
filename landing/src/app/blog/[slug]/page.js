@@ -5,42 +5,31 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import authors from "@/data/authors.json";
 import { getCrmUrl } from "@/lib/crmUrl";
-import { articlesData } from "@/content/blogArticles";
+import { notFound } from "next/navigation";
+import { getAllPosts, getPost } from "@/lib/blog";
+import { withSeo } from "@/lib/seoOverrides";
 import { SITE_URL as SITE, linkLabel, pagesForText } from "@/lib/siteLinks";
 
 const globalCrmUrl = getCrmUrl();
 
-/** Every post is pre-rendered, so the HTML a crawler receives is the final one. */
+/** Every post is pre-rendered; any other slug is a real 404, not a 200 "not found" page. */
+export const dynamicParams = false;
+
 export function generateStaticParams() {
-  return Object.keys(articlesData).map((slug) => ({ slug }));
+  return getAllPosts().map((p) => ({ slug: p.slug }));
 }
 
-/**
- * Per-post title, description and canonical.
- *
- * This page used to be a client component, which in the App Router cannot
- * export metadata at all - so all nine posts served the root layout's tags:
- * the same title, the same description, and `canonical: "/"`. That last one
- * told Google each post was a duplicate of the home page, which is an
- * instruction not to index it. The posts were excluding themselves from
- * search while their content sat there perfectly well written.
- *
- * The `document.title` assignment that stood in for this ran only in the
- * browser, after load, and could not set a canonical at all.
- */
+/** Per-post title, description and canonical (plus any weekly-job override). */
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const article = articlesData[slug];
+  const article = getPost(slug);
+  if (!article) return {};
 
-  if (!article) {
-    return { title: "Article not found — EzzySync", robots: { index: false, follow: true } };
-  }
-
-  const title = article.metaTitle || article.title;
+  const title = article.metaTitle;
   const description = article.metaDescription || "";
   const url = `${SITE}/blog/${slug}`;
 
-  return {
+  return withSeo(`/blog/${slug}`, {
     title,
     description,
     alternates: { canonical: `/blog/${slug}` },
@@ -51,7 +40,7 @@ export async function generateMetadata({ params }) {
       url,
       siteName: "EzzySync",
       type: "article",
-      publishedTime: article.date,
+      publishedTime: new Date(article.date).toISOString(),
       ...(article.image && { images: [{ url: article.image }] }),
     },
     twitter: {
@@ -60,28 +49,18 @@ export async function generateMetadata({ params }) {
       description,
       ...(article.image && { images: [article.image] }),
     },
-  };
+  });
 }
 
 export default async function BlogPostPage({ params }) {
   const { slug } = await params;
-  const article = articlesData[slug];
+  const article = getPost(slug);
+  if (!article) notFound();
+
   const crmUrl = globalCrmUrl;
   const author = authors["rishab-jain"];
-  const productPages = article ? pagesForText(`${article.title} ${article.metaDescription || ""}`) : [];
-
-  if (!article) {
-    return (
-      <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col justify-between">
-        <Navbar crmUrl={crmUrl} />
-        <div className="text-center py-20">
-          <h1 className="text-2xl font-bold">Article not found</h1>
-          <Link href="/blog" className="text-brand-600 font-semibold hover:underline mt-4 inline-block">Back to Blog</Link>
-        </div>
-        <Footer crmUrl={crmUrl} />
-      </div>
-    );
-  }
+  const productPages = pagesForText(`${article.title} ${article.metaDescription || ""} ${article.keyword || ""}`);
+  const related = getAllPosts().filter((p) => p.slug !== slug).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
@@ -113,7 +92,7 @@ export default async function BlogPostPage({ params }) {
                 <div>
                   <div className="text-sm font-bold text-slate-900">{author.name}</div>
                   <div className="text-xs text-slate-500">{author.role}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Last updated: {article.date}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Last updated: {article.updated || article.date}</div>
                 </div>
               </div>
             )}
@@ -128,7 +107,7 @@ export default async function BlogPostPage({ params }) {
                   "@type": "BlogPosting",
                   "headline": article.title,
                   "description": article.metaDescription,
-                  "image": `${SITE}${article.image}`,
+                  "image": article.image ? `${SITE}${article.image}` : `${SITE}/opengraph-image`,
                   "mainEntityOfPage": `${SITE}/blog/${slug}`,
                   "datePublished": new Date(article.date).toISOString(),
                   "dateModified": new Date(article.updated || article.date).toISOString(),
@@ -143,6 +122,15 @@ export default async function BlogPostPage({ params }) {
                     "logo": { "@type": "ImageObject", "url": `${SITE}/logo.png` }
                   }
                 },
+                ...(article.faqs?.length ? [{
+                  "@context": "https://schema.org",
+                  "@type": "FAQPage",
+                  "mainEntity": article.faqs.map((f) => ({
+                    "@type": "Question",
+                    "name": f.q,
+                    "acceptedAnswer": { "@type": "Answer", "text": f.a }
+                  }))
+                }] : []),
                 {
                   "@context": "https://schema.org",
                   "@type": "BreadcrumbList",
@@ -157,13 +145,19 @@ export default async function BlogPostPage({ params }) {
           />
 
           {/* Article Banner Cover Image */}
-          <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative">
-            <Image src={article.image} alt={article.title} fill priority sizes="(max-width: 740px) 100vw, 700px" className="object-cover" />
-          </div>
+          {article.image && (
+            <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative">
+              <Image src={article.image} alt={article.title} fill priority sizes="(max-width: 740px) 100vw, 700px" className="object-cover" />
+            </div>
+          )}
 
           {/* Article Body */}
           <div className="mt-8">
-            {article.content}
+            {article.source === "md" ? (
+              <div className="prose-blog" dangerouslySetInnerHTML={{ __html: article.html }} />
+            ) : (
+              article.content
+            )}
           </div>
 
           {/* Free Tool & Contact Money-Page CTAs (Glox Rule #23) */}
@@ -210,31 +204,25 @@ export default async function BlogPostPage({ params }) {
           <div className="mt-16 pt-10 border-t border-slate-200">
             <h3 className="text-xl font-bold text-slate-900 mb-6">Related Guides for Travel Agencies</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.keys(articlesData)
-                .filter((s) => s !== slug)
-                .slice(0, 4)
-                .map((relatedSlug) => {
-                  const rel = articlesData[relatedSlug];
-                  return (
-                    <Link
-                      key={relatedSlug}
-                      href={`/blog/${relatedSlug}`}
-                      className="p-4 rounded-xl border border-slate-200 hover:border-brand-500 bg-white hover:shadow-md transition-all group flex flex-col justify-between"
-                    >
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-2 py-0.5 rounded border border-brand-100 w-fit inline-block">
-                          {rel.category}
-                        </span>
-                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-brand-600 transition-colors line-clamp-2">
-                          {rel.title}
-                        </h4>
-                      </div>
-                      <span className="text-xs text-slate-400 mt-3 flex items-center gap-1 font-medium group-hover:text-brand-600">
-                        Read Guide &rarr;
-                      </span>
-                    </Link>
-                  );
-                })}
+              {related.map((rel) => (
+                <Link
+                  key={rel.slug}
+                  href={`/blog/${rel.slug}`}
+                  className="p-4 rounded-xl border border-slate-200 hover:border-brand-500 bg-white hover:shadow-md transition-all group flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-2 py-0.5 rounded border border-brand-100 w-fit inline-block">
+                      {rel.category}
+                    </span>
+                    <h4 className="text-sm font-semibold text-slate-900 group-hover:text-brand-600 transition-colors line-clamp-2">
+                      {rel.title}
+                    </h4>
+                  </div>
+                  <span className="text-xs text-slate-400 mt-3 flex items-center gap-1 font-medium group-hover:text-brand-600">
+                    Read Guide &rarr;
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
