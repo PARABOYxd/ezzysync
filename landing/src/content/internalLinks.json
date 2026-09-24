@@ -74,5 +74,11 @@
   {
     "phrase": "tour operator software",
     "href": "/solutions/tour-operators"
+  },
+  {
+    "phrase": "chatgpt",
+    "href": "/blog/chatgpt-itinerary-travel-agents",
+    "added": "2026-09-24",
+    "reason": "new post"
   }
 ]

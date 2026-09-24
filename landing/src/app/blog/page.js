@@ -353,7 +353,10 @@ const blogPosts = [
 function markdownCards() {
   return getMarkdownPosts().map((p) => ({
     ...p,
-    thumbnail: (
+    thumbnail: p.image ? (
+      // eslint-disable-next-line @next/next/no-img-element -- images ship unoptimized (see next.config.mjs)
+      <img src={p.image} alt="" loading="lazy" className="w-full h-full object-cover" />
+    ) : (
       <div className="w-full h-full p-5 flex flex-col justify-between bg-gradient-to-br from-slate-50 to-brand-50/60">
         <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600">{p.category}</span>
         <span className="text-base font-bold text-slate-800 leading-snug line-clamp-3">{p.keyword || p.title}</span>

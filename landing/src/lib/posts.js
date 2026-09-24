@@ -10,7 +10,7 @@ import internalLinks from "@/content/internalLinks.json";
  *
  * Frontmatter is one `key: value` per line between --- fences:
  *   title, metaTitle, metaDescription, keyword, category, date (YYYY-MM-DD),
- *   updated (optional), excerpt (optional)
+ *   updated, excerpt, image (all optional)
  * A "## Frequently asked questions" section with ### questions becomes
  * FAQPage schema automatically.
  */
@@ -86,6 +86,8 @@ function loadPost(file) {
     metaTitle: data.metaTitle || data.title,
     metaDescription: data.metaDescription || "",
     keyword: data.keyword || "",
+    // Optional cover, e.g. /images/blog/x.jpg - used as the banner, card thumbnail and share image.
+    image: data.image || undefined,
     category: data.category || "Guide",
     isoDate: data.date,
     date: displayDate(data.date),
