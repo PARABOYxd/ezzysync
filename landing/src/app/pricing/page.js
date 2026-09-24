@@ -10,7 +10,7 @@ import { Clock, TrendingUp } from "lucide-react";
 
 export const metadata = {
   title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
-  description: "EzzySync pricing for travel agencies: a 30-day free trial with full Pro access, a Solo Agent plan, an Agency Growth plan, and custom Enterprise pricing for large teams.",
+  description: "EzzySync pricing: 30-day free trial with full Pro access, then a Solo Agent plan, an Agency Growth plan, or custom Enterprise pricing.",
   alternates: {
     canonical: "/pricing",
   },
@@ -20,7 +20,7 @@ export const metadata = {
   },
   openGraph: {
     title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
-    description: "EzzySync pricing for travel agencies: a 30-day free trial with full Pro access, a Solo Agent plan, an Agency Growth plan, and custom Enterprise pricing for large teams.",
+    description: "EzzySync pricing: 30-day free trial with full Pro access, then a Solo Agent plan, an Agency Growth plan, or custom Enterprise pricing.",
     url: "https://www.ezzysync.com/pricing",
     siteName: "EzzySync",
     locale: "en_US",
@@ -29,7 +29,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Travel CRM Pricing — EzzySync Plans & Free Tier",
-    description: "EzzySync pricing for travel agencies: a 30-day free trial with full Pro access, a Solo Agent plan, an Agency Growth plan, and custom Enterprise pricing for large teams.",
+    description: "EzzySync pricing: 30-day free trial with full Pro access, then a Solo Agent plan, an Agency Growth plan, or custom Enterprise pricing.",
   },
 };
 

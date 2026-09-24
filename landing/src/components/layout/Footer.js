@@ -1,9 +1,8 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import { MessageSquare, PhoneCall, Mail, MapPin } from "lucide-react";
 import { getLoginUrl } from "@/lib/crmUrl";
+import { featurePages, solutionPages } from "@/content/seoPages";
 import { waLink, DISPLAY_PHONE, SUPPORT_EMAIL, SUPPORT_HOURS } from "@/lib/contact";
 
 export default function Footer({ crmUrl }) {
@@ -45,72 +44,35 @@ export default function Footer({ crmUrl }) {
             </div>
           </div>
 
-          {/* Col 2: Core Modules */}
+          {/* Col 2: Features */}
           <div className="space-y-3">
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Travel Modules</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Features</h4>
             <ul className="space-y-2 text-xs text-slate-400">
+              {featurePages.map((p) => (
+                <li key={p.slug}>
+                  <Link href={`/features/${p.slug}`} className="hover:text-white transition-colors">{p.label}</Link>
+                </li>
+              ))}
               <li>
-                <Link href="/features" className="hover:text-white transition-colors">
-                  Travel Lead Management
-                </Link>
-              </li>
-              <li>
-                <Link href="/features" className="hover:text-white transition-colors">
-                  WhatsApp Cloud API
-                </Link>
-              </li>
-              <li>
-                <Link href="/free-itinerary-builder" className="hover:text-white transition-colors flex items-center gap-1.5">
-                  <span>Day-Wise Itinerary Builder</span>
-                  <span className="bg-brand-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded">FREE</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/features" className="hover:text-white transition-colors">
-                  GST SAC 998555 Invoicing
-                </Link>
-              </li>
-              <li>
-                <Link href="/features" className="hover:text-white transition-colors">
-                  Hotel &amp; Cab Vouchers
-                </Link>
-              </li>
-              <li>
-                <Link href="/features" className="hover:text-white transition-colors">
-                  Razorpay Webhook Payments
-                </Link>
+                <Link href="/free-itinerary-builder" className="hover:text-white transition-colors">Free itinerary builder</Link>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Competitor Comparisons */}
+          {/* Col 3: Solutions & comparisons */}
           <div className="space-y-3">
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Compare CRMs</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Who it&apos;s for</h4>
             <ul className="space-y-2 text-xs text-slate-400">
+              {solutionPages.map((p) => (
+                <li key={p.slug}>
+                  <Link href={`/solutions/${p.slug}`} className="hover:text-white transition-colors">{p.label}</Link>
+                </li>
+              ))}
               <li>
-                <Link href="/compare/telecrm" className="hover:text-white transition-colors">
-                  EzzySync vs TeleCRM
-                </Link>
+                <Link href="/compare/zoho" className="hover:text-white transition-colors">EzzySync vs Zoho CRM</Link>
               </li>
               <li>
-                <Link href="/compare/zoho" className="hover:text-white transition-colors">
-                  EzzySync vs Zoho CRM
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="hover:text-white transition-colors">
-                  Solo Agent Plan
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="hover:text-white transition-colors">
-                  Agency Growth Pro Plan
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="hover:text-white transition-colors">
-                  Enterprise DMCs
-                </Link>
+                <Link href="/compare/telecrm" className="hover:text-white transition-colors">EzzySync vs TeleCRM</Link>
               </li>
             </ul>
           </div>
@@ -119,6 +81,9 @@ export default function Footer({ crmUrl }) {
           <div className="space-y-3">
             <h4 className="text-white font-bold text-xs uppercase tracking-wider">Company &amp; Legal</h4>
             <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+              </li>
               <li>
                 <Link href="/about" className="hover:text-white transition-colors">About EzzySync</Link>
               </li>

@@ -2,6 +2,7 @@ import { Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
+import SiteAnalytics from "@/components/common/SiteAnalytics";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -10,8 +11,8 @@ const geist = Geist({
 });
 
 export const metadata = {
-  title: "EzzySync™ | Travel CRM Software for Tour Operators & Travel Agencies",
-  description: "EzzySync is a cloud-based Travel CRM for Indian tour operators and travel agencies. Automate WhatsApp leads, build day-wise itineraries, issue GST quotations (SAC 998555), and track payments on one unified dashboard. Start free trial.",
+  title: "Travel CRM for Travel Agencies & Tour Operators | EzzySync",
+  description: "Travel CRM for Indian agencies and tour operators: WhatsApp leads, day-wise itineraries, GST quotes and payment tracking in one place. Start a free trial.",
   metadataBase: new URL("https://www.ezzysync.com"),
   keywords: [
     "travel crm",
@@ -41,9 +42,14 @@ export const metadata = {
     index: true,
     follow: true,
   },
+  // Search Console / Bing Webmaster ownership, set per deployment in env.
+  verification: {
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }),
+    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && { other: { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } }),
+  },
   openGraph: {
-    title: "EzzySync™ | Travel CRM Software for Tour Operators & Travel Agencies",
-    description: "EzzySync is a cloud-based Travel CRM for Indian tour operators and travel agencies. Automate WhatsApp leads, build day-wise itineraries, issue GST quotations (SAC 998555), and track payments on one unified dashboard. Start free trial.",
+    title: "Travel CRM for Travel Agencies & Tour Operators | EzzySync",
+    description: "Travel CRM for Indian agencies and tour operators: WhatsApp leads, day-wise itineraries, GST quotes and payment tracking in one place. Start a free trial.",
     url: "https://www.ezzysync.com",
     siteName: "EzzySync Travel CRM",
     locale: "en_IN",
@@ -51,8 +57,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "EzzySync™ | Travel CRM Software for Tour Operators & Travel Agencies",
-    description: "EzzySync is a cloud-based Travel CRM for Indian tour operators and travel agencies. Automate WhatsApp leads, build day-wise itineraries, issue GST quotations (SAC 998555), and track payments on one unified dashboard. Start free trial.",
+    title: "Travel CRM for Travel Agencies & Tour Operators | EzzySync",
+    description: "Travel CRM for Indian agencies and tour operators: WhatsApp leads, day-wise itineraries, GST quotes and payment tracking in one place. Start a free trial.",
   },
 
 };
@@ -83,12 +89,7 @@ export default function RootLayout({ children }) {
       "@type": "WebSite",
       "name": "EzzySync Travel CRM",
       "alternateName": ["EzzySync", "EzzySync CRM"],
-      "url": "https://www.ezzysync.com",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://www.ezzysync.com/blog?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+      "url": "https://www.ezzysync.com"
     },
     {
       "@context": "https://schema.org",
@@ -130,6 +131,7 @@ export default function RootLayout({ children }) {
         />
         {children}
         <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   );

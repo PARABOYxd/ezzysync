@@ -22,7 +22,7 @@ import {
 import WhatsAppIcon from "../../components/common/WhatsAppIcon";
 
 export const metadata = {
-  title: "About EzzySync — Travel CRM Software for Tour Operators & Agencies",
+  title: "About EzzySync — Travel CRM Built in India",
   description: "EzzySync was built to help Indian travel agents replace scattered WhatsApp chats, Word quotation files, and Excel sheets with one reliable booking workflow.",
   alternates: {
     canonical: "/about",
@@ -32,7 +32,7 @@ export const metadata = {
     follow: true,
   },
   openGraph: {
-    title: "About EzzySync — Travel CRM Software for Tour Operators & Agencies",
+    title: "About EzzySync — Travel CRM Built in India",
     description: "EzzySync was built to help Indian travel agents replace scattered WhatsApp chats, Word quotation files, and Excel sheets with one reliable booking workflow.",
     url: "https://www.ezzysync.com/about",
     siteName: "EzzySync Travel CRM",
@@ -41,7 +41,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "About EzzySync — Travel CRM Software for Tour Operators & Agencies",
+    title: "About EzzySync — Travel CRM Built in India",
     description: "EzzySync was built to help Indian travel agents replace scattered WhatsApp chats, Word quotation files, and Excel sheets with one reliable booking workflow.",
   },
 };

@@ -6,8 +6,8 @@ import { getCrmUrl } from "@/lib/crmUrl";
 import { Check, X, ArrowRight } from "lucide-react";
 
 export const metadata = {
-  title: "EzzySync vs TeleCRM — Best Travel CRM Alternative (2026 Comparison)",
-  description: "Comparing EzzySync vs TeleCRM for travel agencies & tour operators in India. Discover why travel businesses switch to EzzySync for official Meta Cloud WhatsApp automation, day-wise itineraries, and SAC 998555 GST billing.",
+  title: "EzzySync vs TeleCRM: Travel CRM Comparison (2026)",
+  description: "EzzySync vs TeleCRM for Indian travel agencies: WhatsApp Cloud API, day-wise itineraries, GST billing and pricing compared side by side.",
   keywords: [
     "ezzysync vs telecrm",
     "telecrm alternative",

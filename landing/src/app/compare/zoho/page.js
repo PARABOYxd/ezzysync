@@ -7,7 +7,7 @@ import { Check, X, ArrowRight } from "lucide-react";
 
 export const metadata = {
   title: "EzzySync vs Zoho CRM — Best Travel Agency CRM Alternative (2026)",
-  description: "Comparing EzzySync vs Zoho CRM for travel agencies in India & UAE. Discover why tour operators choose EzzySync for ready-to-use WhatsApp automation, AI itineraries, and built-in GST billing over complex generic CRMs.",
+  description: "EzzySync vs Zoho CRM for travel agencies: setup time, WhatsApp automation, itineraries, GST billing and cost compared for tour operators.",
   keywords: [
     "ezzysync vs zoho crm",
     "zoho crm alternative travel agency",

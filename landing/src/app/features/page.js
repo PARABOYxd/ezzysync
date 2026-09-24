@@ -7,6 +7,7 @@ import WhyEzzySync from "../../components/sections/WhyEzzySync";
 import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
 import { getCrmUrl, getTrialUrl } from "@/lib/crmUrl";
+import { featurePages } from "@/content/seoPages";
 import { waLink, WA_FEATURES_WALKTHROUGH_TEXT, WA_FEATURES_DEMO_TEXT } from "@/lib/contact";
 import {
   ArrowRight,
@@ -21,8 +22,8 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Travel CRM Features — Lead Management, Itineraries & Invoicing | EzzySync",
-  description: "See every EzzySync feature: lead pipeline tracking, day-wise itinerary builder, automated WhatsApp alerts, SAC 998555 PDF invoicing, and multi-tenant data isolation for travel agencies.",
+  title: "Travel CRM Features: Leads, Itineraries, Invoices | EzzySync",
+  description: "Every EzzySync feature: lead pipeline, shared WhatsApp inbox, day-wise itinerary builder, GST quotes and invoices, vouchers and payment tracking.",
   alternates: {
     canonical: "/features",
   },
@@ -31,8 +32,8 @@ export const metadata = {
     follow: true,
   },
   openGraph: {
-    title: "Travel CRM Features — Lead Management, Itineraries & Invoicing | EzzySync",
-    description: "See every EzzySync feature: lead pipeline tracking, day-wise itinerary builder, automated WhatsApp alerts, SAC 998555 PDF invoicing, and multi-tenant data isolation for travel agencies.",
+    title: "Travel CRM Features: Leads, Itineraries, Invoices | EzzySync",
+    description: "Every EzzySync feature: lead pipeline, shared WhatsApp inbox, day-wise itinerary builder, GST quotes and invoices, vouchers and payment tracking.",
     url: "https://www.ezzysync.com/features",
     siteName: "EzzySync",
     locale: "en_US",
@@ -40,8 +41,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Travel CRM Features — Lead Management, Itineraries & Invoicing | EzzySync",
-    description: "See every EzzySync feature: lead pipeline tracking, day-wise itinerary builder, automated WhatsApp alerts, SAC 998555 PDF invoicing, and multi-tenant data isolation for travel agencies.",
+    title: "Travel CRM Features: Leads, Itineraries, Invoices | EzzySync",
+    description: "Every EzzySync feature: lead pipeline, shared WhatsApp inbox, day-wise itinerary builder, GST quotes and invoices, vouchers and payment tracking.",
   },
 };
 
@@ -173,6 +174,21 @@ export default function FeaturesPage() {
 
           </div>
         </section>
+
+        <nav aria-label="Feature pages" className="border-b border-slate-200 bg-white">
+          <ul className="max-w-[1240px] mx-auto px-5 sm:px-6 py-6 flex flex-wrap justify-center gap-2.5">
+            {featurePages.map((p) => (
+              <li key={p.slug}>
+                <Link
+                  href={`/features/${p.slug}`}
+                  className="inline-block px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:border-brand-400 hover:text-brand-700"
+                >
+                  {p.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         {/* ========================================================================= */}
         {/* 7 DEEP-DIVE FEATURE MODULES (Alternating White & Slate-50) */}

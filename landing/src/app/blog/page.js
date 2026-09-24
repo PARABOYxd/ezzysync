@@ -10,7 +10,7 @@ import Footer from "@/components/layout/Footer";
  * its own right. Nothing on it needed to be a client component.
  */
 export const metadata = {
-  title: "Travel Agency Growth Blog — WhatsApp, AI Itineraries & CRM Tips | EzzySync",
+  title: "Travel Agency Blog: WhatsApp, Itineraries & CRM | EzzySync",
   description:
     "Practical guides for Indian travel agencies: converting WhatsApp enquiries, building AI itineraries, GST invoicing, and running a tour business without losing leads.",
   alternates: { canonical: "/blog" },
@@ -40,22 +40,19 @@ const blogPosts = [
         {/* Comparison Board Mockup */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <span className="text-[10px] font-bold text-orange-600">Travel CRM Comparison 2026</span>
-          <span className="text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded font-bold">TOP RATED</span>
         </div>
         <div className="space-y-1.5 py-2 w-full">
           <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black text-orange-500">#1 EzzySync CRM</span>
+              <span className="text-[10px] font-black text-orange-500">EzzySync CRM</span>
               <span className="text-[8px] text-slate-500">WhatsApp + AI</span>
             </div>
-            <span className="text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">9.9/10 ★</span>
           </div>
           <div className="bg-white border border-slate-100 p-1.5 rounded flex items-center justify-between shadow-xs opacity-75">
             <div className="flex items-center gap-1.5">
               <span className="text-[9px] font-medium text-slate-700">Generic CRMs</span>
               <span className="text-[8px] text-slate-400">Complex setup</span>
             </div>
-            <span className="text-[8px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded">6.5/10</span>
           </div>
         </div>
         <div className="bg-slate-900 text-white rounded-lg p-2 flex items-center justify-between mt-auto z-10">

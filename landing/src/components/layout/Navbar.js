@@ -62,6 +62,9 @@ export default function Navbar({ crmUrl }) {
             <Link href="/features" className={getLinkClass("/features")}>
               Features
             </Link>
+            <Link href="/solutions" className={getLinkClass("/solutions")}>
+              Solutions
+            </Link>
             <Link href="/free-itinerary-builder" className={getLinkClass("/free-itinerary-builder")}>
               Itinerary Builder
             </Link>
@@ -150,6 +153,13 @@ export default function Navbar({ crmUrl }) {
             className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Features
+          </Link>
+          <Link
+            href="/solutions"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Solutions
           </Link>
           <Link
             href="/free-itinerary-builder"

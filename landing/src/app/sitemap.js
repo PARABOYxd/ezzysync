@@ -1,130 +1,57 @@
+import { articlesData } from "@/content/blogArticles";
+import { featurePages, solutionPages } from "@/content/seoPages";
+import { SITE_URL } from "@/lib/siteLinks";
+
+/**
+ * Built from the same data the pages render from, so a new blog post,
+ * feature page or solution page is in the sitemap on the next build.
+ *
+ * `lastModified` should only move when a page's content really changes -
+ * Google stops trusting lastmod on sites where it changes every deploy.
+ * Bump the date here when you edit one of these pages.
+ */
+const staticPages = [
+  { path: "", updated: "2026-09-24", priority: 1.0 },
+  { path: "/free-itinerary-builder", updated: "2026-09-11", priority: 0.9 },
+  { path: "/features", updated: "2026-09-24", priority: 0.9 },
+  { path: "/solutions", updated: "2026-09-24", priority: 0.8 },
+  { path: "/pricing", updated: "2026-09-24", priority: 0.9 },
+  { path: "/compare/telecrm", updated: "2026-09-01", priority: 0.8 },
+  { path: "/compare/zoho", updated: "2026-09-01", priority: 0.8 },
+  { path: "/about", updated: "2026-09-24", priority: 0.6 },
+  { path: "/contact", updated: "2026-09-11", priority: 0.7 },
+  { path: "/blog", updated: "2026-09-11", priority: 0.7 },
+  { path: "/terms", updated: "2026-08-01", priority: 0.2 },
+  { path: "/privacy", updated: "2026-08-01", priority: 0.2 },
+  { path: "/refund-policy", updated: "2026-08-01", priority: 0.2 },
+];
+
+// Date the /features/* and /solutions/* content in content/seoPages.js last changed.
+const SEO_PAGES_UPDATED = "2026-09-24";
+
+const toIso = (d) => new Date(d).toISOString();
+
 export default function sitemap() {
   return [
-    {
-      url: 'https://www.ezzysync.com',
-      lastModified: '2026-09-12T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 1.0,
-    },
-    {
-      url: 'https://www.ezzysync.com/free-itinerary-builder',
-      lastModified: '2026-09-11T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 1.0,
-    },
-    {
-      url: 'https://www.ezzysync.com/features',
-      lastModified: '2026-09-01T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://www.ezzysync.com/pricing',
-      lastModified: '2026-09-01T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://www.ezzysync.com/compare/telecrm',
-      lastModified: '2026-09-01T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 0.85,
-    },
-    {
-      url: 'https://www.ezzysync.com/compare/zoho',
-      lastModified: '2026-09-01T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 0.85,
-    },
-    {
-      url: 'https://www.ezzysync.com/about',
-      lastModified: '2026-09-01T00:00:00.000Z',
-      changeFrequency: 'yearly',
+    ...staticPages.map(({ path, updated, priority }) => ({
+      url: `${SITE_URL}${path}`,
+      lastModified: toIso(updated),
+      priority,
+    })),
+    ...featurePages.map((p) => ({
+      url: `${SITE_URL}/features/${p.slug}`,
+      lastModified: toIso(SEO_PAGES_UPDATED),
+      priority: 0.8,
+    })),
+    ...solutionPages.map((p) => ({
+      url: `${SITE_URL}/solutions/${p.slug}`,
+      lastModified: toIso(SEO_PAGES_UPDATED),
+      priority: 0.8,
+    })),
+    ...Object.entries(articlesData).map(([slug, a]) => ({
+      url: `${SITE_URL}/blog/${slug}`,
+      lastModified: toIso(a.updated || a.date),
       priority: 0.7,
-    },
-    {
-      url: 'https://www.ezzysync.com/contact',
-      lastModified: '2026-09-11T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog',
-      lastModified: '2026-09-11T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 0.85,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/best-travel-agency-crm-software-india-2026',
-      lastModified: '2026-08-30T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/whatsapp-business-api-travel-agency-setup-guide',
-      lastModified: '2026-08-28T00:00:00.000Z',
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/automate-travel-agency-follow-ups',
-      lastModified: '2026-08-26T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/festive-season-bookings-travel-agents',
-      lastModified: '2026-08-24T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.85,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/convert-instagram-leads-travel-agents',
-      lastModified: '2026-08-22T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/whatsapp-marketing-for-travel-agents',
-      lastModified: '2026-08-20T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/streamline-travel-agency-billing',
-      lastModified: '2026-08-18T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/ai-itinerary-builder-efficiency',
-      lastModified: '2026-08-15T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/blog/agentic-ai-travel-agency-operations',
-      lastModified: '2026-08-10T00:00:00.000Z',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: 'https://www.ezzysync.com/terms',
-      lastModified: '2026-08-01T00:00:00.000Z',
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: 'https://www.ezzysync.com/privacy',
-      lastModified: '2026-08-01T00:00:00.000Z',
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: 'https://www.ezzysync.com/refund-policy',
-      lastModified: '2026-08-01T00:00:00.000Z',
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
+    })),
   ];
 }

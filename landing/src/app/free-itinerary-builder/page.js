@@ -6,7 +6,7 @@ import { getCrmUrl } from "@/lib/crmUrl";
 import { Sparkles, FileText, MessageSquare } from "lucide-react";
 
 export const metadata = {
-  title: "Free AI Travel Itinerary Builder & Generator (No Login Required) | EzzySync",
+  title: "Free AI Itinerary Builder for Travel Agents | EzzySync",
   description: "Create professional day-wise travel itineraries with AI. Free branded PDF download for travel agents & tour operators with zero sign-up required.",
   keywords: [
     "free travel itinerary builder",
