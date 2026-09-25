@@ -26,6 +26,12 @@ const staticPages = [
   { path: "/terms", updated: "2026-08-01", priority: 0.2 },
   { path: "/privacy", updated: "2026-08-01", priority: 0.2 },
   { path: "/refund-policy", updated: "2026-08-01", priority: 0.2 },
+  // The CRM's sign-in pages, served on this host through the /app proxy
+  // (see ../../../vercel.json). Declared here rather than in a second
+  // sitemap on app.ezzysync.com: that host is noindex, and a sitemap served
+  // from one host listing another host's URLs is ignored by Google.
+  { path: "/app/login", updated: "2026-07-29", priority: 0.3 },
+  { path: "/app/register", updated: "2026-07-29", priority: 0.3 },
 ];
 
 // Date the /features/* and /solutions/* content in content/seoPages.js last changed.

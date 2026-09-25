@@ -1,6 +1,11 @@
+# The CRM app. Nothing here belongs in search: every page is either private,
+# or the same page the marketing site already serves at
+# www.ezzysync.com/app/*.
+#
+# Crawling is allowed on purpose. Keeping it out of the index is the job of
+# the `X-Robots-Tag: noindex` header (see ../vercel.json), and a crawler can
+# only act on that header if it is allowed to fetch the URL in the first
+# place. "Disallow: /" instead left this host sitting in Search Console as
+# "Blocked by robots.txt" - crawled never, dropped never.
 User-agent: *
-Allow: /login
-Allow: /register
-Disallow: /
-
-Sitemap: https://www.ezzysync.com/app/sitemap.xml
+Allow: /
