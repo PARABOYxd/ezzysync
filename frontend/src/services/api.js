@@ -107,9 +107,17 @@ function refreshAccessToken() {
  */
 function attachRequestReference(response) {
   const data = response?.data;
-  if (!data || typeof data.message !== 'string' || !data.requestId) return;
-  if (data.message.includes(data.requestId)) return;
-  data.message = `${data.message}\n\nRef: ${data.requestId}`;
+  if (!data) return;
+
+  // In local dev, if error details exist, use them so developer immediately sees what failed
+  const isDev = import.meta.env.DEV;
+  if (isDev && data.error && typeof data.error === 'string') {
+    data.message = data.error;
+  }
+
+  if (typeof data.message === 'string' && data.requestId && !data.message.includes(data.requestId)) {
+    data.message = `${data.message}\n\nRef: ${data.requestId}`;
+  }
 }
 
 api.interceptors.response.use(

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Check, Phone, MessageSquare, Mail, Calendar, FileText, ExternalLink } from 'lucide-react';
+import { Check, Phone, MessageSquare, Mail, Calendar, FileText, ExternalLink, Search } from 'lucide-react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import Input from '../components/ui/Input.jsx';
 import * as followUpService from '../services/followUpService';
@@ -37,6 +37,8 @@ export default function FollowUps() {
   const [confirmingBookings, setConfirmingBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignedTo, setAssignedTo] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  const [search, setSearch] = useState('');
   const [activeFollowUp, setActiveFollowUp] = useState(null);
   const [viewingLead, setViewingLead] = useState(null);
   const [editingLead, setEditingLead] = useState(null);
@@ -47,20 +49,28 @@ export default function FollowUps() {
   const pageSize = 15;
   const toast = useToast();
 
+  // Debounce search input typing before querying backend
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(localSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [localSearch]);
+
   useEffect(() => {
     setPage(1);
-  }, [currentSegment, assignedTo]);
+  }, [currentSegment, assignedTo, search]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const dueItems = await followUpService.getDueFollowUps({ assignedTo });
+      const dueItems = await followUpService.getDueFollowUps({ assignedTo, search });
       setItems(dueItems);
 
-      const completedItems = await followUpService.getCompletedFollowUps({ assignedTo });
+      const completedItems = await followUpService.getCompletedFollowUps({ assignedTo, search });
       setDoneItems(completedItems);
 
-      const leadData = await leadService.getLeads({ limit: 100 });
+      const leadData = await leadService.getLeads({ search, assignedTo, limit: 500 });
       const activeLeads = (leadData.leads || []).filter(l => 
         l.stage !== 'Won' && 
         l.stage !== 'Lost'
@@ -88,7 +98,7 @@ export default function FollowUps() {
       setLeads(nurturing);
 
       // Bookings checking for travelStatus === 'Confirming'
-      const bookingData = await bookingService.getBookings({ limit: 100 });
+      const bookingData = await bookingService.getBookings({ search, limit: 500 });
       const activeBookings = (bookingData.bookings || []).filter(b => b.travelStatus === 'Confirming');
       
       const committedBookingIds = new Set(dueItems.filter(i => i.source_type === 'booking').map(i => String(i.source_id)));
@@ -116,7 +126,7 @@ export default function FollowUps() {
     } finally {
       setLoading(false);
     }
-  }, [assignedTo, toast]);
+  }, [assignedTo, search]);
 
   useEffect(() => {
     load();
@@ -229,23 +239,52 @@ export default function FollowUps() {
       completedAt: item.created_at,
     }));
 
+    let filtered = [];
     if (currentSegment === 'priority') {
-      return committedRows.filter(r => r.overdue || r.isToday);
-    }
-    if (currentSegment === 'new') {
-      return nurturingRows.filter(r => r.stage === 'New');
-    }
-    if (currentSegment === 'no-action') {
+      filtered = committedRows.filter(r => r.overdue || r.isToday);
+    } else if (currentSegment === 'new') {
+      filtered = nurturingRows.filter(r => r.stage === 'New');
+    } else if (currentSegment === 'no-action') {
       const noActionCommitted = committedRows.filter(r => r.noAction);
       const noActionNurture = nurturingRows.filter(r => r.noAction);
-      return [...noActionCommitted, ...noActionNurture, ...confirmingRows];
-    }
-    if (currentSegment === 'all') {
-      return [...committedRows, ...nurturingRows, ...confirmingRows, ...doneRows];
+      filtered = [...noActionCommitted, ...noActionNurture, ...confirmingRows];
+    } else if (currentSegment === 'all') {
+      filtered = [...committedRows, ...nurturingRows, ...confirmingRows, ...doneRows];
+    } else {
+      // 'pending' - everyone who still needs a follow-up
+      filtered = [...committedRows, ...nurturingRows, ...confirmingRows];
     }
 
-    // 'pending' - everyone who still needs a follow-up (the old default "All" tab)
-    return [...committedRows, ...nurturingRows, ...confirmingRows];
+    // Apply staff filter if specified
+    if (assignedTo && assignedTo.trim()) {
+      const a = assignedTo.trim().toLowerCase();
+      filtered = filtered.filter(r => (r.assignedTo || '').toLowerCase().includes(a));
+    }
+
+    // Apply universal search (Customer Name, Phone, Notes, Staff)
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const tokens = q.split(/\s+/).filter(Boolean);
+      filtered = filtered.filter(r => {
+        const customer = (r.customerName || '').toLowerCase();
+        const phone = (r.phone || '').replace(/\D/g, '');
+        const rawPhone = (r.phone || '').toLowerCase();
+        const assigned = (r.assignedTo || '').toLowerCase();
+        const note = (r.note || '').toLowerCase();
+        const haystack = `${customer} ${rawPhone} ${phone} ${assigned} ${note}`;
+
+        // 1. Direct whole-query match
+        if (haystack.includes(q)) return true;
+
+        // 2. All tokens match
+        if (tokens.every(t => haystack.includes(t))) return true;
+
+        // 3. Typo-tolerant word match (if user typed multiple words e.g. "sumit kasar", match if significant token >= 3 chars matches)
+        return tokens.some(t => t.length >= 3 && (customer.includes(t) || assigned.includes(t) || phone.includes(t)));
+      });
+    }
+
+    return filtered;
   };
 
   const rows = getConsolidatedRows();
@@ -294,16 +333,30 @@ export default function FollowUps() {
 
   return (
     <div className="space-y-6 select-none">
-      {/* Top Controls: Filter & Segments */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        {!isTeamMember ? (
-          <div className="w-full max-w-xs">
-            <Input placeholder="Filter by assigned team member…" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+      {/* Top Controls: Universal Search, Staff Filter & Segments */}
+      <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          {/* Universal Search Bar */}
+          <div className="w-full sm:w-72">
+            <Input 
+              icon={Search}
+              placeholder="Search customer, phone, staff…" 
+              value={localSearch} 
+              onChange={(e) => setLocalSearch(e.target.value)} 
+            />
           </div>
-        ) : (
-          <div />
-        )}
-        <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40 overflow-x-auto no-scrollbar w-full sm:w-auto max-w-full">
+          {/* Staff Filter for Admins */}
+          {!isTeamMember && (
+            <div className="w-full sm:w-56">
+              <Input 
+                placeholder="Filter by staff member…" 
+                value={assignedTo} 
+                onChange={(e) => setAssignedTo(e.target.value)} 
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40 overflow-x-auto no-scrollbar w-full lg:w-auto max-w-full">
           {[
             { id: 'pending', label: 'Pending Leads' },
             { id: 'all', label: 'All' },

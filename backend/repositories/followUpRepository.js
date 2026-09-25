@@ -7,7 +7,7 @@ const { query } = require('../config/db');
  * equivalents for the per-entity timeline views this doesn't replace).
  * Used for the task list, notification bell, and the daily email digest.
  */
-async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit = 200 } = {}) {
+async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit = 200, search } = {}) {
   const values = [tenantId];
   let paramIndex = 2;
   const whereClauses = [
@@ -28,6 +28,16 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
   if (assignedTo) {
     whereClauses.push(`COALESCE(b.team_member, l.assigned_to) ILIKE $${paramIndex++}`);
     values.push(`%${assignedTo}%`);
+  }
+
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', COALESCE(b.customer_name, l.customer_name), COALESCE(b.phone, l.phone), COALESCE(b.email, l.email), COALESCE(b.team_member, l.assigned_to), f.note)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereClauses.push(`(${searchConditions.join(' AND ')})`);
   }
 
   values.push(limit);
@@ -55,7 +65,7 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
 }
 
 /** Completed follow-up activity (status = 'done'), for the Follow-ups page's "All" tab. */
-async function listCompletedFollowUps(tenantId, { assignedTo, limit = 200 } = {}) {
+async function listCompletedFollowUps(tenantId, { assignedTo, limit = 200, search } = {}) {
   const values = [tenantId];
   let paramIndex = 2;
   const whereClauses = ['f.tenant_id = $1', "f.status = 'done'"];
@@ -63,6 +73,16 @@ async function listCompletedFollowUps(tenantId, { assignedTo, limit = 200 } = {}
   if (assignedTo) {
     whereClauses.push(`COALESCE(b.team_member, l.assigned_to) ILIKE $${paramIndex++}`);
     values.push(`%${assignedTo}%`);
+  }
+
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean);
+    const searchTarget = "CONCAT_WS(' ', COALESCE(b.customer_name, l.customer_name), COALESCE(b.phone, l.phone), COALESCE(b.email, l.email), COALESCE(b.team_member, l.assigned_to), f.note)";
+    const searchConditions = tokens.map((token) => {
+      values.push(`%${token}%`);
+      return `${searchTarget} ILIKE $${paramIndex++}`;
+    });
+    whereClauses.push(`(${searchConditions.join(' AND ')})`);
   }
 
   values.push(limit);

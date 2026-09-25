@@ -34,7 +34,10 @@ async function submitWalkthroughRequest(req, res, next) {
     }
 
     const request = await publicService.submitWalkthroughRequest({ name, agencyName, email, phone });
-    res.status(201).json({ message: 'Request submitted successfully!', request });
+    const message = request?.alreadySubmitted
+      ? 'Request already received! Our team is reviewing it and will contact you shortly.'
+      : 'Request submitted successfully!';
+    res.status(201).json({ message, request });
   } catch (err) {
     next(err);
   }

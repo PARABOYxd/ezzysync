@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const ToastContext = createContext(null);
 
@@ -24,12 +24,15 @@ export function ToastProvider({ children }) {
     [remove]
   );
 
-  const toast = {
-    success: (msg) => push(msg, 'success'),
-    error: (msg) => push(msg, 'error'),
-    info: (msg) => push(msg, 'info'),
-    warning: (msg) => push(msg, 'warning'),
-  };
+  const toast = useMemo(
+    () => ({
+      success: (msg) => push(msg, 'success'),
+      error: (msg) => push(msg, 'error'),
+      info: (msg) => push(msg, 'info'),
+      warning: (msg) => push(msg, 'warning'),
+    }),
+    [push]
+  );
 
   return (
     <ToastContext.Provider value={toast}>

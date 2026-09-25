@@ -502,10 +502,15 @@ export const ENDPOINTS = [
 
   // ------------------------------------------------------- whatsapp (web)
   { id: 'waWeb.status', method: 'get', path: '/api/whatsapp-web/status', auth: 'required' },
+  { id: 'waWeb.overview', method: 'get', path: '/api/whatsapp-web/overview', auth: 'required' },
   { id: 'waWeb.connect', method: 'post', path: '/api/whatsapp-web/connect', auth: 'required', permission: ['whatsapp', 'manage'], externals: true, heavy: true, skipHappy: true },
   { id: 'waWeb.disconnect', method: 'post', path: '/api/whatsapp-web/disconnect', auth: 'required', permission: ['whatsapp', 'manage'], mutating: true },
   {
     id: 'waWeb.toggleAutopilot', method: 'post', path: '/api/whatsapp-web/toggle-autopilot', auth: 'required', permission: ['whatsapp', 'manage'], mutating: true,
+    body: { enabled: req(T.bool) }, sample: () => ({ enabled: false }),
+  },
+  {
+    id: 'waWeb.aiAllChats', method: 'post', path: '/api/whatsapp-web/ai-all-chats', auth: 'required', permission: ['whatsapp', 'manage'], mutating: true,
     body: { enabled: req(T.bool) }, sample: () => ({ enabled: false }),
   },
   { id: 'waWeb.listChats', method: 'get', path: '/api/whatsapp-web/chats', auth: 'required', list: true },
@@ -515,6 +520,10 @@ export const ENDPOINTS = [
     externals: true,
   },
   { id: 'waWeb.chatMessages', method: 'get', path: '/api/whatsapp-web/chats/:chatId/messages', auth: 'required', params: { chatId: 'chat' } },
+  {
+    id: 'waWeb.createLead', method: 'post', path: '/api/whatsapp-web/chats/:chatId/create-lead', auth: 'required',
+    params: { chatId: 'chat' }, mutating: true,
+  },
   { id: 'waWeb.sendMessage', method: 'post', path: '/api/whatsapp-web/chats/:chatId/send', auth: 'required', params: { chatId: 'chat' }, upload: true, externals: true, skipHappy: true },
   { id: 'waWeb.listTemplates', method: 'get', path: '/api/whatsapp-web/templates', auth: 'required', list: true },
   {

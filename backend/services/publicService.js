@@ -94,8 +94,60 @@ async function generateFreeItinerary({
   return itinerary;
 }
 
+const emailService = require('./emailService');
+
+// In-memory throttling map to prevent double-clicks or bot bursts
+const walkthroughThrottleCache = new Map();
+const THROTTLE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+
 async function submitWalkthroughRequest({ name, agencyName, email, phone }) {
-  return walkthroughRepository.insertWalkthroughRequest({ name, agencyName, email, phone });
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const cleanPhone = (phone || '').trim();
+
+  // 1. Check in-memory fast throttle cache
+  const throttleKey = `${normalizedEmail}|${cleanPhone}`;
+  const now = Date.now();
+  const lastSubmission = walkthroughThrottleCache.get(throttleKey);
+  if (lastSubmission && now - lastSubmission < THROTTLE_WINDOW_MS) {
+    // Already submitted recently within 30 min - don't spam admin or user with emails
+    return { alreadySubmitted: true, message: 'Request already received. Our team will contact you shortly.' };
+  }
+
+  // 2. Check Database for recent submission within the last 60 minutes
+  const recent = await walkthroughRepository.findRecentRequest({ email: normalizedEmail, phone: cleanPhone, windowMinutes: 60 });
+  if (recent) {
+    walkthroughThrottleCache.set(throttleKey, now);
+    return { alreadySubmitted: true, request: recent, message: 'Request already received. Our team will contact you shortly.' };
+  }
+
+  // 3. Insert new request
+  const request = await walkthroughRepository.insertWalkthroughRequest({
+    name: (name || '').trim(),
+    agencyName: (agencyName || '').trim(),
+    email: normalizedEmail,
+    phone: cleanPhone,
+  });
+
+  walkthroughThrottleCache.set(throttleKey, now);
+
+  // Clean old cache entries if > 500
+  if (walkthroughThrottleCache.size > 500) {
+    for (const [k, time] of walkthroughThrottleCache.entries()) {
+      if (now - time > THROTTLE_WINDOW_MS) walkthroughThrottleCache.delete(k);
+    }
+  }
+
+  // 4. Send email notifications (Admin alert + User welcome) in background without blocking response
+  setImmediate(() => {
+    emailService.sendWalkthroughNotification({
+      name: (name || '').trim(),
+      agencyName: (agencyName || '').trim(),
+      email: normalizedEmail,
+      phone: cleanPhone,
+    }).catch(() => {});
+  });
+
+  return request;
 }
 
 async function listWalkthroughRequests() {
