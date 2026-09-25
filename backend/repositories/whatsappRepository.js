@@ -224,18 +224,26 @@ async function saveMessage(tenantId, phone, direction, text, customerName = '', 
 
   const nameToUse = customerName || existingChat.rows[0]?.customer_name || cleanPhone;
 
+  // A message that genuinely arrived from Meta proves this chat is a Cloud
+  // API conversation, so replies must go back the same way. The mirror of
+  // recordInboundOnChat's `transport = 'web'`. Only inbound counts - our own
+  // outbound saves say nothing about where the customer is.
+  const isInbound = direction === 'inbound';
+
   const upsert = await query(
     `INSERT INTO whatsapp_chats
-       (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, ai_enabled)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (tenant_id, phone, customer_name, last_message, last_message_timestamp, unread_count, ai_enabled, transport)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $8::boolean THEN 'cloud_api' ELSE 'web' END)
      ON CONFLICT (tenant_id, phone_key) DO UPDATE SET
        last_message = EXCLUDED.last_message,
        last_message_timestamp = EXCLUDED.last_message_timestamp,
        unread_count = whatsapp_chats.unread_count + EXCLUDED.unread_count,
        customer_name = COALESCE(NULLIF(whatsapp_chats.customer_name, ''), EXCLUDED.customer_name),
+       transport = CASE WHEN $8::boolean THEN 'cloud_api' ELSE whatsapp_chats.transport END,
+       last_inbound_at = CASE WHEN $8::boolean THEN now() ELSE whatsapp_chats.last_inbound_at END,
        updated_at = now()
      RETURNING *`,
-    [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread, aiEnabled]
+    [tenantId, cleanPhone, nameToUse, text, msgTimestamp, incrementUnread, aiEnabled, isInbound]
   );
   const chat = upsert.rows[0];
 

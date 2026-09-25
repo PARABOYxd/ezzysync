@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Search, User, AlertCircle, PlusCircle, Instagram } from 'lucide-react';
+import { MessageSquare, Search, User, AlertCircle, PlusCircle, Instagram, Bot } from 'lucide-react';
 import { formatDate } from '../../utils/whatsappMessageFormatters';
 
 export default function ChatListPanel({
@@ -13,6 +13,7 @@ export default function ChatListPanel({
   cloudApiConfigured,
   onSelectChat,
   onStartNewChat,
+  typingChats = {},
 }) {
   // True when the search query looks like a phone number (≥8 digits)
   const isPhoneSearch = /^[\d\s+()-]{8,}$/.test(searchQuery.trim());
@@ -25,7 +26,7 @@ export default function ChatListPanel({
   });
 
   return (
-    <div className="w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0">
+    <div className="w-full md:w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 h-full">
       {/* Search Bar */}
       <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
         <div className="relative">
@@ -132,9 +133,21 @@ export default function ChatListPanel({
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    {chat.last_message || 'Message'}
-                  </p>
+                  {typingChats && typingChats[chat.id] ? (
+                    <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mt-0.5 animate-pulse">
+                      <Bot size={13} className="shrink-0" />
+                      <span>AI is typing...</span>
+                      <span className="inline-flex gap-0.5">
+                        <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-bounce [animation-delay:-0.3s]" />
+                        <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-bounce [animation-delay:-0.15s]" />
+                        <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-bounce" />
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {chat.last_message || 'Message'}
+                    </p>
+                  )}
 
                   {/* Lead / Booking / Platform Badges */}
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">

@@ -931,6 +931,7 @@ ${task}` }], WHATSAPP_REPLY_CONFIG);
 const leadFieldsJsonSchema = {
   type: 'OBJECT',
   properties: {
+    customerName: { type: 'STRING', description: 'Customer person name or first name, ONLY if the customer explicitly stated their own name (e.g. "my name is Rishab", "mera naam rishab hai"). Empty string if not clearly stated.' },
     tripName: { type: 'STRING', description: 'The exact trip/destination name, ONLY if the customer has explicitly named one themselves. Empty string if not clearly and explicitly stated.' },
     members: { type: 'INTEGER', description: 'Number of travelers, ONLY if the customer explicitly stated a headcount. 0 if not clearly and explicitly stated.' },
     departureDate: { type: 'STRING', description: 'Departure date in YYYY-MM-DD format, ONLY if the customer stated one unambiguous, specific calendar date - never resolve a relative phrase like "next weekend" or "soon" into a date yourself. Empty string if no specific date was stated.' },

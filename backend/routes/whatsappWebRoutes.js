@@ -21,13 +21,16 @@ const upload = multer({
 router.use(requireAuth);
 
 router.get('/status', ctrl.getStatus);
+router.get('/overview', ctrl.getConnectionOverview);
 router.post('/connect', requirePermission('whatsapp', 'manage'), ctrl.startSession);
 router.post('/disconnect', requirePermission('whatsapp', 'manage'), ctrl.disconnect);
 router.post('/toggle-autopilot', requirePermission('whatsapp', 'manage'), requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleAiAutopilot);
+router.post('/ai-all-chats', requirePermission('whatsapp', 'manage'), requireFeature('canUseAi'), toggleValidators, validate, ctrl.setAiForAllChats);
 router.get('/chats', ctrl.listChats);
 router.post('/start-chat', ctrl.startChat);
 
 router.get('/chats/:chatId/messages', ctrl.getChatMessages);
+router.post('/chats/:chatId/create-lead', ctrl.createLeadFromChat);
 router.post('/chats/:chatId/send', upload.array('files', MAX_ATTACHMENTS), ctrl.sendMessage);
 // Ready-made messages, for when the 24-hour window has closed.
 router.get('/templates', ctrl.listSendableTemplates);

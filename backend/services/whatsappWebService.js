@@ -624,6 +624,27 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
       aiEnabled: aiDefault,
     });
   } else {
+    // If an existing chat has no linked lead yet, find or auto-create it now
+    if (!chat.lead_id) {
+      let leadId = await whatsappWebRepository.findLeadIdByPhone(tenantId, senderPhone);
+      if (!leadId) {
+        try {
+          const created = await whatsappWebRepository.createLeadFromWhatsapp(tenantId, {
+            customerName: pushName || chat.customer_name || 'WhatsApp Contact',
+            phone: senderPhone,
+          });
+          leadId = created.id;
+          logger.info({ tenantId, leadId: created.leadCode, phone: senderPhone }, 'Auto-created new lead from WhatsApp for existing chat');
+        } catch (e) {
+          logger.warn({ err: e }, 'Failed to auto-create lead from WhatsApp for existing chat');
+        }
+      }
+      if (leadId) {
+        await whatsappWebRepository.setChatLeadId(tenantId, chat.id, leadId);
+        chat.lead_id = leadId;
+      }
+    }
+
     // jid is refreshed on every inbound message so a chat created before this
     // column existed (or one whose addressing WhatsApp has since migrated to
     // @lid) picks up a routable address the first time the customer writes in.
@@ -686,6 +707,19 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
 
     try {
       await sock.sendPresenceUpdate('composing', senderJid);
+      try {
+        const websocketService = require('./websocketService');
+        websocketService.broadcastToTenant(tenantId, {
+          type: 'WHATSAPP_AI_TYPING',
+          chatId: chat.id,
+          phone: senderPhone,
+          customerName: chat.customer_name || 'Customer',
+          typing: true,
+        });
+      } catch (wsErr) {
+        // ignore
+      }
+
       const replyData = await generateAiReplyForChat(tenantId, senderPhone, messageText);
 
       if (replyData?.needsHuman) {
@@ -730,6 +764,34 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
       logger.error({ err: aiErr, tenantId, senderPhone }, 'Error generating AI WhatsApp auto-reply');
     } finally {
       aiPolicy.release(chat.id);
+      try {
+        const websocketService = require('./websocketService');
+        websocketService.broadcastToTenant(tenantId, {
+          type: 'WHATSAPP_AI_TYPING',
+          chatId: chat.id,
+          phone: senderPhone,
+          customerName: chat.customer_name || 'Customer',
+          typing: false,
+        });
+      } catch (wsErr) {
+        // ignore
+      }
+    }
+  }
+
+  // Auto-fill lead details (trip destination, travelers, dates, name) from the conversation
+  // Runs on all inbound customer messages even if chat is in human mode or agent took over
+  if (messageText && messageText.trim().length > 1) {
+    try {
+      const aiContextRepository = require('../repositories/aiContextRepository');
+      const leadService = require('./leadService');
+      const historyRows = await aiContextRepository.getChatHistoryByPhone(tenantId, senderPhone, 20);
+      const conversationText = historyRows
+        .map((r) => `${r.direction === 'inbound' ? 'Customer' : 'Agent'}: ${r.message_text || ''}`)
+        .join('\n');
+      await leadService.autoFillFromConversation(tenantId, senderPhone, conversationText);
+    } catch (fillErr) {
+      logger.warn({ err: fillErr }, '[WhatsApp Web] Lead auto-fill from conversation failed');
     }
   }
 }
@@ -922,14 +984,18 @@ async function disconnectSession(tenantId) {
  * not waiting on us, and messaging them unprompted would read as spam.
  */
 async function sendAiCatchUpMessage(tenantId, chatId) {
+  const chat = await whatsappWebRepository.findChatById(tenantId, chatId);
+  if (!chat) return { sent: false, reason: 'chat_not_found' };
+
+  // Cloud API chats get their catch-up over Meta. This used to require the
+  // QR socket, so handing a Cloud API conversation to the AI silently did
+  // nothing at all.
+  const onCloudApi = chat.transport === 'cloud_api';
   const socketData = activeSockets.get(tenantId);
   const sock = socketData?.sock;
   // Same liveness test as sendManualMessage - a stored 'connected' row is not
   // a socket that can actually deliver.
-  if (!sock?.user) return { sent: false, reason: 'not_connected' };
-
-  const chat = await whatsappWebRepository.findChatById(tenantId, chatId);
-  if (!chat) return { sent: false, reason: 'chat_not_found' };
+  if (!onCloudApi && !sock?.user) return { sent: false, reason: 'not_connected' };
 
   const last = await whatsappWebRepository.getLastMessage(tenantId, chatId);
   if (!last) return { sent: false, reason: 'no_messages' };
@@ -940,6 +1006,12 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
   if (!aiPolicy.claim(chatId)) return { sent: false, reason: 'already_replying' };
 
   try {
+    // Same courtesy the inbound auto-reply already extends: the customer sees
+    // "typing..." while the model reads the conversation, rather than a
+    // silent gap followed by a sudden answer.
+    const typingJid = chat.jid || getJidFromPhone(chat.phone);
+    if (!onCloudApi) await sock.sendPresenceUpdate('composing', typingJid).catch(() => {});
+
     const replyData = await generateAiReplyForChat(tenantId, chat.phone, last.message_text);
     if (replyData.needsHuman) {
       // The agent handed this to AI, but AI judged it a human's job. Hand it
@@ -950,9 +1022,20 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
     }
     if (!replyData.reply) return { sent: false, reason: 'no_reply' };
 
-    const jid = chat.jid || getJidFromPhone(chat.phone);
-    const sentResult = await sock.sendMessage(jid, { text: replyData.reply });
-    const messageId = sentResult?.key?.id || `out_${Date.now()}`;
+    let messageId;
+    if (onCloudApi) {
+      const settingsService = require('./settingsService');
+      const whatsappService = require('./whatsappService');
+      const settings = await settingsService.getSettingsWithSecrets(tenantId);
+      const result = await whatsappService.sendWhatsAppMessage(
+        { phone: chat.phone, bookingId: 'CHAT' }, settings, null, replyData.reply
+      );
+      messageId = result?.messages?.[0]?.id || `out_${Date.now()}`;
+    } else {
+      const jid = chat.jid || getJidFromPhone(chat.phone);
+      const sentResult = await sock.sendMessage(jid, { text: replyData.reply });
+      messageId = sentResult?.key?.id || `out_${Date.now()}`;
+    }
 
     await whatsappWebRepository.insertMessage(tenantId, {
       chatId,
@@ -967,6 +1050,9 @@ async function sendAiCatchUpMessage(tenantId, chatId) {
     logger.info({ tenantId, chatId }, 'AI autopilot sent a catch-up reply on takeover');
     return { sent: true, reply: replyData.reply };
   } finally {
+    if (!onCloudApi && sock?.user) {
+      await sock.sendPresenceUpdate('paused', chat.jid || getJidFromPhone(chat.phone)).catch(() => {});
+    }
     aiPolicy.release(chatId);
   }
 }
@@ -1077,9 +1163,59 @@ async function shutdownAllSessions() {
   authFlushers.clear();
 }
 
+/**
+ * One answer to "what is actually connected, and what will a reply use?".
+ *
+ * Settings showed each channel separately and called the Cloud API
+ * "Connected" whenever a token had ever been saved - true for an expired
+ * token too - with nothing anywhere saying which of the two a new chat
+ * would go out on. This is the whole picture, checked rather than assumed.
+ */
+async function getConnectionOverview(tenantId) {
+  const settingsService = require('./settingsService');
+  const whatsappService = require('./whatsappService');
+
+  const [qr, settings, aiCounts] = await Promise.all([
+    getSessionStatus(tenantId),
+    settingsService.getSettingsWithSecrets(tenantId),
+    whatsappWebRepository.countChatsByAiState(tenantId),
+  ]);
+  const cloud = await whatsappService.checkCloudApiHealth(settings);
+
+  // Mirrors whatsappSendService.chooseTransportForNewChat.
+  const newChatsUse = qr.canSend ? 'qr' : (cloud.configured ? 'cloud_api' : null);
+
+  return {
+    qr: {
+      status: qr.status,
+      canSend: qr.canSend,
+      phoneNumber: qr.phoneNumber || null,
+      connectedAt: qr.connectedAt || null,
+    },
+    cloud: {
+      ...cloud,
+      phoneNumberId: settings?.whatsappPhoneNumberId || null,
+      number: settings?.whatsappNumber || null,
+    },
+    routing: {
+      newChatsUse,
+      // Existing chats ignore the rule above - they reply on whichever
+      // channel the customer's own last message arrived on.
+      rule: 'existing-chats-follow-the-customer',
+    },
+    ai: {
+      autopilotForNewChats: Boolean(qr.aiAutopilotEnabled),
+      chatsWithAiOn: aiCounts.aiOn,
+      chatsNeedingHuman: aiCounts.needsHuman,
+      totalChats: aiCounts.total,
+    },
+  };
+}
+
 module.exports = {
   // Exported for tests: these decide whether a message is recorded at all.
   extractMessageText,
+  getConnectionOverview,
   shutdownAllSessions,
   initWhatsAppSession,
   getSessionStatus,

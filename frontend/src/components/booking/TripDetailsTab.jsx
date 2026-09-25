@@ -159,13 +159,12 @@ export default function TripDetailsTab({
       {/* Row 1: Trip Name & No of Travelers */}
       <FormRow>
         <div className="w-full space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-700">
-            Trip Name {isBookedOrBeyond && <span className="text-red-500">*</span>}
-          </label>
-          <select
+          <Select
+            label="Trip Name"
+            required={isBookedOrBeyond}
             disabled={!!form.batchId}
-            className={`w-full text-sm bg-white border rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${errors.trip ? 'border-red-400' : 'border-slate-200'}`}
             value={tripOther ? '__other__' : (form.trip || '')}
+            error={errors.trip && !tripOther ? errors.trip : ''}
             onChange={(e) => {
               const val = e.target.value;
               if (val === '__other__') {
@@ -178,14 +177,15 @@ export default function TripDetailsTab({
                 if (errors.trip) setErrors({ ...errors, trip: '' });
               }
             }}
-          >
-            <option value="">Select an itinerary</option>
-            {quotations.map((q) => {
-              const name = q.trip_name || q.tripName || '';
-              return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
-            })}
-            <option value="__other__">Other</option>
-          </select>
+            options={[
+              { value: '', label: 'Select an itinerary' },
+              ...quotations.map((q) => {
+                const name = q.trip_name || q.tripName || '';
+                return { value: name, label: name };
+              }).filter((o) => o.value),
+              { value: '__other__', label: 'Other (Custom Itinerary)' }
+            ]}
+          />
           {tripOther && (
             <Input
               icon={MapPin}
@@ -222,21 +222,19 @@ export default function TripDetailsTab({
       <FormRow>
         {pickupOptions.length > 0 ? (
           <div className="w-full space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">Pickup Location</label>
-            <select
-              className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 transition"
+            <Select
+              label="Pickup Location"
               value={pickupIsCustom ? '__other__' : (form.pickup || '')}
               onChange={(e) => {
                 const val = e.target.value;
                 setForm({ ...form, pickup: val === '__other__' ? '' : val });
               }}
-            >
-              <option value="">Select pickup point</option>
-              {pickupOptions.map((p) => (
-                <option key={p.location} value={p.location}>{p.location} (₹{p.price})</option>
-              ))}
-              <option value="__other__">Other</option>
-            </select>
+              options={[
+                { value: '', label: 'Select pickup point' },
+                ...pickupOptions.map((p) => ({ value: p.location, label: `${p.location} (₹${p.price})` })),
+                { value: '__other__', label: 'Other (Custom Location)' }
+              ]}
+            />
             {pickupIsCustom && (
               <Input
                 icon={Navigation}

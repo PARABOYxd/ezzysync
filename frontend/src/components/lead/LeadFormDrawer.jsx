@@ -195,9 +195,9 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
 
         <FormRow>
           <div className="w-full space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">Trip Name</label>
-            <select
-              className="w-full text-sm bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 dark:text-zinc-300 transition"
+            <Select
+              label="Trip Name"
+              disabled={!!form.batchId}
               value={interestOther ? '__other__' : (form.interest || '')}
               onChange={(e) => {
                 const val = e.target.value;
@@ -209,14 +209,15 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
                   setForm({ ...form, interest: val });
                 }
               }}
-            >
-              <option value="">Select an itinerary</option>
-              {itineraries.map((q) => {
-                const name = q.trip_name || q.tripName || '';
-                return name ? <option key={q.quotation_id || q.id} value={name}>{name}</option> : null;
-              })}
-              <option value="__other__">Other</option>
-            </select>
+              options={[
+                { value: '', label: 'Select an itinerary' },
+                ...itineraries.map((q) => {
+                  const name = q.trip_name || q.tripName || '';
+                  return { value: name, label: name };
+                }).filter((o) => o.value),
+                { value: '__other__', label: 'Other (Custom Itinerary)' }
+              ]}
+            />
             {interestOther && (
               <Input
                 icon={MapPin}

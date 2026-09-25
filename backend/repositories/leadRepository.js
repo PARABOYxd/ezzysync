@@ -263,9 +263,21 @@ async function findActiveByPhone(tenantId, phone) {
  * details an AI conversation confidently extracted. Same match rule as
  * existsByPhone, so it finds the same record that guard already found. */
 async function findByPhone(tenantId, phone) {
+  const rawDigits = String(phone || '').replace(/\D+/g, '');
+  const last10 = rawDigits.slice(-10);
   const { rows } = await query(
-    `SELECT * FROM leads WHERE tenant_id = $1 AND (phone = $2 OR phone LIKE $3) AND deleted = FALSE ORDER BY created_at DESC LIMIT 1`,
-    [tenantId, phone, `%${phone}`]
+    `SELECT * FROM leads
+     WHERE tenant_id = $1
+       AND deleted = FALSE
+       AND (
+         phone = $2
+         OR phone LIKE '%' || $2
+         OR $2 LIKE '%' || phone
+         OR ($3 <> '' AND regexp_replace(phone, '\\D', '', 'g') LIKE '%' || $3)
+       )
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [tenantId, phone, last10]
   );
   return rows[0] || null;
 }

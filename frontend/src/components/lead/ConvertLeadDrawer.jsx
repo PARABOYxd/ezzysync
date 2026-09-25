@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Drawer from '../common/Drawer.jsx';
 import Input from '../ui/Input.jsx';
+import Select from '../ui/Select.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
 import { Calendar, Users, IndianRupee, MapPin, User, Mail } from 'lucide-react';
@@ -157,34 +158,25 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         </FormRow>
 
         <div className="w-full space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
-            Trip Name / Itinerary
-          </label>
-          <div className="relative">
-            <select
-              className="w-full text-sm bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 outline-none focus:border-brand-500 font-medium text-slate-700 dark:text-zinc-300 transition"
-              value={tripOther ? '__other__' : (form.interest || '')}
-              onChange={handleTripChange}
-            >
-              <option value="">
-                {loadingItineraries ? 'Loading itineraries...' : 'Select an itinerary'}
-              </option>
-              {itineraries.map((q) => {
-                const name = q.trip_name || q.tripName || '';
-                const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
-                const dur = q.itineraryDays?.length
-                  ? ` (${q.itineraryDays.length}D${nights > 0 ? `/${nights}N` : ''})`
-                  : '';
-                const price = q.priceQuote ? ` - ₹${Number(q.priceQuote).toLocaleString('en-IN')}` : '';
-                return name ? (
-                  <option key={q.quotation_id || q.id} value={name}>
-                    {name}{dur}{price}
-                  </option>
-                ) : null;
-              })}
-              <option value="__other__">Other (Enter custom trip name)</option>
-            </select>
-          </div>
+        <Select
+          label="Trip Name / Itinerary"
+          value={tripOther ? '__other__' : (form.interest || '')}
+          onChange={handleTripChange}
+          placeholder={loadingItineraries ? 'Loading itineraries...' : 'Select an itinerary'}
+          options={[
+            { value: '', label: loadingItineraries ? 'Loading itineraries...' : 'Select an itinerary' },
+            ...itineraries.map((q) => {
+              const name = q.trip_name || q.tripName || '';
+              const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
+              const dur = q.itineraryDays?.length
+                ? ` (${q.itineraryDays.length}D${nights > 0 ? `/${nights}N` : ''})`
+                : '';
+              const price = q.priceQuote ? ` - ₹${Number(q.priceQuote).toLocaleString('en-IN')}` : '';
+              return { value: name, label: `${name}${dur}${price}` };
+            }).filter((o) => o.value),
+            { value: '__other__', label: 'Other (Enter custom trip name)' }
+          ]}
+        />
           {tripOther && (
             <div className="pt-1 animate-in fade-in duration-200">
               <Input

@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar.jsx';
 import Topbar from '../components/layout/Topbar.jsx';
 import NotificationBell from '../components/layout/NotificationBell.jsx';
 import InstallAppButton from '../components/layout/InstallAppButton.jsx';
 import ThemeToggle from '../components/layout/ThemeToggle.jsx';
 import ProductTour from '../components/common/ProductTour.jsx';
-import { Plus, Lock, Check, Crown, Sparkles, X, Compass } from 'lucide-react';
+import { Plus, Lock, Check, Crown, Sparkles, X, Compass, Bot } from 'lucide-react';
 import LeadFormDrawer from '../components/lead/LeadFormDrawer.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import { openRazorpayCheckout } from '../services/paymentService';
 import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
 import { usePlanStatus } from '../hooks/usePlanStatus.js';
+import { useTenantWebSocket } from '../hooks/useTenantWebSocket.js';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
@@ -48,6 +49,29 @@ export default function DashboardLayout() {
   // Whether access has lapsed is the server's answer, not a sum over the JWT.
   const { isExpired, lapsedPlanId } = usePlanStatus();
 
+  const [aiTypingStatus, setAiTypingStatus] = useState(null); // { chatId, customerName, phone }
+
+  useTenantWebSocket((msg) => {
+    if (msg?.type === 'WHATSAPP_AI_TYPING') {
+      if (msg.typing) {
+        setAiTypingStatus({
+          chatId: msg.chatId,
+          customerName: msg.customerName,
+          phone: msg.phone,
+        });
+      } else {
+        setAiTypingStatus(null);
+      }
+    }
+  });
+
+  // Auto-clear status if no stop event arrives within 25 seconds
+  useEffect(() => {
+    if (!aiTypingStatus) return;
+    const t = setTimeout(() => setAiTypingStatus(null), 25000);
+    return () => clearTimeout(t);
+  }, [aiTypingStatus]);
+
   const handlePaywallPayment = (planId, planName) => {
     openRazorpayCheckout({
       planId,
@@ -76,6 +100,22 @@ export default function DashboardLayout() {
           onMenuClick={() => setSidebarOpen(true)} 
           actions={
             <>
+              {aiTypingStatus && (
+                <Link
+                  to="/whatsapp-chat"
+                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition shadow-xs shrink-0 animate-pulse"
+                  title="Gemini AI Auto-Pilot is actively replying to a customer right now"
+                >
+                  <Bot size={14} className="text-emerald-600 dark:text-emerald-400" />
+                  <span className="hidden xs:inline">AI Replying:</span>
+                  <span className="max-w-[85px] sm:max-w-[130px] truncate">{aiTypingStatus.customerName || aiTypingStatus.phone || 'Customer'}</span>
+                  <span className="inline-flex gap-0.5 ml-0.5">
+                    <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-bounce" />
+                  </span>
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('start-product-tour'))}
@@ -125,7 +165,7 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        <main className="flex-1 p-3 sm:p-4 md:p-8 bg-[var(--bg-page)] w-full max-w-full overflow-x-hidden">
+        <main className={`flex-1 min-h-0 w-full max-w-full ${location.pathname === '/whatsapp-chat' ? 'p-0 sm:p-2.5 md:p-3 overflow-hidden flex flex-col' : 'overflow-y-auto p-3 sm:p-4 md:p-8 overflow-x-hidden'} bg-[var(--bg-page)]`}>
           <Outlet />
         </main>
       </div>

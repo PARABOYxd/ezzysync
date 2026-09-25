@@ -2,9 +2,9 @@ import React from 'react';
 import { Briefcase, Calendar, Paperclip, FileText, Loader2, CalendarPlus, X } from 'lucide-react';
 import { mediaTypeOf, mediaNameOf } from '../../utils/whatsappMessageFormatters';
 
-export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia, onCreateBooking, creatingBooking, onClose }) {
+export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendingVoucherType, onSendVoucher, sendingReminderType, onSendReminder, onViewMedia, onCreateBooking, creatingBooking, onCreateLead, creatingLead, onClose }) {
   return (
-    <div className="w-full md:w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 space-y-5">
+    <div className="w-full md:w-72 h-full border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 overflow-y-auto shrink-0 space-y-5">
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer 360°</h4>
@@ -47,7 +47,7 @@ export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendin
               type="button"
               disabled={creatingBooking}
               onClick={onCreateBooking}
-              className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold shadow-sm transition disabled:opacity-50"
+              className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
               title="Convert this lead straight into a booking, pre-filled from what's already known"
             >
               {creatingBooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarPlus className="w-3.5 h-3.5" />}
@@ -56,8 +56,19 @@ export default function CustomerInfoPanel({ selectedChat, chatMediaFiles, sendin
           )}
         </div>
       ) : (
-        <div className="p-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center">
+        <div className="p-3.5 rounded-xl border border-dashed border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-950/20 text-center space-y-2">
           <p className="text-xs text-slate-500">No CRM Lead linked yet.</p>
+          {onCreateLead && (
+            <button
+              type="button"
+              disabled={creatingLead}
+              onClick={onCreateLead}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
+            >
+              {creatingLead ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Briefcase className="w-3.5 h-3.5" />}
+              <span>Create CRM Lead</span>
+            </button>
+          )}
         </div>
       )}
 

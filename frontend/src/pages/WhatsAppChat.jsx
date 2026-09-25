@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Bot, QrCode } from 'lucide-react';
 import { whatsappWebService } from '../services/whatsappWebService';
 import * as settingsService from '../services/settingsService';
@@ -17,6 +17,7 @@ import CustomerInfoPanel from '../components/whatsapp/CustomerInfoPanel.jsx';
 import ItineraryShareModal from '../components/whatsapp/ItineraryShareModal.jsx';
 import StartChatModal from '../components/whatsapp/StartChatModal.jsx';
 import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
+import { useTenantWebSocket } from '../hooks/useTenantWebSocket.js';
 
 // WhatsApp itself caps a multi-attachment send; the backend enforces the same
 // number, this is only so the UI can stop the agent before the upload.
@@ -25,6 +26,17 @@ const MAX_ATTACHMENTS = 8;
 // Matches multer's per-file limit on the server. Checked here too so an
 // oversized file is rejected before it is uploaded, rather than after.
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+
+/** Why handing a chat to the AI did not produce a reply straight away. */
+const CATCH_UP_MESSAGE = {
+  customer_not_waiting: 'AI is on for this chat. It will reply the next time the customer writes.',
+  no_messages: 'AI is on for this chat. It will reply once the customer writes.',
+  needs_human: 'AI read the conversation and decided this one needs you - it has handed it back.',
+  not_connected: 'AI is on, but WhatsApp is not connected right now, so it could not reply.',
+  already_replying: 'AI is already writing a reply on this chat.',
+  no_reply: 'AI is on, but it had nothing to add to the last message.',
+  default: 'AI is on for this chat, but it could not send a reply just now.',
+};
 
 export default function WhatsAppChat() {
   const toast = useToast();
@@ -46,12 +58,24 @@ export default function WhatsAppChat() {
   // 'connected'), even for a tenant that only ever configured Cloud API and
   // has no QR session at all - the button simply never appeared for them,
   // with nothing on screen explaining why. Cloud API needs no socket, just
-  // these credentials being present.
+  const [overview, setOverview] = useState(null);
   const [cloudApiConfigured, setCloudApiConfigured] = useState(false);
+  const [cloudReady, setCloudReady] = useState(false);
+
+  const refreshOverview = () => {
+    whatsappWebService.getConnectionOverview()
+      .then((o) => {
+        setOverview(o);
+        setCloudReady(Boolean(o?.cloud?.healthy));
+      })
+      .catch(() => setCloudReady(false));
+  };
+
   useEffect(() => {
     settingsService.getSettings()
       .then((s) => setCloudApiConfigured(!!s.whatsappPhoneNumberId))
       .catch(() => {});
+    refreshOverview();
   }, []);
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -94,7 +118,9 @@ export default function WhatsAppChat() {
   const [convertLeadOpen, setConvertLeadOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState(null);
   const [loadingLeadToConvert, setLoadingLeadToConvert] = useState(false);
+  const [creatingLead, setCreatingLead] = useState(false);
   const [mobileView, setMobileView] = useState('list'); // 'list' | 'chat' | 'info'
+  const [typingChats, setTypingChats] = useState({}); // { [chatId]: boolean }
 
   const isSelectedIg = selectedChat?.phone?.startsWith('IG_') || selectedChat?.chat_id?.startsWith('IG_');
   const selectedIgHandle = isSelectedIg ? selectedChat?.phone?.replace('IG_', '') : '';
@@ -106,10 +132,34 @@ export default function WhatsAppChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useTenantWebSocket((msg) => {
+    if (msg?.type === 'WHATSAPP_AI_TYPING') {
+      setTypingChats((prev) => ({
+        ...prev,
+        [msg.chatId]: Boolean(msg.typing),
+      }));
+
+      if (msg.typing && selectedChatRef.current?.id === msg.chatId) {
+        setTimeout(scrollToBottom, 60);
+      }
+    } else if (msg?.type === 'WHATSAPP_MESSAGE_RECEIVED') {
+      loadChats();
+      if (selectedChatRef.current?.id === msg.chatId) {
+        whatsappWebService.getChatMessages(msg.chatId).then((data) => {
+          if (data?.messages) {
+            setMessages(data.messages);
+            setTimeout(scrollToBottom, 100);
+          }
+        }).catch(() => {});
+      }
+    }
+  });
+
   const loadStatus = async () => {
     try {
       const data = await whatsappWebService.getStatus();
       setSession(data);
+      refreshOverview();
     } catch {
       // ignore - the poller will retry
     }
@@ -315,6 +365,13 @@ export default function WhatsAppChat() {
         const data = await whatsappWebService.getChatMessages(selectedChat.id);
         setMessages(data.messages || []);
         loadChats();
+        toast.success('AI read the conversation and replied.');
+      } else if (!newStatus) {
+        toast.success('You are replying to this chat now.');
+      } else {
+        // Switching AI on and seeing nothing happen is what makes it look
+        // broken - say which of the several reasons it was.
+        toast.info(CATCH_UP_MESSAGE[res?.catchUp?.reason] || CATCH_UP_MESSAGE.default);
       }
     } catch {
       toast.error('Could not change the AI setting for this chat.');
@@ -323,15 +380,6 @@ export default function WhatsAppChat() {
     }
   };
 
-  const handleToggleGlobalAi = async () => {
-    const newStatus = !session.aiAutopilotEnabled;
-    try {
-      await whatsappWebService.toggleAiAutopilot(newStatus);
-      setSession({ ...session, aiAutopilotEnabled: newStatus });
-    } catch {
-      toast.error('Could not change the AI default for new chats.');
-    }
-  };
 
   const handleSendChatVoucher = async (type) => {
     const bookingId = selectedChat?.formatted_booking_id || selectedChat?.booking_uuid || selectedChat?.booking_id;
@@ -373,6 +421,24 @@ export default function WhatsAppChat() {
       toast.error(err.response?.data?.message || 'Could not load this lead.');
     } finally {
       setLoadingLeadToConvert(false);
+    }
+  };
+
+  const handleCreateLead = async () => {
+    if (!selectedChat?.id) return;
+    setCreatingLead(true);
+    try {
+      const res = await whatsappWebService.createLeadFromChat(selectedChat.id);
+      if (res?.chat) {
+        setSelectedChat(res.chat);
+        setChats((prev) => prev.map((c) => (c.id === res.chat.id ? { ...c, ...res.chat } : c)));
+      }
+      toast.success('CRM Lead created and linked successfully!');
+      await loadChats();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to create lead');
+    } finally {
+      setCreatingLead(false);
     }
   };
 
@@ -638,84 +704,102 @@ export default function WhatsAppChat() {
     }
   };
 
+  const isQrConnected = session.status === 'connected';
+  const isCloudConnected = Boolean(overview?.cloud?.healthy || cloudReady);
+  const channelType = isCloudConnected && !isQrConnected 
+    ? 'Cloud API' 
+    : (isQrConnected ? 'QR Web' : (overview?.cloud?.configured || cloudApiConfigured ? 'Cloud API' : 'QR Web'));
+  const isConnected = isQrConnected || isCloudConnected;
+  const connectedNumber = isQrConnected
+    ? (session.phoneNumber ? `+${session.phoneNumber.replace(/^\+/, '')}` : '')
+    : (overview?.cloud?.displayPhoneNumber || overview?.cloud?.number || '');
+
   return (
-    <div className="flex flex-col h-[calc(100dvh-4.5rem)] md:h-[calc(100vh-5rem)] bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative">
-      {/* Top Banner: Connection & AI Status Bar */}
-      <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-2">
+    <div className="flex flex-col h-full flex-1 min-h-0 bg-white dark:bg-slate-950 rounded-none sm:rounded-2xl border-0 sm:border border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-xs">
+      {/* Top Banner: WhatsApp Channel Info & Master AI Status */}
+      <div className="flex items-center justify-between px-2 sm:px-5 py-1.5 sm:py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-1.5 sm:gap-2">
+        {/* Left: WhatsApp Type & Connection Status */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
+          {/* Provider Badge */}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 shrink-0">
+            {channelType === 'Cloud API' ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                Cloud API
+              </>
+            ) : (
+              <>
+                <QrCode className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                QR Web
+              </>
+            )}
+          </span>
+
+          {/* Connection Status Indicator */}
+          <div className="flex items-center gap-1.5 min-w-0">
             <span
-              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 ${
-                session.status === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
               }`}
             />
             <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-              {session.status === 'connected'
-                ? `WA Connected (+${session.phoneNumber})`
-                : 'WA Disconnected'}
+              {isConnected ? (
+                <span>Connected {connectedNumber ? `(${connectedNumber})` : ''}</span>
+              ) : (
+                <span className="text-rose-600 dark:text-rose-400">Disconnected</span>
+              )}
             </span>
           </div>
 
-          {session.status === 'connected' ? (
-            <button
-              onClick={() => whatsappWebService.disconnect().then(loadStatus)}
-              className="text-xs text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium ml-1 sm:ml-2 shrink-0 cursor-pointer"
-            >
-              Disconnect
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsQrModalOpen(true)}
-              aria-label="Scan QR to link WhatsApp"
-              title="Scan QR to link WhatsApp"
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 rounded-lg border border-emerald-300 dark:border-emerald-800 transition-colors shadow-sm shrink-0 cursor-pointer"
-            >
-              <QrCode className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Scan QR</span>
-            </button>
+          {/* Quick Connect / Disconnect Action for QR */}
+          {channelType === 'QR Web' && (
+            isQrConnected ? (
+              <button
+                type="button"
+                onClick={() => whatsappWebService.disconnect().then(loadStatus)}
+                className="text-[11px] text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium shrink-0 cursor-pointer underline ml-1"
+                title="Disconnect QR session"
+              >
+                Disconnect
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsQrModalOpen(true)}
+                aria-label="Scan QR to connect"
+                title="Scan QR to connect"
+                className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 rounded-md border border-emerald-300 dark:border-emerald-800 transition-colors shrink-0 cursor-pointer"
+              >
+                Scan QR
+              </button>
+            )
           )}
         </div>
 
-        {/* Global AI Autopilot Toggle */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-            <Bot className={`w-4 h-4 ${session.aiAutopilotEnabled ? 'text-indigo-500' : 'text-slate-400'}`} />
-            <span className="font-medium hidden sm:inline">AI for new chats:</span>
+        {/* Right: Master AI Status (Read-only status with link to Settings) */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Link
+            to="/settings"
+            title="Master AI default for new chats. Click to manage in Settings."
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition"
+          >
+            <Bot className={`w-3.5 h-3.5 ${session.aiAutopilotEnabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden xs:inline">Master AI:</span>
             <span
-              className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+              className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
                 session.aiAutopilotEnabled
                   ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                  : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
               }`}
             >
               {session.aiAutopilotEnabled ? 'ON' : 'OFF'}
             </span>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={session.aiAutopilotEnabled}
-            onClick={handleToggleGlobalAi}
-            title={
-              session.aiAutopilotEnabled
-                ? 'New incoming chats get auto-replies. Click to turn off.'
-                : 'New incoming chats start in Human Mode. Turn AI on per chat from its header.'
-            }
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
-              session.aiAutopilotEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
-            }`}
-          >
-            <span
-              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                session.aiAutopilotEnabled ? 'translate-x-4.5' : 'translate-x-1'
-              }`}
-            />
-          </button>
+          </Link>
         </div>
       </div>
 
       {/* Main 3-Column WhatsApp Layout with Mobile View Switcher */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Left Column: Chat List */}
         <div className={`w-full md:w-80 md:shrink-0 h-full flex flex-col ${mobileView === 'list' ? 'flex' : 'hidden md:flex'}`}>
           <ChatListPanel
@@ -739,14 +823,16 @@ export default function WhatsAppChat() {
               setStartChatMsg('');
               setStartChatModal(true);
             }}
+            typingChats={typingChats}
           />
         </div>
 
         {/* Center Column: Active Chat Thread */}
-        <div className={`flex-1 flex flex-col bg-slate-100 dark:bg-slate-950/80 h-full ${mobileView === 'chat' ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`flex-1 min-h-0 min-w-0 flex flex-col bg-slate-100 dark:bg-slate-950/80 h-full overflow-hidden ${mobileView === 'chat' ? 'flex' : 'hidden md:flex'}`}>
           <ChatThread
             selectedChat={selectedChat}
             messages={messages}
+            isAiTyping={Boolean(selectedChat?.id && typingChats[selectedChat.id])}
             user={user}
             isSelectedIg={isSelectedIg}
             selectedIgHandle={selectedIgHandle}
@@ -789,6 +875,8 @@ export default function WhatsAppChat() {
               onViewMedia={setViewingMedia}
               onCreateBooking={handleOpenCreateBooking}
               creatingBooking={loadingLeadToConvert}
+              onCreateLead={handleCreateLead}
+              creatingLead={creatingLead}
               onClose={() => setMobileView('chat')}
             />
           </div>

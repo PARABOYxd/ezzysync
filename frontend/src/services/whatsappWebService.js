@@ -6,6 +6,12 @@ export const whatsappWebService = {
     return res.data;
   },
 
+  /** Both channels, what a reply will actually use, and the AI's remit. */
+  getConnectionOverview: async () => {
+    const res = await api.get('/whatsapp-web/overview');
+    return res.data;
+  },
+
   connect: async () => {
     const res = await api.post('/whatsapp-web/connect');
     return res.data;
@@ -13,6 +19,13 @@ export const whatsappWebService = {
 
   disconnect: async () => {
     const res = await api.post('/whatsapp-web/disconnect');
+    return res.data;
+  },
+
+  /** Applies an AI on/off decision to every existing chat - the tenant
+   * default only governs chats created after it is set. */
+  setAiForAllChats: async (enabled) => {
+    const res = await api.post('/whatsapp-web/ai-all-chats', { enabled });
     return res.data;
   },
 
@@ -28,6 +41,11 @@ export const whatsappWebService = {
 
   getChatMessages: async (chatId) => {
     const res = await api.get(`/whatsapp-web/chats/${chatId}/messages`);
+    return res.data;
+  },
+
+  createLeadFromChat: async (chatId) => {
+    const res = await api.post(`/whatsapp-web/chats/${chatId}/create-lead`);
     return res.data;
   },
 

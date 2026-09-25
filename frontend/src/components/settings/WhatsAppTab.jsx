@@ -21,6 +21,12 @@ export default function WhatsAppTab({ settings, setSettings }) {
   // "Active System" badge that was hardcoded, so a disconnected number still
   // read as connected - the one thing an owner opens this page to check.
   const [qrSession, setQrSession] = useState(null);
+  // One checked answer to "what is live, what will a reply use, what may the
+  // AI answer" - the page used to leave the owner to work that out from three
+  // separate cards.
+  const [overview, setOverview] = useState(null);
+  const [togglingAutopilot, setTogglingAutopilot] = useState(false);
+  const [applyingToAll, setApplyingToAll] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [disconnectingQr, setDisconnectingQr] = useState(false);
   const [savingWaCreds, setSavingWaCreds] = useState(false);
@@ -64,6 +70,44 @@ export default function WhatsAppTab({ settings, setSettings }) {
       .getStatus()
       .then(setQrSession)
       .catch(() => setQrSession(null));
+    whatsappWebService
+      .getConnectionOverview()
+      .then(setOverview)
+      .catch(() => setOverview(null));
+  };
+
+  const handleAiForAllChats = async (enabled) => {
+    const count = overview?.ai?.totalChats || 0;
+    if (!window.confirm(
+      enabled
+        ? `Hand all ${count} existing conversations to the AI? It will start replying to them on its own.`
+        : `Take all ${count} conversations back from the AI? You will reply to them yourself.`
+    )) return;
+    setApplyingToAll(true);
+    try {
+      const res = await whatsappWebService.setAiForAllChats(enabled);
+      toast.success(`${res.updated} conversation${res.updated === 1 ? '' : 's'} updated.`);
+      refreshQrSession();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not update the existing chats.');
+    } finally {
+      setApplyingToAll(false);
+    }
+  };
+
+  const handleToggleAutopilot = async () => {
+    if (!overview) return;
+    const next = !overview.ai.autopilotForNewChats;
+    setTogglingAutopilot(true);
+    try {
+      await whatsappWebService.toggleAiAutopilot(next);
+      setOverview((prev) => ({ ...prev, ai: { ...prev.ai, autopilotForNewChats: next } }));
+      toast.success(next ? 'AI will answer new chats on its own.' : 'New chats will wait for a person.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not change the AI default.');
+    } finally {
+      setTogglingAutopilot(false);
+    }
   };
 
   useEffect(() => {
@@ -297,6 +341,119 @@ export default function WhatsAppTab({ settings, setSettings }) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+
+      {/* What is actually connected, and what a reply will use. Each line is
+          checked against the live socket or Meta itself - the cards below
+          only ever showed whether credentials had been typed in once. */}
+      {overview && (
+        <div className="card space-y-4">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="font-bold text-slate-800">Your WhatsApp setup right now</h3>
+            <p className="text-xs text-slate-400">Checked live, not remembered from when you set it up.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className={`p-3.5 rounded-xl border ${overview.qr.canSend ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-slate-50/50'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-700">QR (WhatsApp Web)</span>
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${overview.qr.canSend ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                  {overview.qr.canSend ? 'Ready' : overview.qr.status === 'connected' ? 'Reconnecting' : 'Not connected'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-1.5">
+                {overview.qr.canSend
+                  ? `Sending and receiving on ${overview.qr.phoneNumber}.`
+                  : 'Scan the QR code below to link a number.'}
+              </p>
+            </div>
+
+            <div className={`p-3.5 rounded-xl border ${overview.cloud.healthy ? 'border-emerald-200 bg-emerald-50/50' : overview.cloud.configured ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200 bg-slate-50/50'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-700">Business API (Meta)</span>
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${overview.cloud.healthy ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : overview.cloud.configured ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                  {overview.cloud.healthy ? 'Ready' : overview.cloud.configured ? 'Needs attention' : 'Not set up'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-1.5">
+                {overview.cloud.healthy
+                  ? `Meta accepted these credentials${overview.cloud.displayPhoneNumber ? ` for ${overview.cloud.displayPhoneNumber}` : ''}.`
+                  : overview.cloud.configured
+                    ? overview.cloud.error
+                    : 'Optional. Needed only for campaigns and high volume.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+            <p className="text-xs text-slate-700">
+              <span className="font-bold">A brand-new chat goes out on:</span>{' '}
+              {overview.routing.newChatsUse === 'qr'
+                ? `QR (${overview.qr.phoneNumber})`
+                : overview.routing.newChatsUse === 'cloud_api'
+                  ? 'Business API (Meta)'
+                  : 'nothing yet - connect one of the two above'}
+            </p>
+            <p className="text-[11px] text-slate-500">
+              An existing chat always replies on whichever of the two the customer&apos;s own last
+              message came in on, so a conversation never answers back on the wrong number.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-slate-700">What the AI is allowed to do</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Answer brand-new chats by itself, before anyone reads them.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant={overview.ai.autopilotForNewChats ? 'danger' : 'primary'}
+                onClick={handleToggleAutopilot}
+                disabled={togglingAutopilot}
+                className="text-xs px-4 shrink-0"
+              >
+                {togglingAutopilot ? 'Saving...' : overview.ai.autopilotForNewChats ? 'Turn off' : 'Turn on'}
+              </Button>
+            </div>
+            <div className="pt-2.5 border-t border-slate-100 space-y-2">
+              <p className="text-[11px] text-slate-600">
+                Right now the AI is answering{' '}
+                <span className="font-bold text-slate-800">{overview.ai.chatsWithAiOn} of {overview.ai.totalChats}</span>{' '}
+                conversations
+                {overview.ai.chatsNeedingHuman > 0 && (
+                  <span className="text-amber-700 font-semibold"> · {overview.ai.chatsNeedingHuman} waiting for a person</span>
+                )}
+                . The switch above only decides the starting point for <em>new</em> chats, so chats
+                you already have keep whatever they are on now.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  onClick={() => handleAiForAllChats(true)}
+                  disabled={applyingToAll || overview.ai.totalChats === 0 || overview.ai.chatsWithAiOn === overview.ai.totalChats}
+                  className="text-xs px-3"
+                >
+                  {applyingToAll ? 'Applying...' : 'Let AI answer all existing chats'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => handleAiForAllChats(false)}
+                  disabled={applyingToAll || overview.ai.chatsWithAiOn === 0}
+                  className="text-xs px-3"
+                >
+                  Take them all back
+                </Button>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                A single conversation can always be switched from the AI button inside that chat.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* How this agency is connected to WhatsApp.
           Both channels in one place, each showing what is actually

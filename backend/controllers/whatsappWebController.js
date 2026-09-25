@@ -16,6 +16,27 @@ async function getStatus(req, res, next) {
   }
 }
 
+/** Everything the Settings page needs to explain the WhatsApp setup in one
+ * place: what is live, what a reply will use, and what the AI may answer. */
+async function getConnectionOverview(req, res, next) {
+  try {
+    res.json(await whatsappWebService.getConnectionOverview(req.user.tenantId));
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Applies the AI on/off decision to every existing chat, which the
+ * tenant-level default deliberately does not touch. */
+async function setAiForAllChats(req, res, next) {
+  try {
+    const updated = await whatsappWebRepository.setAiEnabledForAllChats(req.user.tenantId, req.body.enabled);
+    res.json({ updated, enabled: Boolean(req.body.enabled) });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function startSession(req, res, next) {
   try {
     await whatsappWebService.initWhatsAppSession(req.user.tenantId, true);
@@ -77,9 +98,57 @@ async function getChatMessages(req, res, next) {
     // Neither a chat nor any messages under this id for this tenant.
     if (!chat && messages.length === 0) return res.status(404).json({ message: 'Chat not found' });
 
+    // If chat has no linked lead, try to link an existing lead by phone
+    if (chat && !chat.lead_id) {
+      const leadId = await whatsappWebRepository.findLeadIdByPhone(req.user.tenantId, chat.phone);
+      if (leadId) {
+        await whatsappWebRepository.setChatLeadId(req.user.tenantId, chat.id, leadId);
+        chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chat.id);
+      }
+    }
+
     // The agent needs to know what WhatsApp will actually accept here before
     // they type, not after the send silently fails.
     res.json({ chat, messages, window: chat ? whatsappWindow.toClientWindow(chat) : null });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createLeadFromChat(req, res, next) {
+  try {
+    const { chatId } = req.params;
+    let chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+    if (chat.lead_id) {
+      return res.json({ message: 'Lead already linked', chat });
+    }
+
+    const created = await whatsappWebRepository.createLeadFromWhatsapp(req.user.tenantId, {
+      customerName: chat.customer_name || 'WhatsApp Contact',
+      phone: chat.phone,
+    });
+
+    if (created?.id) {
+      await whatsappWebRepository.setChatLeadId(req.user.tenantId, chat.id, created.id);
+      try {
+        const aiContextRepository = require('../repositories/aiContextRepository');
+        const leadService = require('../services/leadService');
+        const historyRows = await aiContextRepository.getChatHistoryByPhone(req.user.tenantId, chat.phone, 20);
+        const conversationText = historyRows
+          .map((r) => `${r.direction === 'inbound' ? 'Customer' : 'Agent'}: ${r.message_text || ''}`)
+          .join('\n');
+        if (conversationText) {
+          await leadService.autoFillFromConversation(req.user.tenantId, chat.phone, conversationText);
+        }
+      } catch (fillErr) {
+        // ignore
+      }
+      chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chat.id);
+    }
+
+    res.json({ success: true, chat });
   } catch (err) {
     next(err);
   }
@@ -356,6 +425,8 @@ async function sendTemplateMessage(req, res, next) {
 }
 
 module.exports = {
+  setAiForAllChats,
+  getConnectionOverview,
   listSendableTemplates,
   sendTemplateMessage,
   getStatus,
@@ -364,6 +435,7 @@ module.exports = {
   toggleAiAutopilot,
   listChats,
   getChatMessages,
+  createLeadFromChat,
   sendMessage,
   toggleChatAi,
   sendItineraryPdf,

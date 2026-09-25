@@ -2,6 +2,7 @@ import React, { useId } from 'react';
 import { ChevronDown } from 'lucide-react';
 import Label from './Label.jsx';
 import Helper from './Helper.jsx';
+import Combobox from './Combobox.jsx';
 
 export default function Select({
   label,
@@ -13,10 +14,57 @@ export default function Select({
   hint = '',
   className = 'w-full',
   inputClassName = '',
+  value,
+  onChange,
+  placeholder = 'Select…',
+  disabled = false,
+  name,
+  searchable,
+  pageSize = 10,
+  forceNative = false,
+  allowClear = false,
   ...props
 }) {
   const generatedId = useId();
   const inputId = props.id || generatedId;
+
+  // When more than 10 options or explicitly searchable, automatically upgrade to Combobox
+  const shouldUpgrade = !forceNative && (options.length > 10 || searchable);
+
+  if (shouldUpgrade) {
+    return (
+      <Combobox
+        label={label}
+        icon={Icon}
+        options={options}
+        value={value}
+        onChange={(val, fakeEvent) => {
+          if (onChange) {
+            const evt = fakeEvent || {
+              target: { name: name || props.name || '', value: val },
+              currentTarget: { name: name || props.name || '', value: val },
+              preventDefault: () => {},
+              stopPropagation: () => {},
+            };
+            onChange(evt, val);
+          }
+        }}
+        placeholder={placeholder}
+        error={error}
+        required={required}
+        accentAsterisk={accentAsterisk}
+        hint={hint}
+        disabled={disabled}
+        className={className}
+        inputClassName={inputClassName}
+        name={name || props.name}
+        pageSize={pageSize}
+        searchable={searchable ?? options.length > 10}
+        allowClear={allowClear}
+      />
+    );
+  }
+
   return (
     <div className={className}>
       <Label htmlFor={inputId} required={required} accent={accentAsterisk}>{label}</Label>
@@ -31,16 +79,20 @@ export default function Select({
             ${Icon ? 'pl-10' : ''}
             ${error ? 'border-red-400 focus:ring-red-500/15 focus:border-red-400' : ''}
             ${inputClassName}`}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          name={name}
           {...props}
           id={inputId}
           aria-required={required || undefined}
         >
-          {options.map((opt) => {
+          {options.map((opt, idx) => {
             const isObj = typeof opt === 'object' && opt !== null;
             const val = isObj ? opt.value : opt;
             const lbl = isObj ? opt.label : opt;
             return (
-              <option key={val} value={val}>{lbl}</option>
+              <option key={val !== undefined ? `${val}-${idx}` : idx} value={val}>{lbl}</option>
             );
           })}
         </select>

@@ -180,10 +180,49 @@ async function recordInboundOnChat(chatId, { lastMessage, pushName, jid }) {
          unread_count = unread_count + 1,
          customer_name = COALESCE(NULLIF(customer_name, ''), $2),
          jid = $4,
+         -- The message physically arrived on the QR socket, so that is the
+         -- connection replies must go back out on. Without this a chat first
+         -- opened while only Cloud API was configured stayed 'cloud_api'
+         -- forever, and every reply was posted to Meta - failing with
+         -- "WhatsApp is not connected or permissions expired" while the
+         -- header showed the QR number happily connected.
+         transport = 'web',
          updated_at = now()
      WHERE id = $3`,
     [lastMessage, pushName, chatId, jid]
   );
+}
+
+/** Applies one AI decision to every existing conversation at once.
+ * The tenant-level default only ever decided the starting point for chats
+ * created after it was set, so an owner who switched it on saw nothing happen
+ * on the chats they already had. Turning it on also clears a stale handoff
+ * flag, otherwise those chats stay silent anyway. */
+async function setAiEnabledForAllChats(tenantId, enabled) {
+  const { rowCount } = await query(
+    `UPDATE whatsapp_chats
+     SET ai_enabled = $2,
+         needs_human = CASE WHEN $2::boolean THEN FALSE ELSE needs_human END,
+         handoff_reason = CASE WHEN $2::boolean THEN NULL ELSE handoff_reason END,
+         updated_at = now()
+     WHERE tenant_id = $1 AND ai_enabled IS DISTINCT FROM $2`,
+    [tenantId, Boolean(enabled)]
+  );
+  return rowCount;
+}
+
+/** How many conversations the AI is currently answering for this tenant,
+ * and how many it has handed back to a person. */
+async function countChatsByAiState(tenantId) {
+  const { rows } = await query(
+    `SELECT
+       COUNT(*)::int AS total,
+       COUNT(*) FILTER (WHERE ai_enabled)::int AS ai_on,
+       COUNT(*) FILTER (WHERE needs_human)::int AS needs_human
+     FROM whatsapp_chats WHERE tenant_id = $1`,
+    [tenantId]
+  );
+  return { total: rows[0].total, aiOn: rows[0].ai_on, needsHuman: rows[0].needs_human };
 }
 
 /** An AI reply: the chat's own AI flag is untouched. */
@@ -219,7 +258,12 @@ async function flagChatForHuman(chatId, reason) {
 
 async function setChatAiEnabled(tenantId, chatId, enabled) {
   await query(
-    `UPDATE whatsapp_chats SET ai_enabled = $1, updated_at = now() WHERE id = $2 AND tenant_id = $3`,
+    `UPDATE whatsapp_chats
+     SET ai_enabled = $1,
+         needs_human = CASE WHEN $1::boolean THEN FALSE ELSE needs_human END,
+         handoff_reason = CASE WHEN $1::boolean THEN NULL ELSE handoff_reason END,
+         updated_at = now()
+     WHERE id = $2 AND tenant_id = $3`,
     [Boolean(enabled), chatId, tenantId]
   );
 }
@@ -436,28 +480,61 @@ async function updateMessageStatus(tenantId, messageId, status) {
  * Lead linking
  * ------------------------------------------------------------------ */
 
-/** Suffix match, since the stored number and WhatsApp may disagree on the country code. */
+/** Suffix and digit-normalized match, since the stored number and WhatsApp may disagree on the country code. */
 async function findLeadIdByPhone(tenantId, phone) {
+  const rawDigits = String(phone || '').replace(/\D+/g, '');
+  const last10 = rawDigits.slice(-10);
   const { rows } = await query(
     `SELECT id FROM leads
-     WHERE tenant_id = $1 AND (phone LIKE '%' || $2 OR $2 LIKE '%' || phone) AND deleted = FALSE
+     WHERE tenant_id = $1
+       AND deleted = FALSE
+       AND (
+         phone = $2
+         OR phone LIKE '%' || $2
+         OR $2 LIKE '%' || phone
+         OR ($3 <> '' AND regexp_replace(phone, '\\D', '', 'g') LIKE '%' || $3)
+       )
+     ORDER BY created_at DESC
      LIMIT 1`,
-    [tenantId, phone]
+    [tenantId, phone, last10]
   );
   return rows[0]?.id || null;
 }
 
-async function createLeadFromWhatsapp(tenantId, { customerName, phone }) {
-  const seq = await query(`SELECT nextval('leads_seq') AS num`);
-  const leadCode = `LEAD-${seq.rows[0].num}`;
-
+async function setChatLeadId(tenantId, chatId, leadUuid) {
   const { rows } = await query(
-    `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, source, stage, notes, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, 'WhatsApp Inbound', 'New', 'Auto-created from WhatsApp chat', now(), now())
-     RETURNING id`,
-    [tenantId, leadCode, customerName, phone]
+    `UPDATE whatsapp_chats SET lead_id = $1, updated_at = now() WHERE tenant_id = $2 AND id = $3 RETURNING *`,
+    [leadUuid, tenantId, chatId]
   );
-  return { id: rows[0]?.id || null, leadCode };
+  return rows[0] || null;
+}
+
+async function createLeadFromWhatsapp(tenantId, { customerName, phone }) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const seq = await query(`SELECT nextval('leads_seq') AS num`);
+    const leadCode = `LEAD-${seq.rows[0].num}`;
+
+    try {
+      const { rows } = await query(
+        `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, source, stage, notes, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'WhatsApp Inbound', 'New', 'Auto-created from WhatsApp chat', now(), now())
+         RETURNING id`,
+        [tenantId, leadCode, customerName, phone]
+      );
+      return { id: rows[0]?.id || null, leadCode };
+    } catch (err) {
+      if (err.code === '23505') {
+        await query(`
+          SELECT setval('leads_seq', (
+            SELECT COALESCE(MAX(regexp_replace(lead_id, '[^0-9]', '', 'g')::bigint), 1000)
+            FROM leads WHERE lead_id ~ '^LEAD-[0-9]+$'
+          ) + 1)
+        `);
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -506,6 +583,8 @@ module.exports = {
   findChatById,
   createChat,
   recordInboundOnChat,
+  countChatsByAiState,
+  setAiEnabledForAllChats,
   recordAiReplyOnChat,
   recordHumanReplyOnChat,
   flagChatForHuman,
@@ -520,6 +599,7 @@ module.exports = {
   getRecentHistory,
   updateMessageStatus,
   findLeadIdByPhone,
+  setChatLeadId,
   createLeadFromWhatsapp,
   listQuickReplies,
 };

@@ -538,6 +538,12 @@ async function ensureSchema() {
   await query(`CREATE INDEX IF NOT EXISTS idx_leads_tenant ON leads(tenant_id);`);
 
   await query(`CREATE SEQUENCE IF NOT EXISTS leads_seq START 1000;`);
+  await query(`
+    SELECT setval('leads_seq', GREATEST(
+      (SELECT last_value FROM leads_seq),
+      COALESCE((SELECT MAX(regexp_replace(lead_id, '[^0-9]', '', 'g')::bigint) FROM leads WHERE lead_id ~ '^LEAD-[0-9]+$'), 1000)
+    ));
+  `).catch(() => {});
 
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS lead_id UUID UNIQUE REFERENCES leads(id) ON DELETE SET NULL;`);

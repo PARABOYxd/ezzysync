@@ -275,13 +275,36 @@ async function claimLead(tenantId, leadId, username) {
  * to correct by hand if the AI got it wrong.
  */
 async function autoFillFromConversation(tenantId, phone, conversationText) {
-  const lead = await leadRepository.findByPhone(tenantId, phone);
+  let lead = await leadRepository.findByPhone(tenantId, phone);
+  if (!lead) {
+    try {
+      const whatsappWebRepo = require('../repositories/whatsappWebRepository');
+      const created = await whatsappWebRepo.createLeadFromWhatsapp(tenantId, {
+        customerName: 'WhatsApp Contact',
+        phone,
+      });
+      if (created?.id) {
+        const { query } = require('../config/db');
+        const rawDigits = String(phone || '').replace(/\D+/g, '');
+        const last10 = rawDigits.slice(-10);
+        await query(
+          `UPDATE whatsapp_chats SET lead_id = $1, updated_at = now()
+           WHERE tenant_id = $2 AND lead_id IS NULL AND (phone = $3 OR phone_key = $4)`,
+          [created.id, tenantId, phone, last10]
+        );
+        lead = await leadRepository.findByPhone(tenantId, phone);
+      }
+    } catch (createErr) {
+      // ignore
+    }
+  }
   if (!lead) return;
 
-  const missingTrip = !lead.interest || lead.interest === 'Inquiry via WhatsApp';
+  const missingName = !lead.customer_name || lead.customer_name === 'WhatsApp Contact' || lead.customer_name === 'Guest' || lead.customer_name === 'New Inquiry' || lead.customer_name === 'EZZYSYNC';
+  const missingTrip = !lead.interest || lead.interest === 'Inquiry via WhatsApp' || lead.interest === 'Inquiry';
   const missingMembers = !lead.travelers;
   const missingDeparture = !lead.departure_date;
-  if (!missingTrip && !missingMembers && !missingDeparture) return;
+  if (!missingName && !missingTrip && !missingMembers && !missingDeparture) return;
 
   const aiService = require('./aiService');
   const extracted = await aiService.extractLeadFieldsFromConversation(conversationText);
@@ -289,6 +312,16 @@ async function autoFillFromConversation(tenantId, phone, conversationText) {
 
   const updates = {};
   const filled = [];
+  if (missingName && extracted.customerName && extracted.customerName.trim()) {
+    const cleanName = extracted.customerName.trim();
+    updates.customerName = cleanName;
+    filled.push(`Name: ${cleanName}`);
+    const { query } = require('../config/db');
+    await query(
+      `UPDATE whatsapp_chats SET customer_name = $1, updated_at = now() WHERE tenant_id = $2 AND lead_id = $3`,
+      [cleanName, tenantId, lead.id]
+    ).catch(() => {});
+  }
   if (missingTrip && extracted.tripName) {
     updates.interest = extracted.tripName;
     filled.push(`Trip: ${extracted.tripName}`);
@@ -309,6 +342,7 @@ async function autoFillFromConversation(tenantId, phone, conversationText) {
     `AI auto-filled from the conversation: ${filled.join(', ')}.`,
     'note', null, 'AI Auto-Fill'
   );
+  await leadRepository.recomputeAllPriorities().catch(() => {});
 }
 
 module.exports = {

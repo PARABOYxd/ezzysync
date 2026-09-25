@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ClipboardList, PlaneTakeoff, CheckCircle2, XCircle, RotateCcw, CalendarClock, Sun, Plus,
-  IndianRupee, Coins, TrendingUp, Landmark, User, Users, X, ChevronDown, Sparkles
+  IndianRupee, Coins, TrendingUp, Landmark, User, Users, X, ChevronDown, Sparkles, Bot, ArrowRight
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import StatCard from '../components/dashboard/StatCard.jsx';
@@ -14,6 +14,7 @@ import { getUsers } from '../services/userService';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useTenantWebSocket } from '../hooks/useTenantWebSocket';
 
 function BookingVolumeChart({ monthWise }) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -236,6 +237,26 @@ export default function Dashboard() {
 
   const isAdmin = user?.role !== 'TEAM_MEMBER';
   const isFiltered = isAdmin && selectedMember !== null;
+  const [activeAiTyping, setActiveAiTyping] = useState(null);
+
+  useTenantWebSocket((msg) => {
+    if (msg.event === 'WHATSAPP_AI_TYPING') {
+      const { phone, customerName, chatId, typing } = msg.data || {};
+      if (typing) {
+        setActiveAiTyping({ phone, customerName, chatId, timestamp: Date.now() });
+      } else {
+        setActiveAiTyping(null);
+      }
+    }
+  });
+
+  useEffect(() => {
+    if (!activeAiTyping) return;
+    const timer = setTimeout(() => {
+      setActiveAiTyping(null);
+    }, 25000);
+    return () => clearTimeout(timer);
+  }, [activeAiTyping]);
 
   const load = (member) => {
     setLoading(true);
@@ -351,6 +372,37 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── LIVE AI ACTIVITY BANNER ── */}
+      {activeAiTyping && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Bot size={22} className="animate-spin text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Live AI Assistant Replying</span>
+                <span className="inline-flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Generating smart response for <span className="text-emerald-600 dark:text-emerald-400 font-bold">{activeAiTyping.customerName || activeAiTyping.phone}</span> on WhatsApp...
+              </p>
+            </div>
+          </div>
+          <Link
+            to={activeAiTyping.chatId ? `/whatsapp-chat?chatId=${activeAiTyping.chatId}` : '/whatsapp-chat'}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition shrink-0"
+          >
+            <span>Open Chat</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      )}
+
       {/* ── ENTERPRISE-GRADE KPI METRIC GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card 1: Total Booked */}
@@ -454,21 +506,35 @@ export default function Dashboard() {
 
       {/* Recent & Upcoming */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card flex flex-col h-[400px]">
-          <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
-            {isFiltered ? `${selectedMember}'s Recent Bookings` : !isAdmin ? 'My Recent Bookings' : 'Recent Bookings'}
-          </h3>
-          <div className="overflow-y-auto flex-1 pr-1">
+        <div className="lg:col-span-2 card flex flex-col h-[410px] overflow-hidden">
+          <div className="flex items-center justify-between mb-2 shrink-0">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
+              {isFiltered ? `${selectedMember}'s Recent Bookings` : !isAdmin ? 'My Recent Bookings' : 'Recent Bookings'}
+            </h3>
+            {data?.recentBookings?.length > 0 && (
+              <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                {data.recentBookings.length} total
+              </span>
+            )}
+          </div>
+          <div className="overflow-y-auto flex-1 min-h-0 pr-1">
             {loading
               ? <div className="skeleton h-40 rounded-xl mt-3" />
               : <RecentBookingsTable bookings={data?.recentBookings || []} />}
           </div>
         </div>
-        <div className="card flex flex-col h-[400px]">
-          <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
-            {isFiltered ? `${selectedMember}'s Upcoming` : !isAdmin ? 'My Upcoming Departures' : 'Upcoming Departures'}
-          </h3>
-          <div className="flex-1 flex flex-col justify-between pr-1">
+        <div className="card flex flex-col h-[410px] overflow-hidden">
+          <div className="flex items-center justify-between mb-2 shrink-0">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
+              {isFiltered ? `${selectedMember}'s Upcoming` : !isAdmin ? 'My Upcoming Departures' : 'Upcoming Departures'}
+            </h3>
+            {data?.upcomingDepartures?.length > 0 && (
+              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full">
+                {data.upcomingDepartures.length} trips
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {loading
               ? <div className="skeleton h-40 rounded-xl mt-3" />
               : <UpcomingDepartures departures={data?.upcomingDepartures || []} />}
