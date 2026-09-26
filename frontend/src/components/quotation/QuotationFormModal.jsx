@@ -20,7 +20,7 @@ import {
 
 const emptyForm = {
   tripName: '', priceQuote: '',
-  itineraryDays: [{ day: 1, title: '', description: '' }],
+  itineraryDays: [{ day: 1, title: 'Day 1: Arrival & Exploration', description: '' }],
   inclusions: [], exclusions: [], highlights: [], pickupOptions: [],
   departureDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   tripTypes: ['group', 'customized'],
