@@ -51,31 +51,36 @@ async function sendMailViaSMTP({ to, subject, html, attachments = [] }) {
   if (!nodemailer || !isSmtpConfigured(env)) {
     return false; // not configured - caller falls back to Resend
   }
-  const transporter = nodemailer.createTransport({
-    host: env.smtpHost,
-    port: Number(env.smtpPort || 587),
-    secure: env.smtpSecure === 'true',
-    auth: { user: env.smtpUser, pass: env.smtpPass },
-    connectionTimeout: SMTP_TIMEOUT_MS,
-    greetingTimeout: SMTP_TIMEOUT_MS,
-    socketTimeout: SMTP_TIMEOUT_MS,
-  });
-  await transporter.sendMail({
-    from: env.emailFrom || env.smtpUser,
-    to,
-    subject,
-    html,
-    // nodemailer has always supported these; they simply were not passed, so
-    // an invoice sent over SMTP arrived with no PDF on it.
-    ...(attachments.length && {
-      attachments: attachments.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-        contentType: a.contentType,
-      })),
-    }),
-  });
-  return true;
+  try {
+    const transporter = nodemailer.createTransport({
+      host: env.smtpHost,
+      port: Number(env.smtpPort || 587),
+      secure: env.smtpSecure === 'true',
+      auth: { user: env.smtpUser, pass: env.smtpPass },
+      connectionTimeout: SMTP_TIMEOUT_MS,
+      greetingTimeout: SMTP_TIMEOUT_MS,
+      socketTimeout: SMTP_TIMEOUT_MS,
+    });
+    await transporter.sendMail({
+      from: env.emailFrom || env.smtpUser,
+      to,
+      subject,
+      html,
+      // nodemailer has always supported these; they simply were not passed, so
+      // an invoice sent over SMTP arrived with no PDF on it.
+      ...(attachments.length && {
+        attachments: attachments.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType,
+        })),
+      }),
+    });
+    return true;
+  } catch (err) {
+    logger.warn({ err: err?.message, to }, 'SMTP send failed, will attempt fallback');
+    return false;
+  }
 }
 
 // Resend (HTTPS API, port 443) is the default/fallback for system-level
