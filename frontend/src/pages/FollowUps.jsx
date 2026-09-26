@@ -70,7 +70,7 @@ export default function FollowUps() {
       const completedItems = await followUpService.getCompletedFollowUps({ assignedTo, search });
       setDoneItems(completedItems);
 
-      const leadData = await leadService.getLeads({ search, assignedTo, limit: 500 });
+      const leadData = await leadService.getLeads({ search, assignedTo, limit: 30 });
       const activeLeads = (leadData.leads || []).filter(l => 
         l.stage !== 'Won' && 
         l.stage !== 'Lost'
@@ -98,7 +98,7 @@ export default function FollowUps() {
       setLeads(nurturing);
 
       // Bookings checking for travelStatus === 'Confirming'
-      const bookingData = await bookingService.getBookings({ search, limit: 500 });
+      const bookingData = await bookingService.getBookings({ search, limit: 30 });
       const activeBookings = (bookingData.bookings || []).filter(b => b.travelStatus === 'Confirming');
       
       const committedBookingIds = new Set(dueItems.filter(i => i.source_type === 'booking').map(i => String(i.source_id)));

@@ -17,12 +17,21 @@ export default function NotificationBell() {
   useEffect(() => {
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
-    window.addEventListener('followups:updated', load);
+
+    let debounceTimer = null;
+    const handleUpdated = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(load, 300);
+    };
+
+    window.addEventListener('followups:updated', handleUpdated);
     return () => {
       clearInterval(interval);
-      window.removeEventListener('followups:updated', load);
+      clearTimeout(debounceTimer);
+      window.removeEventListener('followups:updated', handleUpdated);
     };
   }, []);
+
 
   useEffect(() => {
     const handleClickOutside = (e) => {

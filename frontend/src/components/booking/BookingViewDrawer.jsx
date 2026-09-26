@@ -121,7 +121,7 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
     if (open && booking?.bookingId) {
       loadLogs();
     }
-  }, [open, booking, loadLogs]);
+  }, [open, booking?.bookingId, loadLogs]);
 
   if (!booking) return null;
 

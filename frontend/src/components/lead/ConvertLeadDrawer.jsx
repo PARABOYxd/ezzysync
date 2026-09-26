@@ -67,7 +67,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         .catch(() => {})
         .finally(() => setLoadingItineraries(false));
     }
-  }, [open, lead]);
+  }, [open, lead?.leadId]);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 

@@ -58,7 +58,7 @@ export default function ImportLeadsDrawer({ open, onClose, onImported }) {
     setDefaults({ stage: 'New', assignedTo: isTeamMember ? user?.name || '' : '' });
     userService.getUsers().then((users) => setTeamMembers(users || [])).catch(() => {});
     leadService.getLeadImportFields().then((d) => setFields(d.fields || [])).catch(() => {});
-  }, [open, isTeamMember, user]);
+  }, [open, isTeamMember, user?.name]);
 
   const requiredFields = (parsed?.fields || fields).filter((f) => f.required);
   const unmappedRequired = requiredFields.filter(
