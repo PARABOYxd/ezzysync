@@ -15,8 +15,8 @@ export default function AITools() {
   const toast = useToast();
   const navigate = useNavigate();
   const { user, loginWithToken } = useAuth();
-  const { isExpired, plan } = usePlanStatus();
-  const isLocked = isExpired || user?.planId === 'FREE' || (plan && !plan.active);
+  const { isExpired, plan, isTrial, limits } = usePlanStatus();
+  const isLocked = isExpired || (user?.planId === 'FREE' && !isTrial && !plan?.isTrial && limits?.canUseAi === false) || (plan && !plan.active && !isTrial && !plan?.isTrial);
   const [bookings, setBookings] = useState([]);
 
 
@@ -326,8 +326,8 @@ export default function AITools() {
                       disabled={downloading}
                       className="text-[10px] text-orange-600 dark:text-orange-400 font-bold hover:underline disabled:opacity-50 flex items-center gap-1"
                     >
-                      {user?.planId === 'FREE' && <Lock size={10} />}
-                      {downloading ? 'Downloading...' : user?.planId === 'FREE' ? 'Download Basic PDF' : 'Download Premium PDF'}
+                      {isLocked && <Lock size={10} />}
+                      {downloading ? 'Downloading...' : isLocked ? 'Download Basic PDF' : 'Download Premium PDF'}
                     </button>
                   </div>
                 </div>

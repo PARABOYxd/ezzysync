@@ -5,6 +5,7 @@ import { openRazorpayCheckout } from '../services/paymentService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
+import { usePlanStatus } from '../hooks/usePlanStatus.js';
 import Input from '../components/ui/Input.jsx';
 import FormRow from '../components/ui/FormRow.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -39,14 +40,26 @@ export default function Profile() {
   }, [searchParams, setSearchParams]);
   const toast = useToast();
 
+  const { isExpired: planExpired, isTrial: serverIsTrial, trialDaysLeft, expiresAt } = usePlanStatus();
+
   const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
   const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
   const daysPassed = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.max(0, totalTrialDays - daysPassed);
+  const fallbackDaysRemaining = Math.max(0, totalTrialDays - daysPassed);
+
+  const effectiveExpiresAt = expiresAt || user?.planExpiresAt;
+  const daysRemaining = planExpired
+    ? 0
+    : (trialDaysLeft !== undefined && trialDaysLeft !== null)
+      ? trialDaysLeft
+      : effectiveExpiresAt
+        ? Math.max(0, Math.ceil((new Date(effectiveExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        : fallbackDaysRemaining;
+
   const isPaidPro = user?.planId === 'PRO_ACTIVE' || user?.planId === 'PRO';
   const isSolo = user?.planId === 'SOLO';
-  const isTrial = !isPaidPro && !isSolo && daysRemaining > 0;
-  const isExpired = !isPaidPro && !isSolo && daysRemaining === 0;
+  const isTrial = !isPaidPro && !isSolo && !planExpired && (daysRemaining > 0 || serverIsTrial);
+  const isExpired = planExpired || (!isPaidPro && !isSolo && daysRemaining === 0 && !serverIsTrial);
 
   const handleUpgradePayment = (planId, planName) => {
     openRazorpayCheckout({
@@ -180,7 +193,7 @@ export default function Profile() {
                 Active Subscription & Features
                 {isTrial && (
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
-                    Pro 30-Day Free Trial
+                    Pro Free Trial
                   </span>
                 )}
                 {isPaidPro && (
@@ -195,7 +208,7 @@ export default function Profile() {
                 )}
               </h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400">
-                {isTrial ? `You currently have full Pro agency access active for free. (30-day trial ends in ${daysRemaining} days)` : isPaidPro ? 'Full Agency Growth Pro access active with unlimited bookings.' : isSolo ? 'Solo Agent plan active (1 login, 200 bookings limit).' : 'Trial has ended. Upgrade to unlock all features.'}
+                {isTrial ? `You currently have full Pro agency access active for free. (Trial ends in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'})` : isPaidPro ? 'Full Agency Growth Pro access active with unlimited bookings.' : isSolo ? 'Solo Agent plan active (1 login, 200 bookings limit).' : 'Trial has ended. Upgrade to unlock all features.'}
               </p>
             </div>
           </div>

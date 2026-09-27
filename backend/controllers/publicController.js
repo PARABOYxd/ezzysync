@@ -28,12 +28,38 @@ async function captureLead(req, res, next) {
 
 async function submitWalkthroughRequest(req, res, next) {
   try {
-    const { name, agencyName, email, phone } = req.body;
+    const {
+      name,
+      agencyName,
+      email,
+      phone,
+      city,
+      state,
+      travelSpeciality,
+      instagramLink,
+      websiteLink,
+      websiteOrInstagram,
+      gstNumber,
+      visitingCardUrl,
+    } = req.body;
     if (!name || !agencyName || !email) {
       return res.status(400).json({ message: 'Name, Agency Name, and Email are required.' });
     }
 
-    const request = await publicService.submitWalkthroughRequest({ name, agencyName, email, phone });
+    const request = await publicService.submitWalkthroughRequest({
+      name,
+      agencyName,
+      email,
+      phone,
+      city,
+      state,
+      travelSpeciality,
+      instagramLink,
+      websiteLink,
+      websiteOrInstagram,
+      gstNumber,
+      visitingCardUrl,
+    });
     const message = request?.alreadySubmitted
       ? 'Request already received! Our team is reviewing it and will contact you shortly.'
       : 'Request submitted successfully!';

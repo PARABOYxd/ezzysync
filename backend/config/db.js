@@ -384,6 +384,27 @@ async function ensureSchema() {
     logger.warn({ err }, 'Note adding google_id column');
   }
 
+  // Super Admin and Tenant Lifecycle Management columns
+  try {
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE;`);
+    await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';`);
+    await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;`);
+    await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE;`);
+    await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_extended_days INT DEFAULT 0;`);
+    await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS admin_notes TEXT DEFAULT '';`);
+
+    // Automatically elevate configured Super Admin emails
+    if (env.superAdminEmails && env.superAdminEmails.length > 0) {
+      await query(`
+        UPDATE users
+        SET is_super_admin = TRUE
+        WHERE LOWER(email) = ANY($1::text[]);
+      `, [env.superAdminEmails]);
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Note adding super admin and tenant management columns');
+  }
+
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS source_quotation_id TEXT DEFAULT NULL;`);
   } catch (err) {

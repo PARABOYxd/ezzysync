@@ -45,6 +45,7 @@ export function usePlanStatus() {
     usage: status?.usage || null,
     isExpired: status?.plan?.isExpired === true,
     isTrial: status?.plan?.isTrial === true,
+    trialDaysLeft: status?.plan?.trialDaysLeft,
     // Which plan lapsed, when one did, so a renewal can be offered directly.
     lapsedPlanId: status?.plan?.lapsedPlanId || null,
     expiresAt: status?.plan?.expiresAt || null,

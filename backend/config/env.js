@@ -28,6 +28,10 @@ function loadEnv() {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     refreshTokenExpiresInDays: Number(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS || 30),
     otpSecret: process.env.OTP_SECRET || process.env.JWT_SECRET,
+    superAdminEmails: (process.env.SUPER_ADMIN_EMAILS || 'admin@gmail.com,jainpayal0201@gmail.com,admin@ezzysync.com')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
 
     db: {
       connectionString: process.env.DATABASE_URL,

@@ -35,6 +35,20 @@ async function requireAuth(req, res, next) {
     }
 
     const role = dbUser.role || 'ADMIN';
+    const emailLower = (dbUser.email || decoded.email || '').toLowerCase();
+    const isSuperAdmin =
+      dbUser.is_super_admin === true ||
+      role === 'SUPER_ADMIN' ||
+      (env.superAdminEmails && env.superAdminEmails.includes(emailLower));
+
+    // If an agency account is suspended by platform administration, prevent access
+    if (dbUser.is_suspended && !isSuperAdmin) {
+      return res.status(403).json({
+        message: 'Your agency account has been suspended by EzzySync administration. Please contact support.',
+        code: 'ACCOUNT_SUSPENDED',
+      });
+    }
+
     req.user = {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
@@ -44,12 +58,13 @@ async function requireAuth(req, res, next) {
       permissions: normalizePermissions(dbUser.permissions, role),
       companyName: dbUser.company_name || decoded.companyName,
       planId: dbUser.plan_id || decoded.planId || 'FREE',
+      isSuperAdmin: Boolean(isSuperAdmin),
     };
     // Bind tenant/user onto req.log so every req.log.* call downstream
     // (controllers, services) carries this context automatically, not
     // just the one-line request summary pino-http emits at the end.
     if (req.log) {
-      req.log = req.log.child({ tenantId: req.user.tenantId, userId: req.user.userId });
+      req.log = req.log.child({ tenantId: req.user.tenantId, userId: req.user.userId, isSuperAdmin });
     }
     next();
   } catch (err) {
@@ -57,4 +72,15 @@ async function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+/**
+ * Route protection: only Super Admins (Platform Owners) are permitted.
+ * Blocks any regular tenant admin or agent with 403 Forbidden.
+ */
+function requireSuperAdmin(req, res, next) {
+  if (!req.user || !req.user.isSuperAdmin) {
+    return res.status(403).json({ message: 'Access denied: Super Admin privilege required.' });
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireSuperAdmin };

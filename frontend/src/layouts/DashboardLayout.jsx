@@ -15,6 +15,8 @@ import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
 import { usePlanStatus } from '../hooks/usePlanStatus.js';
 import { useTenantWebSocket } from '../hooks/useTenantWebSocket.js';
 
+import ImpersonationBanner from '../components/common/ImpersonationBanner.jsx';
+
 const TITLES = {
   '/dashboard': 'Dashboard',
   '/leads': 'Leads',
@@ -95,6 +97,7 @@ export default function DashboardLayout() {
     <div className="flex h-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)]">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <ImpersonationBanner />
         <Topbar 
           title={TITLES[location.pathname] || 'Dashboard'} 
           onMenuClick={() => setSidebarOpen(true)} 

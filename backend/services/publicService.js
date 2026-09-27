@@ -100,7 +100,20 @@ const emailService = require('./emailService');
 const walkthroughThrottleCache = new Map();
 const THROTTLE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 
-async function submitWalkthroughRequest({ name, agencyName, email, phone }) {
+async function submitWalkthroughRequest({
+  name,
+  agencyName,
+  email,
+  phone,
+  city = '',
+  state = '',
+  travelSpeciality = '',
+  instagramLink = '',
+  websiteLink = '',
+  websiteOrInstagram = '',
+  gstNumber = '',
+  visitingCardUrl = '',
+}) {
   const normalizedEmail = (email || '').trim().toLowerCase();
   const cleanPhone = (phone || '').trim();
 
@@ -126,6 +139,14 @@ async function submitWalkthroughRequest({ name, agencyName, email, phone }) {
     agencyName: (agencyName || '').trim(),
     email: normalizedEmail,
     phone: cleanPhone,
+    city: (city || '').trim(),
+    state: (state || '').trim(),
+    travelSpeciality: (travelSpeciality || '').trim(),
+    instagramLink: (instagramLink || '').trim(),
+    websiteLink: (websiteLink || '').trim(),
+    websiteOrInstagram: (websiteOrInstagram || '').trim(),
+    gstNumber: (gstNumber || '').trim(),
+    visitingCardUrl: (visitingCardUrl || '').trim(),
   });
 
   walkthroughThrottleCache.set(throttleKey, now);

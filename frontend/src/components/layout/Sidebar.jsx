@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare, BookUser } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare, BookUser, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { getFeatures } from '../../services/featureService';
 import { usePlanStatus } from '../../hooks/usePlanStatus.js';
@@ -76,11 +76,24 @@ export default function Sidebar({ open, onClose }) {
     </div>
   );
 
+  // Server plan status
+  const { isExpired, isTrial, trialDaysLeft, expiresAt } = usePlanStatus();
+
   // Configurable trial duration (default: 30 days, can be overridden via backend/env)
   const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
   const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
   const daysPassed = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.max(0, totalTrialDays - daysPassed);
+  const fallbackDaysRemaining = Math.max(0, totalTrialDays - daysPassed);
+
+  const effectiveExpiresAt = expiresAt || user?.planExpiresAt;
+  const daysRemaining = isExpired
+    ? 0
+    : (trialDaysLeft !== undefined && trialDaysLeft !== null)
+      ? trialDaysLeft
+      : effectiveExpiresAt
+        ? Math.max(0, Math.ceil((new Date(effectiveExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        : fallbackDaysRemaining;
+
   // Kept in step with DashboardLayout/Profile, which already treat SOLO as a
   // paid plan. Without isSolo this badge counted a paid Solo tenant's days
   // down from signup and then declared "Trial Expired" over a live plan.
@@ -89,7 +102,6 @@ export default function Sidebar({ open, onClose }) {
 
   // When the paid month ends. Comes from the server, since the JWT has no
   // expiry date in it and would be stale the moment the plan is renewed.
-  const { expiresAt } = usePlanStatus();
   const expiryDate = expiresAt ? new Date(expiresAt) : null;
   const renewalDate = expiryDate
     ? expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -177,7 +189,7 @@ export default function Sidebar({ open, onClose }) {
               <span className={`text-[11px] font-bold flex items-center gap-1 ${
                 daysRemaining === 0 ? 'text-rose-900 dark:text-rose-300' : 'text-emerald-900 dark:text-emerald-300'
               }`}>
-                {daysRemaining === 0 ? '⚠️ Trial Expired' : '🎁 30-Day Free Trial'}
+                {daysRemaining === 0 ? '⚠️ Trial Expired' : '🎁 Free Trial'}
               </span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full font-mono ${
                 daysRemaining === 0
@@ -191,7 +203,7 @@ export default function Sidebar({ open, onClose }) {
             </div>
             <p className="text-[10px] text-slate-600 dark:text-zinc-400 mb-2 leading-tight">
               {daysRemaining === 0 
-                ? 'Your 30-day trial has ended. Upgrade to continue using all features.'
+                ? 'Your trial period has ended. Upgrade to continue using all features.'
                 : 'You have full Pro access active with all features unlocked for free.'}
             </p>
             <NavLink

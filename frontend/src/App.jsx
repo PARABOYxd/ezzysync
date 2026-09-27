@@ -3,8 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 import RequirePermission from './components/common/RequirePermission.jsx';
+import RequireSuperAdmin from './components/common/RequireSuperAdmin.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
+import SuperAdminLayout from './layouts/SuperAdminLayout.jsx';
 
+import SuperAdmin from './pages/SuperAdmin.jsx';
+import AdminLogin from './pages/AdminLogin.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
@@ -77,6 +81,20 @@ export default function App() {
         <Route path="/billing" element={<RequirePermission module="billing"><BillingAnalytics /></RequirePermission>} />
         <Route path="/expenses" element={<RequirePermission module="expenses"><Expenses /></RequirePermission>} />
       </Route>
+
+        {/* Dedicated EzzySync Company Master Admin Portal (Standalone, outside agency CRM) */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireSuperAdmin>
+              <SuperAdminLayout>
+                <SuperAdmin />
+              </SuperAdminLayout>
+            </RequireSuperAdmin>
+          }
+        />
+        <Route path="/super-admin" element={<Navigate to="/admin" replace />} />
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<NotFound />} />

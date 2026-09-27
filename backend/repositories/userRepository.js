@@ -2,7 +2,7 @@ const { query } = require('../config/db');
 
 async function findUserByEmail(email) {
   const { rows } = await query(
-    `SELECT u.*, t.company_name, t.plan_id
+    `SELECT u.*, t.company_name, t.plan_id, t.is_suspended, t.is_paused, t.plan_expires_at
      FROM users u
      JOIN tenants t ON u.tenant_id = t.id
      WHERE u.email = $1`,
@@ -15,7 +15,7 @@ async function findUserByEmail(email) {
  * want the legacy-token fallback should use findUserById instead. */
 async function findUserWithTenantById(userId) {
   const { rows } = await query(
-    `SELECT u.*, t.company_name, t.plan_id
+    `SELECT u.*, t.company_name, t.plan_id, t.is_suspended, t.is_paused, t.plan_expires_at
      FROM users u
      JOIN tenants t ON u.tenant_id = t.id
      WHERE u.id = $1`,
@@ -30,7 +30,7 @@ async function findUserById(userId) {
 
   // Fallback for old tokens
   const fallback = await query(
-    `SELECT u.*, t.company_name, t.plan_id
+    `SELECT u.*, t.company_name, t.plan_id, t.is_suspended, t.is_paused, t.plan_expires_at
      FROM users u
      JOIN tenants t ON u.tenant_id = t.id
      WHERE u.tenant_id = $1 AND u.role = 'ADMIN'

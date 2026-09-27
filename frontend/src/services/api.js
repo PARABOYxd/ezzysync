@@ -109,14 +109,10 @@ function attachRequestReference(response) {
   const data = response?.data;
   if (!data) return;
 
-  // In local dev, if error details exist, use them so developer immediately sees what failed
+  // In local dev, if error details exist and is user friendly, use it
   const isDev = import.meta.env.DEV;
-  if (isDev && data.error && typeof data.error === 'string') {
+  if (isDev && data.error && typeof data.error === 'string' && !data.error.includes('ReferenceError') && !data.error.includes('SyntaxError')) {
     data.message = data.error;
-  }
-
-  if (typeof data.message === 'string' && data.requestId && !data.message.includes(data.requestId)) {
-    data.message = `${data.message}\n\nRef: ${data.requestId}`;
   }
 }
 

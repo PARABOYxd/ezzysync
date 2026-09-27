@@ -16,8 +16,10 @@ function publicUser(user) {
     permissions: user.permissions,
     companyName: user.companyName,
     planId: user.planId || 'FREE',
+    planExpiresAt: user.planExpiresAt || null,
     createdAt: user.createdAt,
     trialDays: env.defaultTrialDays,
+    isSuperAdmin: Boolean(user.isSuperAdmin),
   };
 }
 
@@ -96,6 +98,9 @@ async function sendRegistrationOTP(req, res, next) {
     // Send OTP via email (falls back to console log in dev). Catch here so a
     // third-party provider error (e.g. Resend rejecting an address) doesn't
     // leak its raw message to the client via the generic error handler.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n========================================\n🔑 [DEV MODE] REGISTRATION OTP for ${email}: ${otp}\n========================================\n`);
+    }
     try {
       await emailService.sendRegistrationOTPEmail({ to: email, otp });
     } catch (emailErr) {
@@ -205,6 +210,9 @@ async function forgotPassword(req, res, next) {
     }
     const { otp, expiry } = otpService.generateOTP();
     await userService.setResetOTP(email, otp, expiry);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n========================================\n🔑 [DEV MODE] PASSWORD RESET OTP for ${email}: ${otp}\n========================================\n`);
+    }
     try {
       await emailService.sendOTPEmail({
         tenantId: user.tenantId,

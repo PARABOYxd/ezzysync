@@ -10,6 +10,7 @@ import * as aiService from '../../services/aiService';
 import { uploadFile } from '../../services/uploadService';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { useItineraryDays } from '../../hooks/useItineraryDays.js';
+import { usePlanStatus } from '../../hooks/usePlanStatus.js';
 import TagListEditor from './TagListEditor.jsx';
 import PickupOptionsEditor from './PickupOptionsEditor.jsx';
 import {
@@ -29,6 +30,8 @@ const emptyForm = {
 
 export default function QuotationFormModal({ open, onClose, onSaved, quotation, allQuotations = [] }) {
   const { user } = useAuth();
+  const { isExpired: planExpired, isTrial, limits } = usePlanStatus();
+  const isAiLocked = planExpired || (user?.planId === 'FREE' && !isTrial && limits?.canUseAi === false);
   const isEdit = !!(quotation && quotation.id);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -332,7 +335,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
           </div>
 
           {showAiBuilder && (
-            user?.planId === 'FREE' ? (
+            isAiLocked ? (
               <div className="pt-3 mt-3 border-t border-violet-100/60 text-center py-4 space-y-2">
                 <p className="text-xs text-slate-500 font-semibold">✨ AI Tour Planner is a Premium Feature</p>
                 <p className="text-[10px] text-slate-400">Upgrade to Pro in the AI Tools page to unlock auto-generation.</p>

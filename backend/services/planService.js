@@ -3,19 +3,71 @@ const env = require('../config/env');
 const planRepository = require('../repositories/planRepository');
 
 async function getTenantPlanLimits(tenantId) {
-  // 1. Fetch tenant created_at and plan_id
-  const { rows } = await query('SELECT plan_id, created_at FROM tenants WHERE id = $1', [tenantId]);
+  // 1. Fetch tenant created_at, plan_id, and lifecycle flags
+  const { rows } = await query(
+    'SELECT plan_id, created_at, is_suspended, is_paused, trial_extended_days, plan_expires_at FROM tenants WHERE id = $1',
+    [tenantId]
+  );
   const tenant = rows[0];
 
-  const trialDays = env.defaultTrialDays;
-  const createdTime = tenant?.created_at ? new Date(tenant.created_at).getTime() : Date.now();
-  const isWithinTrial = (Date.now() - createdTime) < (trialDays * 24 * 60 * 60 * 1000);
+  // If agency account is suspended by Super Admin -> Full lockout!
+  if (tenant?.is_suspended) {
+    return {
+      id: 'SUSPENDED',
+      name: 'Account Suspended',
+      maxBookings: 0,
+      maxTeamMembers: 0,
+      canDownloadInvoice: false,
+      canSendWhatsapp: false,
+      canConnectGmail: false,
+      canViewAuditLogs: false,
+      canExportReports: false,
+      canUseAi: false,
+      isTrial: false,
+      isExpired: true,
+      isSuspended: true,
+    };
+  }
 
-  // If currently within 30-day Free Trial -> unlock PRO features!
+  // If subscription is paused by Super Admin -> Temporary freeze!
+  if (tenant?.is_paused) {
+    return {
+      id: 'PAUSED',
+      name: 'Subscription Paused',
+      maxBookings: 0,
+      maxTeamMembers: 0,
+      canDownloadInvoice: false,
+      canSendWhatsapp: false,
+      canConnectGmail: false,
+      canViewAuditLogs: false,
+      canExportReports: false,
+      canUseAi: false,
+      isTrial: false,
+      isExpired: true,
+      isPaused: true,
+    };
+  }
+
+  // Determine trial / plan expiration time:
+  // If an explicit plan_expires_at is set (by Super Admin or billing), respect it!
+  // Otherwise calculate from created_at + (defaultTrialDays + trial_extended_days).
+  let trialEndTime;
+  if (tenant?.plan_expires_at) {
+    trialEndTime = new Date(tenant.plan_expires_at).getTime();
+  } else {
+    const totalTrialDays = Number(env.defaultTrialDays || 30) + (Number(tenant?.trial_extended_days) || 0);
+    const createdTime = tenant?.created_at ? new Date(tenant.created_at).getTime() : Date.now();
+    trialEndTime = createdTime + (totalTrialDays * 24 * 60 * 60 * 1000);
+  }
+
+  const isWithinTrial = Date.now() < trialEndTime;
+  const trialDaysLeft = Math.max(0, Math.ceil((trialEndTime - Date.now()) / (24 * 60 * 60 * 1000)));
+
+  // If currently within Free Trial -> unlock PRO features!
   if (isWithinTrial && (!tenant?.plan_id || tenant.plan_id === 'FREE' || tenant.plan_id === 'TRIAL')) {
     return {
       id: 'TRIAL',
-      name: 'Pro 30-Day Trial',
+      name: `Pro Trial (${trialDaysLeft}d left)`,
       maxBookings: -1,
       maxTeamMembers: 5,
       canDownloadInvoice: true,
@@ -26,6 +78,8 @@ async function getTenantPlanLimits(tenantId) {
       canUseAi: true,
       isTrial: true,
       isExpired: false,
+      trialDaysLeft,
+      expiresAt: tenant?.plan_expires_at || new Date(trialEndTime).toISOString(),
     };
   }
 
@@ -44,6 +98,7 @@ async function getTenantPlanLimits(tenantId) {
       canUseAi: false,
       isTrial: false,
       isExpired: true,
+      expiresAt: tenant?.plan_expires_at || new Date(trialEndTime).toISOString(),
     };
   }
 

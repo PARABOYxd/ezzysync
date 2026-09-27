@@ -1,10 +1,41 @@
 const { query } = require('../config/db');
 
-async function insertWalkthroughRequest({ name, agencyName, email, phone }) {
+async function insertWalkthroughRequest({
+  name,
+  agencyName,
+  email,
+  phone,
+  city = '',
+  state = '',
+  travelSpeciality = '',
+  instagramLink = '',
+  websiteLink = '',
+  websiteOrInstagram = '',
+  gstNumber = '',
+  visitingCardUrl = '',
+}) {
+  const effectiveSocial = instagramLink || websiteLink || websiteOrInstagram || '';
   const { rows } = await query(
-    `INSERT INTO walkthrough_requests (name, agency_name, email, phone)
-     VALUES ($1, $2, $3, $4) RETURNING *`,
-    [name, agencyName, email, phone || '']
+    `INSERT INTO walkthrough_requests (
+      name, agency_name, email, phone, city, state, travel_speciality,
+      website_or_instagram, instagram_link, website_link, gst_number, visiting_card_url
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    RETURNING *`,
+    [
+      name,
+      agencyName,
+      email,
+      phone || '',
+      city || '',
+      state || '',
+      travelSpeciality || '',
+      effectiveSocial,
+      instagramLink || '',
+      websiteLink || '',
+      gstNumber || '',
+      visitingCardUrl || '',
+    ]
   );
   return rows[0];
 }

@@ -42,6 +42,7 @@ const instagramRoutes = require('./routes/instagramRoutes');
 const instagramDirectRoutes = require('./routes/instagramDirectRoutes');
 const instagramDirectService = require('./services/instagramDirectService');
 const whatsappTemplateRoutes = require('./routes/whatsappTemplateRoutes');
+const superAdminRoutes = require('./routes/superAdminRoutes');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
@@ -171,6 +172,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/super-admin', superAdminRoutes);
 
 // Core CRM business routes (Accessible by tenants; AI is strictly gated by active subscription)
 app.use('/api/bookings', bookingRoutes);

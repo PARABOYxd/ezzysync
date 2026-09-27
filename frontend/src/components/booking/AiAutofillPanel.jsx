@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import * as bookingService from '../../services/bookingService';
 import { useToast } from '../../hooks/useToast.jsx';
+import { usePlanStatus } from '../../hooks/usePlanStatus.js';
 
 export default function AiAutofillPanel({ user, onParsed }) {
   const toast = useToast();
+  const { isExpired: planExpired, isTrial, limits } = usePlanStatus();
+  const isLocked = planExpired || (user?.planId === 'FREE' && !isTrial && limits?.canUseAi === false);
   const [aiText, setAiText] = useState('');
   const [aiFile, setAiFile] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -55,7 +58,7 @@ export default function AiAutofillPanel({ user, onParsed }) {
       </button>
 
       {showAi && (
-        user?.planId === 'FREE' ? (
+        isLocked ? (
           <div className="pt-3 mt-3 border-t border-violet-100/60 text-center py-4 space-y-2">
             <p className="text-xs text-slate-500 font-semibold">✨ AI Autofill is a Premium Feature</p>
             <p className="text-[10px] text-slate-400">Upgrade to Pro in the AI Tools page to unlock parsing.</p>
