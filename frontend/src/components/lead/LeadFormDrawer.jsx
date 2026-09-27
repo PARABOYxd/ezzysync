@@ -57,7 +57,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
       }).catch(() => { });
       batchService.getBatches().then((data) => setBatches(data || [])).catch(() => { });
     }
-  }, [open, lead, isTeamMember, user]);
+  }, [open, lead?.leadId, isTeamMember, user?.name]);
 
   const set = (key) => (e) => {
     let val = e.target.value;

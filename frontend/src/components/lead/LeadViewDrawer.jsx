@@ -65,11 +65,10 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
       leadService.getLead(lead.leadId)
         .then((data) => setLeadDetails(data))
         .catch(() => setLeadDetails(lead));
-      loadLogs();
     } else {
       setLeadDetails(null);
     }
-  }, [open, lead, loadLogs]);
+  }, [open, lead?.leadId, loadLogs]);
 
   if (!lead) return null;
   const currentLead = leadDetails || lead;

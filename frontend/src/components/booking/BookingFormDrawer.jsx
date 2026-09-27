@@ -87,7 +87,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
         }).catch(() => { });
       }
     }
-  }, [open, user, booking]);
+  }, [open, user?.role, booking?.bookingId]);
 
   useEffect(() => {
     if (open) {
