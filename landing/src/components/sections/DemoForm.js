@@ -36,7 +36,10 @@ export default function DemoForm() {
       setDemoData({ name: "", email: "", agency: "", phone: "" });
       setErrors({});
     } catch (err) {
-      setSubmitError(err.message || "Something went wrong. Please try again.");
+      const msg = (err?.message === "Failed to fetch" || !err?.message)
+        ? "Unable to reach the server. Please check your connection or try again."
+        : err.message;
+      setSubmitError(msg);
     } finally {
       setSubmitting(false);
     }
