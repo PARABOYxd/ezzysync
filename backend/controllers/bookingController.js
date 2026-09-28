@@ -121,6 +121,20 @@ async function remove(req, res, next) {
   }
 }
 
+/**
+ * One quoted CSV cell.
+ *
+ * Text a customer or agent typed is neutralised if it starts like a formula:
+ * a customer named `=HYPERLINK("http://evil","Click")` would otherwise become a
+ * live formula in whoever opens the export in Excel or Sheets. Numbers are
+ * left alone so a negative amount stays a number.
+ */
+function csvCell(value) {
+  let text = value == null ? '' : String(value);
+  if (typeof value !== 'number' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 async function exportCSV(req, res, next) {
   try {
     let bookings = await bookingService.listBookings(req.user.tenantId);
@@ -136,7 +150,7 @@ async function exportCSV(req, res, next) {
       lines.push(
         [b.bookingId, b.customerName, b.email, b.phone, b.trip, b.departure, b.members,
           b.totalAmount, b.paid, b.remaining, b.travelStatus, b.paymentStatus]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .map(csvCell)
           .join(',')
       );
     });

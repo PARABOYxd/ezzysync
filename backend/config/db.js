@@ -1,6 +1,14 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const env = require('./env');
 const logger = require('../utils/logger').child({ module: 'db' });
+
+// DATE columns come back as the 'YYYY-MM-DD' text they are, not as a JS Date.
+// pg's default builds a Date at *local* midnight, and the first
+// .toISOString() on it converts to UTC - on a server in India that is the
+// previous day. Every hotel check-in and check-out was read back one day
+// early, onto the booking screen and the voucher the customer receives.
+// A calendar date has no time zone, so it is never turned into an instant.
+types.setTypeParser(types.builtins.DATE, (value) => value);
 
 /**
  * A single shared connection pool, reused across the app.

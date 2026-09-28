@@ -21,10 +21,18 @@ async function createTenant({ planId = 'PRO' } = {}) {
 
   // Paid plans expire; without this the tenant reads as lapsed and every
   // feature check fails for a reason that has nothing to do with the test.
-  await query(
-    `UPDATE tenants SET plan_expires_at = now() + interval '30 days' WHERE id = $1`,
-    [tenantId]
-  );
+  //
+  // Only paid plans, though. On FREE, plan_expires_at *is* the trial end
+  // (planService honours it over created_at, which is how a super admin
+  // extends a trial), so setting it put every FREE tenant back on trial -
+  // a test that aged a FREE tenant past its trial still got AI and passed
+  // nothing. A FREE tenant's trial runs from created_at, as a real one does.
+  if (planId !== 'FREE') {
+    await query(
+      `UPDATE tenants SET plan_expires_at = now() + interval '30 days' WHERE id = $1`,
+      [tenantId]
+    );
+  }
 
   const user = await createUser(tenantId, { role: 'ADMIN' });
   return { tenantId, userId: user.id, email: user.email, company };
