@@ -301,7 +301,8 @@ async function listChats(tenantId, search) {
            l.assigned_to AS lead_assigned_to, l.priority AS lead_priority,
            nf.next_follow_up_date AS lead_next_follow_up_date,
            b.id AS booking_uuid, b.booking_id AS formatted_booking_id,
-           b.trip AS booking_trip, b.travel_status AS booking_travel_status, b.payment_status AS booking_payment_status
+           b.trip AS booking_trip, b.travel_status AS booking_travel_status, b.payment_status AS booking_payment_status,
+           b.pickup AS booking_pickup
     FROM whatsapp_chats c
     LEFT JOIN leads l ON l.id = c.lead_id
     LEFT JOIN bookings b ON b.id = c.booking_id
@@ -352,7 +353,8 @@ async function getChatWithContext(tenantId, chatId) {
             b.hotel_id AS booking_hotel_id, b.hotel_confirmation_no AS booking_hotel_confirmation_no,
             b.vehicle_type AS booking_vehicle_type, b.driver_name AS booking_driver_name,
             b.driver_phone AS booking_driver_phone, b.vehicle_number AS booking_vehicle_number,
-            b.transports AS booking_transports, b.hotels_stay AS booking_hotels_stay
+            b.transports AS booking_transports, b.hotels_stay AS booking_hotels_stay,
+            b.pickup AS booking_pickup
      FROM whatsapp_chats c
      LEFT JOIN leads l ON l.id = c.lead_id
      LEFT JOIN bookings b ON b.id = c.booking_id

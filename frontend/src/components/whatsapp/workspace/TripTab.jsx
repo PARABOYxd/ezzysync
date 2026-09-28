@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Loader2, Plus, Send, Plane, FileText, History } from 'lucide-react';
+import { Calendar, Loader2, Plus, Send, Plane, FileText, History, MapPin } from 'lucide-react';
 import * as customerService from '../../../services/customerService';
 import { inr, phoneKey, toQuoteShape, sectionTitleCls, relativeDay } from './helpers';
 
@@ -46,6 +46,8 @@ export default function TripTab({
 
   const quotes = (profile?.quotations || []).map(toQuoteShape);
   const pastBookings = (profile?.bookings || []).filter((b) => b.id !== chat.booking_uuid);
+  const currentBooking = (profile?.bookings || []).find((b) => b.id === chat.booking_uuid);
+  const bookingPickup = chat.booking_pickup || currentBooking?.pickup || '';
   const bookingCount = (n) => (n > 1 ? ` (${n})` : '');
   const hotels = Array.isArray(chat.booking_hotels_stay) ? chat.booking_hotels_stay.length : 0;
   const cabs = Array.isArray(chat.booking_transports) ? chat.booking_transports.length : 0;
@@ -64,6 +66,13 @@ export default function TripTab({
                 {chat.booking_departure ? `Departs ${formatDate(chat.booking_departure)}` : 'Departure not set'}
                 {chat.booking_members ? ` · ${chat.booking_members} pax` : ''}
               </p>
+              {bookingPickup && (
+                <p className="text-[11px] text-teal-950 dark:text-teal-200 mt-1.5 flex items-center gap-1 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                  <span className="text-teal-700/80 dark:text-teal-300/80">Pickup:</span>
+                  <span className="font-semibold truncate">{bookingPickup}</span>
+                </p>
+              )}
             </div>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 shrink-0">
               {chat.travel_status || 'Booked'}
@@ -163,9 +172,17 @@ export default function TripTab({
           <h4 className={`${sectionTitleCls} flex items-center gap-1`}><History className="w-3 h-3" /> Other trips · {pastBookings.length}</h4>
           <ul className="space-y-1.5">
             {pastBookings.map((b) => (
-              <li key={b.id} className="flex items-center justify-between gap-2 text-[11px] p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                <span className="min-w-0 truncate text-slate-700 dark:text-slate-200 font-medium">{b.trip}</span>
-                <span className="shrink-0 text-slate-500">{inr(b.total_amount)} · {b.travel_status}</span>
+              <li key={b.id} className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-0.5">
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="min-w-0 truncate text-slate-700 dark:text-slate-200 font-medium">{b.trip}</span>
+                  <span className="shrink-0 text-slate-500">{inr(b.total_amount)} · {b.travel_status}</span>
+                </div>
+                {b.pickup && (
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                    <span className="truncate">Pickup: {b.pickup}</span>
+                  </p>
+                )}
               </li>
             ))}
           </ul>

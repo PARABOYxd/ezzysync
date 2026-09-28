@@ -4,7 +4,7 @@ import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import FormRow from '../ui/FormRow.jsx';
 import Button from '../ui/Button.jsx';
-import { Calendar, Users, IndianRupee, MapPin, User, Mail } from 'lucide-react';
+import { Calendar, Users, IndianRupee, MapPin, User, Mail, Navigation } from 'lucide-react';
 import * as leadService from '../../services/leadService';
 import * as quotationService from '../../services/quotationService';
 import { useToast } from '../../hooks/useToast.jsx';
@@ -19,11 +19,13 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
     interest: '',
     customerName: '',
     paid: 0,
-    sourceQuotationId: ''
+    sourceQuotationId: '',
+    pickup: ''
   });
   const [itineraries, setItineraries] = useState([]);
   const [loadingItineraries, setLoadingItineraries] = useState(false);
   const [tripOther, setTripOther] = useState(false);
+  const [pickupOther, setPickupOther] = useState(false);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
@@ -37,9 +39,11 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         interest: lead.interest || '',
         customerName: lead.customerName || '',
         paid: 0,
-        sourceQuotationId: ''
+        sourceQuotationId: '',
+        pickup: ''
       });
       setTripOther(false);
+      setPickupOther(false);
       setLoadingItineraries(true);
 
       quotationService
@@ -56,10 +60,15 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
             if (!found) {
               setTripOther(true);
             } else {
+              const rawOpts = found.pickupOptions || [];
+              const opts = (Array.isArray(rawOpts) ? rawOpts : [])
+                .map((p) => (typeof p === 'string' ? { location: p, price: null } : p))
+                .filter((p) => p && (p.location || p.pickupPoint));
               setForm((prev) => ({
                 ...prev,
                 sourceQuotationId: quotationRef(found),
-                pricePerPerson: prev.pricePerPerson || found.priceQuote || ''
+                pricePerPerson: prev.pricePerPerson || found.priceQuote || '',
+                pickup: prev.pickup || (opts.length === 1 ? (opts[0].location || opts[0].pickupPoint) : '')
               }));
             }
           }
@@ -75,15 +84,62 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
     const val = e.target.value;
     if (val === '__other__') {
       setTripOther(true);
-      setForm((prev) => ({ ...prev, interest: '', sourceQuotationId: '' }));
+      setPickupOther(true);
+      setForm((prev) => ({ ...prev, interest: '', sourceQuotationId: '', pickup: '' }));
     } else {
       setTripOther(false);
       const selected = itineraries.find((q) => (q.trip_name || q.tripName) === val);
+      const rawOpts = selected?.pickupOptions || [];
+      const opts = (Array.isArray(rawOpts) ? rawOpts : [])
+        .map((p) => (typeof p === 'string' ? { location: p, price: null } : p))
+        .filter((p) => p && (p.location || p.pickupPoint));
+      const matchesExisting = opts.some((p) => (p.location || p.pickupPoint) === form.pickup);
+      setPickupOther(false);
       setForm((prev) => ({
         ...prev,
         interest: val,
         sourceQuotationId: quotationRef(selected),
-        pricePerPerson: selected?.priceQuote ? selected.priceQuote : prev.pricePerPerson
+        pricePerPerson: selected?.priceQuote ? selected.priceQuote : prev.pricePerPerson,
+        pickup: matchesExisting ? prev.pickup : (opts.length === 1 ? (opts[0].location || opts[0].pickupPoint) : '')
+      }));
+    }
+  };
+
+  const selectedQuotation = form.sourceQuotationId
+    ? itineraries.find((q) => quotationRef(q) === form.sourceQuotationId)
+    : itineraries.find((q) => {
+        const name = q.trip_name || q.tripName || '';
+        return name && form.interest && name.toLowerCase() === form.interest.toLowerCase();
+      });
+
+  const rawPickupOptions = selectedQuotation?.pickupOptions || [];
+  const pickupOptions = (Array.isArray(rawPickupOptions) ? rawPickupOptions : [])
+    .map((p) => {
+      if (!p) return null;
+      if (typeof p === 'string') return { location: p, price: null };
+      const loc = p.location || p.pickupPoint || p.name || '';
+      return loc ? { location: loc, price: p.price != null && !isNaN(Number(p.price)) ? Number(p.price) : null } : null;
+    })
+    .filter(Boolean);
+
+  const pickupIsCustom = pickupOther || (
+    pickupOptions.length > 0 &&
+    !!form.pickup &&
+    !pickupOptions.some((p) => p.location.toLowerCase() === (form.pickup || '').toLowerCase())
+  );
+
+  const handlePickupChange = (e) => {
+    const val = e.target.value;
+    if (val === '__other__') {
+      setPickupOther(true);
+      setForm((prev) => ({ ...prev, pickup: '' }));
+    } else {
+      setPickupOther(false);
+      const opt = pickupOptions.find((p) => p.location === val);
+      setForm((prev) => ({
+        ...prev,
+        pickup: val,
+        pricePerPerson: opt?.price != null ? opt.price : prev.pricePerPerson
       }));
     }
   };
@@ -128,6 +184,8 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
     try {
       await leadService.convertLeadToBooking(lead.leadId, {
         departure: form.departure,
+        pickup: (form.pickup || '').trim(),
+        pickupLocation: (form.pickup || '').trim(),
         members: Number(form.members || 1),
         pricePerPerson: Number(form.pricePerPerson || 0),
         email: form.email,
@@ -189,6 +247,53 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
             </div>
           )}
         </div>
+
+        {/* Pickup Location Selector */}
+        {pickupOptions.length > 0 ? (
+          <div className="w-full space-y-1.5">
+            <Select
+              label="Pickup Location"
+              icon={MapPin}
+              value={pickupIsCustom ? '__other__' : (form.pickup || '')}
+              onChange={handlePickupChange}
+              options={[
+                { value: '', label: 'Select pickup point' },
+                ...pickupOptions.map((p) => ({
+                  value: p.location,
+                  label: p.price != null ? `${p.location} (₹${Number(p.price).toLocaleString('en-IN')})` : p.location
+                })),
+                { value: '__other__', label: 'Other (Enter custom pickup location)' }
+              ]}
+            />
+            {pickupIsCustom && (
+              <div className="pt-1 animate-in fade-in duration-200">
+                <Input
+                  icon={Navigation}
+                  placeholder="Enter custom pickup location (e.g. Airport T3, Majnu Ka Tilla)"
+                  value={form.pickup}
+                  onChange={set('pickup')}
+                  autoFocus
+                />
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400">
+              Pickup points configured on this itinerary.
+            </p>
+          </div>
+        ) : (
+          <div className="w-full space-y-1.5">
+            <Input
+              label="Pickup Location (Optional)"
+              icon={MapPin}
+              placeholder="e.g. Delhi Airport T3, Majnu Ka Tilla"
+              value={form.pickup}
+              onChange={set('pickup')}
+            />
+            <p className="text-[10px] text-slate-400">
+              Enter the boarding or pickup spot for this booking.
+            </p>
+          </div>
+        )}
 
         <FormRow>
           <Input label="Departure Date" icon={Calendar} required type="date" value={form.departure} onChange={set('departure')} />

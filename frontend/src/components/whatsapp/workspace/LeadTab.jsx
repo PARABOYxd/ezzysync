@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, CalendarPlus, Loader2, Pencil, Users, CalendarDays, Target, FileText } from 'lucide-react';
+import { Briefcase, CalendarPlus, Loader2, Pencil, Users, CalendarDays, Target, FileText, MapPin } from 'lucide-react';
 import * as leadService from '../../../services/leadService';
 import { useToast } from '../../../hooks/useToast.jsx';
 import { mediaTypeOf, mediaNameOf } from '../../../utils/whatsappMessageFormatters';
@@ -151,6 +151,7 @@ export default function LeadTab({
                 <Detail icon={Target} label="Looking for" value={lead?.interest} />
                 <Detail icon={Users} label="Travellers" value={lead?.travelers ? `${lead.travelers} pax` : ''} />
                 <Detail icon={CalendarDays} label="Travel" value={lead?.departureDate ? new Date(lead.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''} />
+                {chat.booking_pickup && <Detail icon={MapPin} label="Pickup" value={chat.booking_pickup} />}
                 <Detail icon={FileText} label="Notes" value={lead?.notes} />
               </div>
             )}
