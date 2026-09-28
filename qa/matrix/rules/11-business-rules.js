@@ -329,9 +329,13 @@ export function generate(ctx) {
     title: 'Team seats are capped by the tenant\'s plan',
     tags: ['plans', 'limits'],
     run: async ({ request, assert }) => {
-      const plan = await request({ method: 'get', path: '/api/plans/me', token: admin() });
-      const limit = plan.body?.limits?.teamMembers ?? plan.body?.teamMembers ?? null;
-      if (limit == null || limit > 25) {
+      // Against the Solo tenant: tenant A is on an unlimited QA plan. This read
+      // `limits.teamMembers`, which /plans/me has never returned - the field is
+      // maxTeamMembers - so the rule always skipped and never tested the cap.
+      const token = ctx.users.soloAdmin.token;
+      const plan = await request({ method: 'get', path: '/api/plans/me', token });
+      const limit = plan.body?.limits?.maxTeamMembers ?? null;
+      if (limit == null || limit < 0 || limit > 25) {
         assert('plan-limit-readable', plan.status < 400, SEVERITY.low,
           'The plan limits endpoint did not report a seat cap that could be tested against.',
           { status: plan.status, limit });
@@ -341,7 +345,7 @@ export function generate(ctx) {
       let refusedAt = null;
       for (let i = 0; i < limit + 2 && refusedAt == null; i += 1) {
         const res = await request({
-          method: 'post', path: '/api/users', token: admin(),
+          method: 'post', path: '/api/users', token,
           body: { name: `QA Seat ${i}`, email: `${ctx.uniq('seat')}@qa.invalid`, password: 'QaPassword123', role: 'TEAM_MEMBER' },
         });
         if (res.status === 402 || res.status === 403 || res.status === 409) refusedAt = i;

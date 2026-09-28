@@ -21,6 +21,8 @@ import {
   Info,
 } from 'lucide-react';
 import { whatsappWebService } from '../../services/whatsappWebService';
+import { usePlanStatus } from '../../hooks/usePlanStatus.js';
+import AiUsageMeter from '../common/AiUsageMeter.jsx';
 import { useToast } from '../../hooks/useToast.jsx';
 import {
   formatTime,
@@ -116,6 +118,7 @@ export default function ChatThread({
   onLoadEarlier,
 }) {
   const toast = useToast();
+  const { limits: planLimits, usage: planUsage, refresh: refreshPlan } = usePlanStatus();
   const scrollBoxRef = useRef(null);
   // Height before an older page is prepended, so the view can stay on the
   // message the agent was reading instead of jumping.
@@ -185,6 +188,7 @@ export default function ChatThread({
       toast.error(err.response?.data?.message || 'AI could not draft a reply. Please try again.');
     } finally {
       setAiDrafting(false);
+      refreshPlan();
     }
   };
 
@@ -767,8 +771,9 @@ export default function ChatThread({
             <>
               <div className="fixed inset-0 z-10" onClick={() => setAiMenuOpen(false)} />
               <div className="absolute bottom-full right-0 mb-2 z-20 w-60 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
-                <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                  AI assist
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">AI assist</span>
+                  <AiUsageMeter compact limits={planLimits} usage={planUsage} />
                 </div>
                 {AI_ACTIONS.map((a) => {
                   const blocked = a.needsDraft && !inputText.trim();

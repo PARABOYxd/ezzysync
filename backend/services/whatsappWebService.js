@@ -779,9 +779,12 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     }
   }
 
-  // Auto-fill lead details (trip destination, travelers, dates, name) from the conversation
-  // Runs on all inbound customer messages even if chat is in human mode or agent took over
-  if (messageText && messageText.trim().length > 1) {
+  // Auto-fill lead details (trip destination, travelers, dates, name) from the
+  // conversation - only on chats where the agent has switched AI on. It used to
+  // run on every inbound message of every chat, AI on or not: an AI call per
+  // customer message that nobody had asked for. "Create lead" on a chat still
+  // pre-fills on request (whatsappWebController.createLeadFromChat).
+  if (chat.ai_enabled === true && messageText && messageText.trim().length > 1) {
     try {
       const aiContextRepository = require('../repositories/aiContextRepository');
       const leadService = require('./leadService');
@@ -816,6 +819,13 @@ async function generateAiReplyForChat(tenantId, phone, message) {
 
   if (!aiService.isConfigured()) {
     logger.warn({ tenantId }, 'Gemini is not configured - skipping AI reply');
+    return { reply: null, needsHuman: false };
+  }
+
+  // The one point the model is called, so the one point an action is spent.
+  const allowance = await require('./aiUsageService').tryConsume(tenantId, 'autopilot_reply');
+  if (!allowance.ok) {
+    logger.info({ tenantId }, 'Monthly AI allowance used up - leaving the chat for a person');
     return { reply: null, needsHuman: false };
   }
 

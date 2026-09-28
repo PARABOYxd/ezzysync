@@ -40,9 +40,10 @@ router.get('/me', async (req, res, next) => {
     const { tenantId } = req.user;
     const limits = await planService.getTenantPlanLimits(tenantId);
 
-    const [seatsUsed, bookingsUsed] = await Promise.all([
+    const [seatsUsed, bookingsUsed, aiUsage] = await Promise.all([
       planRepository.countTeamMembers(tenantId),
       planRepository.countActiveBookings(tenantId),
+      require('../services/aiUsageService').getUsage(tenantId),
     ]);
 
     res.json({
@@ -59,6 +60,7 @@ router.get('/me', async (req, res, next) => {
         maxTeamMembers: limits.maxTeamMembers,
         maxBookings: limits.maxBookings,
         canUseAi: limits.canUseAi,
+        aiActionsPerMonth: limits.aiActionsPerMonth ?? 0,
         canDownloadInvoice: limits.canDownloadInvoice,
         canSendWhatsapp: limits.canSendWhatsapp,
         canConnectGmail: limits.canConnectGmail,
@@ -68,6 +70,9 @@ router.get('/me', async (req, res, next) => {
       usage: {
         teamMembers: seatsUsed,
         bookings: bookingsUsed,
+        // This month's AI actions, for the meter on the plan page and the AI buttons.
+        aiActions: aiUsage.used,
+        aiActionsResetOn: aiUsage.resetsOn,
       },
     });
   } catch (err) {

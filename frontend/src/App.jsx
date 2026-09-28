@@ -27,7 +27,6 @@ import QuotationPreview from './pages/QuotationPreview.jsx';
 import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import Team from './pages/Team.jsx';
-import AITools from './pages/AITools.jsx';
 import Customers from './pages/Customers.jsx';
 import CustomerProfile from './pages/CustomerProfile.jsx';
 import Hotels from './pages/Hotels.jsx';
@@ -75,7 +74,6 @@ export default function App() {
         <Route path="/hotels" element={<RequirePermission module="hotels"><Hotels /></RequirePermission>} />
         <Route path="/guide" element={<HelpGuide />} />
         <Route path="/team" element={<Team />} />
-        <Route path="/ai-tools" element={<RequirePermission module="aiTools" action="use"><AITools /></RequirePermission>} />
         <Route path="/customers" element={<RequirePermission module="customers"><Customers /></RequirePermission>} />
         <Route path="/customers/:id" element={<RequirePermission module="customers"><CustomerProfile /></RequirePermission>} />
         <Route path="/billing" element={<RequirePermission module="billing"><BillingAnalytics /></RequirePermission>} />

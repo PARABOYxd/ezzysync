@@ -46,5 +46,8 @@ describe('module loading', () => {
     });
     const json = (out.stdout || '').trim().split('\n').pop();
     expect(JSON.parse(json || '[]')).toEqual([]);
-  });
+    // Loads every module in a child process: ~10s alone, several times that on
+    // a busy machine. The suite's 20s default failed it under load with nothing
+    // wrong - the child's own 60s limit above is the real bound.
+  }, 90_000);
 });

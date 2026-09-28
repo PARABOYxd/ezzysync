@@ -601,8 +601,13 @@ async function pollInbox(tenantId) {
     // to allow it, and an escalated chat stays with a human.
     const planAllowsAi = await planService.checkFeatureAccess(tenantId, 'canUseAi');
     const chatAiEnabled = saved.chat?.ai_enabled === true && saved.chat?.needs_human !== true;
+    // Spent only when every other condition allows a reply; once the month's
+    // allowance is gone the DM waits for a person, as with AI switched off.
+    const withinAllowance = planAllowsAi && chatAiEnabled
+      ? (await require('./aiUsageService').tryConsume(tenantId, 'autopilot_reply')).ok
+      : false;
 
-    if (planAllowsAi && chatAiEnabled) {
+    if (planAllowsAi && chatAiEnabled && withinAllowance) {
       try {
         broadcastToTenant(tenantId, {
           type: 'WHATSAPP_AI_TYPING',

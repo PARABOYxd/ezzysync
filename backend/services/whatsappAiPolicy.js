@@ -76,6 +76,15 @@ async function canAiReply(tenantId, chat, { messageAgeSeconds = 0, isBacklog = f
   const planAllows = await planService.checkFeatureAccess(tenantId, 'canUseAi');
   if (!planAllows) return { allowed: false, reason: 'plan does not include AI' };
 
+  // Checked, not spent: a caller can still decide not to reply after this
+  // (a closed window, a burst it waits out). The action is spent where the
+  // model is actually called. Once the allowance is gone the chat waits for
+  // a person, exactly as it would with the AI switched off.
+  const aiUsageService = require('./aiUsageService');
+  if (!(await aiUsageService.hasAllowance(tenantId))) {
+    return { allowed: false, reason: 'monthly AI allowance used up' };
+  }
+
   return { allowed: true, reason: 'ok' };
 }
 

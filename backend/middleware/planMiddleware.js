@@ -38,6 +38,36 @@ function requireUsageLimit(resource) {
   };
 }
 
+/**
+ * Spends one AI action from the tenant's monthly allowance before an AI route
+ * runs. A call that then fails on our side (5xx - the model timed out, the
+ * provider was down) is given back, so an agent is never charged for our
+ * failure; one that fails on theirs (bad input) still counts, as the model ran.
+ */
+function requireAiAllowance(feature) {
+  return async (req, res, next) => {
+    try {
+      const aiUsageService = require('../services/aiUsageService');
+      const result = await aiUsageService.tryConsume(req.user.tenantId, feature);
+      if (!result.ok) {
+        return res.status(result.reason === 'plan' ? 403 : 429).json({
+          message: aiUsageService.limitMessage(result),
+          code: result.reason === 'plan' ? 'FEATURE_LOCKED' : 'AI_LIMIT_REACHED',
+          used: result.used,
+          limit: result.limit,
+          resetsOn: result.resetsOn,
+        });
+      }
+      res.on('finish', () => {
+        if (res.statusCode >= 500) aiUsageService.refund(req.user.tenantId);
+      });
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
 async function requireActiveSubscription(req, res, next) {
   try {
     let tenantId = req.user?.tenantId;
@@ -79,5 +109,6 @@ async function requireActiveSubscription(req, res, next) {
 module.exports = {
   requireFeature,
   requireUsageLimit,
+  requireAiAllowance,
   requireActiveSubscription,
 };

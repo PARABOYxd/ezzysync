@@ -2,6 +2,9 @@ const { query } = require('../config/db');
 const env = require('../config/env');
 const planRepository = require('../repositories/planRepository');
 
+/** AI actions a trial tenant gets for the month - the Solo allowance. */
+const TRIAL_AI_ACTIONS = 500;
+
 async function getTenantPlanLimits(tenantId) {
   // 1. Fetch tenant created_at, plan_id, and lifecycle flags
   const { rows } = await query(
@@ -23,6 +26,7 @@ async function getTenantPlanLimits(tenantId) {
       canViewAuditLogs: false,
       canExportReports: false,
       canUseAi: false,
+      aiActionsPerMonth: 0,
       isTrial: false,
       isExpired: true,
       isSuspended: true,
@@ -42,6 +46,7 @@ async function getTenantPlanLimits(tenantId) {
       canViewAuditLogs: false,
       canExportReports: false,
       canUseAi: false,
+      aiActionsPerMonth: 0,
       isTrial: false,
       isExpired: true,
       isPaused: true,
@@ -76,6 +81,9 @@ async function getTenantPlanLimits(tenantId) {
       canViewAuditLogs: true,
       canExportReports: true,
       canUseAi: true,
+      // The trial shows off everything, AI included, but on the Solo
+      // allowance: a trial is for trying, and AI is the one per-use cost.
+      aiActionsPerMonth: TRIAL_AI_ACTIONS,
       isTrial: true,
       isExpired: false,
       trialDaysLeft,
@@ -96,6 +104,7 @@ async function getTenantPlanLimits(tenantId) {
       canViewAuditLogs: false,
       canExportReports: false,
       canUseAi: false,
+      aiActionsPerMonth: 0,
       isTrial: false,
       isExpired: true,
       expiresAt: tenant?.plan_expires_at || new Date(trialEndTime).toISOString(),
@@ -119,6 +128,7 @@ async function getTenantPlanLimits(tenantId) {
       canViewAuditLogs: false,
       canExportReports: false,
       canUseAi: false,
+      aiActionsPerMonth: 0,
       isTrial: false,
       isExpired: true,
       // Which plan lapsed, so the paywall can offer to renew that one rather
@@ -139,6 +149,7 @@ async function getTenantPlanLimits(tenantId) {
     canViewAuditLogs: plan.can_view_audit_logs,
     canExportReports: plan.can_export_reports,
     canUseAi: plan.can_use_ai,
+    aiActionsPerMonth: plan.can_use_ai ? Number(plan.ai_actions_per_month ?? 0) : 0,
     isTrial: false,
     isExpired: false,
     expiresAt: plan.plan_expires_at || null,

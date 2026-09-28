@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const { requireAuth } = require('../middleware/authMiddleware');
-const { requireFeature } = require('../middleware/planMiddleware');
+const { requireFeature, requireAiAllowance } = require('../middleware/planMiddleware');
 const { requirePermission } = require('../middleware/permissionMiddleware');
 const ctrl = require('../controllers/whatsappWebController');
 const { validate } = require('../middleware/validate');
@@ -37,7 +37,7 @@ router.get('/templates', ctrl.listSendableTemplates);
 router.post('/chats/:chatId/send-template', ctrl.sendTemplateMessage);
 
 router.post('/chats/:chatId/toggle-ai', requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleChatAi);
-router.post('/chats/:chatId/ai-suggest', requireFeature('canUseAi'), ctrl.aiSuggest);
+router.post('/chats/:chatId/ai-suggest', requireFeature('canUseAi'), requireAiAllowance('reply_draft'), ctrl.aiSuggest);
 router.post('/send-itinerary-pdf', ctrl.sendItineraryPdf);
 
 // Quick replies for the composer's "/" picker. Read-only: these are the

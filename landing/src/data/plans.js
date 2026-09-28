@@ -53,16 +53,17 @@ export const PLAN_PRICE_MONTHLY = {
 export const PLANS = [
   {
     name: "Solo Agent",
-    blurb: "For independent travel planners and consultants.",
+    blurb: "Every feature, for one travel consultant.",
     price: PLAN_PRICE_LABEL.SOLO,
     period: "/month",
+    // Everything Agency Growth has; the only difference is the team.
     features: [
-      "1 login",
-      "Up to 200 inquiries",
-      "Day-wise itinerary builder with PDF",
-      "Quotations and invoices",
-      "Follow-up reminders",
-      "Shared EzzySync WhatsApp number",
+      "1 login (just you)",
+      "Unlimited leads and bookings",
+      "Your own number on the official WhatsApp Cloud API",
+      "Day-wise itineraries, quotations and invoices",
+      "500 AI actions a month",
+      "Razorpay payments matched to bookings",
     ],
     cta: "trial",
   },
@@ -76,7 +77,7 @@ export const PLANS = [
       "Unlimited leads and bookings",
       "Your own number on the official WhatsApp Cloud API",
       "Team inbox on one shared number",
-      "AI itinerary generator",
+      "2,000 AI actions a month",
       "Razorpay payments matched to bookings",
       "Your letterhead on quotes and PDFs",
     ],

@@ -32,7 +32,6 @@ const TITLES = {
   '/hotels': 'Hotels & Stays',
   '/guide': 'User Guide',
   '/team': 'Team',
-  '/ai-tools': 'AI Travel Tools',
   '/billing': 'Billing & Analytics',
   '/expenses': 'Expenses',
 };
@@ -153,8 +152,8 @@ export default function DashboardLayout() {
               </span>
               <span className="leading-snug">
                 {lapsedPlanId
-                  ? 'Your subscription has ended. AI Travel Tools are paused.'
-                  : 'Your 30-day free trial has ended. AI Travel Tools & automation are paused.'}
+                  ? 'Your subscription has ended. AI features are paused.'
+                  : 'Your 30-day free trial has ended. AI features & automation are paused.'}
                 {' '}You can continue viewing your Dashboard, Bookings, Leads & Invoices.
               </span>
             </div>
@@ -198,8 +197,8 @@ export default function DashboardLayout() {
               </h2>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-md mx-auto">
                 {lapsedPlanId
-                  ? 'Renew below to re-enable AI Travel Tools, automated WhatsApp replies, and team collaboration.'
-                  : 'Upgrade to keep AI Travel Tools, automated WhatsApp replies, and team growth features active.'}
+                  ? 'Renew below to re-enable AI features, automated WhatsApp replies, and team collaboration.'
+                  : 'Upgrade to keep AI features, automated WhatsApp replies, and team growth features active.'}
               </p>
             </div>
 

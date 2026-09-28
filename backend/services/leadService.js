@@ -306,6 +306,11 @@ async function autoFillFromConversation(tenantId, phone, conversationText) {
   const missingDeparture = !lead.departure_date;
   if (!missingName && !missingTrip && !missingMembers && !missingDeparture) return;
 
+  // An AI action, like any other: skipped quietly once the month's allowance
+  // is gone - the lead just keeps what a person typed.
+  const aiUsageService = require('./aiUsageService');
+  if (!(await aiUsageService.tryConsume(tenantId, 'lead_autofill')).ok) return;
+
   const aiService = require('./aiService');
   const extracted = await aiService.extractLeadFieldsFromConversation(conversationText);
   if (!extracted) return;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import AiUsageMeter from '../common/AiUsageMeter.jsx';
 import Drawer from '../common/Drawer.jsx';
 import Input from '../ui/Input.jsx';
 import Textarea from '../ui/Textarea.jsx';
@@ -30,7 +31,7 @@ const emptyForm = {
 
 export default function QuotationFormModal({ open, onClose, onSaved, quotation, allQuotations = [] }) {
   const { user } = useAuth();
-  const { isExpired: planExpired, isTrial, limits } = usePlanStatus();
+  const { isExpired: planExpired, isTrial, limits, usage: planUsage, refresh: refreshPlan } = usePlanStatus();
   const isAiLocked = planExpired || (user?.planId === 'FREE' && !isTrial && limits?.canUseAi === false);
   const isEdit = !!(quotation && quotation.id);
   const [form, setForm] = useState(emptyForm);
@@ -115,6 +116,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
       toast.error(err.response?.data?.message || 'Failed to read the PDF.');
     } finally {
       setParsingItineraryPdf(false);
+      refreshPlan();
     }
   };
 
@@ -165,6 +167,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
       toast.error(err.response?.data?.message || 'Failed to generate itinerary with AI.');
     } finally {
       setAiLoading(false);
+      refreshPlan();
     }
   };
 
@@ -300,45 +303,34 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
   return (
     <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Itinerary' : 'Create Itinerary'}>
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* AI Auto-Planner Widget */}
-        <div className="bg-gradient-to-br from-violet-50/90 via-indigo-50/70 to-purple-50/80 border border-violet-200/80 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
-          <div className="flex items-center justify-between w-full">
+        {/* AI planner - optional, closed until the agent asks for it. Each
+            generation spends one AI action from the month's allowance. */}
+        <div className={`rounded-2xl border transition ${showAiBuilder ? 'border-violet-200 bg-violet-50/50 p-4' : 'border-slate-200 bg-white px-4 py-3'}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="p-1.5 rounded-lg bg-violet-100 text-violet-700 shrink-0">
+                <Wand2 size={15} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-800">Fill with AI <span className="font-normal text-slate-400">(optional)</span></p>
+                <p className="text-[11px] text-slate-500 truncate">Describe the trip and AI drafts the days, inclusions and pickups for you.</p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setShowAiBuilder(!showAiBuilder)}
-              className="flex items-center gap-2.5 text-left focus:outline-none flex-1 group cursor-pointer"
+              aria-expanded={showAiBuilder}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${showAiBuilder ? 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' : 'bg-violet-600 hover:bg-violet-700 text-white'}`}
             >
-              <div className="p-2 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white shadow-sm shrink-0 group-hover:scale-105 transition">
-                <Wand2 size={16} className="animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-800">
-                    AI Tour Planner: 1-Click Complete Package Generator
-                  </span>
-                  <span className="bg-violet-100 text-violet-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-violet-200/60">
-                    Auto-fills All Fields
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 font-normal mt-0.5">
-                  Fills Days, Route Attractions (Devprayag, Rudraprayag...), Inclusions, Exclusions & Pickups with price
-                </p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAiBuilder(!showAiBuilder)}
-              className="ml-3 bg-white hover:bg-violet-50 text-violet-700 border border-violet-200 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
-            >
-              {showAiBuilder ? 'Hide Planner' : 'Open Planner'}
+              {showAiBuilder ? 'Close' : 'Use AI'}
             </button>
           </div>
 
           {showAiBuilder && (
             isAiLocked ? (
               <div className="pt-3 mt-3 border-t border-violet-100/60 text-center py-4 space-y-2">
-                <p className="text-xs text-slate-500 font-semibold">✨ AI Tour Planner is a Premium Feature</p>
-                <p className="text-[10px] text-slate-400">Upgrade to Pro in the AI Tools page to unlock auto-generation.</p>
+                <p className="text-xs text-slate-500 font-semibold">AI is not included in your current plan</p>
+                <p className="text-[10px] text-slate-400">Choose a plan from Profile to use AI drafting.</p>
               </div>
             ) : (
               <div className="space-y-3.5 pt-3.5 mt-3.5 border-t border-violet-200/60 text-xs">
@@ -369,7 +361,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
                 <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-xl p-3 cursor-pointer transition ${parsingItineraryPdf ? 'border-violet-300 bg-violet-50/60' : 'border-violet-200 hover:border-violet-400 hover:bg-violet-50/30'}`}>
                   <ClipboardList size={15} className="text-violet-500 shrink-0" />
                   <span className="text-xs font-semibold text-violet-700">
-                    {parsingItineraryPdf ? 'Reading your PDF...' : 'Click to extract an itinerary/quotation PDF you already have'}
+                    {parsingItineraryPdf ? 'Reading your PDF…' : 'Extract an itinerary PDF you already have (1 AI action)'}
                   </span>
                   <input type="file" accept="application/pdf" className="hidden" disabled={parsingItineraryPdf} onChange={handleItineraryPdfUpload} />
                 </label>
@@ -438,7 +430,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
                         Complete package generated! All fields below have been auto-filled.
                       </span>
                     ) : (
-                      'Auto-fills itinerary timeline, attractions, inclusions, exclusions & pickups in seconds.'
+                      <AiUsageMeter compact limits={limits} usage={planUsage} />
                     )}
                   </div>
 
@@ -449,7 +441,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
                     className="px-5 h-10 bg-gradient-to-r from-violet-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                   >
                     <Sparkles size={14} className={aiLoading ? 'animate-spin' : ''} />
-                    {aiLoading ? 'Drafting Full Package...' : '✨ Generate & Prefill Complete Package'}
+                    {aiLoading ? 'Drafting…' : 'Generate with AI'}
                   </button>
                 </div>
               </div>
@@ -487,7 +479,7 @@ export default function QuotationFormModal({ open, onClose, onSaved, quotation, 
           <div>
             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
               <ClipboardList size={15} className="text-brand-500" />
-              <span>Day-by-Day Itinerary Timeline ({form.itineraryDays.length} Days)</span>
+              <span>Day-by-Day Itinerary Timeline ({form.itineraryDays.length} {form.itineraryDays.length === 1 ? 'Day' : 'Days'})</span>
             </h4>
             <p className="text-[10px] text-slate-400 mt-0.5">Rearrange, add or delete tour schedule nodes instantly</p>
           </div>

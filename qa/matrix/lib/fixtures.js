@@ -103,8 +103,21 @@ export async function seedWorld(app, { query }) {
     return res;
   };
 
-  const a = await insertTenant(query);
-  const b = await insertTenant(query);
+  // Tenant A and B are what every route is exercised against, and dozens of
+  // rules create team members and bookings along the way - on a real plan the
+  // seat cap (Growth: 5) is reached part-way and later valid requests are
+  // refused for a reason that has nothing to do with the route. They sit on an
+  // unlimited plan that exists only in this throwaway database. Plan caps are
+  // tested on their own tenant (soloAdmin below, business rules) and in
+  // backend/tests/planLimits.test.mjs.
+  await query(
+    `INSERT INTO plans (id, name, max_bookings, max_team_members, can_download_invoice, can_send_whatsapp,
+                        can_connect_gmail, can_view_audit_logs, can_export_reports, can_use_ai, ai_actions_per_month)
+     VALUES ('QA_UNLIMITED', 'QA Unlimited', -1, -1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, -1)
+     ON CONFLICT (id) DO NOTHING`
+  );
+  const a = await insertTenant(query, { planId: 'QA_UNLIMITED' });
+  const b = await insertTenant(query, { planId: 'QA_UNLIMITED' });
 
   const adminA = await insertUser(query, a.tenantId, { role: 'ADMIN' });
   const memberA = await insertUser(query, a.tenantId, { role: 'TEAM_MEMBER', permissions: grantedPermissions() });
@@ -198,10 +211,15 @@ export async function seedWorld(app, { query }) {
   await query('UPDATE users SET is_super_admin = true WHERE id = $1', [superAdmin.id]);
   resA.spareTenant = spare.tenantId;
 
+  // A real Solo agency (₹999: the owner is the only login), for the rule that
+  // checks a plan's seat cap is enforced by the API.
+  const solo = await insertTenant(query, { planId: 'SOLO' });
+  const soloAdmin = await insertUser(query, solo.tenantId, { role: 'ADMIN' });
+
   return {
     tenantA: a,
     tenantB: b,
-    users: { adminA, memberA, deniedA, adminB, superAdmin },
+    users: { adminA, memberA, deniedA, adminB, superAdmin, soloAdmin },
     resources: { A: resA, B: resB },
     seedFailures,
     tokenFor,

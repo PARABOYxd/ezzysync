@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getMyPlanStatus } from '../services/planService';
 
 /**
@@ -18,6 +18,9 @@ import { getMyPlanStatus } from '../services/planService';
 export function usePlanStatus() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Re-reads the plan, e.g. after an AI action so the "left" count is current.
+  const refresh = useCallback(() => getMyPlanStatus().then(setStatus).catch(() => {}), []);
 
   useEffect(() => {
     let active = true;
@@ -40,6 +43,7 @@ export function usePlanStatus() {
 
   return {
     loading,
+    refresh,
     plan: status?.plan || null,
     limits: status?.limits || null,
     usage: status?.usage || null,

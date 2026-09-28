@@ -27,7 +27,6 @@ export const APP_ROUTES = [
   { path: '/guide', name: 'User Guide' },
   // Admin-only by design: Team.jsx redirects everyone else.
   { path: '/team', name: 'Team', adminOnly: true },
-  { path: '/ai-tools', name: 'AI Tools', module: 'aiTools', action: 'use' },
   { path: '/customers', name: 'Customers', module: 'customers' },
   { path: '/customers/:id', name: 'Customer Profile', module: 'customers', param: 'customerId' },
   { path: '/billing', name: 'Billing', module: 'billing' },

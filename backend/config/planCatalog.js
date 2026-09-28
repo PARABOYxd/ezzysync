@@ -35,16 +35,18 @@ const PLANS = [
     // Ordering, not just labelling: a paid plan is never silently replaced by
     // one that ranks lower. See getPlanRank below.
     rank: 1,
-    tagline: 'For independent travel consultants.',
+    tagline: 'Every feature, for one travel consultant.',
     priceInPaise: 99900,
     period: 'month',
     highlight: false,
     features: [
-      { label: '1 Dedicated Agent Login', included: true },
-      { label: 'Up to 200 Client Leads', included: true },
-      { label: 'PDF Itinerary Builder', included: true },
-      { label: 'GST Tax Invoices', included: true },
-      { label: 'No AI Tools', included: false },
+      // Everything Agency Growth has - the only difference is the team.
+      { label: '1 Login (just you)', included: true },
+      { label: 'Unlimited Leads & Bookings', included: true },
+      { label: 'WhatsApp Live Chat & Business API', included: true },
+      { label: 'Itineraries, GST Quotes & Invoices', included: true },
+      { label: '500 AI actions / month ⚡', included: true },
+      { label: 'Team members', included: false },
     ],
   },
   {
@@ -61,7 +63,7 @@ const PLANS = [
       { label: 'Unlimited Bookings & Leads', included: true },
       { label: '1-Click WhatsApp Business API', included: true },
       { label: 'Multi-Agent Live Chat', included: true },
-      { label: 'AI Itinerary Generator ⚡', included: true },
+      { label: '2,000 AI actions / month ⚡', included: true },
       { label: 'Supplier Costing & Group Tours', included: true },
     ],
   },

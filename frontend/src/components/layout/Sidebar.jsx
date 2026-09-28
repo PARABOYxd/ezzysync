@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Sparkles, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare, BookUser, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, FileText, User, Settings, LogOut, Compass, X, Users, Map, Contact2, Kanban, ListTodo, Building2, HelpCircle, Layers, PieChart, Wallet, MessageSquare, BookUser, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { getFeatures } from '../../services/featureService';
 import { usePlanStatus } from '../../hooks/usePlanStatus.js';
@@ -30,7 +30,6 @@ export default function Sidebar({ open, onClose }) {
     { to: '/whatsapp-chat', label: features.instagram ? 'Live Chat (WA & IG)' : 'WhatsApp Live Chat', icon: MessageSquare, module: 'bookings' },
     { to: '/tour-batches', label: 'Group Tours', icon: Layers, module: 'tourBatches' },
     { to: '/quotations', label: 'Itineraries & Quotes', icon: Map, module: 'quotations' },
-    { to: '/ai-tools', label: 'AI Travel Tools ⚡', icon: Sparkles, module: 'aiTools', action: 'use' },
   ].filter(link => canRead(link.module, link.action || 'read'));
 
   const billingLinks = [

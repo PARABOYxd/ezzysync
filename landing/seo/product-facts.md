@@ -10,8 +10,8 @@ must not claim it. Update this file when the product changes.
 - Website: https://www.ezzysync.com — free trial, no credit card.
 
 ## Plans (monthly, INR)
-- Solo Agent — ₹999/month: 1 login, up to 200 inquiries, day-wise itinerary builder with PDF, quotations and invoices, follow-up reminders, shared EzzySync WhatsApp number.
-- Agency Growth — ₹2,499/month: up to 5 team logins, unlimited leads and bookings, your own number on the official Meta WhatsApp Cloud API, team inbox on one shared number, AI itinerary generator, Razorpay payments matched to bookings, your letterhead on quotes and PDFs.
+- Solo Agent — ₹999/month: every Agency Growth feature for one person — 1 login, unlimited leads and bookings, your own number on the official Meta WhatsApp Cloud API, day-wise itineraries, quotations and invoices, Razorpay payments, 500 AI actions a month.
+- Agency Growth — ₹2,499/month: up to 5 team logins, unlimited leads and bookings, your own number on the official Meta WhatsApp Cloud API, team inbox on one shared number, 2,000 AI actions a month, Razorpay payments matched to bookings, your letterhead on quotes and PDFs.
 - Enterprise & DMCs — custom pricing, billed annually: unlimited logins and roles, multiple branches, custom WhatsApp workflows, help migrating Excel/CSV data, dedicated onboarding.
 - 30-day free trial with full Pro access. Cancel or switch plans any time.
 

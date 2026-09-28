@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { copyText } from '../utils/clipboard.js';
-import { Plus, Search, Copy, Check, Trash2, Edit, Files, MapPin, CheckCircle } from 'lucide-react';
+import { Plus, Search, Copy, Check, Trash2, Edit, Files, CheckCircle } from 'lucide-react';
 import * as quotationService from '../services/quotationService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { useToast } from '../hooks/useToast.jsx';
@@ -166,10 +166,10 @@ export default function Quotations() {
 
       {/* ── CARD GRID LAYOUT ── */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="animate-pulse bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm h-72">
-              <div className="bg-slate-100 dark:bg-zinc-800 w-full aspect-[4/3]" />
+            <div key={i} className="animate-pulse bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm h-72">
+              <div className="bg-slate-100 dark:bg-zinc-800 w-full aspect-[16/10]" />
               <div className="p-5 space-y-3">
                 <div className="h-4 bg-slate-100 dark:bg-zinc-800 rounded w-2/3" />
                 <div className="h-3 bg-slate-100 dark:bg-zinc-800 rounded w-1/3" />
@@ -184,100 +184,110 @@ export default function Quotations() {
         />
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
             {quotations.map((q) => {
               const nights = q.itineraryDays?.length > 1 ? q.itineraryDays.length - 1 : 0;
               const durationText = `${q.itineraryDays?.length || 1}D${nights > 0 ? ` / ${nights}N` : ''}`;
+              const iconBtn = 'h-9 flex-1 flex items-center justify-center rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-800 dark:hover:text-zinc-100 transition disabled:opacity-50 cursor-pointer';
               return (
-                <div key={q.quotationId} className="group relative flex flex-col bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 min-h-[250px] w-full sm:max-w-[270px]">
-                  
-                  {/* Card Cover Image (Uses banner_url if uploaded, falls back to default nature photo) */}
-                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-zinc-800 border-b border-slate-100 dark:border-zinc-800/60">
+                <div key={q.quotationId} className="group flex flex-col bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  {/* Cover, with how long the trip is and where the quote stands */}
+                  <div className="relative w-full aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-zinc-800">
                     <img
                       src={getItineraryImage(q.bannerUrl)}
-                      alt={q.tripName}
+                      alt=""
+                      loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
+                    <span className="absolute top-2.5 left-2.5 text-[11px] font-bold text-white bg-black/55 backdrop-blur-sm px-2 py-0.5 rounded-md">
+                      {durationText}
+                    </span>
+                    {q.status && (
+                      <span className="absolute top-2.5 right-2.5">
+                        <QuotationStatusBadge status={q.status} />
+                      </span>
+                    )}
                   </div>
 
-                  {/* Card Body */}
-                  <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-start gap-2">
-                        <h4 className="font-bold text-slate-800 dark:text-zinc-100 text-xs truncate flex-1" title={q.tripName}>
-                          {q.tripName}
-                        </h4>
-                        <span className="text-[9px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 px-1.5 py-0.5 rounded shrink-0">
-                          {durationText}
-                        </span>
+                  {/* Name and price get the room: the price used to share a
+                      footer strip with five icons and was cut off. */}
+                  <div className="p-4 flex-1 flex flex-col gap-2">
+                    <h4 className="font-semibold text-sm text-slate-800 dark:text-zinc-100 leading-snug line-clamp-2" title={q.tripName}>
+                      {q.tripName}
+                    </h4>
+                    <div className="mt-auto flex items-end justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums leading-tight">
+                          {Number(q.priceQuote) > 0 ? formatCurrency(q.priceQuote) : <span className="text-sm font-medium text-slate-400">No price set</span>}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
+                          {q.customerName && q.customerName !== 'TBD' ? q.customerName : 'Template'}
+                          {q.createdAt ? ` · ${formatDate(q.createdAt)}` : ''}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Card Bottom Solid Footer Strip (Actions on left, Price on right) */}
-                  <div className="bg-brand-600 dark:bg-brand-700 px-3 py-1.5 flex justify-between items-center text-white text-xs font-bold border-t border-brand-500/10">
-                    
-                    {/* Embedded Action Icon Buttons */}
-                    <div className="flex items-center gap-1 shrink-0">
+                  {/* Actions */}
+                  <div className="flex items-center gap-0.5 px-2 py-1.5 border-t border-slate-100 dark:border-zinc-800">
+                    <button
+                      type="button"
+                      onClick={() => copyPreviewLink(q.id, q.quotationId)}
+                      className={iconBtn}
+                      title="Copy the customer link"
+                      aria-label={`Copy the customer link for ${q.tripName}`}
+                    >
+                      {copiedId === q.quotationId ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
+                    </button>
+                    {canCreate && (
                       <button
-                        onClick={() => copyPreviewLink(q.id, q.quotationId)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition"
-                        title="Copy public link"
+                        type="button"
+                        onClick={() => handleDuplicate(q.quotationId)}
+                        className={iconBtn}
+                        title="Duplicate"
+                        aria-label={`Duplicate ${q.tripName}`}
                       >
-                        {copiedId === q.quotationId ? (
-                          <Check size={14} className="text-emerald-300" />
-                        ) : (
-                          <Copy size={14} />
-                        )}
+                        <Files size={15} />
                       </button>
-                      {canCreate && (
-                        <button
-                          onClick={() => handleDuplicate(q.quotationId)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition"
-                          title="Duplicate"
-                        >
-                          <Files size={14} />
-                        </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          onClick={() => {
-                            setEditingQuotation(q);
-                            setFormOpen(true);
-                          }}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition"
-                          title="Edit"
-                        >
-                          <Edit size={14} />
-                        </button>
-                      )}
-                      {canEdit && q.status !== 'Accepted' && (
-                        <button
-                          onClick={() => handleConvertToBooking(q)}
-                          disabled={convertingId === q.quotationId}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 text-white/90 hover:text-white transition disabled:opacity-50"
-                          title="Convert to Booking - use when the customer confirmed by phone/in person"
-                        >
-                          <CheckCircle size={14} />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          onClick={() => setDeleteTarget(q)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-600/30 active:bg-rose-600/50 text-rose-200 hover:text-rose-100 transition"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Price Quote */}
-                    <span className="text-xs font-extrabold font-mono shrink-0">
-                      {formatCurrency(q.priceQuote)}
-                    </span>
+                    )}
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingQuotation(q);
+                          setFormOpen(true);
+                        }}
+                        className={iconBtn}
+                        title="Edit"
+                        aria-label={`Edit ${q.tripName}`}
+                      >
+                        <Edit size={15} />
+                      </button>
+                    )}
+                    {canEdit && q.status !== 'Accepted' && (
+                      <button
+                        type="button"
+                        onClick={() => handleConvertToBooking(q)}
+                        disabled={convertingId === q.quotationId}
+                        className={iconBtn}
+                        title="Convert to Booking - use when the customer confirmed by phone/in person"
+                        aria-label={`Convert ${q.tripName} to a booking`}
+                      >
+                        <CheckCircle size={15} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(q)}
+                        className="h-9 flex-1 flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 transition cursor-pointer"
+                        title="Delete"
+                        aria-label={`Delete ${q.tripName}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
-
                 </div>
               );
             })}

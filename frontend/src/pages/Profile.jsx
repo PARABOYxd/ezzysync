@@ -9,6 +9,7 @@ import { usePlanStatus } from '../hooks/usePlanStatus.js';
 import Input from '../components/ui/Input.jsx';
 import FormRow from '../components/ui/FormRow.jsx';
 import Button from '../components/ui/Button.jsx';
+import AiUsageMeter from '../components/common/AiUsageMeter.jsx';
 import { 
   User, Mail, Building2, Lock, ShieldCheck, Key,
   Crown, CheckCircle2, XCircle, ArrowUpRight, Sparkles, 
@@ -40,7 +41,7 @@ export default function Profile() {
   }, [searchParams, setSearchParams]);
   const toast = useToast();
 
-  const { isExpired: planExpired, isTrial: serverIsTrial, trialDaysLeft, expiresAt } = usePlanStatus();
+  const { isExpired: planExpired, isTrial: serverIsTrial, trialDaysLeft, expiresAt, limits: planLimits, usage: planUsage } = usePlanStatus();
 
   const totalTrialDays = Number(user?.trialDays || import.meta.env.VITE_TRIAL_DAYS || 30);
   const registrationDate = user?.createdAt ? new Date(user.createdAt) : new Date();
@@ -245,21 +246,19 @@ export default function Profile() {
                 <CheckCircle2 size={15} className="text-emerald-500" />
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
-                {isSolo ? '200 Active Limit' : 'Unlimited Bookings'}
+                Unlimited
               </p>
             </div>
 
-            {/* Feature 3 */}
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-amber-500" /> AI Travel Tools
-                </span>
-                <CheckCircle2 size={15} className="text-emerald-500" />
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
-                Gemini AI Itineraries
-              </p>
+            {/* Feature 3: the month's AI allowance, live */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800">
+              {planLimits && planUsage ? (
+                <AiUsageMeter limits={planLimits} usage={planUsage} />
+              ) : (
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-amber-500" /> {isSolo ? '500' : '2,000'} AI actions / month
+                </p>
+              )}
             </div>
 
             {/* Feature 4 */}

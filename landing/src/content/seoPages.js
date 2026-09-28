@@ -430,7 +430,7 @@ export const solutionPages = [
       { title: "Professional quotes", body: "Day-wise itinerary and GST quote on your letterhead.", href: "/features/itinerary-builder" },
       { title: "Invoices and payments", body: "Advance, balance and GST invoice on the booking.", href: "/features/booking-management" },
     ],
-    plan: "Solo Agent — 1 login, up to 200 inquiries, itineraries, quotes and invoices.",
+    plan: "Solo Agent — every feature for one person: 1 login, unlimited leads, itineraries, quotes, invoices and 500 AI actions a month.",
     faqs: [
       {
         q: "Do I need a GST number to use EzzySync?",

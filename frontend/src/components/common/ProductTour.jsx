@@ -72,7 +72,7 @@ const TOUR_STEPS = [
     route: '/whatsapp-chat',
     target: '#tour-sidebar',
     badge: 'Live Automation',
-    title: '💬 Live WhatsApp Chat & AI Travel Tools',
+    title: '💬 Live WhatsApp Chat & AI',
     description: 'Chat directly with customers from inside the CRM, send approved template updates, and generate 5-day itineraries in 10 seconds using AI.',
     dataGuide: 'Features Available: In-app WhatsApp client chat, pre-approved message templates, AI Trip Planner, and automated reminders.',
     preferredPlacement: 'right',

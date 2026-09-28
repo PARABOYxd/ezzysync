@@ -206,26 +206,33 @@ async function processIncomingWebhook(body) {
         }
 
         if (settings.whatsappAiAutoReply !== false && verdict.allowed && aiPolicy.claim(saved.chat.id)) {
-          // ── Human-like delay: wait 5 seconds before replying ──────────────
-          // This also acts as a debounce — if the customer sends another
-          // message within these 5 seconds we will detect it below and skip.
+          // Human-like delay, and time for the rest of a burst to arrive.
           await new Promise((resolve) => setTimeout(resolve, 5000));
 
-          // ── Debounce guard: check if a newer message arrived from this
-          // sender during the 5-second delay. Use integer id comparison
-          // (more reliable than timestamp which can collide in same second).
+          // A newer message arriving during the wait is part of the same burst.
+          // It used to make this handler skip, on the theory that the newer
+          // message's own handler would answer - but that handler could not
+          // claim the chat (this one holds it) and had already given up, so a
+          // burst got no reply at all. The claim holder answers the whole
+          // burst: the recent messages are combined just below.
           const newerMsg = await whatsappRepo.findNewerInboundMessage(tenantId, saved.chat.id, saved.message.id);
           if (newerMsg) {
-            // A newer message exists — only the LAST message handler should reply.
-            // Let all earlier ones skip; the last one will have no newer msg and will reply.
-            logger.info({ tenantId, from, newerMsgId: newerMsg.id }, '[WhatsApp Webhook] Newer message detected — skipping, last message will reply');
-            continue; // this message only; the rest of the batch still runs
+            logger.info({ tenantId, from, newerMsgId: newerMsg.id }, '[WhatsApp Webhook] More messages arrived during the wait - answering the burst together');
           }
 
-          // This IS the latest message — fetch the most recent inbound text
-          // (combines all messages the customer sent in this burst)
+          // Fetch the customer's most recent messages, so the reply answers
+          // the whole burst rather than only the first line of it.
           const recentInbound = await whatsappRepo.listRecentInboundMessages(tenantId, saved.chat.id, 3);
           const latestText = recentInbound.length > 0 ? recentInbound.join(' ') : text;
+
+          // Spent here, after the burst has been waited out, so a customer
+          // sending three quick messages costs one action, not three.
+          const allowance = await require('./aiUsageService').tryConsume(tenantId, 'autopilot_reply');
+          if (!allowance.ok) {
+            logger.info({ tenantId, from }, '[WhatsApp Webhook] Monthly AI allowance used up - leaving the chat for a person');
+            aiPolicy.release(saved.chat.id);
+            continue;
+          }
 
           logger.info({ tenantId, from }, '[WhatsApp Webhook] Initiating AI auto-reply generation');
 
