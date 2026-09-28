@@ -34,6 +34,26 @@ async function getTenantDetails(req, res, next) {
   }
 }
 
+async function createTenant(req, res, next) {
+  try {
+    const { email, password, name, companyName } = req.body;
+    const user = await superAdminService.createTenant({ email, password, name, companyName }, req.user);
+    res.status(201).json({
+      success: true,
+      message: `Agency "${user.companyName}" created.`,
+      tenant: {
+        tenantId: user.tenantId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        companyName: user.companyName,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function updatePlan(req, res, next) {
   try {
     const { id } = req.params;
@@ -110,6 +130,7 @@ module.exports = {
   getStats,
   listTenants,
   getTenantDetails,
+  createTenant,
   updatePlan,
   updateProfile,
   toggleSuspension,

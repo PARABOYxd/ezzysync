@@ -1,5 +1,6 @@
 const superAdminRepo = require('../repositories/superAdminRepository');
 const tokenService = require('./tokenService');
+const userService = require('./userService');
 const { rowToUser } = require('../models/userSchema');
 const logger = require('../utils/logger').child({ module: 'superAdmin' });
 
@@ -19,6 +20,21 @@ async function getTenantDetails(tenantId) {
     throw err;
   }
   return details;
+}
+
+/**
+ * Creates a new agency with its ADMIN login, skipping the email OTP that
+ * self-signup requires. Goes through userService.createUser so the tenant,
+ * user and settings rows come out exactly as a normal registration would.
+ */
+async function createTenant(payload, adminUser) {
+  const user = await userService.createUser(payload);
+  logger.info({
+    admin: adminUser.email,
+    tenantId: user.tenantId,
+    email: user.email,
+  }, 'Super Admin created agency account');
+  return user;
 }
 
 async function updateTenantPlan(tenantId, payload, adminUser) {
@@ -116,6 +132,7 @@ module.exports = {
   getStats,
   listTenants,
   getTenantDetails,
+  createTenant,
   updateTenantPlan,
   updateTenantProfile,
   setTenantSuspended,
