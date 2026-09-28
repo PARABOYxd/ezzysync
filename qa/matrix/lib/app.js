@@ -94,6 +94,7 @@ export function buildApp() {
     mount('/api/instagram-direct', backendRequire('./routes/instagramDirectRoutes'));
   }
   mount('/api/whatsapp/templates', backendRequire('./routes/whatsappTemplateRoutes'));
+  mount('/api/super-admin', backendRequire('./routes/superAdminRoutes'));
 
   app.use(notFoundHandler);
   app.use(errorHandler);
@@ -108,5 +109,5 @@ export const MOUNTED_PREFIXES = [
   '/api/whatsapp', '/api/whatsapp-web', '/api/settings', '/api/upload', '/api/users',
   '/api/quotations', '/api/customers', '/api/follow-ups', '/api/ai', '/api/expenses',
   '/api/batches', '/api/hotels', '/api/instagram', '/api/instagram-direct',
-  '/api/whatsapp/templates',
+  '/api/whatsapp/templates', '/api/super-admin',
 ];

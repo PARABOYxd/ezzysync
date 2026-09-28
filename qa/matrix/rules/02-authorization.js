@@ -15,8 +15,12 @@
  *
  * Routes gated on role directly (`adminOnly`) are checked the other way: both
  * team members must be refused, permissions or not.
+ *
+ * Platform routes (`superAdminOnly`) go one step further: the tenant's own
+ * admin must be refused too. An agency owner reaching one of these could
+ * list, suspend, impersonate or delete every other agency on the platform.
  */
-import { ENDPOINTS } from '../lib/inventory.js';
+import { ENDPOINTS, SUPER_ADMIN_ENDPOINTS } from '../lib/inventory.js';
 import { makeCase, resolvePath } from '../lib/case.js';
 import { isForbidden, notForbidden, noServerError, noCrash, SEVERITY } from '../lib/expect.js';
 
@@ -102,6 +106,50 @@ export function generate(ctx) {
         tags: ['rbac', 'admin'],
       }));
     }
+  }
+
+  for (const endpoint of SUPER_ADMIN_ENDPOINTS) {
+    const path = resolvePath(endpoint, ctx);
+    if (!path) {
+      skipped.push({ rule: name, endpoint: endpoint.id, reason: 'path parameter could not be resolved' });
+      continue;
+    }
+    const body = endpoint.sample ? endpoint.sample(ctx) : undefined;
+    const verb = `${endpoint.method.toUpperCase()} ${endpoint.path}`;
+
+    for (const [who, user] of [['a team member with no permissions', ctx.users.deniedA], ['a team member with every permission', ctx.users.memberA], ['the tenant admin', ctx.users.adminA]]) {
+      cases.push(makeCase({
+        rule: name,
+        endpoint,
+        title: `${verb} as ${who} (platform-only route)`,
+        path,
+        body,
+        token: user.token,
+        checks: [isForbidden(), noServerError(SEVERITY.high)],
+        tags: ['rbac', 'security', 'super-admin', 'denied'],
+        meta: { permission: 'super-admin' },
+      }));
+    }
+
+    // Deleting the spare agency would prove only that DELETE deletes; the three
+    // refusals above carry the security claim.
+    if (endpoint.destructive) {
+      skipped.push({ rule: name, endpoint: endpoint.id, reason: 'super-admin success case skipped on a destructive route' });
+      continue;
+    }
+    cases.push(makeCase({
+      rule: name,
+      endpoint,
+      title: `${verb} as a super admin`,
+      path,
+      body,
+      token: ctx.users.superAdmin.token,
+      checks: [
+        { label: 'super-admin-not-blocked', fn: (res) => res.status !== 401 && res.status !== 403, severity: SEVERITY.high, why: 'A platform administrator was refused a platform route.' },
+        noCrash(endpoint, SEVERITY.high),
+      ],
+      tags: ['rbac', 'super-admin', 'admin'],
+    }));
   }
 
   // Routes with no declared permission at all, reachable by any team member.

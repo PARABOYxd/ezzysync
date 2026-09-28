@@ -602,6 +602,42 @@ export const ENDPOINTS = [
   },
 ];
 
+/**
+ * Platform administration (requireSuperAdmin). Kept out of ENDPOINTS on
+ * purpose: every rule there acts as a tenant admin and expects to be let in,
+ * and here a tenant admin must be refused. They get authentication,
+ * authorization (tenant admin and both members refused, the super admin let
+ * in) and coverage parity; field validation of the create route lives in the
+ * backend suite (superAdminCreateTenant.test.mjs).
+ *
+ * :id is always the spare tenant from fixtures, never tenant A or B.
+ */
+export const SUPER_ADMIN_ENDPOINTS = [
+  { id: 'superAdmin.stats', method: 'get', path: '/api/super-admin/stats', auth: 'required', superAdminOnly: true },
+  { id: 'superAdmin.listTenants', method: 'get', path: '/api/super-admin/tenants', auth: 'required', superAdminOnly: true, list: true },
+  {
+    id: 'superAdmin.createTenant', method: 'post', path: '/api/super-admin/tenants', auth: 'required', superAdminOnly: true, mutating: true,
+    body: { email: req(T.email), password: req(T.string), name: req(T.string), companyName: req(T.string) },
+    sample: (ctx) => ({ email: `${ctx.uniq('sa.created')}@qa.invalid`, password: 'QaAgency#2026', name: 'QA Owner', companyName: 'QA Created Agency' }),
+  },
+  { id: 'superAdmin.tenant', method: 'get', path: '/api/super-admin/tenants/:id', auth: 'required', superAdminOnly: true, params: { id: 'spareTenant' } },
+  {
+    id: 'superAdmin.updatePlan', method: 'patch', path: '/api/super-admin/tenants/:id/plan', auth: 'required', superAdminOnly: true, mutating: true,
+    params: { id: 'spareTenant' }, sample: () => ({ planId: 'PRO' }),
+  },
+  {
+    id: 'superAdmin.updateProfile', method: 'patch', path: '/api/super-admin/tenants/:id/profile', auth: 'required', superAdminOnly: true, mutating: true,
+    params: { id: 'spareTenant' }, sample: () => ({ adminNotes: 'QA matrix note' }),
+  },
+  {
+    // Un-suspending, so even the successful call leaves the spare agency usable.
+    id: 'superAdmin.status', method: 'patch', path: '/api/super-admin/tenants/:id/status', auth: 'required', superAdminOnly: true, mutating: true,
+    params: { id: 'spareTenant' }, sample: () => ({ isSuspended: false }),
+  },
+  { id: 'superAdmin.impersonate', method: 'post', path: '/api/super-admin/tenants/:id/impersonate', auth: 'required', superAdminOnly: true, mutating: true, params: { id: 'spareTenant' } },
+  { id: 'superAdmin.deleteTenant', method: 'delete', path: '/api/super-admin/tenants/:id', auth: 'required', superAdminOnly: true, params: { id: 'spareTenant' }, destructive: true },
+];
+
 export const byId = Object.fromEntries(ENDPOINTS.map((e) => [e.id, e]));
 
 /** Endpoints with at least one :param in the path. */

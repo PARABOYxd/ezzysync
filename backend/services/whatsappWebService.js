@@ -1164,6 +1164,36 @@ async function shutdownAllSessions() {
 }
 
 /**
+ * Meta's answer to "do these Cloud API credentials work?", remembered per
+ * tenant for a short while.
+ *
+ * The inbox asked this on every poll - a round trip to graph.facebook.com
+ * (250-500ms) every few seconds from every open tab, which was the slowest
+ * request on the page and a steady drain on Meta's rate limit. Credentials
+ * are part of the key, so saving new ones is seen on the very next check.
+ * A failed check is kept for less time so a recovered token shows quickly.
+ */
+const CLOUD_HEALTH_OK_TTL_MS = 60 * 1000;
+const CLOUD_HEALTH_FAIL_TTL_MS = 15 * 1000;
+const cloudHealthCache = new Map(); // tenantId -> { key, expiresAt, value }
+
+async function getCloudHealthCached(tenantId, settings) {
+  const whatsappService = require('./whatsappService');
+  const key = require('crypto')
+    .createHash('sha256')
+    .update(`${settings?.whatsappPhoneNumberId || ''}|${settings?.whatsappAccessToken || ''}`)
+    .digest('hex');
+
+  const hit = cloudHealthCache.get(tenantId);
+  if (hit && hit.key === key && hit.expiresAt > Date.now()) return hit.value;
+
+  const value = await whatsappService.checkCloudApiHealth(settings);
+  const ttl = value.healthy || !value.configured ? CLOUD_HEALTH_OK_TTL_MS : CLOUD_HEALTH_FAIL_TTL_MS;
+  cloudHealthCache.set(tenantId, { key, expiresAt: Date.now() + ttl, value });
+  return value;
+}
+
+/**
  * One answer to "what is actually connected, and what will a reply use?".
  *
  * Settings showed each channel separately and called the Cloud API
@@ -1173,14 +1203,13 @@ async function shutdownAllSessions() {
  */
 async function getConnectionOverview(tenantId) {
   const settingsService = require('./settingsService');
-  const whatsappService = require('./whatsappService');
 
   const [qr, settings, aiCounts] = await Promise.all([
     getSessionStatus(tenantId),
     settingsService.getSettingsWithSecrets(tenantId),
     whatsappWebRepository.countChatsByAiState(tenantId),
   ]);
-  const cloud = await whatsappService.checkCloudApiHealth(settings);
+  const cloud = await getCloudHealthCached(tenantId, settings);
 
   // Mirrors whatsappSendService.chooseTransportForNewChat.
   const newChatsUse = qr.canSend ? 'qr' : (cloud.configured ? 'cloud_api' : null);

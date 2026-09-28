@@ -99,7 +99,7 @@ describe('WhatsApp inbox', () => {
         sender: 'customer', messageText: 'only mine', status: 'delivered',
       });
 
-      const messages = await repo.listMessages(tenant.tenantId, chat.id);
+      const { messages } = await repo.listMessages(tenant.tenantId, chat.id);
       expect(messages).toHaveLength(1);
     });
   });
@@ -143,7 +143,7 @@ describe('WhatsApp inbox', () => {
         sender: 'customer', messageText: 'just now', status: 'delivered',
       });
 
-      const messages = await repo.listMessages(tenant.tenantId, chat.id);
+      const { messages } = await repo.listMessages(tenant.tenantId, chat.id);
       expect(messages.map((m) => m.message_id)).toEqual(['OLD', 'NEW']);
 
       const drift = Math.abs(
@@ -168,7 +168,7 @@ describe('WhatsApp inbox', () => {
         sender: 'ai_bot', messageText: 'automated', status: 'sent',
       });
 
-      const messages = await repo.listMessages(tenant.tenantId, chat.id);
+      const { messages } = await repo.listMessages(tenant.tenantId, chat.id);
       expect(messages.find((m) => m.message_id === 'BY_AGENT').agent_name).toBe('Priya Sharma');
       expect(messages.find((m) => m.message_id === 'BY_AI').agent_name).toBeNull();
     });
@@ -250,7 +250,7 @@ describe('WhatsApp inbox', () => {
         });
       }
 
-      const messages = await repo.listMessages(tenant.tenantId, chat.id);
+      const { messages } = await repo.listMessages(tenant.tenantId, chat.id);
       expect(messages.map((m) => m.message_id)).toEqual(['IN_1', 'OUT_1', 'IN_2', 'OUT_2']);
     });
 
@@ -271,11 +271,62 @@ describe('WhatsApp inbox', () => {
         });
       }
 
-      const first = (await repo.listMessages(tenant.tenantId, chat.id)).map((m) => m.message_id);
-      const second = (await repo.listMessages(tenant.tenantId, chat.id)).map((m) => m.message_id);
+      const first = (await repo.listMessages(tenant.tenantId, chat.id)).messages.map((m) => m.message_id);
+      const second = (await repo.listMessages(tenant.tenantId, chat.id)).messages.map((m) => m.message_id);
 
       expect(first).toEqual(['B1', 'B2', 'B3', 'B4']);
       expect(second).toEqual(first);
+    });
+  });
+
+  describe('paging a long thread', () => {
+    async function chatWithMessages(count, phone) {
+      const chat = await repo.createChat(tenant.tenantId, {
+        phone, jid: `${phone}@s.whatsapp.net`, customerName: 'Long',
+        leadId: null, lastMessage: 'hi', aiEnabled: false,
+      });
+      const base = Math.floor(Date.now() / 1000) - count * 10;
+      for (let i = 1; i <= count; i += 1) {
+        await repo.insertMessage(tenant.tenantId, {
+          chatId: chat.id, messageId: `M${i}`, direction: i % 2 ? 'inbound' : 'outbound',
+          sender: 'customer', messageText: `m${i}`, status: 'delivered', sentAt: base + i * 10,
+        });
+      }
+      return chat;
+    }
+
+    it('shows the newest messages of a chat longer than 300', async () => {
+      // The old query was the oldest 300, so M301+ never appeared.
+      const chat = await chatWithMessages(320, '9876500031');
+      const { messages, hasMore } = await repo.listMessages(tenant.tenantId, chat.id, { limit: 50 });
+
+      expect(messages).toHaveLength(50);
+      expect(messages[0].message_id).toBe('M271');
+      expect(messages.at(-1).message_id).toBe('M320');
+      expect(hasMore).toBe(true);
+    });
+
+    it('walks back page by page with no gaps or repeats', async () => {
+      const chat = await chatWithMessages(25, '9876500032');
+      const seen = [];
+      let before = null;
+      let hasMore = true;
+      while (hasMore) {
+        const page = await repo.listMessages(tenant.tenantId, chat.id, { limit: 10, beforeId: before });
+        seen.unshift(...page.messages.map((m) => m.message_id));
+        before = page.messages[0]?.id;
+        hasMore = page.hasMore;
+      }
+      expect(seen).toEqual(Array.from({ length: 25 }, (_, i) => `M${i + 1}`));
+    });
+
+    it('does not page into another tenant through the cursor', async () => {
+      const chat = await chatWithMessages(5, '9876500033');
+      const other = await createTenant();
+      const { messages } = await repo.listMessages(tenant.tenantId, chat.id, { limit: 10 });
+      // A cursor id from this tenant, used under another tenant, matches nothing.
+      const foreign = await repo.listMessages(other.tenantId, chat.id, { limit: 10, beforeId: messages.at(-1).id });
+      expect(foreign.messages).toEqual([]);
     });
   });
 

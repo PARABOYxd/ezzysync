@@ -20,7 +20,7 @@ import { makeScriptCase } from '../lib/case.js';
 import { SEVERITY } from '../lib/expect.js';
 import { BACKEND_DIR } from '../lib/require.js';
 import { MOUNTED_PREFIXES } from '../lib/app.js';
-import { ENDPOINTS } from '../lib/inventory.js';
+import { ENDPOINTS, SUPER_ADMIN_ENDPOINTS } from '../lib/inventory.js';
 
 export const name = 'coverage-parity';
 export const description = 'The harness app, the inventory and the real routers, checked against each other.';
@@ -94,7 +94,7 @@ export function generate() {
         declared.push(...readRouterEndpoints(router, prefix));
       }
 
-      const known = new Set(ENDPOINTS.map((e) => `${e.method} ${normalise(e.path)}`));
+      const known = new Set([...ENDPOINTS, ...SUPER_ADMIN_ENDPOINTS].map((e) => `${e.method} ${normalise(e.path)}`));
       const uncovered = declared.filter((d) => !known.has(`${d.method} ${normalise(d.path)}`));
 
       // Deduplicate: two routers mounted under overlapping prefixes can
@@ -107,7 +107,7 @@ export function generate() {
 
       assert('coverage-counted', true, SEVERITY.info,
         'Route coverage for this run.',
-        { declaredRoutes: declared.length, inventoried: ENDPOINTS.length, uncovered: unique.length });
+        { declaredRoutes: declared.length, inventoried: ENDPOINTS.length + SUPER_ADMIN_ENDPOINTS.length, uncovered: unique.length });
     },
   }));
 

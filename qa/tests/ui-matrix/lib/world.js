@@ -17,7 +17,8 @@
  * row buttons exist to be clicked and detail drawers have data to render.
  */
 import { test as base, expect } from '@playwright/test';
-import { provisionTenant, destroyTenant, closeBackend } from '../../support/tenant.js';
+import { provisionTenant, destroyTenant, closeBackend, sql } from '../../support/tenant.js';
+import { createWhatsAppChat } from '../../support/seed.js';
 import { API_URL, unique, uniquePhone, daysFromNow } from '../../support/fixtures.js';
 
 const ALL_MODULES = {
@@ -67,7 +68,7 @@ async function login(request, email, password) {
   throw lastError;
 }
 
-async function seed(api) {
+async function seed(api, tenantId) {
   const created = {};
   const post = async (path, data) => {
     const res = await api.post(path, { data });
@@ -75,7 +76,8 @@ async function seed(api) {
     return res.ok() ? body : null;
   };
 
-  const lead = await post('leads', { customerName: unique('UI Lead'), phone: uniquePhone(), email: 'ui.lead@ezzysync.test', source: 'Website', stage: 'New', interest: 'Goa 4N' });
+  const leadPhone = uniquePhone();
+  const lead = await post('leads', { customerName: unique('UI Lead'), phone: leadPhone, email: 'ui.lead@ezzysync.test', source: 'Website', stage: 'New', interest: 'Goa 4N' });
   created.leadId = lead?.lead?.leadId;
 
   const quote = await post('quotations', { customerName: unique('UI Quote'), tripName: 'UI Kerala 5N', phone: uniquePhone(), priceQuote: 42000 });
@@ -91,6 +93,22 @@ async function seed(api) {
   if (created.bookingId) {
     await post(`bookings/${created.bookingId}/payments`, { amount: 5000, method: 'UPI' });
     await post(`bookings/${created.bookingId}/follow-ups`, { note: 'UI matrix follow-up', nextFollowUpDate: daysFromNow(2) });
+  }
+
+  // A WhatsApp conversation, so the inbox renders a thread and its Customer
+  // 360 panel (tabs, follow-ups, payments, quotes) and every control in it
+  // gets pressed. Linked to the lead and the booking above. The tenant has no
+  // WhatsApp connected, and send buttons are on DO_NOT_PRESS regardless.
+  if (created.leadId) {
+    const { chatId } = await createWhatsAppChat(sql, tenantId, { phone: leadPhone, name: 'UI Chat Customer', count: 6, unread: 1 });
+    await sql(
+      `UPDATE whatsapp_chats
+          SET lead_id = (SELECT id FROM leads WHERE tenant_id = $1 AND lead_id = $2),
+              booking_id = (SELECT id FROM bookings WHERE tenant_id = $1 AND booking_id = $3)
+        WHERE id = $4`,
+      [tenantId, created.leadId, created.bookingId || null, chatId]
+    );
+    await post(`leads/${created.leadId}/follow-ups`, { note: 'UI matrix lead follow-up', activityType: 'call', nextFollowUpDate: daysFromNow(1) });
   }
 
   await post('hotels', { name: unique('UI Hotel'), city: 'Goa', rating: '4 Star' });
@@ -127,7 +145,7 @@ export const test = base.extend({
       member: await makeMember('member', permissions(true)),
       restricted: await makeMember('restricted', permissions(false)),
     };
-    const data = await seed(api);
+    const data = await seed(api, owner.tenantId);
 
     await use({ owner, sessions, data, api });
 

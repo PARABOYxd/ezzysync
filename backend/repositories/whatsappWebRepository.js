@@ -298,11 +298,24 @@ async function listChats(tenantId, search) {
   let sql = `
     SELECT c.*,
            l.lead_id AS formatted_lead_id, l.stage AS lead_stage, l.interest AS lead_interest,
+           l.assigned_to AS lead_assigned_to, l.priority AS lead_priority,
+           nf.next_follow_up_date AS lead_next_follow_up_date,
            b.id AS booking_uuid, b.booking_id AS formatted_booking_id,
            b.trip AS booking_trip, b.travel_status AS booking_travel_status, b.payment_status AS booking_payment_status
     FROM whatsapp_chats c
     LEFT JOIN leads l ON l.id = c.lead_id
     LEFT JOIN bookings b ON b.id = c.booking_id
+    -- The next *open* follow-up for this person. leads.next_follow_up_date is
+    -- not cleared when a task is marked done, so it would keep saying
+    -- "overdue" after the agent had already called.
+    LEFT JOIN LATERAL (
+      SELECT f.next_follow_up_date, f.note, f.activity_type
+        FROM follow_up_logs f
+       WHERE f.tenant_id = c.tenant_id AND f.status = 'pending' AND f.next_follow_up_date IS NOT NULL
+         AND (f.lead_id = c.lead_id OR f.booking_id = c.booking_id)
+       ORDER BY f.next_follow_up_date ASC
+       LIMIT 1
+    ) nf ON TRUE
     WHERE c.tenant_id = $1
   `;
   const params = [tenantId];
@@ -324,8 +337,18 @@ async function getChatWithContext(tenantId, chatId) {
     `SELECT c.*,
             l.id AS lead_uuid, l.lead_id AS formatted_lead_id, l.customer_name AS lead_name,
             l.stage AS lead_stage, l.interest AS lead_interest, l.notes AS lead_notes,
+            l.assigned_to AS lead_assigned_to, l.priority AS lead_priority,
+            l.source AS lead_source, l.created_at AS lead_created_at,
+            -- The phone as the lead stores it. Customers are keyed on the exact
+            -- string, and a chat's number is normalised to 91XXXXXXXXXX, so
+            -- anything created from the chat must use this to land on the same
+            -- customer as the lead and its bookings.
+            l.phone AS lead_phone,
+            nf.next_follow_up_date AS lead_next_follow_up_date,
+            nf.note AS next_follow_up_note, nf.activity_type AS next_follow_up_type,
             b.id AS booking_uuid, b.booking_id AS formatted_booking_id, b.trip AS booking_trip,
             b.total_amount, b.paid, b.remaining, b.travel_status, b.payment_status,
+            b.departure AS booking_departure, b.members AS booking_members,
             b.hotel_id AS booking_hotel_id, b.hotel_confirmation_no AS booking_hotel_confirmation_no,
             b.vehicle_type AS booking_vehicle_type, b.driver_name AS booking_driver_name,
             b.driver_phone AS booking_driver_phone, b.vehicle_number AS booking_vehicle_number,
@@ -333,6 +356,17 @@ async function getChatWithContext(tenantId, chatId) {
      FROM whatsapp_chats c
      LEFT JOIN leads l ON l.id = c.lead_id
      LEFT JOIN bookings b ON b.id = c.booking_id
+     -- The next *open* follow-up for this person. leads.next_follow_up_date is
+     -- not cleared when a task is marked done, so it would keep saying
+     -- "overdue" after the agent had already called.
+     LEFT JOIN LATERAL (
+       SELECT f.next_follow_up_date, f.note, f.activity_type
+         FROM follow_up_logs f
+        WHERE f.tenant_id = c.tenant_id AND f.status = 'pending' AND f.next_follow_up_date IS NOT NULL
+          AND (f.lead_id = c.lead_id OR f.booking_id = c.booking_id)
+        ORDER BY f.next_follow_up_date ASC
+        LIMIT 1
+     ) nf ON TRUE
      WHERE c.id = $1 AND c.tenant_id = $2`,
     [chatId, tenantId]
   );
@@ -371,26 +405,39 @@ async function insertMessage(
   return { inserted: rowCount > 0, id: rows[0]?.id || null };
 }
 
-async function listMessages(tenantId, chatId) {
+/**
+ * One page of a thread: the newest `limit` messages, or the `limit` messages
+ * just before `beforeId` when the agent scrolls up. Returned oldest-first.
+ *
+ * This used to be `ORDER BY ... ASC LIMIT 300`, which is the *oldest* 300 -
+ * once a chat passed 300 messages its newest ones never showed at all.
+ */
+async function listMessages(tenantId, chatId, { limit = 50, beforeId = null } = {}) {
   // One chat, one thread. A previous version also pulled in messages from any
   // other chat sharing the last ten digits, which made the thread disagree
   // with the chat list beside it and hid the fact that duplicates existed at
   // all. Duplicates are merged once at boot instead, and findChatByPhone()
   // already matches on the ten-digit suffix so new ones are not created.
+  //
+  // One extra row is fetched to learn whether an older page exists.
   const { rows } = await query(
     `SELECT m.*, u.name AS agent_name
        FROM whatsapp_messages m
        LEFT JOIN users u ON u.id = m.user_id
       WHERE m.chat_id = $1 AND m.tenant_id = $2
+        AND ($4::uuid IS NULL OR (m.message_timestamp, m.seq) < (
+              SELECT c.message_timestamp, c.seq FROM whatsapp_messages c
+               WHERE c.id = $4 AND c.tenant_id = $2))
       -- seq breaks ties. WhatsApp timestamps are whole seconds, so a burst of
       -- messages shares one, and ordering by the timestamp alone leaves those
       -- in an order Postgres may change between two identical queries - which
-      -- the inbox runs every three seconds.
-      ORDER BY m.message_timestamp ASC, m.seq ASC
-      LIMIT 300`,
-    [chatId, tenantId]
+      -- the inbox runs every few seconds.
+      ORDER BY m.message_timestamp DESC, m.seq DESC
+      LIMIT $3`,
+    [chatId, tenantId, limit + 1, beforeId]
   );
-  return rows;
+  const hasMore = rows.length > limit;
+  return { messages: rows.slice(0, limit).reverse(), hasMore };
 }
 
 /**

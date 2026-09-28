@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import {
   MessageSquare,
   Bot,
@@ -110,8 +110,30 @@ export default function ChatThread({
   messagesEndRef,
   onBack,
   onOpenInfo,
+  headerExtra = null,
+  hasMore = false,
+  loadingEarlier = false,
+  onLoadEarlier,
 }) {
   const toast = useToast();
+  const scrollBoxRef = useRef(null);
+  // Height before an older page is prepended, so the view can stay on the
+  // message the agent was reading instead of jumping.
+  const heightBeforeLoadRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const box = scrollBoxRef.current;
+    if (box && heightBeforeLoadRef.current !== null && !loadingEarlier) {
+      box.scrollTop += box.scrollHeight - heightBeforeLoadRef.current;
+      heightBeforeLoadRef.current = null;
+    }
+  }, [messages, loadingEarlier]);
+
+  const handleLoadEarlier = () => {
+    if (!onLoadEarlier || loadingEarlier) return;
+    heightBeforeLoadRef.current = scrollBoxRef.current?.scrollHeight ?? null;
+    onLoadEarlier();
+  };
   const [aiDrafting, setAiDrafting] = useState(false);
   const [aiMenuOpen, setAiMenuOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -182,7 +204,7 @@ export default function ChatThread({
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full w-full overflow-hidden relative">
       {/* Chat Thread Header */}
       <div className="px-2.5 sm:px-6 py-2 sm:py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-1.5 sm:gap-4 shadow-xs shrink-0">
-        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
           {onBack && (
             <button
               type="button"
@@ -221,13 +243,18 @@ export default function ChatThread({
                 <span className="text-[10px] sm:text-xs font-normal text-slate-400 whitespace-nowrap shrink-0 hidden xs:inline">+{selectedChat.phone}</span>
               )}
             </h3>
+            {/* Stage and owner sit on the name's second line, not beside it:
+                beside it they squeezed a long name out of the header entirely. */}
+            {headerExtra && !isAiTyping && (
+              <div className="hidden lg:flex mt-1" onClick={(e) => e.stopPropagation()}>{headerExtra}</div>
+            )}
             {isAiTyping ? (
               <p className="text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 truncate animate-pulse">
                 <Sparkles size={11} className="shrink-0 animate-spin" />
                 <span>AI Auto-Pilot is replying...</span>
               </p>
             ) : (
-              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+              <p className={`text-[10px] sm:text-[11px] text-slate-400 truncate ${headerExtra ? 'lg:hidden' : ''}`}>
                 {selectedChat.formatted_lead_id
                   ? `CRM: ${selectedChat.formatted_lead_id}`
                   : selectedChat.booking_trip
@@ -294,7 +321,20 @@ export default function ChatThread({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 px-3 sm:px-6 py-3 sm:py-5 overflow-y-auto space-y-2">
+      <div ref={scrollBoxRef} className="flex-1 min-h-0 px-3 sm:px-6 py-3 sm:py-5 overflow-y-auto space-y-2">
+        {hasMore && (
+          <div className="flex justify-center pb-1">
+            <button
+              type="button"
+              onClick={handleLoadEarlier}
+              disabled={loadingEarlier}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs disabled:opacity-60 cursor-pointer"
+            >
+              {loadingEarlier && <Loader2 className="w-3 h-3 animate-spin" />}
+              {loadingEarlier ? 'Loading…' : 'Load earlier messages'}
+            </button>
+          </div>
+        )}
         {messages.map((msg, index) => {
           const isOutbound = msg.direction === 'outbound';
           const newDay = startsNewDay(msg, messages[index - 1]);

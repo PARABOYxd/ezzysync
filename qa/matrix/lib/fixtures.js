@@ -188,10 +188,20 @@ export async function seedWorld(app, { query }) {
     : customersRes.body?.customers?.[0] || customersRes.body?.data?.[0];
   resA.customer = pickId(firstCustomer, ['id', 'customer_id']);
 
+  // Platform administration. The super-admin routes act on whole agencies -
+  // suspend, re-plan, impersonate - so they are pointed at a spare agency,
+  // never at A or B: suspending A would turn every later case into a 403.
+  // The super admin sits in a platform tenant of its own for the same reason.
+  const spare = await insertTenant(query);
+  const platform = await insertTenant(query);
+  const superAdmin = await insertUser(query, platform.tenantId, { role: 'ADMIN' });
+  await query('UPDATE users SET is_super_admin = true WHERE id = $1', [superAdmin.id]);
+  resA.spareTenant = spare.tenantId;
+
   return {
     tenantA: a,
     tenantB: b,
-    users: { adminA, memberA, deniedA, adminB },
+    users: { adminA, memberA, deniedA, adminB, superAdmin },
     resources: { A: resA, B: resB },
     seedFailures,
     tokenFor,

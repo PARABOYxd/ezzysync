@@ -43,7 +43,7 @@ test.describe('Sign-up closed (ENABLE_SELF_SIGNUP off)', () => {
     await page.goto('/login');
     await page.getByRole('link', { name: 'Request access' }).click();
     await expect(page).toHaveURL(/\/register$/);
-    await expect(page.getByRole('heading', { name: 'Request access' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Request (agency )?access/i })).toBeVisible();
 
     // Required fields are checked before anything is sent.
     await page.getByRole('button', { name: 'Request access' }).click();
@@ -51,7 +51,7 @@ test.describe('Sign-up closed (ENABLE_SELF_SIGNUP off)', () => {
     await expect(page.getByText('Agency name is required.')).toBeVisible();
 
     await page.getByLabel('Your name').fill('QA Visitor');
-    await page.getByLabel('Agency name').fill('QA Travels');
+    await page.getByLabel('Agency / Company Name').fill('QA Travels');
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Phone').fill('9876543210');
     const sent = page.waitForResponse((r) => r.url().endsWith('/public/walkthrough') && r.request().method() === 'POST');

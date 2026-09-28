@@ -7,6 +7,8 @@ const templateRepo = require('../repositories/whatsappTemplateRepository');
 const itineraryPdfService = require('../services/itineraryPdfService');
 const aiService = require('../services/aiService');
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function getStatus(req, res, next) {
   try {
     const status = await whatsappWebService.getSessionStatus(req.user.tenantId);
@@ -81,14 +83,17 @@ async function listChats(req, res, next) {
 async function getChatMessages(req, res, next) {
   try {
     const { chatId } = req.params;
+    // Paging: newest `limit` messages, or the page before message `before`.
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 200);
+    const before = typeof req.query.before === 'string' && UUID_RE.test(req.query.before) ? req.query.before : null;
 
     // Reset unread count
     await whatsappWebRepository.clearUnread(req.user.tenantId, chatId);
 
     let chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chatId);
+    const page = await whatsappWebRepository.listMessages(req.user.tenantId, chatId, { limit, beforeId: before });
     // Stored media is a private reference; each read gets short-lived links.
-    const messages = (await whatsappWebRepository.listMessages(req.user.tenantId, chatId))
-      .map((m) => ({ ...m, media_url: r2Service.resolveMediaUrl(m.media_url) }));
+    const messages = page.messages.map((m) => ({ ...m, media_url: r2Service.resolveMediaUrl(m.media_url) }));
 
     // If chat row was merged into another ID, resolve context from messages
     if (!chat && messages.length > 0) {
@@ -109,7 +114,7 @@ async function getChatMessages(req, res, next) {
 
     // The agent needs to know what WhatsApp will actually accept here before
     // they type, not after the send silently fails.
-    res.json({ chat, messages, window: chat ? whatsappWindow.toClientWindow(chat) : null });
+    res.json({ chat, messages, hasMore: page.hasMore, window: chat ? whatsappWindow.toClientWindow(chat) : null });
   } catch (err) {
     next(err);
   }
@@ -132,20 +137,30 @@ async function createLeadFromChat(req, res, next) {
 
     if (created?.id) {
       await whatsappWebRepository.setChatLeadId(req.user.tenantId, chat.id, created.id);
-      try {
-        const aiContextRepository = require('../repositories/aiContextRepository');
-        const leadService = require('../services/leadService');
-        const historyRows = await aiContextRepository.getChatHistoryByPhone(req.user.tenantId, chat.phone, 20);
-        const conversationText = historyRows
-          .map((r) => `${r.direction === 'inbound' ? 'Customer' : 'Agent'}: ${r.message_text || ''}`)
-          .join('\n');
-        if (conversationText) {
-          await leadService.autoFillFromConversation(req.user.tenantId, chat.phone, conversationText);
-        }
-      } catch (fillErr) {
-        // ignore
-      }
       chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chat.id);
+
+      // AI pre-fill of name/trip/pax/date from the conversation. It used to be
+      // awaited here, so the agent's "Create lead" click sat for as long as the
+      // model took - over ten seconds locally - with nothing on screen. It only
+      // ever fills fields that are still empty, so running it after the reply
+      // changes nothing about the result; the inbox's next poll picks it up.
+      const { tenantId } = req.user;
+      const { phone } = chat;
+      setImmediate(async () => {
+        try {
+          const aiContextRepository = require('../repositories/aiContextRepository');
+          const leadService = require('../services/leadService');
+          const historyRows = await aiContextRepository.getChatHistoryByPhone(tenantId, phone, 20);
+          const conversationText = historyRows
+            .map((r) => `${r.direction === 'inbound' ? 'Customer' : 'Agent'}: ${r.message_text || ''}`)
+            .join('\n');
+          if (conversationText) {
+            await leadService.autoFillFromConversation(tenantId, phone, conversationText);
+          }
+        } catch (fillErr) {
+          req.log?.warn({ err: fillErr, chatId }, 'AI lead auto-fill after create-lead failed');
+        }
+      });
     }
 
     res.json({ success: true, chat });

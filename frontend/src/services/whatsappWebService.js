@@ -39,8 +39,12 @@ export const whatsappWebService = {
     return res.data;
   },
 
-  getChatMessages: async (chatId) => {
-    const res = await api.get(`/whatsapp-web/chats/${chatId}/messages`);
+  /** Newest page of a thread, or the page before message `before`. */
+  getChatMessages: async (chatId, { limit, before } = {}) => {
+    const params = {};
+    if (limit) params.limit = limit;
+    if (before) params.before = before;
+    const res = await api.get(`/whatsapp-web/chats/${chatId}/messages`, { params });
     return res.data;
   },
 

@@ -13,7 +13,7 @@
  * algorithm or the secret, and neither is something a normal client would
  * ever send, so nothing else in the suite would catch it.
  */
-import { ENDPOINTS } from '../lib/inventory.js';
+import { ENDPOINTS, SUPER_ADMIN_ENDPOINTS } from '../lib/inventory.js';
 import { makeCase, resolvePath } from '../lib/case.js';
 import { TOKEN_VARIANTS } from '../lib/payloads.js';
 import { isUnauthorized, noServerError, SEVERITY, bodyDoesNotLeak } from '../lib/expect.js';
@@ -35,7 +35,9 @@ export function generate(ctx) {
     }
   };
 
-  for (const endpoint of ENDPOINTS) {
+  // Platform routes included: a forged or expired token reaching them would be
+  // the most damaging failure in the app.
+  for (const endpoint of [...ENDPOINTS, ...SUPER_ADMIN_ENDPOINTS]) {
     if (endpoint.auth !== 'required') continue;
 
     const path = resolvePath(endpoint, ctx);

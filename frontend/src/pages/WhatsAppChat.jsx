@@ -13,11 +13,25 @@ import AttachmentPreviewModal from '../components/whatsapp/AttachmentPreviewModa
 import { mediaTypeOf, mediaNameOf } from '../utils/whatsappMessageFormatters';
 import ChatListPanel from '../components/whatsapp/ChatListPanel.jsx';
 import ChatThread from '../components/whatsapp/ChatThread.jsx';
-import CustomerInfoPanel from '../components/whatsapp/CustomerInfoPanel.jsx';
+import CustomerWorkspace from '../components/whatsapp/workspace/CustomerWorkspace.jsx';
+import LeadQuickControls from '../components/whatsapp/workspace/LeadQuickControls.jsx';
+import { buildReminderText, phoneKey } from '../components/whatsapp/workspace/helpers';
 import ItineraryShareModal from '../components/whatsapp/ItineraryShareModal.jsx';
 import StartChatModal from '../components/whatsapp/StartChatModal.jsx';
 import ConvertLeadDrawer from '../components/lead/ConvertLeadDrawer.jsx';
+import QuotationFormModal from '../components/quotation/QuotationFormModal.jsx';
+import { getUsers } from '../services/userService';
+import { mergeLatestPage, prependOlderPage, threadKey } from '../utils/chatThreadMerge';
 import { useTenantWebSocket } from '../hooks/useTenantWebSocket.js';
+
+// Messages per page. Polls fetch only this newest page; older ones load on demand.
+const PAGE_SIZE = 50;
+// Chats and the open thread are what make the inbox feel live, so they poll
+// fast. Connection status rarely changes and the overview asks Meta, so they
+// run on every Nth tick instead of every one.
+const POLL_MS = 3000;
+const STATUS_EVERY_TICKS = 5; // 15s
+const OVERVIEW_EVERY_TICKS = 20; // 60s
 
 // WhatsApp itself caps a multi-attachment send; the backend enforces the same
 // number, this is only so the UI can stop the agent before the upload.
@@ -108,7 +122,16 @@ export default function WhatsAppChat() {
   const [quickReplies, setQuickReplies] = useState([]);
   const [viewingMedia, setViewingMedia] = useState(null); // a message already in the thread
   const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
-  const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'whatsapp' | 'instagram'
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  // null = this agent cannot list the team (the owner picker becomes read-only).
+  const [teamUsers, setTeamUsers] = useState(null);
+  // Snapshot taken when "New quote" is clicked. The form resets whenever this
+  // object changes, and the page re-renders on every poll - so it must not be
+  // rebuilt from selectedChat on each render, or typing would be wiped.
+  const [newQuotePrefill, setNewQuotePrefill] = useState(null);
+  // Bumped after a change the Trip tab should re-read (a new quote).
+  const [workspaceRefresh, setWorkspaceRefresh] = useState(0);
   const [startChatModal, setStartChatModal] = useState(false);
   const [startChatPhone, setStartChatPhone] = useState('');
   const [startChatMsg, setStartChatMsg] = useState('');
@@ -145,10 +168,9 @@ export default function WhatsAppChat() {
     } else if (msg?.type === 'WHATSAPP_MESSAGE_RECEIVED') {
       loadChats();
       if (selectedChatRef.current?.id === msg.chatId) {
-        whatsappWebService.getChatMessages(msg.chatId).then((data) => {
-          if (data?.messages) {
-            setMessages(data.messages);
-            setTimeout(scrollToBottom, 100);
+        whatsappWebService.getChatMessages(msg.chatId, { limit: PAGE_SIZE }).then((data) => {
+          if (data?.messages && selectedChatRef.current?.id === msg.chatId) {
+            setMessages((prev) => mergeLatestPage(prev, data.messages));
           }
         }).catch(() => {});
       }
@@ -159,7 +181,6 @@ export default function WhatsAppChat() {
     try {
       const data = await whatsappWebService.getStatus();
       setSession(data);
-      refreshOverview();
     } catch {
       // ignore - the poller will retry
     }
@@ -200,10 +221,11 @@ export default function WhatsAppChat() {
 
   const loadChatMessages = async (chatId) => {
     try {
-      const data = await whatsappWebService.getChatMessages(chatId);
+      const data = await whatsappWebService.getChatMessages(chatId, { limit: PAGE_SIZE });
       setSelectedChat(data.chat);
       setChatWindow(data.window || null);
       setMessages(data.messages || []);
+      setHasMoreMessages(Boolean(data.hasMore));
       setMobileView('chat');
       // Refresh chats to clear unread badge
       loadChats();
@@ -212,6 +234,43 @@ export default function WhatsAppChat() {
     } finally {
       setTimeout(scrollToBottom, 100);
     }
+  };
+
+  /** Older page, prepended above what is on screen. */
+  const loadEarlierMessages = async () => {
+    const chatId = selectedChatRef.current?.id;
+    const oldest = messagesRef.current[0];
+    if (!chatId || !oldest || loadingEarlier) return;
+    setLoadingEarlier(true);
+    try {
+      const data = await whatsappWebService.getChatMessages(chatId, { limit: PAGE_SIZE, before: oldest.id });
+      if (selectedChatRef.current?.id !== chatId) return;
+      setMessages((prev) => prependOlderPage(prev, data.messages || []));
+      setHasMoreMessages(Boolean(data.hasMore));
+    } catch {
+      toast.error('Could not load earlier messages.');
+    } finally {
+      setLoadingEarlier(false);
+    }
+  };
+
+  /**
+   * Re-reads the open chat's CRM context (lead stage, owner, booking totals)
+   * after an edit in the side panel, without reloading the thread. One
+   * message is the cheapest way to get the context the endpoint returns.
+   */
+  const refreshChatContext = async () => {
+    const chatId = selectedChatRef.current?.id;
+    if (!chatId) return;
+    try {
+      const data = await whatsappWebService.getChatMessages(chatId, { limit: 1 });
+      if (data?.chat && selectedChatRef.current?.id === chatId) {
+        setSelectedChat((prev) => (prev ? { ...prev, ...data.chat } : data.chat));
+      }
+    } catch {
+      // the next poll will catch up
+    }
+    loadChats();
   };
 
   // Auto-open or create chat if navigated with ?phone=...
@@ -257,15 +316,21 @@ export default function WhatsAppChat() {
       .listQuickReplies()
       .then((d) => setQuickReplies(d.quickReplies || []))
       .catch(() => {});
+    getUsers().then(setTeamUsers).catch(() => setTeamUsers(null));
 
-    // Poll chats and active message updates every 3 seconds
-    const interval = setInterval(() => {
-      loadStatus();
+    let ticks = 0;
+    const tick = ({ full = false } = {}) => {
+      // A background tab polled every 3 seconds for as long as it stayed
+      // open - the bulk of this page's traffic. It catches up on return.
+      if (document.hidden) return;
+      ticks += 1;
+      if (full || ticks % STATUS_EVERY_TICKS === 0) loadStatus();
+      if (full || ticks % OVERVIEW_EVERY_TICKS === 0) refreshOverview();
       loadChats();
       const currentChatId = selectedChatRef.current?.id;
       if (currentChatId) {
         whatsappWebService
-          .getChatMessages(currentChatId)
+          .getChatMessages(currentChatId, { limit: PAGE_SIZE })
           .then((data) => {
             // The agent may have opened a different conversation while this
             // request was in flight. Without this check its messages were
@@ -277,27 +342,38 @@ export default function WhatsAppChat() {
               setSelectedChat((prev) => (prev ? { ...prev, ...data.chat } : data.chat));
               setChatWindow(data.window || null);
             }
-            const incoming = data?.messages || [];
-            const current = messagesRef.current;
-            const incomingKey = incoming.map((m) => `${m.id}_${m.status}`).join('|');
-            const currentKey = current.map((m) => `${m.id}_${m.status}`).join('|');
-
-            if (incomingKey !== currentKey) {
-              setMessages(incoming);
-              scrollToBottom();
+            // Only the newest page is fetched; older pages the agent loaded stay.
+            const merged = mergeLatestPage(messagesRef.current, data?.messages || []);
+            if (threadKey(merged) !== threadKey(messagesRef.current)) {
+              setMessages(merged);
             }
           })
           .catch(() => {});
       }
-    }, 3000);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(tick, POLL_MS);
+    // Back on the tab: everything may be stale, so refresh all of it once.
+    const onVisible = () => { if (!document.hidden) tick({ full: true }); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Follow the conversation only when a new message lands at the bottom -
+  // not when an older page is prepended above, which would yank the agent
+  // away from what they scrolled up to read.
+  const lastMessage = messages.length ? messages[messages.length - 1] : null;
+  const lastMessageId = lastMessage ? lastMessage.id : null;
+  // The customer spoke last, so the next message is ours to send.
+  const waitingSince = lastMessage?.direction === 'inbound' ? lastMessage.message_timestamp : null;
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (lastMessageId) scrollToBottom();
+  }, [lastMessageId]);
 
   // Blob URLs are created and released alongside the file they belong to, in
   // the handlers below. The only thing left for an effect is the final sweep
@@ -363,7 +439,7 @@ export default function WhatsAppChat() {
       // thread again rather than leaving the agent looking at a stale view.
       if (res?.catchUp?.sent) {
         const data = await whatsappWebService.getChatMessages(selectedChat.id);
-        setMessages(data.messages || []);
+        setMessages((prev) => mergeLatestPage(prev, data.messages || []));
         loadChats();
         toast.success('AI read the conversation and replied.');
       } else if (!newStatus) {
@@ -396,7 +472,7 @@ export default function WhatsAppChat() {
         toast.success('Voucher PDF generated and ready.');
       }
       const data = await whatsappWebService.getChatMessages(selectedChat.id);
-      setMessages(data.messages || []);
+      setMessages((prev) => mergeLatestPage(prev, data.messages || []));
       loadChats();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send voucher via WhatsApp.');
@@ -688,13 +764,8 @@ export default function WhatsAppChat() {
     if (!selectedChat?.id) return;
     setSendingReminderType(type);
     try {
-      if (type === 'departure') {
-        const trip = selectedChat.booking_trip || 'your upcoming trip';
-        await whatsappWebService.sendMessage(selectedChat.id, `✈️ *Travel Briefing & Alert*\nHello! Your trip *${trip}* is coming up soon. Please ensure you have all vouchers and tickets handy!`);
-      } else if (type === 'payment') {
-        const rem = Number(selectedChat.remaining || 0).toLocaleString('en-IN');
-        await whatsappWebService.sendMessage(selectedChat.id, `💳 *Payment Reminder*\nHello! This is a gentle reminder that a balance of *₹${rem}* is pending for your booking. Please settle at your earliest convenience.`);
-      }
+      // Same text the Money tab previews, so what the agent read is what goes.
+      await whatsappWebService.sendMessage(selectedChat.id, buildReminderText(type, selectedChat));
       toast.success('Reminder sent successfully!');
       await loadChatMessages(selectedChat.id);
     } catch (err) {
@@ -756,7 +827,7 @@ export default function WhatsAppChat() {
             isQrConnected ? (
               <button
                 type="button"
-                onClick={() => whatsappWebService.disconnect().then(loadStatus)}
+                onClick={() => whatsappWebService.disconnect().then(() => { loadStatus(); refreshOverview(); })}
                 className="text-[11px] text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium shrink-0 cursor-pointer underline ml-1"
                 title="Disconnect QR session"
               >
@@ -810,8 +881,6 @@ export default function WhatsAppChat() {
               setSearchQuery(value);
               loadChats(value);
             }}
-            platformFilter={platformFilter}
-            setPlatformFilter={setPlatformFilter}
             sessionStatus={session.status}
             cloudApiConfigured={cloudApiConfigured}
             onSelectChat={(id) => {
@@ -824,6 +893,7 @@ export default function WhatsAppChat() {
               setStartChatModal(true);
             }}
             typingChats={typingChats}
+            currentUserName={user?.name || ''}
           />
         </div>
 
@@ -859,15 +929,28 @@ export default function WhatsAppChat() {
             messagesEndRef={messagesEndRef}
             onBack={() => setMobileView('list')}
             onOpenInfo={() => setMobileView('info')}
+            headerExtra={
+              selectedChat?.formatted_lead_id ? (
+                <LeadQuickControls chat={selectedChat} users={teamUsers} onChanged={refreshChatContext} />
+              ) : null
+            }
+            hasMore={hasMoreMessages}
+            loadingEarlier={loadingEarlier}
+            onLoadEarlier={loadEarlierMessages}
           />
         </div>
 
-        {/* Right Column: Customer Lead & Booking 360° Sidebar */}
+        {/* Right Column: everything about this customer, without leaving the chat */}
         {selectedChat && (
-          <div className={`${mobileView === 'info' ? 'fixed inset-0 z-40 bg-white dark:bg-slate-900 flex flex-col' : 'hidden'} md:static md:flex md:w-72 md:shrink-0 md:h-full`}>
-            <CustomerInfoPanel
-              selectedChat={selectedChat}
+          <div className={`${mobileView === 'info' ? 'fixed inset-0 z-40 bg-white dark:bg-slate-900 flex flex-col' : 'hidden'} md:static md:flex md:w-80 md:shrink-0 md:h-full`}>
+            <CustomerWorkspace
+              chat={selectedChat}
+              users={teamUsers}
+              onChanged={refreshChatContext}
+              onPaymentRecorded={refreshChatContext}
+              refreshToken={workspaceRefresh}
               chatMediaFiles={chatMediaFiles}
+              waitingSince={waitingSince}
               sendingVoucherType={sendingVoucherType}
               onSendVoucher={handleSendChatVoucher}
               sendingReminderType={sendingReminderType}
@@ -877,6 +960,15 @@ export default function WhatsAppChat() {
               creatingBooking={loadingLeadToConvert}
               onCreateLead={handleCreateLead}
               creatingLead={creatingLead}
+              onShareQuote={handleSendExistingLink}
+              sharingQuoteId={sendingQuotationId}
+              onNewQuote={() => setNewQuotePrefill({
+                tripName: selectedChat.lead_interest || '',
+                customerName: selectedChat.customer_name || '',
+                // The lead's own spelling of the number, so the quote joins the
+                // same customer record as the lead instead of creating a twin.
+                phone: selectedChat.lead_phone || phoneKey(selectedChat.phone),
+              })}
               onClose={() => setMobileView('chat')}
             />
           </div>
@@ -892,6 +984,15 @@ export default function WhatsAppChat() {
             loadChatMessages(selectedChat.id);
           }
         }}
+      />
+
+      {/* A quote started from a chat is already addressed to that customer,
+          so it shows up in their Trip tab and can be sent straight back. */}
+      <QuotationFormModal
+        open={Boolean(newQuotePrefill)}
+        onClose={() => setNewQuotePrefill(null)}
+        onSaved={() => setWorkspaceRefresh((n) => n + 1)}
+        quotation={newQuotePrefill}
       />
 
       <AttachmentPreviewModal
@@ -930,6 +1031,7 @@ export default function WhatsAppChat() {
         onClose={() => setIsQrModalOpen(false)}
         onConnected={(data) => {
           setSession(data);
+          refreshOverview();
           loadChats();
         }}
       />
