@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import PageLoader from '../components/common/PageLoader.jsx';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar.jsx';
@@ -25,11 +25,11 @@ const TITLES = {
   '/customers': 'Customers',
   '/pipeline': 'Pipeline',
   '/bookings': 'Bookings',
-  '/upcoming-trips': 'Upcoming Booked Trip',
+  '/upcoming-trips': 'Upcoming Trips',
   '/whatsapp-chat': 'Live Chat (WhatsApp & Instagram)',
   '/tour-batches': 'Group Tours',
   '/invoices': 'Invoices',
-  '/quotations': 'Itineraries & Quotes',
+  '/quotations': 'Quotations',
   '/profile': 'Profile',
   '/settings': 'Settings',
   '/hotels': 'Hotels & Stays',
@@ -54,6 +54,13 @@ export default function DashboardLayout() {
   const { isExpired, lapsedPlanId } = usePlanStatus();
 
   const [aiTypingStatus, setAiTypingStatus] = useState(null); // { chatId, customerName, phone }
+
+  // <main> is the scroller, not the window, so the router never resets it:
+  // opening a page from the bottom of another one landed at its bottom too.
+  const mainRef = useRef(null);
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [location.pathname]);
 
   useTenantWebSocket((msg) => {
     if (msg?.type === 'WHATSAPP_AI_TYPING') {
@@ -96,12 +103,15 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)]">
+    // h-dvh, not h-screen: on iPhone 100vh is taller than the visible area,
+    // so the whole shell scrolled as well as <main> and the two fought -
+    // scroll down worked, scrolling back up got stuck.
+    <div className="flex h-dvh overflow-hidden bg-[var(--bg-page)] text-[var(--text-main)]">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <ImpersonationBanner />
         <Topbar 
-          title={TITLES[location.pathname] || 'Dashboard'} 
+          title={TITLES[location.pathname] || (location.pathname.startsWith('/customers/') ? 'Customer Profile' : 'Dashboard')} 
           onMenuClick={() => setSidebarOpen(true)} 
           actions={
             <>
@@ -170,7 +180,7 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        <main className={`flex-1 min-h-0 w-full max-w-full ${location.pathname === '/whatsapp-chat' ? 'p-0 sm:p-2.5 md:p-3 overflow-hidden flex flex-col' : 'overflow-y-auto p-3 sm:p-4 md:p-8 overflow-x-hidden'} bg-[var(--bg-page)]`}>
+        <main ref={mainRef} className={`flex-1 min-h-0 w-full max-w-full ${location.pathname === '/whatsapp-chat' ? 'p-0 sm:p-2.5 md:p-3 overflow-hidden flex flex-col' : 'overflow-y-auto p-3 sm:p-4 md:p-8 overflow-x-hidden'} bg-[var(--bg-page)]`}>
           <Suspense fallback={<PageLoader />}>
             <Outlet />
           </Suspense>

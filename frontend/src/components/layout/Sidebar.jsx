@@ -132,7 +132,7 @@ export default function Sidebar({ open, onClose }) {
       )}
       <aside
         id="tour-sidebar"
-        className={`fixed md:sticky top-0 z-50 md:z-20 h-screen w-[270px] max-w-[85vw] md:w-[240px] bg-[#FBFCFD] dark:bg-zinc-950 border-r border-[var(--border)] flex flex-col shadow-2xl md:shadow-none
+        className={`fixed md:sticky top-0 z-50 md:z-20 h-dvh w-[270px] max-w-[85vw] md:w-[240px] bg-[#FBFCFD] dark:bg-zinc-950 border-r border-[var(--border)] flex flex-col shadow-2xl md:shadow-none
         transition-transform duration-250 ease-out ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Logo Area */}

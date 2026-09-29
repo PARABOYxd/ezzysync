@@ -143,6 +143,22 @@
   }
 }
 
+/* iPhone Safari gives date/time fields a fixed native width that ignores
+   w-full, so in a narrow column they spill out of their card. Letting them
+   shrink keeps them inside whatever box they are given. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"] {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 /* Skeleton Loading Shimmer */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

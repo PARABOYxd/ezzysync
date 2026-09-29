@@ -85,7 +85,7 @@ export default function LeadFilters({ filters, onChange }) {
   return (
     <div className="w-full">
       {/* Sleek Single-Line Command Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 w-full">
+      <div className="flex flex-wrap items-start sm:items-center justify-between gap-2.5 w-full">
         {/* Left: Search input + Quick Stage Filter Pills */}
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
           {/* Search Box with instant clear button */}

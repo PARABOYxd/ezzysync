@@ -127,14 +127,15 @@ export default function TasksTab({ chat, onChanged }) {
             {mode === 'note' ? 'Internal note · only your team sees this' : 'Schedule a follow-up'}
           </p>
           {mode === 'task' && (
-            <div className="grid grid-cols-2 gap-2">
-              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+            // Stacked on a phone: "29 Sep 2026 at 11:00 AM" does not fit half a drawer.
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="block min-w-0 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                 Type
                 <select className={`${inputCls} mt-1`} value={form.activityType} onChange={(e) => setForm((f) => ({ ...f, activityType: e.target.value }))}>
                   {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </label>
-              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+              <label className="block min-w-0 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                 When
                 <input className={`${inputCls} mt-1`} type="datetime-local" value={form.dueAt} onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))} required />
               </label>

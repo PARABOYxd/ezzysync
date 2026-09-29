@@ -97,7 +97,8 @@ export default function Pipeline() {
             <input
               type="text"
               className="input pl-9 pr-8 h-9 text-xs"
-              placeholder="Filter pipeline cards by customer, phone, package…"
+              placeholder="Search name, phone…"
+              title="Filter cards by customer, phone or package"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

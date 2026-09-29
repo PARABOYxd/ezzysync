@@ -334,8 +334,9 @@ export default function BillingAnalytics() {
             </div>
           </div>
 
-          {/* Team Member Filter — Admin only */}
-          <div className="flex flex-col gap-1.5">
+          {/* Team Member Filter — Admin only. Last of five, so on a phone it
+              gets the whole row instead of half of one. */}
+          <div className="flex flex-col gap-1.5 col-span-2 md:col-span-1">
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Team Member</span>
             <div className="relative">
               <select
