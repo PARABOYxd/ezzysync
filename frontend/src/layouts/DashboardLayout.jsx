@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import PageLoader from '../components/common/PageLoader.jsx';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar.jsx';
 import Topbar from '../components/layout/Topbar.jsx';
@@ -21,6 +22,8 @@ const TITLES = {
   '/dashboard': 'Dashboard',
   '/leads': 'Leads',
   '/follow-ups': 'Follow-ups',
+  '/customers': 'Customers',
+  '/pipeline': 'Pipeline',
   '/bookings': 'Bookings',
   '/upcoming-trips': 'Upcoming Booked Trip',
   '/whatsapp-chat': 'Live Chat (WhatsApp & Instagram)',
@@ -168,7 +171,9 @@ export default function DashboardLayout() {
         )}
 
         <main className={`flex-1 min-h-0 w-full max-w-full ${location.pathname === '/whatsapp-chat' ? 'p-0 sm:p-2.5 md:p-3 overflow-hidden flex flex-col' : 'overflow-y-auto p-3 sm:p-4 md:p-8 overflow-x-hidden'} bg-[var(--bg-page)]`}>
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
       <LeadFormDrawer open={addOpen} onClose={() => setAddOpen(false)} />

@@ -117,16 +117,23 @@ export default function Bookings() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <BookingFilters filters={filters} onChange={handleFiltersChange} onExport={handleExport} />
-      </div>
-      {canCreate && (
-        <div className="flex justify-end">
+      {/* Same header as Leads: title + count on the left, the main action on the right. */}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-2">
+          <span>Bookings</span>
+          {!loading && (
+            <span className="text-xs bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 font-semibold px-2 py-0.5 rounded-full">
+              {pagination.totalCount ?? bookings.length}
+            </span>
+          )}
+        </h1>
+        {canCreate && (
           <button className="btn-primary" onClick={() => { setEditingBooking(null); setFormOpen(true); }}>
             <Plus size={16} /> Add Booking
           </button>
-        </div>
-      )}
+        )}
+      </div>
+      <BookingFilters filters={filters} onChange={handleFiltersChange} onExport={handleExport} />
 
       <BookingTable
         bookings={bookings}

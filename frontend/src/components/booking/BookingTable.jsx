@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, Pencil, Trash2, FileText, MessageCircle, Edit2, Compass } from 'lucide-react';
-import { formatCurrency, formatDate, formatRelativeDate } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatRelativeDate, daysUntil, dueLabel } from '../../utils/formatters';
 import { TravelStatusBadge, FollowUpStatusBadge } from '../common/StatusBadge.jsx';
 import { SkeletonTableRows } from '../common/Skeleton.jsx';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../common/Table.jsx';
@@ -15,13 +15,10 @@ export default function BookingTable({ bookings, loading, onView, onEdit, onDele
 
   const getFollowUpDisplay = (dateStr) => {
     if (!dateStr) return <span className="text-slate-300">-</span>;
-    const date = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isOverdue = date < today;
+    const isOverdue = (daysUntil(dateStr) ?? 0) < 0;
     return (
-      <span className={`font-semibold text-xs ${isOverdue ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
-        {date.toLocaleDateString('en-IN')}
+      <span className={`font-semibold text-xs ${isOverdue ? 'text-red-500 font-bold' : 'text-slate-500'}`} title={dueLabel(dateStr)}>
+        {formatDate(dateStr)}
       </span>
     );
   };

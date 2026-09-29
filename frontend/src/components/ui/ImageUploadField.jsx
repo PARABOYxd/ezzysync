@@ -92,7 +92,13 @@ export default function ImageUploadField({
           </div>
         )}
         <div className="flex flex-col gap-2">
-          <label className={`btn btn-xs ${uploading ? 'loading btn-disabled' : 'btn-outline btn-primary'} cursor-pointer text-[10px] w-fit px-2.5 py-1 rounded border border-brand-500 text-brand-600 hover:bg-brand-50 transition`}>
+          {/* Not the global .btn-primary: that paints the background orange,
+              and with the brand-coloured text here the label was unreadable. */}
+          <label className={`inline-flex items-center w-fit px-3 py-1.5 rounded-lg border text-xs font-semibold transition ${
+            uploading
+              ? 'border-slate-200 text-slate-400 cursor-wait'
+              : 'border-brand-500 text-brand-600 bg-white dark:bg-zinc-900 hover:bg-brand-50 dark:hover:bg-brand-900/20 cursor-pointer'
+          }`}>
             {uploading ? 'Uploading...' : buttonLabel}
             <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleChange} />
           </label>

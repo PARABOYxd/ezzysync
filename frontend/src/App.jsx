@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
@@ -6,42 +6,49 @@ import RequirePermission from './components/common/RequirePermission.jsx';
 import RequireSuperAdmin from './components/common/RequireSuperAdmin.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import SuperAdminLayout from './layouts/SuperAdminLayout.jsx';
+import PageLoader from './components/common/PageLoader.jsx';
+import lazyPage from './utils/lazyPage.js';
 
-import SuperAdmin from './pages/SuperAdmin.jsx';
-import AdminLogin from './pages/AdminLogin.jsx';
+// Loaded up front: the two pages nearly every visit starts on.
 import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
-import ForgotPassword from './pages/ForgotPassword.jsx';
-import ResetPassword from './pages/ResetPassword.jsx';
-import GoogleCallback from './pages/GoogleCallback.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import Bookings from './pages/Bookings.jsx';
-import UpcomingTrips from './pages/UpcomingTrips.jsx';
-import WhatsAppChat from './pages/WhatsAppChat.jsx';
-import Leads from './pages/Leads.jsx';
-import Pipeline from './pages/Pipeline.jsx';
-import FollowUps from './pages/FollowUps.jsx';
-import Invoices from './pages/Invoices.jsx';
-import Quotations from './pages/Quotations.jsx';
-import QuotationPreview from './pages/QuotationPreview.jsx';
-import Profile from './pages/Profile.jsx';
-import Settings from './pages/Settings.jsx';
-import Team from './pages/Team.jsx';
-import Customers from './pages/Customers.jsx';
-import CustomerProfile from './pages/CustomerProfile.jsx';
-import Hotels from './pages/Hotels.jsx';
-import TourBatches from './pages/TourBatches.jsx';
-import HelpGuide from './pages/HelpGuide.jsx';
-import NotFound from './pages/NotFound.jsx';
 
-import BillingAnalytics from './pages/BillingAnalytics.jsx';
-import Expenses from './pages/Expenses.jsx';
-
-// ... other imports
+// Every other page is its own file, fetched the first time it is opened -
+// the app used to ship as one 1.1 MB script, charts and PDF code included,
+// before the login screen could even paint.
+const SuperAdmin = lazyPage(() => import('./pages/SuperAdmin.jsx'));
+const AdminLogin = lazyPage(() => import('./pages/AdminLogin.jsx'));
+const Register = lazyPage(() => import('./pages/Register.jsx'));
+const ForgotPassword = lazyPage(() => import('./pages/ForgotPassword.jsx'));
+const ResetPassword = lazyPage(() => import('./pages/ResetPassword.jsx'));
+const GoogleCallback = lazyPage(() => import('./pages/GoogleCallback.jsx'));
+const Bookings = lazyPage(() => import('./pages/Bookings.jsx'));
+const UpcomingTrips = lazyPage(() => import('./pages/UpcomingTrips.jsx'));
+const WhatsAppChat = lazyPage(() => import('./pages/WhatsAppChat.jsx'));
+const Leads = lazyPage(() => import('./pages/Leads.jsx'));
+const Pipeline = lazyPage(() => import('./pages/Pipeline.jsx'));
+const FollowUps = lazyPage(() => import('./pages/FollowUps.jsx'));
+const Invoices = lazyPage(() => import('./pages/Invoices.jsx'));
+const Quotations = lazyPage(() => import('./pages/Quotations.jsx'));
+const QuotationPreview = lazyPage(() => import('./pages/QuotationPreview.jsx'));
+const Profile = lazyPage(() => import('./pages/Profile.jsx'));
+const Settings = lazyPage(() => import('./pages/Settings.jsx'));
+const Team = lazyPage(() => import('./pages/Team.jsx'));
+const Customers = lazyPage(() => import('./pages/Customers.jsx'));
+const CustomerProfile = lazyPage(() => import('./pages/CustomerProfile.jsx'));
+const Hotels = lazyPage(() => import('./pages/Hotels.jsx'));
+const TourBatches = lazyPage(() => import('./pages/TourBatches.jsx'));
+const HelpGuide = lazyPage(() => import('./pages/HelpGuide.jsx'));
+const NotFound = lazyPage(() => import('./pages/NotFound.jsx'));
+const BillingAnalytics = lazyPage(() => import('./pages/BillingAnalytics.jsx'));
+const Expenses = lazyPage(() => import('./pages/Expenses.jsx'));
 
 export default function App() {
   return (
     <>
+      {/* Pages inside the CRM layout suspend inside the layout's own boundary,
+          so the sidebar stays put; this one covers the standalone pages. */}
+      <Suspense fallback={<PageLoader fullScreen />}>
       <Routes>
         {/* The only unauthenticated entry point into the app */}
         <Route path="/login" element={<Login />} />
@@ -97,6 +104,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
       <Analytics />
     </>
   );

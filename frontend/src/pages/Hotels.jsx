@@ -255,8 +255,8 @@ export default function Hotels() {
                           {h.rooms_and_rates.map((r, i) => (
                             <Tr key={i}>
                               <Td className="py-1.5 px-3 font-medium text-slate-700 dark:text-zinc-200">{r.roomType}</Td>
-                              <Td className="py-1.5 px-3 text-right font-mono text-slate-500 dark:text-zinc-400">₹{r.costPrice}</Td>
-                              <Td className="py-1.5 px-3 text-right font-mono text-brand-600 dark:text-brand-400 font-semibold">₹{r.sellingPrice}</Td>
+                              <Td className="py-1.5 px-3 text-right font-mono text-slate-500 dark:text-zinc-400">₹{Number(r.costPrice || 0).toLocaleString('en-IN')}</Td>
+                              <Td className="py-1.5 px-3 text-right font-mono text-brand-600 dark:text-brand-400 font-semibold">₹{Number(r.sellingPrice || 0).toLocaleString('en-IN')}</Td>
                             </Tr>
                           ))}
                         </Tbody>

@@ -28,6 +28,14 @@ export default function LeadPoolDrawer({ isOpen, onClose, onLeadClaimed, onPoolC
     }
   }, [isOpen, poolCount]);
 
+  // Escape closes it, like every other panel in the app.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   const handleClaim = async (leadId) => {
     try {
       await leadService.claimLead(leadId);
@@ -51,12 +59,13 @@ export default function LeadPoolDrawer({ isOpen, onClose, onLeadClaimed, onPoolC
       <div className="fixed inset-0 z-40 cursor-default" onClick={onClose} />
 
       {/* Floating Dropdown Card */}
-      <div className="absolute right-0 top-full mt-2.5 z-50 w-80 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-2xl shadow-xl flex flex-col overflow-hidden max-h-[380px] animate-[fadeIn_0.15s_ease-out]">
+      <div role="dialog" aria-label="New leads pool" className="absolute right-0 top-full mt-2.5 z-50 w-[min(20rem,calc(100vw-1.5rem))] bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-2xl shadow-xl flex flex-col overflow-hidden max-h-[380px] animate-[fadeIn_0.15s_ease-out]">
         <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-slate-50/80 dark:bg-zinc-900">
           <h2 className="text-xs font-bold text-slate-800 dark:text-zinc-200">New Leads Pool</h2>
           <button 
             type="button" 
-            onClick={onClose} 
+            onClick={onClose}
+            aria-label="Close lead pool"
             className="text-[10px] text-slate-400 hover:text-slate-500 font-semibold"
           >
             Close

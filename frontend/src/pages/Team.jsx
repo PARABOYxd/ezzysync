@@ -276,7 +276,7 @@ export default function Team() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Team Management</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage your travel agency staff accounts, roles, and CRUD permission privileges.
+            Add your staff and choose what each person can see and change.
           </p>
           {planInfo && (
             <p className="text-xs mt-2 flex items-center gap-1.5">
@@ -341,7 +341,7 @@ export default function Team() {
                 <Tbody>
                     {members.map((member) => {
                       const isSelf = member.userId === user.userId;
-                      const perms = member.permissions || {};
+                      const perms = mergeWithDefaults(member.permissions);
                       
                       return (
                         <Tr key={member.userId}>
@@ -370,7 +370,7 @@ export default function Team() {
                                 : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
                             }`}>
                               {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
-                              {member.role}
+                              {member.role === 'ADMIN' ? 'Admin' : 'Team member'}
                             </span>
                           </Td>
                           <Td>
@@ -426,7 +426,7 @@ export default function Team() {
             <div className="block md:hidden divide-y divide-slate-100 dark:divide-zinc-800">
               {members.map((member) => {
                 const isSelf = member.userId === user.userId;
-                const perms = member.permissions || {};
+                const perms = mergeWithDefaults(member.permissions);
 
                 return (
                   <div key={member.userId} className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition">
@@ -454,7 +454,7 @@ export default function Team() {
                           : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
                       }`}>
                         {member.role === 'ADMIN' ? <Shield size={11} /> : <User size={11} />}
-                        {member.role}
+                        {member.role === 'ADMIN' ? 'Admin' : 'Team member'}
                       </span>
                     </div>
 

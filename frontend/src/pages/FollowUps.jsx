@@ -16,6 +16,9 @@ import BookingFormDrawer from '../components/booking/BookingFormDrawer.jsx';
 import { LeadStageBadge, FollowUpStatusBadge } from '../components/common/StatusBadge.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useNavigate } from 'react-router-dom';
+import { daysUntil, dueLabel, formatDate } from '../utils/formatters';
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 function getActivityIcon(type) {
   switch (type) {
@@ -64,13 +67,16 @@ export default function FollowUps() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const dueItems = await followUpService.getDueFollowUps({ assignedTo, search });
+      // The four lists are independent - fetched together, not one after another.
+      const [dueItems, completedItems, leadData, bookingData] = await Promise.all([
+        followUpService.getDueFollowUps({ assignedTo, search }),
+        followUpService.getCompletedFollowUps({ assignedTo, search }),
+        leadService.getLeads({ search, assignedTo, limit: 30 }),
+        bookingService.getBookings({ search, limit: 30 }),
+      ]);
       setItems(dueItems);
-
-      const completedItems = await followUpService.getCompletedFollowUps({ assignedTo, search });
       setDoneItems(completedItems);
 
-      const leadData = await leadService.getLeads({ search, assignedTo, limit: 30 });
       const activeLeads = (leadData.leads || []).filter(l => 
         l.stage !== 'Won' && 
         l.stage !== 'Lost'
@@ -98,7 +104,6 @@ export default function FollowUps() {
       setLeads(nurturing);
 
       // Bookings checking for travelStatus === 'Confirming'
-      const bookingData = await bookingService.getBookings({ search, limit: 30 });
       const activeBookings = (bookingData.bookings || []).filter(b => b.travelStatus === 'Confirming');
       
       const committedBookingIds = new Set(dueItems.filter(i => i.source_type === 'booking').map(i => String(i.source_id)));
@@ -147,11 +152,9 @@ export default function FollowUps() {
 
   const getConsolidatedRows = () => {
     const committedRows = items.map(item => {
-      const dueDateObj = new Date(item.next_follow_up_date);
-      const todayObj = new Date();
-      todayObj.setHours(0, 0, 0, 0);
-      const isToday = dueDateObj.toDateString() === todayObj.toDateString();
-      const isPendingOverdue = dueDateObj < todayObj;
+      const days = daysUntil(item.next_follow_up_date);
+      const isToday = days === 0;
+      const isPendingOverdue = days !== null && days < 0;
 
       return {
         id: `committed-${item.id}`,
@@ -331,6 +334,91 @@ export default function FollowUps() {
     }
   };
 
+  const renderCustomer = (row) => (
+    <div className="min-w-0">
+      <p className="text-slate-700 dark:text-zinc-200 font-medium">{row.customerName}</p>
+      <button
+        onClick={() => handleEditClick(row)}
+        disabled={editLoadingId === row.id}
+        className="text-xs text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 disabled:cursor-wait"
+        title={`Edit ${row.customerName}'s details`}
+      >
+        {editLoadingId === row.id ? 'Loading…' : (row.phone || '-')}
+      </button>
+      {row.noAction && (
+        <p className="text-[10px] text-rose-500 font-semibold mt-0.5">Nothing happened yet</p>
+      )}
+    </div>
+  );
+
+  const badge = 'badge-tint inline-block px-2 py-0.5 text-[10px] font-bold rounded border';
+  const TONE = {
+    rose: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50',
+    amber: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50',
+    blue: 'bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-400 border-sky-100 dark:border-sky-900/50',
+    slate: 'bg-slate-50 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700/50',
+    emerald: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50',
+  };
+
+  const renderDue = (row) => {
+    if (row.type === 'done') {
+      return <span className={`${badge} ${TONE.emerald}`}>Done · {formatDate(row.completedAt)}</span>;
+    }
+    if (row.dueDate) {
+      const tone = row.overdue ? TONE.rose : row.isToday ? TONE.amber : TONE.blue;
+      return (
+        <span className={`${badge} ${tone}`} title={formatDate(row.dueDate)}>
+          {dueLabel(row.dueDate)} · {formatDate(row.dueDate)}
+        </span>
+      );
+    }
+    const tone = row.idleDays >= 5 ? TONE.rose : row.idleDays >= 2 ? TONE.amber : TONE.slate;
+    return (
+      <span className={`${badge} ${tone}`}>
+        {row.idleDays === 0 ? 'Updated today' : `Idle ${plural(row.idleDays, 'day')}`}
+      </span>
+    );
+  };
+
+  const iconBtn = 'p-2 rounded-lg transition shrink-0 cursor-pointer';
+  const renderActions = (row) => (
+    <div className="flex justify-end items-center gap-1.5">
+      {row.phone && (
+        <a href={`tel:${row.phone}`} title={`Call ${row.customerName}`} aria-label={`Call ${row.customerName}`}
+          className={`${iconBtn} bg-blue-50 text-blue-600 hover:bg-blue-100`}>
+          <Phone size={14} />
+        </a>
+      )}
+      {row.phone && (
+        <button type="button" title="Open in WhatsApp Live Chat" aria-label="Open in WhatsApp Live Chat"
+          onClick={() => navigate(`/whatsapp-chat?phone=${encodeURIComponent(row.phone.replace(/[^\d]/g, ''))}`)}
+          className={`${iconBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`}>
+          <MessageSquare size={14} />
+        </button>
+      )}
+      {row.sourceType === 'lead' && (
+        <button type="button" title="Open Lead" aria-label="Open Lead"
+          onClick={() => setViewingLead({ leadId: row.sourceId, customerName: row.customerName })}
+          className={`${iconBtn} bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-300`}>
+          <ExternalLink size={14} />
+        </button>
+      )}
+      {row.type === 'nurture-booking' && (
+        <button type="button" title="Open Booking" aria-label="Open Booking"
+          onClick={() => handleEditClick(row)}
+          className={`${iconBtn} bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-300`}>
+          <ExternalLink size={14} />
+        </button>
+      )}
+      {row.type !== 'done' && (
+        <button type="button" onClick={() => handleDoneClick(row)}
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F97316] text-white hover:bg-[#ea580c] shrink-0 shadow-sm">
+          <Check size={13} /> Done
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6 select-none">
       {/* Top Controls: Universal Search, Staff Filter & Segments */}
@@ -379,122 +467,64 @@ export default function FollowUps() {
         </div>
       </div>
 
-      {/* Unified Table */}
+      {/* Unified list: a table on desktop, cards on a phone (the table's
+          Done button sat off-screen at 390px, and this is the page agents
+          open on their phones between calls). */}
       <div className="card p-0 overflow-hidden">
-        <Table>
-          <Thead>
-            <Th>Customer</Th>
-            <Th>Note / Action</Th>
-            {!isTeamMember && <Th>Assigned To</Th>}
-            <Th>Status</Th>
-            <Th>Due</Th>
-            <Th className="text-right">Actions</Th>
-          </Thead>
-          <Tbody>
-            {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 5 : 6} />}
-              {!loading && pagedRows.map((row) => {
-                return (
-                  <Tr key={row.id}>
-                    <Td>
-                      <div>
-                        <p className="text-slate-700 dark:text-zinc-200">{row.customerName}</p>
-                        <button
-                          onClick={() => handleEditClick(row)}
-                          disabled={editLoadingId === row.id}
-                          className="text-xs text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 disabled:cursor-wait"
-                          title={`Edit ${row.customerName}'s details`}
-                        >
-                          {editLoadingId === row.id ? 'Loading…' : (row.phone || '-')}
-                        </button>
-                        {row.noAction && (
-                          <p className="text-[10px] text-rose-500 font-semibold mt-0.5 animate-pulse">Nothing happened yet</p>
-                        )}
-                      </div>
-                    </Td>
-                    <Td className="text-slate-500 dark:text-zinc-400">
-                      <span className="flex items-center gap-1.5">
-                        {getActivityIcon(row.activityType)} {row.note}
-                      </span>
-                    </Td>
-                    {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400">{row.assignedTo || '-'}</Td>}
-                    <Td><FollowUpStatusBadge status={row.status} /></Td>
-                    <Td>
-                      {row.type === 'done' ? (
-                        <span className="badge-tint px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50">
-                          Completed ({new Date(row.completedAt).toLocaleDateString('en-IN')})
-                        </span>
-                      ) : row.dueDate ? (
-                        <span className={`badge-tint px-2 py-0.5 text-[10px] font-bold rounded ${
-                          row.overdue
-                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50'
-                            : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                        }`}>
-                          {row.overdue ? 'Overdue' : 'Today'} ({new Date(row.dueDate).toLocaleDateString('en-IN')})
-                        </span>
-                      ) : (
-                        <span className={`badge-tint px-2 py-0.5 text-[10px] font-bold rounded ${
-                          row.idleDays >= 5
-                            ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50'
-                            : row.idleDays >= 2
-                            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                            : 'bg-slate-50 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/50'
-                        }`}>
-                          {row.idleDays === 0 ? 'Updated today' : `Idle for ${row.idleDays} days`}
-                        </span>
-                      )}
-                    </Td>
-                    <Td>
-                      <div className="flex justify-end items-center gap-2">
-                        {row.phone && (
-                          <a
-                            href={`tel:${row.phone}`}
-                            title={`Call ${row.customerName}`}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition shrink-0"
-                          >
-                            <Phone size={13} />
-                          </a>
-                        )}
-                        {row.phone && (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/whatsapp-chat?phone=${encodeURIComponent(row.phone.replace(/[^\d]/g, ''))}`)}
-                            title="Open in WhatsApp Live Chat"
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition shrink-0 cursor-pointer"
-                          >
-                            <MessageSquare size={13} />
-                          </button>
-                        )}
-                        {row.type !== 'done' && (
-                          <button
-                            onClick={() => handleDoneClick(row)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F97316] text-white hover:bg-[#ea580c] shrink-0 shadow-sm ml-1"
-                          >
-                            <Check size={13} /> Done
-                          </button>
-                        )}
-                        {row.sourceType === 'lead' && (
-                          <button
-                            onClick={() => setViewingLead({ leadId: row.sourceId, customerName: row.customerName })}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 ml-1 shrink-0"
-                          >
-                            <ExternalLink size={12} /> Open Lead
-                          </button>
-                        )}
-                        {row.type === 'nurture-booking' && (
-                          <button
-                            onClick={() => handleEditClick(row)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 ml-1 shrink-0"
-                          >
-                            <ExternalLink size={12} /> Open Booking
-                          </button>
-                        )}
-                      </div>
-                    </Td>
-                  </Tr>
-                );
-              })}
-          </Tbody>
-        </Table>
+        <div className="hidden md:block">
+          <Table>
+            <Thead>
+              <Th>Customer</Th>
+              <Th>Note / Action</Th>
+              {!isTeamMember && <Th>Assigned To</Th>}
+              <Th>Status</Th>
+              <Th>Due</Th>
+              <Th className="text-right">Actions</Th>
+            </Thead>
+            <Tbody>
+              {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 5 : 6} />}
+              {!loading && pagedRows.map((row) => (
+                <Tr key={row.id}>
+                  <Td>{renderCustomer(row)}</Td>
+                  <Td className="text-slate-500 dark:text-zinc-400">
+                    <span className="flex items-start gap-1.5 max-w-md">
+                      <span className="mt-0.5 shrink-0">{getActivityIcon(row.activityType)}</span>
+                      <span className="line-clamp-2" title={row.note}>{row.note}</span>
+                    </span>
+                  </Td>
+                  {!isTeamMember && <Td className="text-slate-500 dark:text-zinc-400 whitespace-nowrap">{row.assignedTo || '-'}</Td>}
+                  <Td><FollowUpStatusBadge status={row.status} /></Td>
+                  <Td className="whitespace-nowrap">{renderDue(row)}</Td>
+                  <Td>{renderActions(row)}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </div>
+
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-zinc-800">
+          {loading && <p className="p-4 text-sm text-slate-400">Loading follow-ups…</p>}
+          {!loading && pagedRows.map((row) => (
+            <div key={row.id} className="p-4 space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                {renderCustomer(row)}
+                <div className="shrink-0">{renderDue(row)}</div>
+              </div>
+              <p className="flex items-start gap-1.5 text-sm text-slate-600 dark:text-zinc-300">
+                <span className="mt-0.5 shrink-0">{getActivityIcon(row.activityType)}</span>
+                <span>{row.note}</span>
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 text-xs text-slate-400">
+                  <FollowUpStatusBadge status={row.status} />
+                  {!isTeamMember && row.assignedTo && <span className="truncate">{row.assignedTo}</span>}
+                </div>
+                {renderActions(row)}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {!loading && rows.length === 0 && (
           <EmptyState title="No follow-ups found" message="All caught up for this filter segment!" />
         )}

@@ -209,15 +209,16 @@ export default function Leads() {
             </span>
           </h1>
         </div>
-        <div className="flex items-center gap-3 relative">
-          {/* Glowing Lead Pool Badge */}
-          <div
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative">
+          {/* Lead Pool badge - pulses only while there are leads waiting to be claimed */}
+          <button
+            type="button"
             onClick={() => setPoolOpen(!poolOpen)}
-            className="animate-pulse bg-brand-50 border border-brand-200 text-brand-700 cursor-pointer hover:bg-brand-100 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1.5 transition"
+            className={`${poolCount > 0 ? 'animate-pulse' : ''} bg-brand-50 border border-brand-200 text-brand-700 cursor-pointer hover:bg-brand-100 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1.5 transition whitespace-nowrap`}
           >
             <span className="h-2 w-2 rounded-full bg-brand-600 block"></span>
             Lead Pool ({poolCount})
-          </div>
+          </button>
           <LeadPoolDrawer isOpen={poolOpen} onClose={() => setPoolOpen(false)} onLeadClaimed={load} onPoolCountChange={setPoolCount} poolCount={poolCount} />
 
           {/* Segmented control for List / Pipeline */}
@@ -252,8 +253,8 @@ export default function Leads() {
               <Upload size={16} /> Import
             </button>
           )}
-          <button type="button" className="btn-secondary" onClick={() => setBroadcastHistoryOpen(true)}>
-            <History size={16} /> Broadcast History
+          <button type="button" className="btn-secondary" onClick={() => setBroadcastHistoryOpen(true)} aria-label="Broadcast History" title="Broadcast History">
+            <History size={16} /> <span className="hidden sm:inline">Broadcast History</span>
           </button>
           {canCreate && (
             <button className="btn-primary" onClick={() => { setEditingLead(null); setFormOpen(true); }}>

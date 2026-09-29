@@ -321,7 +321,9 @@ export default function Dashboard() {
       )}
 
       {/* ── ADMIN: 3-step onboarding + filter row ── */}
-      {isAdmin && (
+      {/* Only until the first booking exists - after that it is just a card
+          pushing the real numbers below the fold (a whole phone screen). */}
+      {isAdmin && !loading && Number(data?.stats?.totalBookings || 0) === 0 && (
         <div className="flex flex-col gap-3">
 
           {/* 3-step onboarding card */}
@@ -404,9 +406,9 @@ export default function Dashboard() {
       )}
 
       {/* ── ENTERPRISE-GRADE KPI METRIC GRID ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {/* Card 1: Total Booked */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[110px] min-w-0">
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
               Total Booked
@@ -416,7 +418,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-2 space-y-1">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h3 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               {loading ? '...' : data?.stats.totalBookings}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
@@ -432,7 +434,7 @@ export default function Dashboard() {
         </div>
 
         {/* Card 2: 30 Days Revenue */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[110px] min-w-0">
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
               30 Days Revenue
@@ -442,7 +444,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-2 space-y-1">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h3 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               {loading ? '...' : formatCurrency(data?.stats.revenue30Days || 0)}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
@@ -460,7 +462,7 @@ export default function Dashboard() {
         </div>
 
         {/* Card 3: Total Revenue */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[110px] min-w-0">
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
               Total Revenue
@@ -470,7 +472,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-2 space-y-1">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h3 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               {loading ? '...' : formatCurrency(data?.stats.totalRevenue || 0)}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
@@ -482,7 +484,7 @@ export default function Dashboard() {
         </div>
 
         {/* Card 4: Upcoming Departures */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[120px]">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between min-h-[110px] min-w-0">
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
               Upcoming Departures
@@ -492,7 +494,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-2 space-y-1">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h3 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               {loading ? '...' : data?.stats.upcomingTrips}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
