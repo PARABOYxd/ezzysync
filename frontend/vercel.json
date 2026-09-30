@@ -9,7 +9,7 @@
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!login|register).*)",
       "has": [{ "type": "host", "value": "ezzysync-frontend.vercel.app" }],
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
