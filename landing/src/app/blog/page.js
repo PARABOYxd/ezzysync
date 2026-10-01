@@ -13,7 +13,7 @@ export const metadata = withSeo("/blog", {
   title: "Travel Agency Blog: WhatsApp, Itineraries & CRM | EzzySync",
   description:
     "Practical guides for Indian travel agencies: converting WhatsApp enquiries, building AI itineraries, GST invoicing, and running a tour business without losing leads.",
-  alternates: { canonical: "/blog" },
+  alternates: { canonical: "/blog", types: { "application/rss+xml": "/feed.xml" } },
   robots: { index: true, follow: true },
   openGraph: {
     title: "Travel Agency Growth Blog — EzzySync",

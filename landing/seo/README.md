@@ -22,9 +22,15 @@ pings IndexNow (Bing etc.). Google re-reads `sitemap.xml` by itself.
 
 ## Built from data, never by hand
 
-- `sitemap.xml`, `llms.txt`, `pricing.md` - generated from pages, posts and `src/data/plans.js`
+- `sitemap.xml`, `llms.txt`, `pricing.md`, `feed.xml` (blog RSS) - generated from pages, posts and `src/data/plans.js`
 - Related links and inline links in posts - from `src/content/internalLinks.json`
 - Product facts the AI may use - `seo/product-facts.md`. **Update it when the product changes.**
+
+## Off-page (manual)
+
+`seo/backlink-kit.md` - ready-to-paste listing text for software directories,
+the order to submit them in, and a status table. Update it when prices or
+features change.
 
 ## Secrets (GitHub → Settings → Secrets and variables → Actions)
 
