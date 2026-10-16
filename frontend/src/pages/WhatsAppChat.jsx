@@ -150,6 +150,16 @@ export default function WhatsAppChat() {
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const selectedChatRef = useRef(selectedChat);
+  const messagesRef = useRef(messages);
+
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -167,12 +177,37 @@ export default function WhatsAppChat() {
       }
     } else if (msg?.type === 'WHATSAPP_MESSAGE_RECEIVED') {
       loadChats();
-      if (selectedChatRef.current?.id === msg.chatId) {
-        whatsappWebService.getChatMessages(msg.chatId, { limit: PAGE_SIZE }).then((data) => {
-          if (data?.messages && selectedChatRef.current?.id === msg.chatId) {
+      const eventChatId = msg.chatId || msg.chat?.id;
+      if (selectedChatRef.current?.id && eventChatId && String(selectedChatRef.current.id) === String(eventChatId)) {
+        whatsappWebService.getChatMessages(eventChatId, { limit: PAGE_SIZE }).then((data) => {
+          if (data?.messages && String(selectedChatRef.current?.id) === String(eventChatId)) {
             setMessages((prev) => mergeLatestPage(prev, data.messages));
+            if (data.chat) setSelectedChat(data.chat);
           }
         }).catch(() => {});
+      }
+    } else if (
+      msg?.type === 'WHATSAPP_CHAT_ASSIGNED' ||
+      msg?.type === 'WHATSAPP_CHATS_UPDATED' ||
+      msg?.type === 'LEAD_CREATED' ||
+      msg?.type === 'LEAD_UPDATED'
+    ) {
+      loadChats();
+      const eventChatId = msg.chatId || msg.chat?.id;
+      if (
+        selectedChatRef.current?.id &&
+        ((eventChatId && String(selectedChatRef.current.id) === String(eventChatId)) ||
+          (msg.leadId && (selectedChatRef.current?.lead_uuid === msg.leadId || selectedChatRef.current?.formatted_lead_id === msg.leadCode)))
+      ) {
+        refreshChatContext();
+      }
+      if (
+        msg?.type === 'WHATSAPP_CHAT_ASSIGNED' &&
+        msg?.assignedTo &&
+        user?.name &&
+        msg.assignedTo.trim().toLowerCase() === user.name.trim().toLowerCase()
+      ) {
+        toast.info(`A WhatsApp chat (${msg.customerName || 'Customer'}) was assigned to you.`);
       }
     }
   });
@@ -299,16 +334,6 @@ export default function WhatsAppChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phoneParam]);
 
-  const messagesRef = useRef(messages);
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  const selectedChatRef = useRef(selectedChat);
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
-
   useEffect(() => {
     loadStatus();
     loadChats();
@@ -433,20 +458,19 @@ export default function WhatsAppChat() {
     setTogglingAi(true);
     try {
       const res = await whatsappWebService.toggleChatAi(selectedChat.id, newStatus);
-      setSelectedChat({ ...selectedChat, ai_enabled: newStatus });
+      
+      // Pull fresh thread and chat metadata so agent immediately sees all messages
+      const data = await whatsappWebService.getChatMessages(selectedChat.id, { limit: PAGE_SIZE });
+      if (data?.chat) setSelectedChat(data.chat);
+      else setSelectedChat((prev) => ({ ...prev, ai_enabled: newStatus, needs_human: false }));
+      if (data?.messages) setMessages(data.messages);
+      loadChats();
 
-      // Handing over to AI can send a catch-up reply server-side, so pull the
-      // thread again rather than leaving the agent looking at a stale view.
       if (res?.catchUp?.sent) {
-        const data = await whatsappWebService.getChatMessages(selectedChat.id);
-        setMessages((prev) => mergeLatestPage(prev, data.messages || []));
-        loadChats();
         toast.success('AI read the conversation and replied.');
       } else if (!newStatus) {
-        toast.success('You are replying to this chat now.');
+        toast.success('Switched to Human Mode. You are replying to this chat now.');
       } else {
-        // Switching AI on and seeing nothing happen is what makes it look
-        // broken - say which of the several reasons it was.
         toast.info(CATCH_UP_MESSAGE[res?.catchUp?.reason] || CATCH_UP_MESSAGE.default);
       }
     } catch {
@@ -930,9 +954,13 @@ export default function WhatsAppChat() {
             onBack={() => setMobileView('list')}
             onOpenInfo={() => setMobileView('info')}
             headerExtra={
-              selectedChat?.formatted_lead_id ? (
-                <LeadQuickControls chat={selectedChat} users={teamUsers} onChanged={refreshChatContext} />
-              ) : null
+              <LeadQuickControls
+                chat={selectedChat}
+                users={teamUsers}
+                onChanged={refreshChatContext}
+                onCreateLead={handleCreateLead}
+                creatingLead={creatingLead}
+              />
             }
             hasMore={hasMoreMessages}
             loadingEarlier={loadingEarlier}

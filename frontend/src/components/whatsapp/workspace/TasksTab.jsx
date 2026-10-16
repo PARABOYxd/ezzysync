@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Loader2, Plus, StickyNote, CalendarClock, ListChecks } from 'lucide-react';
 import * as leadService from '../../../services/leadService';
 import * as bookingService from '../../../services/bookingService';
+import { whatsappWebService } from '../../../services/whatsappWebService';
 import { markFollowUpDone } from '../../../services/followUpService';
 import { useToast } from '../../../hooks/useToast.jsx';
 import { ACTIVITY_TYPES, dueState, dueLabel, DUE_STYLES, inputCls, sectionTitleCls, relativeDay } from './helpers';
@@ -13,6 +14,12 @@ function defaultDueAt() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   d.setHours(11, 0, 0, 0);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function getNowDateTimeLocal() {
+  const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -35,31 +42,22 @@ export default function TasksTab({ chat, onChanged }) {
   const [completingId, setCompletingId] = useState(null);
 
   const load = useCallback(async () => {
-    if (!leadId && !bookingId) { setItems([]); return; }
     setLoading(true);
     try {
-      const [leadItems, bookingItems] = await Promise.all([
+      const [leadItems, bookingItems, chatItems] = await Promise.all([
         leadId ? leadService.getLeadFollowUps(leadId).catch(() => []) : [],
         bookingId ? bookingService.getFollowUps(bookingId).catch(() => []) : [],
+        chat?.id ? whatsappWebService.getChatFollowUps(chat.id).catch(() => []) : [],
       ]);
       const seen = new Set();
-      const merged = [...(leadItems || []), ...(bookingItems || [])].filter((f) => !seen.has(f.id) && seen.add(f.id));
+      const merged = [...(leadItems || []), ...(bookingItems || []), ...(chatItems || [])].filter((f) => !seen.has(f.id) && seen.add(f.id));
       setItems(merged);
     } finally {
       setLoading(false);
     }
-  }, [leadId, bookingId]);
+  }, [leadId, bookingId, chat?.id]);
 
   useEffect(() => { setMode(null); load(); }, [load]);
-
-  if (!leadId && !bookingId) {
-    return (
-      <div className="p-5 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center space-y-2">
-        <ListChecks className="w-6 h-6 mx-auto text-slate-300" />
-        <p className="text-xs text-slate-500">Create a lead from the Lead tab to schedule follow-ups for this chat.</p>
-      </div>
-    );
-  }
 
   const open = items
     .filter(isOpenTask)
@@ -75,21 +73,44 @@ export default function TasksTab({ chat, onChanged }) {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (mode === 'task') {
+      if (!form.dueAt) {
+        toast.error('Please specify a date and time for the follow-up.');
+        return;
+      }
+      const selectedTime = new Date(form.dueAt).getTime();
+      if (isNaN(selectedTime)) {
+        toast.error('Invalid date and time selected.');
+        return;
+      }
+      if (selectedTime < Date.now() - 60000) {
+        toast.error('Follow-up date & time must be today or in the future.');
+        return;
+      }
+    }
     const note = form.note.trim();
-    if (!note) { toast.error(mode === 'note' ? 'Write the note first.' : 'Say what the follow-up is about.'); return; }
+    if (!note) {
+      toast.error(mode === 'note' ? 'Please enter note content before saving.' : 'Please enter action notes for the follow-up.');
+      return;
+    }
     const payload = mode === 'note'
       ? { note, activityType: 'note' }
       : { note, activityType: form.activityType, nextFollowUpDate: new Date(form.dueAt).toISOString() };
     setSaving(true);
     try {
       if (leadId) await leadService.addLeadFollowUp(leadId, payload);
-      else await bookingService.addFollowUp(bookingId, payload);
+      else if (bookingId) await bookingService.addFollowUp(bookingId, payload);
+      else if (chat?.id) await whatsappWebService.addChatFollowUp(chat.id, payload);
+      else {
+        toast.error('Cannot save: Chat ID is missing.');
+        return;
+      }
       toast.success(mode === 'note' ? 'Note saved.' : 'Follow-up scheduled.');
       setMode(null);
       await load();
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save.');
+      toast.error(err.response?.data?.message || 'Could not save follow-up.');
     } finally {
       setSaving(false);
     }
@@ -127,18 +148,29 @@ export default function TasksTab({ chat, onChanged }) {
             {mode === 'note' ? 'Internal note · only your team sees this' : 'Schedule a follow-up'}
           </p>
           {mode === 'task' && (
-            // Stacked on a phone: "29 Sep 2026 at 11:00 AM" does not fit half a drawer.
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <label className="block min-w-0 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                Type
-                <select className={`${inputCls} mt-1`} value={form.activityType} onChange={(e) => setForm((f) => ({ ...f, activityType: e.target.value }))}>
+              <div className="min-w-0">
+                <label htmlFor="taskActivityType" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  Type
+                </label>
+                <select id="taskActivityType" className={`${inputCls} mt-1`} value={form.activityType} onChange={(e) => setForm((f) => ({ ...f, activityType: e.target.value }))}>
                   {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
-              </label>
-              <label className="block min-w-0 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                When
-                <input className={`${inputCls} mt-1`} type="datetime-local" value={form.dueAt} onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))} required />
-              </label>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="dueAtInput" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  When
+                </label>
+                <input
+                  id="dueAtInput"
+                  className={`${inputCls} mt-1`}
+                  type="datetime-local"
+                  min={getNowDateTimeLocal()}
+                  value={form.dueAt}
+                  onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
           )}
           <textarea

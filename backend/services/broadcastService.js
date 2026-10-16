@@ -75,10 +75,20 @@ async function broadcastToLeads(tenantId, { leadIds, templateId, userId, sentBy 
           userId,
         });
       } else {
+        // Pacing delay (5-10s random) for non-official QR Web to prevent account bans
+        if (results.length > 0) {
+          const delayMs = Math.floor(Math.random() * 5000) + 5000;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+
+        // Personalize message body with customer name
+        const personalizedText = (template.body || '')
+          .replace(/\{\{\s*customer_name\s*\}\}|\{\{1\}\}/gi, leadRow.customer_name || 'there');
+
         sendResult = await whatsappSendService.sendText(tenantId, {
           chat,
           userId,
-          messageText: template.body,
+          messageText: personalizedText,
         });
       }
       results.push({
@@ -114,6 +124,28 @@ async function broadcastToLeads(tenantId, { leadIds, templateId, userId, sentBy 
   return results;
 }
 
+async function getBroadcastQuota(tenantId) {
+  const { query } = require('../config/db');
+  const { rows } = await query(
+    `SELECT COALESCE(SUM(sent_count), 0)::int AS sent_today
+     FROM broadcast_logs
+     WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`,
+    [tenantId]
+  );
+  const sentToday = rows[0]?.sent_today || 0;
+
+  const settingsRepo = require('../repositories/settingsRepository');
+  const settings = await settingsRepo.getSettings(tenantId);
+  const isMetaConnected = Boolean(settings?.whatsappPhoneNumberId && settings?.whatsappAccessToken);
+
+  return {
+    sentToday,
+    metaLimit: 1000,
+    metaConnected: isMetaConnected,
+    qrSafetyLimit: 100,
+  };
+}
+
 async function listBroadcasts(tenantId) {
   return broadcastRepository.listBroadcasts(tenantId);
 }
@@ -122,4 +154,4 @@ async function getBroadcastDetail(tenantId, broadcastId) {
   return broadcastRepository.getBroadcastDetail(tenantId, broadcastId);
 }
 
-module.exports = { broadcastToLeads, listBroadcasts, getBroadcastDetail, MAX_RECIPIENTS };
+module.exports = { broadcastToLeads, getBroadcastQuota, listBroadcasts, getBroadcastDetail, MAX_RECIPIENTS };

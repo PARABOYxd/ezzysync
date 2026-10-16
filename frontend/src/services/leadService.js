@@ -22,6 +22,7 @@ export const broadcastToLeads = (leadIds, templateId) =>
 
 export const getBroadcastHistory = () => api.get('/leads/broadcasts').then((r) => r.data.broadcasts || []);
 export const getBroadcastDetail = (broadcastId) => api.get(`/leads/broadcasts/${broadcastId}`).then((r) => r.data);
+export const getBroadcastQuota = () => api.get('/leads/broadcast-quota').then((r) => r.data);
 
 /* ------------------------------------------------ importing an old sheet */
 

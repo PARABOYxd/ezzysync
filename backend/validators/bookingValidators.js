@@ -65,6 +65,16 @@ const createBookingValidators = [
   emailWhenBooked({ withDefault: true }),
   requiredWhenBooked('trip', 'Trip name is required when status is Booked or Completed.', { withDefault: true }),
   requiredWhenBooked('departure', 'Departure date is required when status is Booked or Completed.', { withDefault: true }),
+  body('departure').optional({ values: 'falsy' }).custom((value) => {
+    if (value) {
+      const today = new Date().toISOString().split('T')[0];
+      const valStr = typeof value === 'string' ? value.slice(0, 10) : '';
+      if (valStr && valStr < today) {
+        throw new Error('Departure date must be today or in the future.');
+      }
+    }
+    return true;
+  }),
   numericWhenBooked('members', 1, 'Members must be at least 1 when status is Booked or Completed.', { withDefault: true }),
   numericWhenBooked('pricePerPerson', 0, 'Price per person must be a positive number when status is Booked or Completed.', { withDefault: true }),
 ];

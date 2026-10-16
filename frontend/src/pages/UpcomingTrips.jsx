@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Search, MapPin, Users, Eye, FileText, MessageCircle, ArrowUpDown } from 'lucide-react';
+import { Calendar, Search, MapPin, Users, Eye, FileText, MessageCircle, ArrowUpDown, Copy } from 'lucide-react';
 import * as bookingService from '../services/bookingService';
 import * as invoiceService from '../services/invoiceService';
 import * as whatsappService from '../services/whatsappService';
@@ -19,6 +19,24 @@ const getTodayString = () => {
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+function formatOrdinalDate(dateStr) {
+  if (!dateStr) return 'Unscheduled';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = d.getDate();
+  const month = d.toLocaleString('en-US', { month: 'long' });
+  const suffix = (day) => {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+  return `${day}${suffix(day)} ${month}`;
+}
 
 export default function UpcomingTrips() {
   const [searchParams] = useSearchParams();
@@ -86,6 +104,61 @@ export default function UpcomingTrips() {
     });
   };
 
+  const handleCopyDetails = async () => {
+    if (!bookings || bookings.length === 0) {
+      toast.error('No booked trips to copy.');
+      return;
+    }
+
+    let listToCopy = bookings;
+    if (pagination.totalCount > bookings.length) {
+      try {
+        const fullRes = await bookingService.getBookings({ ...filters, limit: 1000, page: 1 });
+        listToCopy = fullRes.bookings || bookings;
+      } catch (e) {
+        listToCopy = bookings;
+      }
+    }
+
+    // Group by `${departureDate} - ${tripName}`
+    const groups = {};
+    listToCopy.forEach((b) => {
+      const dateFormatted = formatOrdinalDate(b.departure);
+      const tripName = b.trip || 'Trip';
+      const key = `${dateFormatted} - ${tripName}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(b);
+    });
+
+    // Format output matching requested sample
+    const sections = Object.entries(groups).map(([groupTitle, items]) => {
+      const lines = items.map((b, idx) => {
+        const phone = b.phone || 'N/A';
+        const pax = `${b.members || 1} pax`;
+        const pickup = b.pickup || b.pickupLocation || 'No pickup location';
+        const price = `₹${b.pricePerPerson || 0}`;
+        const paid = `₹${b.paid || 0}`;
+        const pending = `₹${b.remaining || 0}`;
+        return `${idx + 1})${phone} - ${pax} - ${pickup} - ${price} - ${paid} - ${pending}`;
+      });
+      return `${groupTitle}\n${lines.join('\n')}`;
+    });
+
+    const fullText = sections.join('\n\n');
+    try {
+      await navigator.clipboard.writeText(fullText);
+      toast.success('Booked trip details copied to clipboard!');
+    } catch (err) {
+      const textarea = document.createElement('textarea');
+      textarea.value = fullText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      toast.success('Booked trip details copied to clipboard!');
+    }
+  };
+
   const handleSendInvoice = async (b) => {
     try {
       await invoiceService.emailInvoice(b.bookingId);
@@ -118,6 +191,15 @@ export default function UpcomingTrips() {
             Track confirmed bookings sorted by departure date in ascending order.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleCopyDetails}
+          className="btn-primary text-xs px-3.5 py-2.5 flex items-center gap-2 shadow-sm font-semibold rounded-xl cursor-pointer"
+          title="Copy collated details of filtered trips"
+        >
+          <Copy size={15} />
+          <span>Copy Details</span>
+        </button>
       </div>
 
       {/* Glassmorphic Premium Filters */}

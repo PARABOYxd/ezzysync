@@ -360,8 +360,17 @@ async function listBookingsPaged(params) {
   }
 
   if (status) {
-    whereClauses.push(`b.travel_status = $${paramIndex++}`);
-    values.push(status);
+    if (Array.isArray(status) && status.length > 0) {
+      whereClauses.push(`b.travel_status = ANY($${paramIndex++}::text[])`);
+      values.push(status);
+    } else if (typeof status === 'string' && status.includes(',')) {
+      const arr = status.split(',').map((s) => s.trim()).filter(Boolean);
+      whereClauses.push(`b.travel_status = ANY($${paramIndex++}::text[])`);
+      values.push(arr);
+    } else {
+      whereClauses.push(`b.travel_status = $${paramIndex++}`);
+      values.push(status);
+    }
   }
 
   if (trip) {

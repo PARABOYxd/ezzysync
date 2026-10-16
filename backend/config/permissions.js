@@ -14,7 +14,8 @@ const MODULES = {
   // Replying is everyday work for any agent; connecting or disconnecting the
   // agency's WhatsApp number, and switching autopilot on for new chats, are
   // owner decisions. Unlinking the number stops every agent working at once.
-  whatsapp: ['reply', 'manage'],
+  // viewAll: when false, agent only sees chats assigned to them.
+  whatsapp: ['reply', 'manage', 'viewAll'],
 };
 
 // Defaults chosen to match current real-world behavior, so this ships as a no-op
@@ -31,7 +32,7 @@ const TEAM_MEMBER_DEFAULTS = {
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },
-  whatsapp: { reply: true, manage: false },
+  whatsapp: { reply: true, manage: false, viewAll: false },
 };
 
 // Legacy flat keys (pre module x action matrix) mapped to their new home.

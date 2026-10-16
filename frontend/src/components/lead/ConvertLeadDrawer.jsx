@@ -296,7 +296,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         )}
 
         <FormRow>
-          <Input label="Departure Date" icon={Calendar} required type="date" value={form.departure} onChange={set('departure')} />
+          <Input label="Departure Date" icon={Calendar} required type="date" min={new Date().toISOString().split('T')[0]} value={form.departure} onChange={set('departure')} />
           <Input label="Number of Travelers" icon={Users} type="number" min={1} max={100} value={form.members} onChange={set('members')} />
         </FormRow>
         

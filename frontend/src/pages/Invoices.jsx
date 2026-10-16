@@ -33,10 +33,12 @@ export default function Invoices() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   useEffect(() => {
     setLoading(true);
     bookingService
-      .getBookings({ search: debouncedSearch, sort: 'newest', page, limit: 15 })
+      .getBookings({ search: debouncedSearch, departureFrom: todayStr, sort: 'newest', page, limit: 15 })
       .then((res) => {
         setBookings(res.bookings || []);
         if (res.pagination) {
@@ -74,7 +76,7 @@ export default function Invoices() {
   return (
     <div className="space-y-5">
       <div className="w-full sm:max-w-xs">
-        <Input icon={Search} placeholder="Search bookings…" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+        <Input icon={Search} placeholder="Search invoices…" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -82,45 +84,58 @@ export default function Invoices() {
         <div className="hidden md:block">
           <Table>
             <Thead>
-              <Th>Booking ID</Th>
-              <Th>Customer</Th>
-              <Th>Trip</Th>
+              <Th>Customer Name</Th>
+              <Th>Phone Number</Th>
+              <Th>Trip Name</Th>
+              <Th>Pax</Th>
+              <Th>Price / Person</Th>
               <Th>Total</Th>
-              <Th>Payment</Th>
+              <Th>Paid</Th>
+              <Th>Payment Status</Th>
               <Th className="text-right">Actions</Th>
             </Thead>
             <Tbody>
-                {loading && <SkeletonTableRows rows={6} cols={6} />}
+                {loading && <SkeletonTableRows rows={6} cols={9} />}
                 {!loading && bookings.map((b) => (
                   <Tr key={b.bookingId}>
                     <Td>
                       <button
                         onClick={() => setViewingBookingId(b.bookingId)}
-                        className="text-slate-400 dark:text-zinc-500 font-mono text-xs hover:text-brand-600 dark:hover:text-brand-400 hover:underline cursor-pointer"
-                      >
-                        {b.bookingId}
-                      </button>
-                    </Td>
-                    <Td>
-                      <button
-                        onClick={() => setViewingBookingId(b.bookingId)}
-                        className="font-medium text-slate-700 dark:text-zinc-200 hover:text-brand-600 dark:hover:text-brand-400 hover:underline text-left cursor-pointer"
+                        className="font-medium text-slate-800 dark:text-zinc-200 hover:text-brand-600 dark:hover:text-brand-400 hover:underline text-left cursor-pointer"
                       >
                         {b.customerName}
                       </button>
                     </Td>
-                    <Td className="text-slate-500 dark:text-zinc-400">{b.trip}</Td>
-                    <Td className="text-slate-500 dark:text-zinc-400">{formatCurrency(b.totalAmount)}</Td>
-                    <Td><PaymentStatusBadge status={b.paymentStatus} /></Td>
+                    <Td className="text-slate-500 dark:text-zinc-400 font-mono text-xs">
+                      {b.phone || '-'}
+                    </Td>
+                    <Td className="text-slate-600 dark:text-zinc-300 font-medium">
+                      {b.trip}
+                    </Td>
+                    <Td className="text-slate-600 dark:text-zinc-400">
+                      {b.members || 1}
+                    </Td>
+                    <Td className="text-slate-600 dark:text-zinc-400 font-mono">
+                      {formatCurrency(b.pricePerPerson)}
+                    </Td>
+                    <Td className="text-slate-800 dark:text-zinc-100 font-semibold font-mono">
+                      {formatCurrency(b.totalAmount)}
+                    </Td>
+                    <Td className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
+                      {formatCurrency(b.paid)}
+                    </Td>
+                    <Td>
+                      <PaymentStatusBadge status={b.paymentStatus} />
+                    </Td>
                     <Td>
                       <div className="flex justify-end gap-1">
                         {canDownload && (
-                          <button title="Download PDF" onClick={() => handleDownload(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
+                          <button title="Download PDF" onClick={() => handleDownload(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 cursor-pointer">
                             <Download size={16} />
                           </button>
                         )}
                         {canEmail && (
-                          <button title="Email Invoice" onClick={() => handleEmail(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400">
+                          <button title="Email Invoice" onClick={() => handleEmail(b)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 cursor-pointer">
                             <Mail size={16} />
                           </button>
                         )}
@@ -152,31 +167,32 @@ export default function Invoices() {
                   >
                     {b.customerName}
                   </button>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">{b.trip}</p>
-                </div>
-                <button
-                  onClick={() => setViewingBookingId(b.bookingId)}
-                  className="text-slate-400 dark:text-zinc-500 font-mono text-[11px] hover:text-brand-600 bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded shrink-0"
-                >
-                  {b.bookingId}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Amount</span>
-                  <span className="font-extrabold text-slate-800 dark:text-zinc-100 text-sm">
-                    {formatCurrency(b.totalAmount)}
-                  </span>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-mono mt-0.5">{b.phone || '-'}</p>
+                  <p className="text-xs text-slate-700 dark:text-zinc-300 font-medium truncate mt-0.5">{b.trip} ({b.members || 1} pax)</p>
                 </div>
                 <PaymentStatusBadge status={b.paymentStatus} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-xs pt-1 bg-slate-50 dark:bg-zinc-800/40 p-2.5 rounded-lg font-mono">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Rate / Pax</span>
+                  <span className="font-medium text-slate-700 dark:text-zinc-300">{formatCurrency(b.pricePerPerson)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Total</span>
+                  <span className="font-bold text-slate-800 dark:text-zinc-100">{formatCurrency(b.totalAmount)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Paid</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(b.paid)}</span>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100/80 dark:border-zinc-800/80">
                 {canDownload && (
                   <button
                     onClick={() => handleDownload(b)}
-                    className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-200 transition min-h-[38px]"
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-200 transition min-h-[38px] cursor-pointer"
                   >
                     <Download size={14} /> PDF
                   </button>
@@ -184,14 +200,14 @@ export default function Invoices() {
                 {canEmail && (
                   <button
                     onClick={() => handleEmail(b)}
-                    className="flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 text-xs font-semibold hover:bg-brand-100 transition min-h-[38px]"
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 text-xs font-semibold hover:bg-brand-100 transition min-h-[38px] cursor-pointer"
                   >
                     <Mail size={14} /> Email
                   </button>
                 )}
                 <button
                   onClick={() => setViewingBookingId(b.bookingId)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-50 transition min-h-[38px]"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-semibold hover:bg-slate-50 transition min-h-[38px] cursor-pointer"
                 >
                   View Details
                 </button>
@@ -201,7 +217,7 @@ export default function Invoices() {
         </div>
 
         {!loading && bookings.length === 0 && (
-          <EmptyState title="No bookings to invoice yet" message="Once you create bookings, invoices will be generated from here." />
+          <EmptyState title="No active invoices found" message="Showing today's and upcoming bookings. Past bookings are excluded." />
         )}
       </div>
 
@@ -223,7 +239,7 @@ export default function Invoices() {
         booking={bookings.find(b => b.bookingId === viewingBookingId)}
         onRefresh={() => {
           bookingService
-            .getBookings({ search: debouncedSearch, sort: 'newest', page, limit: 15 })
+            .getBookings({ search: debouncedSearch, departureFrom: todayStr, sort: 'newest', page, limit: 15 })
             .then((res) => {
               setBookings(res.bookings || []);
               if (res.pagination) setPagination(res.pagination);

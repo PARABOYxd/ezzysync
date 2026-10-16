@@ -26,13 +26,13 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
   }
 
   if (assignedTo) {
-    whereClauses.push(`COALESCE(b.team_member, l.assigned_to) ILIKE $${paramIndex++}`);
+    whereClauses.push(`COALESCE(b.team_member, l.assigned_to, c.assigned_to) ILIKE $${paramIndex++}`);
     values.push(`%${assignedTo}%`);
   }
 
   if (search && search.trim()) {
     const tokens = search.trim().split(/\s+/).filter(Boolean);
-    const searchTarget = "CONCAT_WS(' ', COALESCE(b.customer_name, l.customer_name), COALESCE(b.phone, l.phone), COALESCE(b.email, l.email), COALESCE(b.team_member, l.assigned_to), f.note)";
+    const searchTarget = "CONCAT_WS(' ', COALESCE(b.customer_name, l.customer_name, c.customer_name), COALESCE(b.phone, l.phone, c.phone), COALESCE(b.email, l.email), COALESCE(b.team_member, l.assigned_to, c.assigned_to), f.note)";
     const searchConditions = tokens.map((token) => {
       values.push(`%${token}%`);
       return `${searchTarget} ILIKE $${paramIndex++}`;
@@ -46,16 +46,25 @@ async function listDueFollowUps(tenantId, { overdue, dueToday, assignedTo, limit
   const { rows } = await query(
     `SELECT
        f.id, f.note, f.activity_type, f.next_follow_up_date, f.created_by, f.created_at, f.status,
-       f.lead_id as lead_uuid, f.booking_id as booking_uuid,
-       CASE WHEN f.booking_id IS NOT NULL THEN 'booking' ELSE 'lead' END as source_type,
-       COALESCE(b.booking_id, l.lead_id) as source_id,
-       COALESCE(b.customer_name, l.customer_name) as customer_name,
-       COALESCE(b.phone, l.phone) as customer_phone,
+       f.lead_id as lead_uuid, f.booking_id as booking_uuid, f.chat_id,
+       CASE
+         WHEN f.booking_id IS NOT NULL THEN 'booking'
+         WHEN f.lead_id IS NOT NULL THEN 'lead'
+         ELSE 'chat'
+       END as source_type,
+       COALESCE(b.booking_id, l.lead_id, CONCAT('CHAT-', SUBSTRING(c.id::text, 1, 8))) as source_id,
+       COALESCE(b.customer_name, l.customer_name, c.customer_name, 'WhatsApp Contact') as customer_name,
+       COALESCE(b.phone, l.phone, c.phone) as customer_phone,
        COALESCE(b.email, l.email) as customer_email,
-       COALESCE(b.team_member, l.assigned_to) as assigned_to
+       COALESCE(b.team_member, l.assigned_to, c.assigned_to) as assigned_to,
+       COALESCE(l.interest, b.trip) as interest,
+       COALESCE(l.departure_date, b.departure) as departure_date,
+       COALESCE(l.travelers, b.members) as travelers,
+       COALESCE(l.stage, b.travel_status, 'WhatsApp Chat') as source_status
      FROM follow_up_logs f
      LEFT JOIN bookings b ON f.booking_id = b.id
      LEFT JOIN leads l ON f.lead_id = l.id
+     LEFT JOIN whatsapp_chats c ON f.chat_id = c.id
      WHERE ${whereClauses.join(' AND ')}
      ORDER BY f.next_follow_up_date ASC
      LIMIT $${limitIndex}`,
@@ -71,13 +80,13 @@ async function listCompletedFollowUps(tenantId, { assignedTo, limit = 200, searc
   const whereClauses = ['f.tenant_id = $1', "f.status = 'done'"];
 
   if (assignedTo) {
-    whereClauses.push(`COALESCE(b.team_member, l.assigned_to) ILIKE $${paramIndex++}`);
+    whereClauses.push(`COALESCE(b.team_member, l.assigned_to, c.assigned_to) ILIKE $${paramIndex++}`);
     values.push(`%${assignedTo}%`);
   }
 
   if (search && search.trim()) {
     const tokens = search.trim().split(/\s+/).filter(Boolean);
-    const searchTarget = "CONCAT_WS(' ', COALESCE(b.customer_name, l.customer_name), COALESCE(b.phone, l.phone), COALESCE(b.email, l.email), COALESCE(b.team_member, l.assigned_to), f.note)";
+    const searchTarget = "CONCAT_WS(' ', COALESCE(b.customer_name, l.customer_name, c.customer_name), COALESCE(b.phone, l.phone, c.phone), COALESCE(b.email, l.email), COALESCE(b.team_member, l.assigned_to, c.assigned_to), f.note)";
     const searchConditions = tokens.map((token) => {
       values.push(`%${token}%`);
       return `${searchTarget} ILIKE $${paramIndex++}`;
@@ -91,16 +100,25 @@ async function listCompletedFollowUps(tenantId, { assignedTo, limit = 200, searc
   const { rows } = await query(
     `SELECT
        f.id, f.note, f.activity_type, f.next_follow_up_date, f.created_by, f.created_at, f.status,
-       f.lead_id as lead_uuid, f.booking_id as booking_uuid,
-       CASE WHEN f.booking_id IS NOT NULL THEN 'booking' ELSE 'lead' END as source_type,
-       COALESCE(b.booking_id, l.lead_id) as source_id,
-       COALESCE(b.customer_name, l.customer_name) as customer_name,
-       COALESCE(b.phone, l.phone) as customer_phone,
+       f.lead_id as lead_uuid, f.booking_id as booking_uuid, f.chat_id,
+       CASE
+         WHEN f.booking_id IS NOT NULL THEN 'booking'
+         WHEN f.lead_id IS NOT NULL THEN 'lead'
+         ELSE 'chat'
+       END as source_type,
+       COALESCE(b.booking_id, l.lead_id, CONCAT('CHAT-', SUBSTRING(c.id::text, 1, 8))) as source_id,
+       COALESCE(b.customer_name, l.customer_name, c.customer_name, 'WhatsApp Contact') as customer_name,
+       COALESCE(b.phone, l.phone, c.phone) as customer_phone,
        COALESCE(b.email, l.email) as customer_email,
-       COALESCE(b.team_member, l.assigned_to) as assigned_to
+       COALESCE(b.team_member, l.assigned_to, c.assigned_to) as assigned_to,
+       COALESCE(l.interest, b.trip) as interest,
+       COALESCE(l.departure_date, b.departure) as departure_date,
+       COALESCE(l.travelers, b.members) as travelers,
+       COALESCE(l.stage, b.travel_status, 'WhatsApp Chat') as source_status
      FROM follow_up_logs f
      LEFT JOIN bookings b ON f.booking_id = b.id
      LEFT JOIN leads l ON f.lead_id = l.id
+     LEFT JOIN whatsapp_chats c ON f.chat_id = c.id
      WHERE ${whereClauses.join(' AND ')}
      ORDER BY f.created_at DESC
      LIMIT $${limitIndex}`,

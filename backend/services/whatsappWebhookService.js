@@ -170,6 +170,7 @@ async function processIncomingWebhook(body) {
       // Broadcast to tenant's WebSocket clients for the incoming message
       broadcastToTenant(tenantId, {
         type: 'WHATSAPP_MESSAGE_RECEIVED',
+        chatId: saved.chat?.id,
         chat: saved.chat,
         message: saved.message
       });
@@ -283,6 +284,7 @@ async function processIncomingWebhook(body) {
                 // Reload chats to reflect the handover
                 broadcastToTenant(tenantId, {
                   type: 'WHATSAPP_MESSAGE_RECEIVED',
+                  chatId: saved.chat.id,
                   chat: { ...saved.chat, ai_enabled: false, needs_human: true },
                   message: null
                 });
@@ -315,6 +317,7 @@ async function processIncomingWebhook(body) {
                 // Broadcast outbound message to websocket clients
                 broadcastToTenant(tenantId, {
                   type: 'WHATSAPP_MESSAGE_RECEIVED',
+                  chatId: outboundSaved.chat?.id,
                   chat: outboundSaved.chat,
                   message: outboundSaved.message
                 });
@@ -355,6 +358,7 @@ async function processIncomingWebhook(body) {
                 );
                 broadcastToTenant(tenantId, {
                   type: 'WHATSAPP_MESSAGE_RECEIVED',
+                  chatId: outboundSaved.chat?.id,
                   chat: outboundSaved.chat,
                   message: outboundSaved.message
                 });

@@ -87,6 +87,12 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
   const validate = () => {
     const e = {};
     if (!isValidPhone(form.phone)) e.phone = 'A valid phone number is required.';
+    if (form.departureDate) {
+      const today = new Date().toISOString().split('T')[0];
+      if (form.departureDate < today) {
+        e.departureDate = 'Departure date must be today or a future date.';
+      }
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -250,6 +256,8 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
             label="Departure Date (Optional)"
             icon={Calendar}
             type="date"
+            min={new Date().toISOString().split('T')[0]}
+            error={errors.departureDate}
             value={form.departureDate || ''}
             onChange={set('departureDate')}
           />

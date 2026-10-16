@@ -4,6 +4,7 @@ import * as whatsappTemplateService from '../../services/whatsappTemplateService
 import { whatsappWebService } from '../../services/whatsappWebService';
 import { useToast } from '../../hooks/useToast.jsx';
 import WhatsAppQRModal from '../whatsapp/WhatsAppQRModal.jsx';
+import ConfirmDialog from '../common/ConfirmDialog.jsx';
 import { FileCheck, Sparkles, RefreshCw, MessageSquare, ChevronDown, ChevronUp, Plus, Edit2, Trash2 } from 'lucide-react';
 import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
@@ -12,6 +13,7 @@ export default function WhatsAppTab({ settings, setSettings }) {
   const toast = useToast();
   const templateTextareaRef = useRef(null);
 
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: null, title: '', message: '' });
   const [showAdvancedWA, setShowAdvancedWA] = useState(false);
   const [waRequest, setWaRequest] = useState({ phone: '', companyName: '', submitted: false, submitting: false });
   const [connectingWA, setConnectingWA] = useState(false);
@@ -120,17 +122,49 @@ export default function WhatsAppTab({ settings, setSettings }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDisconnectQr = async () => {
-    if (!window.confirm('Unlink this WhatsApp number? Your chats stay, but nothing can be sent or received until you scan again.')) return;
-    setDisconnectingQr(true);
-    try {
-      await whatsappWebService.disconnect();
-      toast.success('WhatsApp unlinked.');
-      refreshQrSession();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not unlink WhatsApp.');
-    } finally {
-      setDisconnectingQr(false);
+  const handleDisconnectQr = () => {
+    setConfirmModal({
+      open: true,
+      type: 'qr',
+      title: 'Unlink WhatsApp Number',
+      message: 'Are you sure you want to unlink this WhatsApp number? Your chat history remains safe, but incoming and outgoing messages will pause until you scan the QR code again.',
+    });
+  };
+
+  const handleDisconnectWA = () => {
+    setConfirmModal({
+      open: true,
+      type: 'meta',
+      title: 'Disconnect WhatsApp Meta Cloud API',
+      message: 'Are you sure you want to disconnect this WhatsApp number? All outgoing messages will revert to the EzzySync Shared Number.',
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmModal.type === 'meta') {
+      setDisconnectingWA(true);
+      try {
+        const res = await settingsService.disconnectWhatsapp();
+        setSettings(res.settings);
+        toast.success('WhatsApp Meta disconnected. Reverted to shared number.');
+        setConfirmModal({ open: false, type: null, title: '', message: '' });
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to disconnect WhatsApp Meta.');
+      } finally {
+        setDisconnectingWA(false);
+      }
+    } else if (confirmModal.type === 'qr') {
+      setDisconnectingQr(true);
+      try {
+        await whatsappWebService.disconnect();
+        toast.success('WhatsApp unlinked successfully.');
+        refreshQrSession();
+        setConfirmModal({ open: false, type: null, title: '', message: '' });
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Could not unlink WhatsApp.');
+      } finally {
+        setDisconnectingQr(false);
+      }
     }
   };
 
@@ -185,20 +219,6 @@ export default function WhatsAppTab({ settings, setSettings }) {
         setConnectingWA(false);
       }
     }, 1000);
-  };
-
-  const handleDisconnectWA = async () => {
-    if (!window.confirm('Are you sure you want to disconnect this WhatsApp number? Messages will revert to EzzySync Shared Number.')) return;
-    setDisconnectingWA(true);
-    try {
-      const res = await settingsService.disconnectWhatsapp();
-      setSettings(res.settings);
-      toast.success('WhatsApp disconnected. Reverted to shared number.');
-    } catch {
-      toast.error('Failed to disconnect WhatsApp.');
-    } finally {
-      setDisconnectingWA(false);
-    }
   };
 
   const handleWaRequest = async () => {
@@ -1155,6 +1175,17 @@ export default function WhatsAppTab({ settings, setSettings }) {
           refreshQrSession();
           toast.success('WhatsApp connected.');
         }}
+      />
+
+      {/* Confirmation Dialog for Disconnecting / Unlinking */}
+      <ConfirmDialog
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, type: null, title: '', message: '' })}
+        onConfirm={handleConfirmAction}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        danger={true}
+        loading={disconnectingWA || disconnectingQr}
       />
     </div>
   );

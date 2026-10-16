@@ -27,7 +27,7 @@ export const PERMISSION_MODULES = [
   { key: 'customers', label: 'Customers', actions: ['read'] },
   { key: 'aiTools', label: 'AI Tools', actions: ['use'] },
   { key: 'billing', label: 'Billing & Analytics', actions: ['read'] },
-  { key: 'whatsapp', label: 'WhatsApp', actions: ['reply', 'manage'] },
+  { key: 'whatsapp', label: 'WhatsApp', actions: ['reply', 'manage', 'viewAll'] },
 ];
 
 // Matches backend TEAM_MEMBER_DEFAULTS — used to seed the Add form and to
@@ -44,5 +44,5 @@ export const DEFAULT_TEAM_MEMBER_PERMISSIONS = {
   customers: { read: true },
   aiTools: { use: true },
   billing: { read: false },
-  whatsapp: { reply: true, manage: false },
+  whatsapp: { reply: true, manage: false, viewAll: false },
 };

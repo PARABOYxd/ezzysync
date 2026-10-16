@@ -259,6 +259,7 @@ export default function TripDetailsTab({
           label="Departure Date"
           icon={Calendar}
           type="date"
+          min={new Date().toISOString().split('T')[0]}
           disabled={!!form.batchId}
           error={errors.departure}
           required={isBookedOrBeyond}

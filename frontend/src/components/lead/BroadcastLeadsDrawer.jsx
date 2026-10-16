@@ -12,6 +12,7 @@ export default function BroadcastLeadsDrawer({ open, onClose, leads, onSent }) {
   const [templateId, setTemplateId] = useState('');
   const [sending, setSending] = useState(false);
   const [results, setResults] = useState(null);
+  const [quota, setQuota] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -20,6 +21,10 @@ export default function BroadcastLeadsDrawer({ open, onClose, leads, onSent }) {
     whatsappTemplateService.getTemplates()
       .then(setTemplates)
       .catch(() => toast.error('Could not load message templates.'));
+
+    leadService.getBroadcastQuota()
+      .then(setQuota)
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -36,6 +41,7 @@ export default function BroadcastLeadsDrawer({ open, onClose, leads, onSent }) {
       setResults(res);
       toast.success(`Sent to ${res.sentCount} of ${res.totalCount} lead${res.totalCount === 1 ? '' : 's'}.`);
       onSent?.();
+      leadService.getBroadcastQuota().then(setQuota).catch(() => {});
     } catch (err) {
       toast.error(err.response?.data?.message || 'Broadcast failed.');
     } finally {
@@ -45,12 +51,46 @@ export default function BroadcastLeadsDrawer({ open, onClose, leads, onSent }) {
 
   return (
     <Drawer open={open} onClose={onClose} title="Message Selected Leads" size="lg">
-      <div className="space-y-5">
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl p-3.5">
+      <div className="space-y-4">
+        {/* Meta Cloud API live quota bar - SHOWN ONLY IF META IS LINKED / CONNECTED */}
+        {quota?.metaConnected ? (
+          <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Meta Cloud API Daily Quota (Tier 1)
+              </span>
+              <span>{quota.sentToday} / {quota.metaLimit} sent today</span>
+            </div>
+            <div className="w-full bg-emerald-200/60 dark:bg-emerald-900/40 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-emerald-600 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((quota.sentToday / quota.metaLimit) * 100))}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400">
+              Meta official tier allows 1,000 unique business-initiated recipients per 24 hours.
+            </p>
+          </div>
+        ) : (
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl space-y-1">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                WhatsApp Web Safe Pacing Active
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-semibold">5–10s Delay / Msg</span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300">
+              To keep your WhatsApp account safe from automated spam flags, sends are paced with humanized 5–10s delays and name personalization. Recommended max: 100 leads/day.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl p-3">
           <Users size={16} className="text-brand-600 shrink-0" />
           <p className="text-xs text-slate-600">
             Sending to <span className="font-bold text-slate-800">{leads.length}</span> lead{leads.length === 1 ? '' : 's'}.
-            {' '}A message outside the last 24 hours can only be delivered as an approved template - Meta rejects free text there.
           </p>
         </div>
 

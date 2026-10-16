@@ -160,6 +160,27 @@ async function updateLead(tenantId, leadId, updates, updatedByUser) {
 
   const row = await leadRepository.updateLead(tenantId, leadId, merged, updatedAt, customerId);
 
+  // Sync assignment change to linked WhatsApp chats and broadcast in real time
+  if (updates.assignedTo !== undefined && updates.assignedTo !== existing.assignedTo) {
+    try {
+      await query(
+        `UPDATE whatsapp_chats SET assigned_to = $1, updated_at = now() WHERE tenant_id = $2 AND lead_id = $3`,
+        [updates.assignedTo || null, tenantId, existing.id]
+      );
+      const websocketService = require('./websocketService');
+      websocketService.broadcastToTenant(tenantId, {
+        type: 'WHATSAPP_CHAT_ASSIGNED',
+        leadId: existing.id,
+        assignedTo: updates.assignedTo,
+        previousAssignee: existing.assignedTo,
+      });
+      websocketService.broadcastToTenant(tenantId, {
+        type: 'WHATSAPP_CHATS_UPDATED',
+        leadId: existing.id,
+      });
+    } catch (e) {}
+  }
+
   const stageChanged = updates.stage && updates.stage !== existing.stage;
   if (stageChanged) {
     await leadRepository.insertFollowUp(
@@ -177,7 +198,21 @@ async function updateStage(tenantId, leadId, stage, updatedByUser) {
 }
 
 async function softDeleteLead(tenantId, leadId, updatedByUser) {
-  return updateLead(tenantId, leadId, { deleted: true }, updatedByUser);
+  const existing = await getLeadById(tenantId, leadId);
+  const result = await updateLead(tenantId, leadId, { deleted: true }, updatedByUser);
+  try {
+    if (existing?.id) {
+      await query(
+        `UPDATE whatsapp_chats SET lead_id = NULL, updated_at = now() WHERE tenant_id = $1 AND lead_id = $2`,
+        [tenantId, existing.id]
+      );
+      const websocketService = require('./websocketService');
+      websocketService.broadcastToTenant(tenantId, {
+        type: 'WHATSAPP_CHATS_UPDATED',
+      });
+    }
+  } catch (e) {}
+  return result;
 }
 
 async function listLeadsPaged(tenantId, params) {

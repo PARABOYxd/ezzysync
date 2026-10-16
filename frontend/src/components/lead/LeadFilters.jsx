@@ -60,8 +60,28 @@ export default function LeadFilters({ filters, onChange }) {
 
   const set = (key) => (e) => onChange({ ...filtersRef.current, [key]: e.target.value });
 
+  const selectedStages = typeof filters.stage === 'string' && filters.stage
+    ? filters.stage.split(',').map((s) => s.trim()).filter(Boolean)
+    : (Array.isArray(filters.stage) ? filters.stage : []);
+
+  const toggleStage = (stg) => {
+    if (!stg) {
+      onChange({ ...filters, stage: '' });
+      return;
+    }
+    let updated;
+    if (selectedStages.includes(stg)) {
+      updated = selectedStages.filter((s) => s !== stg);
+    } else {
+      updated = [...selectedStages, stg];
+    }
+    onChange({ ...filters, stage: updated.join(',') });
+  };
+
   const activeCount = [
-    Boolean(filters.stage),
+    Boolean(selectedStages.length),
+    Boolean(filters.departureDate),
+    Boolean(filters.tripName),
     Boolean(filters.priority),
     Boolean(filters.assignedTo),
     Boolean(filters.createdFrom || filters.createdTo),
@@ -74,6 +94,8 @@ export default function LeadFilters({ filters, onChange }) {
       ...filters,
       search: '',
       stage: '',
+      departureDate: '',
+      tripName: '',
       priority: '',
       assignedTo: '',
       createdFrom: '',
@@ -115,13 +137,13 @@ export default function LeadFilters({ filters, onChange }) {
             )}
           </div>
 
-          {/* Quick Stage Filter Pills (1-Click Fast Filtering) */}
+          {/* Quick Stage Filter Pills (Multi-Select Supported) */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
             <button
               type="button"
-              onClick={() => onChange({ ...filters, stage: '' })}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
-                !filters.stage
+              onClick={() => toggleStage('')}
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedStages.length === 0
                   ? 'bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900 shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400'
               }`}
@@ -129,19 +151,21 @@ export default function LeadFilters({ filters, onChange }) {
               All Stages
             </button>
             {LEAD_STAGES.map((stg) => {
-              const isActive = filters.stage === stg;
+              const isActive = selectedStages.includes(stg);
               return (
                 <button
                   key={stg}
                   type="button"
-                  onClick={() => onChange({ ...filters, stage: isActive ? '' : stg })}
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
+                  onClick={() => toggleStage(stg)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
                     isActive
                       ? 'bg-brand-600 text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400'
                   }`}
+                  title={isActive ? `Click to unselect ${stg}` : `Click to filter by ${stg}`}
                 >
-                  {stg}
+                  {isActive && <span className="text-[10px]">✓</span>}
+                  <span>{stg}</span>
                 </button>
               );
             })}
@@ -154,7 +178,7 @@ export default function LeadFilters({ filters, onChange }) {
             <button
               type="button"
               onClick={handleClearAll}
-              className="h-8 px-2 text-[11px] text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 transition"
+              className="h-8 px-2 text-[11px] text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 transition cursor-pointer"
               title="Reset all filters"
             >
               <RotateCcw size={12} />
@@ -165,7 +189,7 @@ export default function LeadFilters({ filters, onChange }) {
           <button
             type="button"
             onClick={() => setShowFilters((prev) => !prev)}
-            className={`h-8 px-2.5 text-xs rounded-lg border font-medium flex items-center gap-1.5 transition ${
+            className={`h-8 px-2.5 text-xs rounded-lg border font-medium flex items-center gap-1.5 transition cursor-pointer ${
               showFilters || activeCount > 0
                 ? 'bg-brand-50 border-brand-300 text-brand-700 dark:bg-brand-950/40 dark:border-brand-800 dark:text-brand-300 shadow-xs'
                 : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-700'
@@ -187,14 +211,26 @@ export default function LeadFilters({ filters, onChange }) {
       {/* Upper se Slider (Collapsible Top Filter Panel) */}
       {showFilters && (
         <div className="mt-2.5 p-3.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-xl flex flex-wrap items-end gap-3 animate-fade-in shadow-xs">
-          <div className="w-40">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Stage</label>
-            <Select
-              className="w-full"
-              inputClassName="w-full h-8 text-xs py-0 bg-white dark:bg-zinc-800"
-              value={filters.stage}
-              onChange={set('stage')}
-              options={[{ value: '', label: 'All Stages' }, ...LEAD_STAGES]}
+          {/* Trip Name Filter */}
+          <div className="w-44">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Trip Name</label>
+            <input
+              type="text"
+              placeholder="e.g. Manali, Kasol…"
+              value={filters.tripName || ''}
+              onChange={set('tripName')}
+              className="input h-8 text-xs w-full bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700"
+            />
+          </div>
+
+          {/* Departure Date Filter */}
+          <div className="w-36">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Departure Date</label>
+            <input
+              type="date"
+              value={filters.departureDate || ''}
+              onChange={set('departureDate')}
+              className="input h-8 text-xs w-full bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700"
             />
           </div>
 

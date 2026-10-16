@@ -144,6 +144,18 @@ async function updateBooking(tenantId, bookingId, updates, updatedByUser) {
 
     if (deletedChanged && updates.deleted) {
       logMsg += `Lead deleted/archived.\n`;
+      try {
+        const { query } = require('../config/db');
+        await query(
+          `UPDATE whatsapp_chats SET booking_id = NULL, updated_at = now() WHERE tenant_id = $1 AND (booking_id = $2 OR booking_id = $3)`,
+          [tenantId, existing.id, existing.bookingId]
+        );
+        const websocketService = require('./websocketService');
+        websocketService.broadcastToTenant(tenantId, {
+          type: 'WHATSAPP_CHATS_UPDATED',
+          bookingId: existing.id,
+        });
+      } catch (e) {}
     } else {
       if (statusChanged) {
         logMsg += `Travel Status changed from *${existing.travelStatus}* to *${updates.travelStatus}*.\n`;

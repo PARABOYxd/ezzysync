@@ -106,4 +106,19 @@ export const whatsappWebService = {
     const res = await api.post(`/whatsapp-web/chats/${chatId}/send-template`, { templateId });
     return res.data;
   },
+
+  assignChat: async (chatId, assignedTo) => {
+    const res = await api.patch(`/whatsapp-web/chats/${chatId}/assign`, { assignedTo });
+    return res.data;
+  },
+
+  addChatFollowUp: async (chatId, payload) => {
+    const res = await api.post(`/whatsapp-web/chats/${chatId}/follow-ups`, payload);
+    return res.data;
+  },
+
+  getChatFollowUps: async (chatId) => {
+    const res = await api.get(`/whatsapp-web/chats/${chatId}/follow-ups`);
+    return res.data;
+  },
 };

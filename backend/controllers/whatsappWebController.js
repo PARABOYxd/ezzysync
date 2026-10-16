@@ -73,8 +73,64 @@ async function toggleAiAutopilot(req, res, next) {
 async function listChats(req, res, next) {
   try {
     const { search } = req.query;
-    const chats = await whatsappWebRepository.listChats(req.user.tenantId, search);
+    const chats = await whatsappWebRepository.listChats(req.user.tenantId, search, req.user);
     res.json({ chats });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function assignChat(req, res, next) {
+  try {
+    const { chatId } = req.params;
+    const { assignedTo } = req.body;
+    const chat = await whatsappWebRepository.assignChat(req.user.tenantId, chatId, assignedTo);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+    try {
+      const websocketService = require('../services/websocketService');
+      websocketService.broadcastToTenant(req.user.tenantId, {
+        type: 'WHATSAPP_CHAT_ASSIGNED',
+        chatId: chat.id,
+        assignedTo: chat.assigned_to,
+        leadId: chat.lead_id,
+      });
+      websocketService.broadcastToTenant(req.user.tenantId, {
+        type: 'WHATSAPP_CHATS_UPDATED',
+        chatId: chat.id,
+      });
+    } catch (wsErr) {}
+
+    res.json({ message: 'Chat assigned successfully', chat });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function addChatFollowUp(req, res, next) {
+  try {
+    const { chatId } = req.params;
+    const { note, activityType, nextFollowUpDate } = req.body;
+    if (!note || !note.trim()) {
+      return res.status(400).json({ message: 'Follow-up note is required.' });
+    }
+    const followUp = await whatsappWebRepository.insertChatFollowUp(req.user.tenantId, chatId, {
+      note: note.trim(),
+      activityType: activityType || 'call',
+      nextFollowUpDate,
+      createdBy: req.user.name || req.user.email || 'Agent',
+    });
+    res.status(201).json({ message: 'Follow-up created', followUp });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getChatFollowUps(req, res, next) {
+  try {
+    const { chatId } = req.params;
+    const followUps = await whatsappWebRepository.listChatFollowUps(req.user.tenantId, chatId);
+    res.json(followUps || []);
   } catch (err) {
     next(err);
   }
@@ -130,14 +186,33 @@ async function createLeadFromChat(req, res, next) {
       return res.json({ message: 'Lead already linked', chat });
     }
 
+    const assignedTo = chat.assigned_to || (req.user?.role === 'TEAM_MEMBER' ? req.user.name : null);
     const created = await whatsappWebRepository.createLeadFromWhatsapp(req.user.tenantId, {
       customerName: chat.customer_name || 'WhatsApp Contact',
       phone: chat.phone,
+      assignedTo,
     });
 
     if (created?.id) {
       await whatsappWebRepository.setChatLeadId(req.user.tenantId, chat.id, created.id);
+      if (assignedTo && !chat.assigned_to) {
+        await whatsappWebRepository.assignChat(req.user.tenantId, chat.id, assignedTo);
+      }
       chat = await whatsappWebRepository.getChatWithContext(req.user.tenantId, chat.id);
+
+      try {
+        const websocketService = require('../services/websocketService');
+        websocketService.broadcastToTenant(req.user.tenantId, {
+          type: 'LEAD_CREATED',
+          leadId: created.id,
+          leadCode: created.leadCode,
+          assignedTo,
+        });
+        websocketService.broadcastToTenant(req.user.tenantId, {
+          type: 'WHATSAPP_CHATS_UPDATED',
+          chatId: chat.id,
+        });
+      } catch (wsErr) {}
 
       // AI pre-fill of name/trip/pax/date from the conversation. It used to be
       // awaited here, so the agent's "Create lead" click sat for as long as the
@@ -457,4 +532,7 @@ module.exports = {
   aiSuggest,
   listQuickReplies,
   startChat,
+  assignChat,
+  addChatFollowUp,
+  getChatFollowUps,
 };

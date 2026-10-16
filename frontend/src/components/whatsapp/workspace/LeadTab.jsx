@@ -47,6 +47,8 @@ export default function LeadTab({
 
   const startEdit = () => {
     setForm({
+      customerName: lead?.customerName || chat.customer_name || '',
+      phone: lead?.phone || chat.phone || '',
       interest: lead?.interest || '',
       travelers: lead?.travelers || '',
       departureDate: lead?.departureDate || '',
@@ -60,6 +62,8 @@ export default function LeadTab({
     setSaving(true);
     try {
       const updated = await leadService.updateLead(leadId, {
+        customerName: form.customerName.trim(),
+        phone: form.phone.trim(),
         interest: form.interest.trim(),
         travelers: form.travelers ? Number(form.travelers) : null,
         departureDate: form.departureDate,
@@ -67,7 +71,7 @@ export default function LeadTab({
       });
       setLead(updated);
       setEditing(false);
-      toast.success('Lead details saved.');
+      toast.success('Lead details saved & rectified.');
       onChanged?.();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not save the lead.');
@@ -83,34 +87,46 @@ export default function LeadTab({
       <AtAGlance chat={chat} waitingSince={waitingSince} onGoToTab={onGoToTab} />
 
       {!leadId ? (
-        <div className="p-4 rounded-xl border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20 text-center space-y-2.5">
-          <Briefcase className="w-6 h-6 mx-auto text-emerald-500" />
-          <p className="text-xs text-slate-600 dark:text-slate-300">This chat is not a lead yet. Create one to track stage, follow-ups and quotes.</p>
+        <div className="p-4 rounded-xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/20 text-center space-y-2.5">
+          <Briefcase className="w-6 h-6 mx-auto text-amber-500" />
+          <div className="space-y-0.5">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100">No CRM Lead Linked</p>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300">Rectify this conversation by creating and linking a CRM lead so follow-ups, quotes, and trip stages are tracked.</p>
+          </div>
           <button
             type="button"
             disabled={creatingLead}
             onClick={onCreateLead}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
           >
             {creatingLead ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Briefcase className="w-3.5 h-3.5" />}
-            Create lead from this chat
+            Rectify &amp; Add CRM Lead
           </button>
         </div>
       ) : (
         <>
+          {/* Status banner verifying lead is added */}
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">CRM Lead Added: {leadId}</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-200 font-semibold">{chat.lead_stage || 'New'}</span>
+          </div>
+
           {/* On wide screens stage and owner live in the chat header; this copy
               is only for when the header hides them. */}
           <div className="space-y-2 lg:hidden">
             <h4 className={sectionTitleCls}>Stage &amp; owner</h4>
-            <LeadQuickControls chat={chat} users={users} onChanged={onChanged} layout="grid" />
+            <LeadQuickControls chat={chat} users={users} onChanged={onChanged} onCreateLead={onCreateLead} creatingLead={creatingLead} layout="grid" />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className={sectionTitleCls}>Trip details</h4>
+              <h4 className={sectionTitleCls}>Lead &amp; Trip Details</h4>
               {!editing && lead && (
                 <button type="button" onClick={startEdit} className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer">
-                  <Pencil className="w-3 h-3" /> Edit
+                  <Pencil className="w-3 h-3" /> Edit / Rectify
                 </button>
               )}
             </div>
@@ -121,6 +137,16 @@ export default function LeadTab({
               </div>
             ) : editing ? (
               <form onSubmit={save} className="space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    Customer Name
+                    <input className={`${inputCls} mt-1`} value={form.customerName} onChange={set('customerName')} placeholder="Full Name" required />
+                  </label>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    Phone
+                    <input className={`${inputCls} mt-1`} value={form.phone} onChange={set('phone')} placeholder="Phone number" required />
+                  </label>
+                </div>
                 <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                   Looking for
                   <input className={`${inputCls} mt-1`} value={form.interest} onChange={set('interest')} placeholder="e.g. Goa 4N/5D family trip" />
@@ -142,12 +168,14 @@ export default function LeadTab({
                 <div className="flex gap-2 pt-1">
                   <button type="button" onClick={() => setEditing(false)} className="flex-1 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">Cancel</button>
                   <button type="submit" disabled={saving} className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1">
-                    {saving && <Loader2 className="w-3 h-3 animate-spin" />} Save
+                    {saving && <Loader2 className="w-3 h-3 animate-spin" />} Save &amp; Rectify
                   </button>
                 </div>
               </form>
             ) : (
               <div className="space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <Detail icon={Target} label="Customer" value={lead?.customerName || chat.customer_name} />
+                <Detail icon={Users} label="Phone" value={lead?.phone || chat.phone} />
                 <Detail icon={Target} label="Looking for" value={lead?.interest} />
                 <Detail icon={Users} label="Travellers" value={lead?.travelers ? `${lead.travelers} pax` : ''} />
                 <Detail icon={CalendarDays} label="Travel" value={lead?.departureDate ? new Date(lead.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''} />

@@ -690,6 +690,9 @@ async function ensureSchema() {
     // sitting silently in the queue with nobody aware it needs a person.
     await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS needs_human BOOLEAN DEFAULT FALSE;`);
     await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS handoff_reason TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE whatsapp_chats ADD COLUMN IF NOT EXISTS assigned_to TEXT DEFAULT NULL;`);
+    await query(`ALTER TABLE follow_up_logs ADD COLUMN IF NOT EXISTS chat_id UUID REFERENCES whatsapp_chats(id) ON DELETE SET NULL;`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_follow_up_logs_chat ON follow_up_logs(chat_id);`);
 
 
     // Canned replies and Meta message templates, managed from Settings.

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Check, Phone, MessageSquare, Mail, Calendar, FileText, ExternalLink, Search } from 'lucide-react';
+import { Check, Phone, MessageSquare, Mail, Calendar, FileText, ExternalLink, Search, Filter, ChevronDown, ChevronUp, RotateCcw, MapPin } from 'lucide-react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import Input from '../components/ui/Input.jsx';
+import Select from '../components/ui/Select.jsx';
 import * as followUpService from '../services/followUpService';
 import * as leadService from '../services/leadService';
 import * as bookingService from '../services/bookingService';
@@ -48,6 +49,10 @@ export default function FollowUps() {
   const [editingBooking, setEditingBooking] = useState(null);
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [currentSegment, setCurrentSegment] = useState('pending'); // 'pending', 'all', 'priority', 'new', 'no-action'
+  const [tripFilter, setTripFilter] = useState('');
+  const [departureDateFilter, setDepartureDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 15;
   const toast = useToast();
@@ -62,7 +67,7 @@ export default function FollowUps() {
 
   useEffect(() => {
     setPage(1);
-  }, [currentSegment, assignedTo, search]);
+  }, [currentSegment, assignedTo, search, tripFilter, departureDateFilter, statusFilter]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,6 +178,9 @@ export default function FollowUps() {
         noAction: item.note === 'Nurturing check-in',
         phone: item.customer_phone,
         email: item.customer_email,
+        interest: item.interest || '',
+        departureDate: item.departure_date || '',
+        travelers: item.travelers || null,
         stage: null,
         status: 'Scheduled',
       };
@@ -195,6 +203,9 @@ export default function FollowUps() {
       noAction: isNoActionLead(lead),
       phone: lead.phone,
       email: lead.email,
+      interest: lead.interest || '',
+      departureDate: lead.departureDate || '',
+      travelers: lead.travelers || null,
       stage: lead.stage,
       status: (lead.followUpCount || 0) > 1 ? 'Followup' : 'New',
     }));
@@ -216,6 +227,9 @@ export default function FollowUps() {
       noAction: true,
       phone: b.phone,
       email: b.email,
+      interest: b.trip || '',
+      departureDate: b.departure || '',
+      travelers: b.members || null,
       stage: b.travelStatus,
       status: 'Confirming',
     }));
@@ -237,6 +251,9 @@ export default function FollowUps() {
       noAction: false,
       phone: item.customer_phone,
       email: item.customer_email,
+      interest: item.interest || '',
+      departureDate: item.departure_date || '',
+      travelers: item.travelers || null,
       stage: null,
       status: 'Done',
       completedAt: item.created_at,
@@ -258,6 +275,22 @@ export default function FollowUps() {
       filtered = [...committedRows, ...nurturingRows, ...confirmingRows];
     }
 
+    // Apply departure date filter
+    if (departureDateFilter) {
+      filtered = filtered.filter(r => r.departureDate && r.departureDate.slice(0, 10) === departureDateFilter);
+    }
+
+    // Apply trip / interest filter
+    if (tripFilter && tripFilter.trim()) {
+      const t = tripFilter.trim().toLowerCase();
+      filtered = filtered.filter(r => (r.interest || '').toLowerCase().includes(t));
+    }
+
+    // Apply status filter
+    if (statusFilter && statusFilter.trim()) {
+      filtered = filtered.filter(r => (r.status || '').toLowerCase() === statusFilter.trim().toLowerCase());
+    }
+
     // Apply staff filter if specified
     if (assignedTo && assignedTo.trim()) {
       const a = assignedTo.trim().toLowerCase();
@@ -274,7 +307,8 @@ export default function FollowUps() {
         const rawPhone = (r.phone || '').toLowerCase();
         const assigned = (r.assignedTo || '').toLowerCase();
         const note = (r.note || '').toLowerCase();
-        const haystack = `${customer} ${rawPhone} ${phone} ${assigned} ${note}`;
+        const interest = (r.interest || '').toLowerCase();
+        const haystack = `${customer} ${rawPhone} ${phone} ${assigned} ${note} ${interest}`;
 
         // 1. Direct whole-query match
         if (haystack.includes(q)) return true;
@@ -282,8 +316,8 @@ export default function FollowUps() {
         // 2. All tokens match
         if (tokens.every(t => haystack.includes(t))) return true;
 
-        // 3. Typo-tolerant word match (if user typed multiple words e.g. "sumit kasar", match if significant token >= 3 chars matches)
-        return tokens.some(t => t.length >= 3 && (customer.includes(t) || assigned.includes(t) || phone.includes(t)));
+        // 3. Typo-tolerant word match
+        return tokens.some(t => t.length >= 3 && (customer.includes(t) || assigned.includes(t) || phone.includes(t) || interest.includes(t)));
       });
     }
 
@@ -428,14 +462,14 @@ export default function FollowUps() {
           <div className="w-full sm:w-72">
             <Input 
               icon={Search}
-              placeholder="Search customer, phone, staff…" 
+              placeholder="Search customer, phone, staff, trip…" 
               value={localSearch} 
               onChange={(e) => setLocalSearch(e.target.value)} 
             />
           </div>
           {/* Staff Filter for Admins */}
           {!isTeamMember && (
-            <div className="w-full sm:w-56">
+            <div className="w-full sm:w-52">
               <Input 
                 placeholder="Filter by staff member…" 
                 value={assignedTo} 
@@ -443,7 +477,47 @@ export default function FollowUps() {
               />
             </div>
           )}
+
+          {/* Toggle Advanced Filters Button */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowFilters((prev) => !prev)}
+              className={`h-9 px-3 text-xs rounded-xl border font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                showFilters || tripFilter || departureDateFilter || statusFilter
+                  ? 'bg-[#FFF7ED] border-[#FFEDD5] text-[#F97316] dark:bg-orange-950/30 dark:border-orange-900/50 dark:text-orange-300 shadow-xs'
+                  : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300'
+              }`}
+              title="Toggle filters for departure date, trip name, status"
+            >
+              <Filter size={13} className={tripFilter || departureDateFilter || statusFilter ? 'text-[#F97316]' : 'text-slate-400'} />
+              <span>Filters</span>
+              {(tripFilter || departureDateFilter || statusFilter) && (
+                <span className="w-4 h-4 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center">
+                  {[Boolean(tripFilter), Boolean(departureDateFilter), Boolean(statusFilter)].filter(Boolean).length}
+                </span>
+              )}
+              {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+
+            {(tripFilter || departureDateFilter || statusFilter) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTripFilter('');
+                  setDepartureDateFilter('');
+                  setStatusFilter('');
+                }}
+                className="h-9 px-2 text-xs text-slate-500 hover:text-slate-700 dark:text-zinc-400 flex items-center gap-1 cursor-pointer"
+                title="Clear advanced filters"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
         </div>
+
         <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200/50 dark:border-zinc-800/40 overflow-x-auto no-scrollbar w-full lg:w-auto max-w-full">
           {[
             { id: 'pending', label: 'Pending Leads' },
@@ -467,6 +541,61 @@ export default function FollowUps() {
         </div>
       </div>
 
+      {/* Advanced Filter Panel for Trip, Departure Date, Status */}
+      {showFilters && (
+        <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-xl flex flex-wrap items-end gap-3 animate-fade-in shadow-xs">
+          <div className="w-48">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Trip Name</label>
+            <Input 
+              icon={MapPin}
+              placeholder="e.g. Manali, Kasol…"
+              value={tripFilter} 
+              onChange={(e) => setTripFilter(e.target.value)} 
+            />
+          </div>
+
+          <div className="w-40">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Departure Date</label>
+            <Input 
+              icon={Calendar}
+              type="date"
+              value={departureDateFilter} 
+              onChange={(e) => setDepartureDateFilter(e.target.value)} 
+            />
+          </div>
+
+          <div className="w-40">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Status</label>
+            <Select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'Scheduled', label: 'Scheduled' },
+                { value: 'New', label: 'New' },
+                { value: 'Followup', label: 'Followup' },
+                { value: 'Confirming', label: 'Confirming' },
+                { value: 'Done', label: 'Done' }
+              ]} 
+            />
+          </div>
+
+          {(tripFilter || departureDateFilter || statusFilter) && (
+            <button
+              type="button"
+              onClick={() => {
+                setTripFilter('');
+                setDepartureDateFilter('');
+                setStatusFilter('');
+              }}
+              className="btn-secondary h-9 px-3 text-xs gap-1 self-end"
+            >
+              <RotateCcw size={12} /> Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Unified list: a table on desktop, cards on a phone (the table's
           Done button sat off-screen at 390px, and this is the page agents
           open on their phones between calls). */}
@@ -475,6 +604,7 @@ export default function FollowUps() {
           <Table>
             <Thead>
               <Th>Customer</Th>
+              <Th>Interest</Th>
               <Th>Note / Action</Th>
               {!isTeamMember && <Th>Assigned To</Th>}
               <Th>Status</Th>
@@ -482,10 +612,19 @@ export default function FollowUps() {
               <Th className="text-right">Actions</Th>
             </Thead>
             <Tbody>
-              {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 5 : 6} />}
+              {loading && <SkeletonTableRows rows={6} cols={isTeamMember ? 6 : 7} />}
               {!loading && pagedRows.map((row) => (
                 <Tr key={row.id}>
                   <Td>{renderCustomer(row)}</Td>
+                  <Td className="text-slate-500 dark:text-zinc-400">
+                    <span className="font-medium text-slate-700 dark:text-zinc-300">{row.interest || '-'}</span>
+                    {(row.departureDate || row.travelers) && (
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                        {row.departureDate && <span>📅 {row.departureDate.slice(0, 10)}</span>}
+                        {row.travelers && <span>👥 {row.travelers} pax</span>}
+                      </div>
+                    )}
+                  </Td>
                   <Td className="text-slate-500 dark:text-zinc-400">
                     <span className="flex items-start gap-1.5 max-w-md">
                       <span className="mt-0.5 shrink-0">{getActivityIcon(row.activityType)}</span>
@@ -510,6 +649,13 @@ export default function FollowUps() {
                 {renderCustomer(row)}
                 <div className="shrink-0">{renderDue(row)}</div>
               </div>
+              {row.interest && (
+                <div className="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex flex-wrap items-center gap-1.5 bg-slate-50 dark:bg-zinc-800/40 p-2 rounded-lg">
+                  <span className="truncate">{row.interest}</span>
+                  {row.departureDate && <span className="text-[10px] text-slate-400 font-normal">📅 {row.departureDate.slice(0, 10)}</span>}
+                  {row.travelers && <span className="text-[10px] text-slate-400 font-normal">👥 {row.travelers} pax</span>}
+                </div>
+              )}
               <p className="flex items-start gap-1.5 text-sm text-slate-600 dark:text-zinc-300">
                 <span className="mt-0.5 shrink-0">{getActivityIcon(row.activityType)}</span>
                 <span>{row.note}</span>

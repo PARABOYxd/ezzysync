@@ -52,8 +52,8 @@ async function updateLead(tenantId, leadId, merged, updatedAt, customerId) {
 
 async function listLeadsPaged(params) {
   const {
-    tenantId, page = 1, limit = 10, search = '', stage = '', priority = '', assignedTo = '', sort = 'newest', includeDeleted = false,
-    createdFrom = '', createdTo = '',
+    tenantId, page = 1, limit = 10, search = '', stage = '', stages = '', priority = '', assignedTo = '', sort = 'newest', includeDeleted = false,
+    createdFrom = '', createdTo = '', departureDate = '', tripName = '',
   } = params;
 
   const values = [tenantId];
@@ -62,9 +62,27 @@ async function listLeadsPaged(params) {
 
   if (!includeDeleted) whereClauses.push('deleted = FALSE');
 
-  if (stage) {
-    whereClauses.push(`stage = $${paramIndex++}`);
-    values.push(stage);
+  const stageFilter = stage || stages;
+  if (stageFilter) {
+    if (Array.isArray(stageFilter) && stageFilter.length > 0) {
+      whereClauses.push(`stage = ANY($${paramIndex++}::text[])`);
+      values.push(stageFilter);
+    } else if (typeof stageFilter === 'string' && stageFilter.includes(',')) {
+      const arr = stageFilter.split(',').map((s) => s.trim()).filter(Boolean);
+      whereClauses.push(`stage = ANY($${paramIndex++}::text[])`);
+      values.push(arr);
+    } else {
+      whereClauses.push(`stage = $${paramIndex++}`);
+      values.push(stageFilter);
+    }
+  }
+  if (departureDate) {
+    whereClauses.push(`departure_date = $${paramIndex++}`);
+    values.push(departureDate);
+  }
+  if (tripName) {
+    whereClauses.push(`interest ILIKE $${paramIndex++}`);
+    values.push(`%${tripName}%`);
   }
   if (priority) {
     whereClauses.push(`priority = $${paramIndex++}`);

@@ -294,18 +294,20 @@ async function clearUnread(tenantId, chatId) {
  * Merging duplicates is a migration, and it runs once at boot in
  * ensureSchema(), inside a transaction.
  */
-async function listChats(tenantId, search) {
+const { shouldScopeToSelf } = require('../config/permissions');
+
+async function listChats(tenantId, search, user = null) {
   let sql = `
     SELECT c.*,
            l.lead_id AS formatted_lead_id, l.stage AS lead_stage, l.interest AS lead_interest,
-           l.assigned_to AS lead_assigned_to, l.priority AS lead_priority,
+           COALESCE(l.assigned_to, c.assigned_to) AS lead_assigned_to, l.priority AS lead_priority,
            nf.next_follow_up_date AS lead_next_follow_up_date,
            b.id AS booking_uuid, b.booking_id AS formatted_booking_id,
            b.trip AS booking_trip, b.travel_status AS booking_travel_status, b.payment_status AS booking_payment_status,
            b.pickup AS booking_pickup
     FROM whatsapp_chats c
-    LEFT JOIN leads l ON l.id = c.lead_id
-    LEFT JOIN bookings b ON b.id = c.booking_id
+    LEFT JOIN leads l ON l.id = c.lead_id AND l.deleted = FALSE
+    LEFT JOIN bookings b ON b.id = c.booking_id AND b.deleted = FALSE
     -- The next *open* follow-up for this person. leads.next_follow_up_date is
     -- not cleared when a task is marked done, so it would keep saying
     -- "overdue" after the agent had already called.
@@ -313,7 +315,7 @@ async function listChats(tenantId, search) {
       SELECT f.next_follow_up_date, f.note, f.activity_type
         FROM follow_up_logs f
        WHERE f.tenant_id = c.tenant_id AND f.status = 'pending' AND f.next_follow_up_date IS NOT NULL
-         AND (f.lead_id = c.lead_id OR f.booking_id = c.booking_id)
+         AND (f.lead_id = c.lead_id OR f.booking_id = c.booking_id OR f.chat_id = c.id)
        ORDER BY f.next_follow_up_date ASC
        LIMIT 1
     ) nf ON TRUE
@@ -321,14 +323,78 @@ async function listChats(tenantId, search) {
   `;
   const params = [tenantId];
 
+  // If user is a TEAM_MEMBER and lacks whatsapp.viewAll permission,
+  // scope chats to those where lead, booking, or chat is assigned to them
+  if (user && shouldScopeToSelf(user, 'whatsapp')) {
+    params.push(`%${user.name || user.email}%`);
+    const pIdx = params.length;
+    sql += ` AND (
+      l.assigned_to ILIKE $${pIdx}
+      OR b.team_member ILIKE $${pIdx}
+      OR c.assigned_to ILIKE $${pIdx}
+    )`;
+  }
+
   if (search && search.trim()) {
-    sql += ` AND (c.customer_name ILIKE $2 OR c.phone ILIKE $2 OR c.last_message ILIKE $2)`;
     params.push(`%${search.trim()}%`);
+    const sIdx = params.length;
+    sql += ` AND (c.customer_name ILIKE $${sIdx} OR c.phone ILIKE $${sIdx} OR c.last_message ILIKE $${sIdx})`;
   }
 
   sql += ` ORDER BY c.last_message_timestamp DESC LIMIT 100`;
 
   const { rows } = await query(sql, params);
+  return rows;
+}
+
+async function assignChat(tenantId, chatId, assignedTo) {
+  const { rows } = await query(
+    `UPDATE whatsapp_chats
+     SET assigned_to = $1, updated_at = now()
+     WHERE id = $2 AND tenant_id = $3
+     RETURNING *`,
+    [assignedTo || null, chatId, tenantId]
+  );
+  if (!rows[0]) return null;
+
+  let leadId = rows[0].lead_id;
+  if (!leadId && rows[0].phone) {
+    leadId = await findLeadIdByPhone(tenantId, rows[0].phone);
+    if (leadId) {
+      await query(
+        `UPDATE whatsapp_chats SET lead_id = $1 WHERE id = $2 AND tenant_id = $3`,
+        [leadId, chatId, tenantId]
+      );
+      rows[0].lead_id = leadId;
+    }
+  }
+
+  if (leadId) {
+    await query(
+      `UPDATE leads SET assigned_to = $1, updated_at = now() WHERE id = $2 AND tenant_id = $3`,
+      [assignedTo || null, leadId, tenantId]
+    );
+  }
+  return rows[0];
+}
+
+async function insertChatFollowUp(tenantId, chatId, { note, activityType = 'call', nextFollowUpDate = null, createdBy = '' }) {
+  const { rows } = await query(
+    `INSERT INTO follow_up_logs (tenant_id, chat_id, note, activity_type, next_follow_up_date, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [tenantId, chatId, note, activityType, nextFollowUpDate || null, createdBy]
+  );
+  return rows[0];
+}
+
+async function listChatFollowUps(tenantId, chatId) {
+  const { rows } = await query(
+    `SELECT * FROM follow_up_logs
+     WHERE tenant_id = $1 AND chat_id = $2
+     ORDER BY created_at DESC`,
+    [tenantId, chatId]
+  );
   return rows;
 }
 
@@ -558,17 +624,17 @@ async function setChatLeadId(tenantId, chatId, leadUuid) {
   return rows[0] || null;
 }
 
-async function createLeadFromWhatsapp(tenantId, { customerName, phone }) {
+async function createLeadFromWhatsapp(tenantId, { customerName, phone, assignedTo = null }) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const seq = await query(`SELECT nextval('leads_seq') AS num`);
     const leadCode = `LEAD-${seq.rows[0].num}`;
 
     try {
       const { rows } = await query(
-        `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, source, stage, notes, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 'WhatsApp Inbound', 'New', 'Auto-created from WhatsApp chat', now(), now())
+        `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, assigned_to, source, stage, notes, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'WhatsApp Inbound', 'New', 'Auto-created from WhatsApp chat', now(), now())
          RETURNING id`,
-        [tenantId, leadCode, customerName, phone]
+        [tenantId, leadCode, customerName, phone, assignedTo || null]
       );
       return { id: rows[0]?.id || null, leadCode };
     } catch (err) {
@@ -651,4 +717,7 @@ module.exports = {
   setChatLeadId,
   createLeadFromWhatsapp,
   listQuickReplies,
+  assignChat,
+  insertChatFollowUp,
+  listChatFollowUps,
 };

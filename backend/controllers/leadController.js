@@ -202,6 +202,15 @@ async function listBroadcasts(req, res, next) {
   }
 }
 
+async function getBroadcastQuota(req, res, next) {
+  try {
+    const quota = await broadcastService.getBroadcastQuota(req.user.tenantId);
+    res.json(quota);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getBroadcastDetail(req, res, next) {
   try {
     const detail = await broadcastService.getBroadcastDetail(req.user.tenantId, req.params.broadcastId);
@@ -215,5 +224,5 @@ async function getBroadcastDetail(req, res, next) {
 module.exports = {
   list, pipeline, getOne, create, update, updateStage, remove, convert,
   listFollowUps, createFollowUp, listPool, claimLead, bulkImport, broadcast,
-  listBroadcasts, getBroadcastDetail,
+  listBroadcasts, getBroadcastDetail, getBroadcastQuota,
 };

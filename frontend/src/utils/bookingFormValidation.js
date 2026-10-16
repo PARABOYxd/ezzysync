@@ -25,6 +25,12 @@ export function validateBookingForm(form, { isEdit, previousStatus } = {}) {
     if (form.pricePerPerson === '' || Number(form.pricePerPerson) < 0) e.pricePerPerson = 'Required when status is Booked+';
   }
 
+  // Validate departure date is today or in the future for new booking deals
+  const today = new Date().toISOString().split('T')[0];
+  if (!isEdit && form.departure && form.departure.slice(0, 10) < today) {
+    e.departure = 'Departure date must be today or a future date.';
+  }
+
   // Completed/Refunded can only be set if previous status was Booked
   if (isEdit && (status === 'Completed' || status === 'Refunded')) {
     if (previousStatus && previousStatus !== 'Booked' && previousStatus !== 'Completed' && previousStatus !== 'Refunded') {

@@ -172,6 +172,7 @@ export default function CompleteFollowUpDrawer({ open, onClose, followUp, onComp
                 icon={Calendar} 
                 required 
                 type="date" 
+                min={new Date().toISOString().split('T')[0]}
                 value={nextTask.nextFollowUpDate} 
                 onChange={setNext('nextFollowUpDate')} 
               />

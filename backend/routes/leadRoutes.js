@@ -48,6 +48,7 @@ router.get('/pool', requirePermission('leads', 'read'), ctrl.listPool);
 router.get('/pipeline', requirePermission('leads', 'read'), ctrl.pipeline);
 router.post('/bulk-import', requirePermission('leads', 'create'), ctrl.bulkImport);
 router.post('/broadcast', requirePermission('leads', 'update'), ctrl.broadcast);
+router.get('/broadcast-quota', requirePermission('leads', 'read'), ctrl.getBroadcastQuota);
 router.get('/broadcasts', requirePermission('leads', 'read'), ctrl.listBroadcasts);
 router.get('/broadcasts/:broadcastId', requirePermission('leads', 'read'), ctrl.getBroadcastDetail);
 router.get('/:id', requirePermission('leads', 'read'), ctrl.getOne);

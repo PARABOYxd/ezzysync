@@ -30,6 +30,9 @@ router.get('/chats', ctrl.listChats);
 router.post('/start-chat', ctrl.startChat);
 
 router.get('/chats/:chatId/messages', ctrl.getChatMessages);
+router.patch('/chats/:chatId/assign', ctrl.assignChat);
+router.get('/chats/:chatId/follow-ups', ctrl.getChatFollowUps);
+router.post('/chats/:chatId/follow-ups', ctrl.addChatFollowUp);
 router.post('/chats/:chatId/create-lead', ctrl.createLeadFromChat);
 router.post('/chats/:chatId/send', upload.array('files', MAX_ATTACHMENTS), ctrl.sendMessage);
 // Ready-made messages, for when the 24-hour window has closed.

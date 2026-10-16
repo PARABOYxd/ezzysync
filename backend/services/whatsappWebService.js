@@ -677,6 +677,20 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     return;
   }
 
+  // Broadcast to tenant so live chat inbox and thread update in real-time
+  try {
+    const websocketService = require('./websocketService');
+    websocketService.broadcastToTenant(tenantId, {
+      type: 'WHATSAPP_MESSAGE_RECEIVED',
+      chatId: chat.id,
+      phone: senderPhone,
+      customerName: pushName || chat.customer_name || 'Customer',
+      message: stored.message || stored,
+    });
+  } catch (wsErr) {
+    logger.warn({ err: wsErr }, 'Failed to broadcast inbound WhatsApp message to tenant');
+  }
+
   // "STOP" has to end it. A customer who cannot make the messages stop blocks
   // and reports the number instead, and block rate is what actually gets a
   // WhatsApp number banned.
@@ -728,7 +742,7 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
           await new Promise((resolve) => setTimeout(resolve, 1000));
           const sentResult = await sock.sendMessage(senderJid, { text: replyData.reply });
           const sentMessageId = sentResult?.key?.id || `out_${Date.now()}`;
-          await whatsappWebRepository.insertMessage(tenantId, {
+          const insertedAiMsg = await whatsappWebRepository.insertMessage(tenantId, {
             chatId: chat.id,
             messageId: sentMessageId,
             direction: 'outbound',
@@ -737,17 +751,39 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
             status: 'sent',
           });
           await whatsappWebRepository.recordAiReplyOnChat(chat.id, replyData.reply);
+
+          try {
+            const websocketService = require('./websocketService');
+            websocketService.broadcastToTenant(tenantId, {
+              type: 'WHATSAPP_MESSAGE_RECEIVED',
+              chatId: chat.id,
+              phone: senderPhone,
+              customerName: chat.customer_name || 'Customer',
+              message: insertedAiMsg.message || insertedAiMsg,
+            });
+          } catch (e) {}
         }
         await sock.sendPresenceUpdate('paused', senderJid);
         await whatsappWebRepository.flagChatForHuman(chat.id, 'AI escalated: needs a human');
         logger.warn({ tenantId, senderPhone, chatId: chat.id }, 'AI escalated this chat to a human');
+
+        try {
+          const websocketService = require('./websocketService');
+          websocketService.broadcastToTenant(tenantId, {
+            type: 'WHATSAPP_MESSAGE_RECEIVED',
+            chatId: chat.id,
+            phone: senderPhone,
+            customerName: chat.customer_name || 'Customer',
+            needsHuman: true,
+          });
+        } catch (e) {}
       } else if (replyData && replyData.reply) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
         const sentResult = await sock.sendMessage(senderJid, { text: replyData.reply });
         const sentMessageId = sentResult?.key?.id || `out_${Date.now()}`;
 
-        await whatsappWebRepository.insertMessage(tenantId, {
+        const insertedAiMsg = await whatsappWebRepository.insertMessage(tenantId, {
           chatId: chat.id,
           messageId: sentMessageId,
           direction: 'outbound',
@@ -757,6 +793,17 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
         });
 
         await whatsappWebRepository.recordAiReplyOnChat(chat.id, replyData.reply);
+
+        try {
+          const websocketService = require('./websocketService');
+          websocketService.broadcastToTenant(tenantId, {
+            type: 'WHATSAPP_MESSAGE_RECEIVED',
+            chatId: chat.id,
+            phone: senderPhone,
+            customerName: chat.customer_name || 'Customer',
+            message: insertedAiMsg.message || insertedAiMsg,
+          });
+        } catch (e) {}
 
         await sock.sendPresenceUpdate('paused', senderJid);
       }
