@@ -12,8 +12,8 @@ import * as hotelService from '../../services/hotelService';
 
 export default function BookingViewDrawer({ open, onClose, booking, onRefresh }) {
   const toast = useToast();
-  const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
+  const [noteError, setNoteError] = useState('');
   const [activityType, setActivityType] = useState('note');
   const [nextDate, setNextDate] = useState('');
   const [dateError, setDateError] = useState('');
@@ -26,6 +26,7 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   useEffect(() => {
     if (!open) {
       setDateError('');
+      setNoteError('');
       setNextDate('');
       setNote('');
     }
@@ -136,13 +137,27 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
 
   const handleAddLog = async (e) => {
     e.preventDefault();
-    if (!note.trim()) return;
+    let hasError = false;
+
+    if (!note.trim()) {
+      setNoteError('Please enter activity summary / notes.');
+      hasError = true;
+    } else {
+      setNoteError('');
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
     if (nextDate && nextDate < todayStr) {
       setDateError('Next follow-up date must be today or in the future.');
-      return;
+      hasError = true;
+    } else {
+      setDateError('');
     }
+
+    if (hasError) return;
+
     setDateError('');
+    setNoteError('');
     setSubmitting(true);
     try {
       await bookingService.addFollowUp(booking.bookingId, {
@@ -153,6 +168,7 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
       setNote('');
       setNextDate('');
       setDateError('');
+      setNoteError('');
       setActivityType('note');
       toast.success('Activity logged successfully.');
       loadLogs();
@@ -621,7 +637,11 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
                   placeholder="Type call summary, traveler response, cancellation reasons..."
                   required
                   value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                  error={noteError}
+                  onChange={(e) => {
+                    setNote(e.target.value);
+                    if (e.target.value.trim()) setNoteError('');
+                  }}
                 />
               </div>
               <div className="col-span-2 sm:col-span-1">
