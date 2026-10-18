@@ -58,7 +58,7 @@ export default function LeadFilters({ filters, onChange }) {
     return () => clearTimeout(handler);
   }, [localSearch, onChange]);
 
-  const set = (key) => (e) => onChange({ ...filtersRef.current, [key]: e.target.value });
+  const set = (key) => (e) => onChange({ ...filtersRef.current, [key]: e.target.value, page: 1 });
 
   const selectedStages = typeof filters.stage === 'string' && filters.stage
     ? filters.stage.split(',').map((s) => s.trim()).filter(Boolean)
@@ -66,7 +66,7 @@ export default function LeadFilters({ filters, onChange }) {
 
   const toggleStage = (stg) => {
     if (!stg) {
-      onChange({ ...filters, stage: '' });
+      onChange({ ...filters, stage: '', page: 1 });
       return;
     }
     let updated;
@@ -75,7 +75,7 @@ export default function LeadFilters({ filters, onChange }) {
     } else {
       updated = [...selectedStages, stg];
     }
-    onChange({ ...filters, stage: updated.join(',') });
+    onChange({ ...filters, stage: updated.join(','), page: 1 });
   };
 
   const activeCount = [

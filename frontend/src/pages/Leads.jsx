@@ -38,7 +38,7 @@ export default function Leads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    search: searchParams.get('search') || '', stage: '', priority: '', assignedTo: '', createdFrom: '', createdTo: '', sort: 'newest', page: 1, limit: 10,
+    search: searchParams.get('search') || '', stage: '', departureDate: '', tripName: '', priority: '', assignedTo: '', createdFrom: '', createdTo: '', sort: 'newest', page: 1, limit: 10,
   });
 
   const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 1, currentPage: 1, limit: 10 });

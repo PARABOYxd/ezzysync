@@ -8,11 +8,11 @@ const { shouldScopeToSelf } = require('../config/permissions');
 async function list(req, res, next) {
   try {
     const { page, limit } = pageParams(req.query);
-    const { stage, priority, search, sort, createdFrom, createdTo } = req.query;
+    const { stage, priority, search, sort, createdFrom, createdTo, departureDate, tripName } = req.query;
     const assignedTo = shouldScopeToSelf(req.user, 'leads') ? req.user.name : req.query.assignedTo;
 
     const result = await leadService.listLeadsPaged(req.user.tenantId, {
-      page, limit, stage, priority, assignedTo, search, sort, createdFrom, createdTo,
+      page, limit, stage, priority, assignedTo, search, sort, createdFrom, createdTo, departureDate, tripName,
     });
 
     res.json({
