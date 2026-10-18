@@ -60,26 +60,8 @@ export default function LeadFilters({ filters, onChange }) {
 
   const set = (key) => (e) => onChange({ ...filtersRef.current, [key]: e.target.value, page: 1 });
 
-  const selectedStages = typeof filters.stage === 'string' && filters.stage
-    ? filters.stage.split(',').map((s) => s.trim()).filter(Boolean)
-    : (Array.isArray(filters.stage) ? filters.stage : []);
-
-  const toggleStage = (stg) => {
-    if (!stg) {
-      onChange({ ...filters, stage: '', page: 1 });
-      return;
-    }
-    let updated;
-    if (selectedStages.includes(stg)) {
-      updated = selectedStages.filter((s) => s !== stg);
-    } else {
-      updated = [...selectedStages, stg];
-    }
-    onChange({ ...filters, stage: updated.join(','), page: 1 });
-  };
-
   const activeCount = [
-    Boolean(selectedStages.length),
+    Boolean(filters.stage),
     Boolean(filters.departureDate),
     Boolean(filters.tripName),
     Boolean(filters.priority),
@@ -101,6 +83,7 @@ export default function LeadFilters({ filters, onChange }) {
       createdFrom: '',
       createdTo: '',
       sort: 'newest',
+      page: 1,
     });
   };
 
@@ -127,7 +110,7 @@ export default function LeadFilters({ filters, onChange }) {
                 type="button"
                 onClick={() => {
                   setLocalSearch('');
-                  onChange({ ...filters, search: '' });
+                  onChange({ ...filters, search: '', page: 1 });
                 }}
                 className="absolute inset-y-0 right-0 pr-2 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
                 title="Clear search"
@@ -137,13 +120,13 @@ export default function LeadFilters({ filters, onChange }) {
             )}
           </div>
 
-          {/* Quick Stage Filter Pills (Multi-Select Supported) */}
+          {/* Quick Stage Filter Pills (Single-Select) */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
             <button
               type="button"
-              onClick={() => toggleStage('')}
+              onClick={() => onChange({ ...filters, stage: '', page: 1 })}
               className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${
-                selectedStages.length === 0
+                !filters.stage
                   ? 'bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900 shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400'
               }`}
@@ -151,21 +134,19 @@ export default function LeadFilters({ filters, onChange }) {
               All Stages
             </button>
             {LEAD_STAGES.map((stg) => {
-              const isActive = selectedStages.includes(stg);
+              const isActive = filters.stage === stg;
               return (
                 <button
                   key={stg}
                   type="button"
-                  onClick={() => toggleStage(stg)}
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                  onClick={() => onChange({ ...filters, stage: isActive ? '' : stg, page: 1 })}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${
                     isActive
                       ? 'bg-brand-600 text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400'
                   }`}
-                  title={isActive ? `Click to unselect ${stg}` : `Click to filter by ${stg}`}
                 >
-                  {isActive && <span className="text-[10px]">✓</span>}
-                  <span>{stg}</span>
+                  {stg}
                 </button>
               );
             })}

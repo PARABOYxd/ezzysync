@@ -107,8 +107,6 @@ export default function TasksTab({ chat, onChanged }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      const firstError = Object.values(newErrors)[0];
-      toast.error(firstError);
       return;
     }
 
@@ -264,9 +262,23 @@ export default function TasksTab({ chat, onChanged }) {
                   min={getTodayDateStr()}
                   className={`${inputCls} ${errors.dueDate ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/20' : ''}`}
                   value={form.dueDate}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Tab' && e.key !== 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
+                  onClick={(e) => {
+                    try { e.target.showPicker?.(); } catch (_) {}
+                  }}
                   onChange={(e) => {
-                    setForm((f) => ({ ...f, dueDate: e.target.value }));
-                    if (errors.dueDate) setErrors((err) => ({ ...err, dueDate: null }));
+                    const val = e.target.value;
+                    setForm((f) => ({ ...f, dueDate: val }));
+                    const todayStr = getTodayDateStr();
+                    if (val && val < todayStr) {
+                      setErrors((err) => ({ ...err, dueDate: 'Follow-up date must be today or in the future.' }));
+                    } else {
+                      setErrors((err) => ({ ...err, dueDate: null }));
+                    }
                   }}
                 />
                 {errors.dueDate && (

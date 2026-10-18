@@ -16,11 +16,20 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   const [note, setNote] = useState('');
   const [activityType, setActivityType] = useState('note');
   const [nextDate, setNextDate] = useState('');
+  const [dateError, setDateError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hotels, setHotels] = useState([]);
   const [downloadingVoucher, setDownloadingVoucher] = useState(null);
   const [sendingVoucher, setSendingVoucher] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(null);
+
+  useEffect(() => {
+    if (!open) {
+      setDateError('');
+      setNextDate('');
+      setNote('');
+    }
+  }, [open]);
 
   const handleSendReminder = async (type) => {
     if (!booking?.bookingId) return;
@@ -128,6 +137,12 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
   const handleAddLog = async (e) => {
     e.preventDefault();
     if (!note.trim()) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (nextDate && nextDate < todayStr) {
+      setDateError('Next follow-up date must be today or in the future.');
+      return;
+    }
+    setDateError('');
     setSubmitting(true);
     try {
       await bookingService.addFollowUp(booking.bookingId, {
@@ -137,6 +152,7 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
       });
       setNote('');
       setNextDate('');
+      setDateError('');
       setActivityType('note');
       toast.success('Activity logged successfully.');
       loadLogs();
@@ -575,7 +591,7 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
           </div>
 
           {/* Clean Activity Logger */}
-          <form onSubmit={handleAddLog} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
+          <form onSubmit={handleAddLog} noValidate className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
             {/* Horizontal Radio buttons for action types */}
             <div className="space-y-1">
               <label className="block text-[10px] text-slate-400 font-bold uppercase">Log Interaction Type</label>
@@ -613,8 +629,27 @@ export default function BookingViewDrawer({ open, onClose, booking, onRefresh })
                   label="Set next follow-up date"
                   type="date"
                   inputClassName="text-xs"
+                  min={new Date().toISOString().split('T')[0]}
                   value={nextDate}
-                  onChange={(e) => setNextDate(e.target.value)}
+                  error={dateError}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Tab' && e.key !== 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
+                  onClick={(e) => {
+                    try { e.target.showPicker?.(); } catch (_) {}
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNextDate(val);
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    if (val && val < todayStr) {
+                      setDateError('Next follow-up date must be today or a future date.');
+                    } else {
+                      setDateError('');
+                    }
+                  }}
                 />
               </div>
               <div className="col-span-2 sm:col-span-1 flex items-end justify-end">

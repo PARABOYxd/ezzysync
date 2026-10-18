@@ -158,7 +158,21 @@ export default function LeadTab({
                   </label>
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                     Travel date
-                    <input className={`${inputCls} mt-1`} type="date" value={form.departureDate} onChange={set('departureDate')} />
+                    <input
+                      className={`${inputCls} mt-1`}
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={form.departureDate || ''}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Tab' && e.key !== 'Enter') {
+                          e.preventDefault();
+                        }
+                      }}
+                      onClick={(e) => {
+                        try { e.target.showPicker?.(); } catch (_) {}
+                      }}
+                      onChange={set('departureDate')}
+                    />
                   </label>
                 </div>
                 <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">

@@ -54,28 +54,10 @@ export default function BookingFilters({ filters, onChange, onExport }) {
     return () => clearTimeout(handler);
   }, [localSearch, onChange]);
 
-  const set = (key) => (e) => onChange({ ...filtersRef.current, [key]: e.target.value });
-
-  const selectedStatuses = typeof filters.status === 'string' && filters.status
-    ? filters.status.split(',').map((s) => s.trim()).filter(Boolean)
-    : (Array.isArray(filters.status) ? filters.status : []);
-
-  const toggleStatus = (st) => {
-    if (!st) {
-      onChange({ ...filters, status: '' });
-      return;
-    }
-    let updated;
-    if (selectedStatuses.includes(st)) {
-      updated = selectedStatuses.filter((s) => s !== st);
-    } else {
-      updated = [...selectedStatuses, st];
-    }
-    onChange({ ...filters, status: updated.join(',') });
-  };
+  const set = (key) => (e) => onChange({ ...filtersRef.current, [key]: e.target.value, page: 1 });
 
   const activeCount = [
-    Boolean(selectedStatuses.length),
+    Boolean(filters.status),
     Boolean(filters.trip),
     Boolean(filters.teamMember),
     Boolean(filters.departureFrom || filters.departureTo || filters.travelDateFrom || filters.travelDateTo),
@@ -134,13 +116,13 @@ export default function BookingFilters({ filters, onChange, onExport }) {
             )}
           </div>
 
-          {/* Quick Status Pills (Multi-Select Supported) */}
+          {/* Quick Status Pills */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
             <button
               type="button"
-              onClick={() => toggleStatus('')}
+              onClick={() => onChange({ ...filters, status: '', page: 1 })}
               className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${
-                selectedStatuses.length === 0
+                !filters.status
                   ? 'bg-slate-800 text-white dark:bg-zinc-200 dark:text-zinc-900 shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400'
               }`}
@@ -148,20 +130,19 @@ export default function BookingFilters({ filters, onChange, onExport }) {
               All Statuses
             </button>
             {TRAVEL_STATUSES.map((st) => {
-              const isActive = selectedStatuses.includes(st);
+              const isActive = filters.status === st;
               return (
                 <button
                   key={st}
                   type="button"
-                  onClick={() => toggleStatus(st)}
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                  onClick={() => onChange({ ...filters, status: isActive ? '' : st, page: 1 })}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${
                     isActive
                       ? 'bg-brand-600 text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400'
                   }`}
                 >
                   {st}
-                  {isActive && <span className="text-[9px] opacity-80">✕</span>}
                 </button>
               );
             })}
@@ -219,16 +200,6 @@ export default function BookingFilters({ filters, onChange, onExport }) {
       {/* Upper se Slider (Collapsible Top Filter Panel) */}
       {showFilters && (
         <div className="mt-2.5 p-3.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-xl flex flex-wrap items-end gap-3 animate-fade-in shadow-xs">
-          <div className="w-40">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Status</label>
-            <Select
-              className="w-full"
-              inputClassName="w-full h-8 text-xs py-0 bg-white dark:bg-zinc-800"
-              value={filters.status}
-              onChange={set('status')}
-              options={[{ value: '', label: 'All Statuses' }, ...TRAVEL_STATUSES]}
-            />
-          </div>
 
           <div className="w-40">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Trip Name</label>

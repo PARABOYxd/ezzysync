@@ -368,7 +368,7 @@ export default function BookingFormDrawer({ open, onClose, onSaved, booking }) {
         </div>
 
         {/* Form Container */}
-        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-6">
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} noValidate className="space-y-6">
           {activeTab === 'customer' && (
             <CustomerInfoTab
               form={form}

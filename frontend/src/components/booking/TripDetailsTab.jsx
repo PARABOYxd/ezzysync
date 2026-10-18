@@ -265,7 +265,24 @@ export default function TripDetailsTab({
           required={isBookedOrBeyond}
           hint={form.batchId ? "Locked to the linked batch's departure date" : 'Travel starting date'}
           value={form.departure?.slice(0, 10) || ''}
-          onChange={set('departure')}
+          onKeyDown={(e) => {
+            if (e.key !== 'Tab' && e.key !== 'Enter') {
+              e.preventDefault();
+            }
+          }}
+          onClick={(e) => {
+            try { e.target.showPicker?.(); } catch (_) {}
+          }}
+          onChange={(e) => {
+            set('departure')(e);
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            if (e.target.value && e.target.value < today) {
+              setErrors((prev) => ({ ...prev, departure: 'Departure date must be today or a future date.' }));
+            } else {
+              setErrors((prev) => ({ ...prev, departure: '' }));
+            }
+          }}
         />
       </FormRow>
 

@@ -209,7 +209,7 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
 
   return (
     <Drawer open={open} onClose={onClose} title="Convert Lead to Booking">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <FormRow>
           <Input label="Customer Name" icon={User} required placeholder="e.g. Rahul Kumar" value={form.customerName} onChange={set('customerName')} />
           <Input label="Email Address (Optional)" icon={Mail} type="email" hint="Only needed if you want invoices emailed" placeholder="e.g. rahul@gmail.com" value={form.email} onChange={set('email')} />
@@ -296,7 +296,23 @@ export default function ConvertLeadDrawer({ open, onClose, lead, onConverted }) 
         )}
 
         <FormRow>
-          <Input label="Departure Date" icon={Calendar} required type="date" min={new Date().toISOString().split('T')[0]} value={form.departure} onChange={set('departure')} />
+          <Input
+            label="Departure Date"
+            icon={Calendar}
+            required
+            type="date"
+            min={new Date().toISOString().split('T')[0]}
+            value={form.departure}
+            onKeyDown={(e) => {
+              if (e.key !== 'Tab' && e.key !== 'Enter') {
+                e.preventDefault();
+              }
+            }}
+            onClick={(e) => {
+              try { e.target.showPicker?.(); } catch (_) {}
+            }}
+            onChange={set('departure')}
+          />
           <Input label="Number of Travelers" icon={Users} type="number" min={1} max={100} value={form.members} onChange={set('members')} />
         </FormRow>
         
