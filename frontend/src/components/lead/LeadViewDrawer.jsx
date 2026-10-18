@@ -45,6 +45,7 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
   const navigate = useNavigate();
   const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
+  const [noteError, setNoteError] = useState('');
   const [activityType, setActivityType] = useState('note');
   const [nextDate, setNextDate] = useState('');
   const [dateError, setDateError] = useState('');
@@ -64,6 +65,7 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
   useEffect(() => {
     if (!open) {
       setDateError('');
+      setNoteError('');
       setNextDate('');
       setNote('');
     }
@@ -84,19 +86,34 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
 
   const handleAddLog = async (e) => {
     e.preventDefault();
-    if (!note.trim()) return;
+    let hasError = false;
+
+    if (!note.trim()) {
+      setNoteError('Please enter activity summary / notes.');
+      hasError = true;
+    } else {
+      setNoteError('');
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
     if (nextDate && nextDate < todayStr) {
       setDateError('Next follow-up date must be today or in the future.');
-      return;
+      hasError = true;
+    } else {
+      setDateError('');
     }
+
+    if (hasError) return;
+
     setDateError('');
+    setNoteError('');
     setSubmitting(true);
     try {
       await leadService.addLeadFollowUp(lead.leadId, { note: note.trim(), activityType, nextFollowUpDate: nextDate || null });
       setNote('');
       setNextDate('');
       setDateError('');
+      setNoteError('');
       setActivityType('note');
       toast.success('Activity logged successfully.');
       loadLogs();
@@ -251,7 +268,17 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="col-span-2">
-                <Textarea inputClassName="text-xs min-h-[60px]" placeholder="Type call summary, customer response, negotiation notes..." required value={note} onChange={(e) => setNote(e.target.value)} />
+                <Textarea
+                  inputClassName="text-xs min-h-[60px]"
+                  placeholder="Type call summary, customer response, negotiation notes..."
+                  required
+                  value={note}
+                  error={noteError}
+                  onChange={(e) => {
+                    setNote(e.target.value);
+                    if (e.target.value.trim()) setNoteError('');
+                  }}
+                />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Input
