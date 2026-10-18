@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Loader2, Plus, StickyNote, CalendarClock, ListChecks } from 'lucide-react';
+import { Check, Loader2, Plus, StickyNote, CalendarClock, ListChecks, AlertCircle } from 'lucide-react';
 import * as leadService from '../../../services/leadService';
 import * as bookingService from '../../../services/bookingService';
 import { whatsappWebService } from '../../../services/whatsappWebService';
@@ -9,19 +9,18 @@ import { ACTIVITY_TYPES, dueState, dueLabel, DUE_STYLES, inputCls, sectionTitleC
 
 const ACTIVITY_ICON = { call: '📞', whatsapp: '💬', email: '✉️', meeting: '📅', note: '📝' };
 
-/** Tomorrow 11:00 in the local timezone, formatted for datetime-local. */
-function defaultDueAt() {
+/** Helper to format a local date as YYYY-MM-DD */
+function getTodayDateStr() {
   const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(11, 0, 0, 0);
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function getNowDateTimeLocal() {
+function getOffsetDateStr(offsetDays = 1) {
   const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 const isOpenTask = (f) => f.status === 'pending' && f.next_follow_up_date;
@@ -32,12 +31,18 @@ const isOpenTask = (f) => f.status === 'pending' && f.next_follow_up_date;
  */
 export default function TasksTab({ chat, onChanged }) {
   const toast = useToast();
-  const leadId = chat.formatted_lead_id;
-  const bookingId = chat.formatted_booking_id;
+  const leadId = chat?.formatted_lead_id;
+  const bookingId = chat?.formatted_booking_id;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState(null); // null | 'task' | 'note'
-  const [form, setForm] = useState({ activityType: 'call', dueAt: defaultDueAt(), note: '' });
+  const [form, setForm] = useState({
+    activityType: 'call',
+    dueDate: getOffsetDateStr(1),
+    dueTime: '11:00',
+    note: '',
+  });
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [completingId, setCompletingId] = useState(null);
 
@@ -67,35 +72,59 @@ export default function TasksTab({ chat, onChanged }) {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   const startAdd = (m) => {
-    setForm({ activityType: 'call', dueAt: defaultDueAt(), note: '' });
+    setErrors({});
+    setForm({
+      activityType: 'call',
+      dueDate: getOffsetDateStr(1),
+      dueTime: '11:00',
+      note: '',
+    });
     setMode(m);
   };
 
   const submit = async (e) => {
     e.preventDefault();
+    const newErrors = {};
+
     if (mode === 'task') {
-      if (!form.dueAt) {
-        toast.error('Please specify a date and time for the follow-up.');
-        return;
+      if (!form.dueDate) {
+        newErrors.dueDate = 'Please select a follow-up date.';
+      } else {
+        const todayStr = getTodayDateStr();
+        if (form.dueDate < todayStr) {
+          newErrors.dueDate = 'Follow-up date must be today or in the future.';
+        }
       }
-      const selectedTime = new Date(form.dueAt).getTime();
-      if (isNaN(selectedTime)) {
-        toast.error('Invalid date and time selected.');
-        return;
-      }
-      if (selectedTime < Date.now() - 60000) {
-        toast.error('Follow-up date & time must be today or in the future.');
-        return;
+      if (!form.dueTime) {
+        newErrors.dueTime = 'Please select a follow-up time.';
       }
     }
+
     const note = form.note.trim();
     if (!note) {
-      toast.error(mode === 'note' ? 'Please enter note content before saving.' : 'Please enter action notes for the follow-up.');
+      newErrors.note = mode === 'note' ? 'Please enter note content before saving.' : 'Please enter action notes for the follow-up.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError);
       return;
     }
+
+    setErrors({});
+
+    let nextFollowUpDate = null;
+    if (mode === 'task') {
+      const timeStr = form.dueTime || '11:00';
+      const localDateTime = new Date(`${form.dueDate}T${timeStr}:00`);
+      nextFollowUpDate = !isNaN(localDateTime.getTime()) ? localDateTime.toISOString() : new Date().toISOString();
+    }
+
     const payload = mode === 'note'
       ? { note, activityType: 'note' }
-      : { note, activityType: form.activityType, nextFollowUpDate: new Date(form.dueAt).toISOString() };
+      : { note, activityType: form.activityType, nextFollowUpDate };
+
     setSaving(true);
     try {
       if (leadId) await leadService.addLeadFollowUp(leadId, payload);
@@ -107,6 +136,7 @@ export default function TasksTab({ chat, onChanged }) {
       }
       toast.success(mode === 'note' ? 'Note saved.' : 'Follow-up scheduled.');
       setMode(null);
+      setErrors({});
       await load();
       onChanged?.();
     } catch (err) {
@@ -135,56 +165,167 @@ export default function TasksTab({ chat, onChanged }) {
       {/* Add */}
       {mode === null ? (
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => startAdd('task')} className="flex items-center justify-center gap-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer">
+          <button type="button" onClick={() => startAdd('task')} className="flex items-center justify-center gap-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer transition">
             <CalendarClock className="w-3.5 h-3.5" /> Follow-up
           </button>
-          <button type="button" onClick={() => startAdd('note')} className="flex items-center justify-center gap-1 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer">
+          <button type="button" onClick={() => startAdd('note')} className="flex items-center justify-center gap-1 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-750 cursor-pointer transition">
             <StickyNote className="w-3.5 h-3.5" /> Internal note
           </button>
         </div>
       ) : (
-        <form onSubmit={submit} className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-2">
-          <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-            {mode === 'note' ? 'Internal note · only your team sees this' : 'Schedule a follow-up'}
-          </p>
+        <form onSubmit={submit} noValidate className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+              {mode === 'note' ? 'Internal note · only your team sees this' : 'Schedule a follow-up'}
+            </p>
+            <span className="text-[10px] text-slate-400 font-medium">* Required</span>
+          </div>
+
           {mode === 'task' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="min-w-0">
-                <label htmlFor="taskActivityType" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                  Type
-                </label>
-                <select id="taskActivityType" className={`${inputCls} mt-1`} value={form.activityType} onChange={(e) => setForm((f) => ({ ...f, activityType: e.target.value }))}>
-                  {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+            <div className="space-y-2.5">
+              {/* Type and Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="min-w-0">
+                  <label htmlFor="taskActivityType" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    Type
+                  </label>
+                  <select
+                    id="taskActivityType"
+                    className={`${inputCls} mt-1`}
+                    value={form.activityType}
+                    onChange={(e) => setForm((f) => ({ ...f, activityType: e.target.value }))}
+                  >
+                    {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor="taskDueTime" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    Time <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    id="taskDueTime"
+                    type="time"
+                    className={`${inputCls} mt-1 ${errors.dueTime ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/20' : ''}`}
+                    value={form.dueTime}
+                    onChange={(e) => {
+                      setForm((f) => ({ ...f, dueTime: e.target.value }));
+                      if (errors.dueTime) setErrors((err) => ({ ...err, dueTime: null }));
+                    }}
+                  />
+                  {errors.dueTime && (
+                    <p className="text-[10px] font-medium text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 shrink-0" /> {errors.dueTime}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0">
-                <label htmlFor="dueAtInput" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                  When
-                </label>
+
+              {/* Date Field & Presets */}
+              <div className="min-w-0 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="taskDueDate" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    Follow-up Date <span className="text-rose-500">*</span>
+                  </label>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                  {[
+                    { label: 'Today', days: 0 },
+                    { label: 'Tomorrow', days: 1 },
+                    { label: '+2 Days', days: 2 },
+                    { label: '+1 Week', days: 7 },
+                  ].map((preset) => {
+                    const pDate = getOffsetDateStr(preset.days);
+                    const isSelected = form.dueDate === pDate;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, dueDate: pDate }));
+                          if (errors.dueDate) setErrors((err) => ({ ...err, dueDate: null }));
+                        }}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer border ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <input
-                  id="dueAtInput"
-                  className={`${inputCls} mt-1`}
-                  type="datetime-local"
-                  min={getNowDateTimeLocal()}
-                  value={form.dueAt}
-                  onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))}
-                  required
+                  id="taskDueDate"
+                  type="date"
+                  min={getTodayDateStr()}
+                  className={`${inputCls} ${errors.dueDate ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/20' : ''}`}
+                  value={form.dueDate}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, dueDate: e.target.value }));
+                    if (errors.dueDate) setErrors((err) => ({ ...err, dueDate: null }));
+                  }}
                 />
+                {errors.dueDate && (
+                  <p className="text-[10px] font-medium text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" /> {errors.dueDate}
+                  </p>
+                )}
               </div>
             </div>
           )}
-          <textarea
-            className={`${inputCls} resize-none`}
-            rows={3}
-            autoFocus
-            value={form.note}
-            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-            placeholder={mode === 'note' ? 'e.g. Prefers calls after 6 PM, price-sensitive' : 'e.g. Call to confirm hotel category'}
-          />
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setMode(null)} className="flex-1 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">Cancel</button>
-            <button type="submit" disabled={saving} className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1">
-              {saving && <Loader2 className="w-3 h-3 animate-spin" />} Save
+
+          {/* Notes */}
+          <div className="space-y-1">
+            <label htmlFor="taskNote" className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+              {mode === 'note' ? 'Internal Note' : 'Follow-up Details'} <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              id="taskNote"
+              className={`${inputCls} resize-none ${errors.note ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/20' : ''}`}
+              rows={3}
+              autoFocus
+              value={form.note}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, note: e.target.value }));
+                if (errors.note) setErrors((err) => ({ ...err, note: null }));
+              }}
+              placeholder={mode === 'note' ? 'e.g. Prefers calls after 6 PM, price-sensitive' : 'e.g. Call to confirm hotel category & departure dates'}
+            />
+            {errors.note && (
+              <p className="text-[10px] font-medium text-rose-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" /> {errors.note}
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode(null);
+                setErrors({});
+              }}
+              className="flex-1 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-xs transition"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                </>
+              ) : (
+                'Save'
+              )}
             </button>
           </div>
         </form>
