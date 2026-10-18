@@ -88,19 +88,22 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
     const e = {};
     if (!isValidPhone(form.phone)) e.phone = 'A valid phone number is required.';
     if (form.departureDate) {
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       if (form.departureDate < today) {
         e.departureDate = 'Departure date must be today or a future date.';
       }
     }
     setErrors(e);
-    return Object.keys(e).length === 0;
+    return e;
   };
 
   const handleSubmit = async (ev) => {
     ev.preventDefault();
-    if (!validate()) {
-      toast.error('Please fix validation errors before saving.');
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      const firstError = Object.values(validationErrors)[0];
+      toast.error(firstError);
       return;
     }
     setSaving(true);
@@ -193,7 +196,7 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
 
   return (
     <Drawer open={open} onClose={onClose} title={isEdit ? 'Edit Lead' : 'Create New Lead'}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         <FormRow>
           <Input label="Customer Name (Optional)" icon={UserCheck} placeholder="e.g. Rahul Kumar" value={form.customerName} onChange={set('customerName')} />
           <Input label="Contact Number" icon={Phone} required error={errors.phone} hint="Include country code for WhatsApp updates" placeholder="e.g. +919876543210" value={form.phone} onChange={set('phone')} />
@@ -259,7 +262,24 @@ export default function LeadFormDrawer({ open, onClose, onSaved, onConvert, lead
             min={new Date().toISOString().split('T')[0]}
             error={errors.departureDate}
             value={form.departureDate || ''}
-            onChange={set('departureDate')}
+            onKeyDown={(e) => {
+              if (e.key !== 'Tab' && e.key !== 'Enter') {
+                e.preventDefault();
+              }
+            }}
+            onClick={(e) => {
+              try { e.target.showPicker?.(); } catch (_) {}
+            }}
+            onChange={(e) => {
+              set('departureDate')(e);
+              const now = new Date();
+              const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              if (e.target.value && e.target.value < today) {
+                setErrors((prev) => ({ ...prev, departureDate: 'Departure date must be today or a future date.' }));
+              } else {
+                setErrors((prev) => ({ ...prev, departureDate: '' }));
+              }
+            }}
           />
           <Input
             label="No. of Travelers (Optional)"

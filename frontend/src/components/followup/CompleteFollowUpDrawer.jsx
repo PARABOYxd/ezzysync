@@ -125,7 +125,7 @@ export default function CompleteFollowUpDrawer({ open, onClose, followUp, onComp
 
   return (
     <Drawer open={open} onClose={onClose} title="Complete Follow-up Task">
-      <form onSubmit={handleSubmit} className="space-y-5 text-[var(--text-main)]">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5 text-[var(--text-main)]">
         
         {/* Task Details Info Card */}
         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-zinc-800/80 text-xs space-y-1">
@@ -174,6 +174,14 @@ export default function CompleteFollowUpDrawer({ open, onClose, followUp, onComp
                 type="date" 
                 min={new Date().toISOString().split('T')[0]}
                 value={nextTask.nextFollowUpDate} 
+                onKeyDown={(e) => {
+                  if (e.key !== 'Tab' && e.key !== 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
+                onClick={(e) => {
+                  try { e.target.showPicker?.(); } catch (_) {}
+                }}
                 onChange={setNext('nextFollowUpDate')} 
               />
             </FormRow>

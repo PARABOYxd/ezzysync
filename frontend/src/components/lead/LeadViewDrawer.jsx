@@ -47,6 +47,7 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
   const [note, setNote] = useState('');
   const [activityType, setActivityType] = useState('note');
   const [nextDate, setNextDate] = useState('');
+  const [dateError, setDateError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [leadDetails, setLeadDetails] = useState(null);
 
@@ -59,6 +60,14 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
       console.error('Failed to load logs:', err);
     }
   }, [lead?.leadId]);
+
+  useEffect(() => {
+    if (!open) {
+      setDateError('');
+      setNextDate('');
+      setNote('');
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open && lead?.leadId) {
@@ -76,11 +85,18 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
   const handleAddLog = async (e) => {
     e.preventDefault();
     if (!note.trim()) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (nextDate && nextDate < todayStr) {
+      setDateError('Next follow-up date must be today or in the future.');
+      return;
+    }
+    setDateError('');
     setSubmitting(true);
     try {
       await leadService.addLeadFollowUp(lead.leadId, { note: note.trim(), activityType, nextFollowUpDate: nextDate || null });
       setNote('');
       setNextDate('');
+      setDateError('');
       setActivityType('note');
       toast.success('Activity logged successfully.');
       loadLogs();
@@ -212,7 +228,7 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
             <p className="text-[10px] text-slate-400 mt-0.5">{followUps.length} follow-up interactions recorded</p>
           </div>
 
-          <form onSubmit={handleAddLog} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
+          <form onSubmit={handleAddLog} noValidate className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
             <div className="space-y-1">
               <label className="block text-[10px] text-slate-400 font-bold uppercase">Log Interaction Type</label>
               <div className="flex flex-wrap gap-1.5">
@@ -238,7 +254,32 @@ export default function LeadViewDrawer({ open, onClose, lead, onRefresh, onEdit 
                 <Textarea inputClassName="text-xs min-h-[60px]" placeholder="Type call summary, customer response, negotiation notes..." required value={note} onChange={(e) => setNote(e.target.value)} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Input label="Set next follow-up date" type="date" inputClassName="text-xs" value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
+                <Input
+                  label="Set next follow-up date"
+                  type="date"
+                  inputClassName="text-xs"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={nextDate}
+                  error={dateError}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Tab' && e.key !== 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
+                  onClick={(e) => {
+                    try { e.target.showPicker?.(); } catch (_) {}
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNextDate(val);
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    if (val && val < todayStr) {
+                      setDateError('Next follow-up date must be today or a future date.');
+                    } else {
+                      setDateError('');
+                    }
+                  }}
+                />
               </div>
               <div className="col-span-2 sm:col-span-1 flex items-end justify-end">
                 <Button type="submit" disabled={submitting} className="text-xs">
