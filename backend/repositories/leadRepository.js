@@ -77,12 +77,13 @@ async function listLeadsPaged(params) {
     }
   }
   if (departureDate) {
-    whereClauses.push(`departure_date = $${paramIndex++}`);
+    whereClauses.push(`(departure_date = $${paramIndex} OR departure_date LIKE $${paramIndex} || '%')`);
     values.push(departureDate);
+    paramIndex++;
   }
-  if (tripName) {
+  if (tripName && tripName.trim()) {
     whereClauses.push(`interest ILIKE $${paramIndex++}`);
-    values.push(`%${tripName}%`);
+    values.push(`%${tripName.trim()}%`);
   }
   if (priority) {
     whereClauses.push(`priority = $${paramIndex++}`);
