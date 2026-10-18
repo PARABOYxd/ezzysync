@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { query } = require('../config/db');
 const leadRepository = require('../repositories/leadRepository');
 const bookingRepository = require('../repositories/bookingRepository');
 const customerService = require('./customerService');
