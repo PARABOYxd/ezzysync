@@ -15,7 +15,10 @@
     "qa:adversarial": "node scripts/run-adversarial-qa.js",
     "qa:deep": "node scripts/run-deep-qa.js",
     "report": "node scripts/open-report.js",
-    "clean": "node scripts/clean-reports.js"
+    "clean": "node scripts/clean-reports.js",
+    "test:landing": "playwright test -c landing.config.js",
+    "test:landing:unit": "node --test \"tests/landing-unit/*.test.mjs\"",
+    "test:landing:report": "playwright show-report reports/landing-html"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.73",

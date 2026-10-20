@@ -25,42 +25,35 @@ export function getApiBaseUrl() {
  * non-2xx response so the caller can surface it directly. */
 export async function submitWalkthroughRequest({ name, agencyName, email, phone }) {
   const payload = { name, agencyName, email, phone };
-
-  // 1. Try internal Next.js server route first (same origin, avoids CORS and Mixed Content issues)
-  try {
-    const internalRes = await fetch("/api/walkthrough", {
+  const post = (url) =>
+    fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
+  // 1. Our own Next.js route first (same origin: no CORS or mixed-content trouble).
+  try {
+    const internalRes = await post("/api/walkthrough");
     if (internalRes.ok) {
       return await internalRes.json().catch(() => ({ success: true }));
     }
-
-    // If server returned a 4xx/5xx with a specific error message, parse and throw it
+    // The server answered with a reason (e.g. invalid email): show it, do not retry elsewhere.
     const errData = await internalRes.json().catch(() => ({}));
-    if (errData?.message) {
-      throw new Error(errData.message);
-    }
+    if (errData?.message) throw Object.assign(new Error(errData.message), { fromServer: true });
   } catch (internalErr) {
-    // If it threw with a valid backend validation message (e.g. invalid email), rethrow it
-    if (internalErr.message && internalErr.message !== "Failed to fetch") {
-      throw internalErr;
-    }
-    // Otherwise proceed to direct backend fallback
+    if (internalErr.fromServer) throw internalErr;
+    // A network failure (the browser words it differently in Chrome, Safari and
+    // Firefox) falls through to the direct backend call below.
   }
 
   // 2. Direct backend fallback
-  const response = await fetch(`${getApiBaseUrl()}/api/public/walkthrough`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  let response;
+  try {
+    response = await post(`${getApiBaseUrl()}/api/public/walkthrough`);
+  } catch {
+    throw new Error("Unable to reach the server. Please check your connection or try again.");
+  }
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));

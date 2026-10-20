@@ -33,6 +33,13 @@ import {
   formatItineraryForWhatsapp,
 } from "@/lib/smartItineraryEngine";
 
+/** "1 Day Trip", "2 Days / 1 Night", "4 Days / 3 Nights". */
+function durationLabel(days) {
+  if (days <= 1) return "1 Day Trip";
+  const nights = days - 1;
+  return `${days} Days / ${nights} Night${nights === 1 ? "" : "s"}`;
+}
+
 export default function FreeItineraryTool({ crmUrl }) {
   // Simple form state (Cleaned: Quick Prompts & Trip Style removed per request)
   const [destination, setDestination] = useState("Manali & Solang Valley");
@@ -109,7 +116,7 @@ export default function FreeItineraryTool({ crmUrl }) {
   // Generation handler
   const handleGenerate = async (e) => {
     if (e) e.preventDefault();
-    if (!destination.trim() && !roughNotes.trim()) return;
+    if (loading || (!destination.trim() && !roughNotes.trim())) return;
 
     let effectiveDest = destination.trim();
     if (!effectiveDest) {
@@ -345,10 +352,24 @@ export default function FreeItineraryTool({ crmUrl }) {
     }, 80);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!itinerary) return;
     const text = formatItineraryForWhatsapp(itinerary);
-    navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard is blocked on insecure pages or when permission is denied:
+      // fall back to the old textarea + execCommand route.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (!ok) return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
@@ -495,7 +516,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                   <form onSubmit={handleGenerate} className="space-y-4">
                     {/* Main Prompt Field */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-900 flex items-center justify-between">
+                      <label htmlFor="itin-prompt" className="text-xs font-bold text-slate-900 flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <Sparkles size={13} className="text-brand-600" />
                           AI Itinerary Command / Travel Prompt *
@@ -505,40 +526,42 @@ export default function FreeItineraryTool({ crmUrl }) {
                         </span>
                       </label>
                       <textarea
+                        id="itin-prompt"
                         rows={4}
                         value={roughNotes}
                         onChange={(e) => setRoughNotes(e.target.value)}
                         placeholder='e.g. "Create 4 days Manali itinerary covering Solang Valley, Atal Tunnel, Sissu, and Old Manali cafes with private cab and family hotels"'
-                        className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 focus:border-brand-500 focus:bg-white rounded-2xl p-3.5 outline-none transition font-medium text-slate-800 leading-relaxed placeholder:text-slate-400 resize-y shadow-inner"
+                        className="w-full text-base bg-slate-50 border-2 border-slate-200 focus:border-brand-500 focus:bg-white rounded-2xl p-3.5 outline-none transition font-medium text-slate-800 leading-relaxed placeholder:text-slate-400 resize-y shadow-inner"
                       />
                     </div>
 
                     {/* Destination Name */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <label htmlFor="itin-destination" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <MapPin size={13} className="text-brand-600" />
-                        Destination Name *
+                        Destination Name
                       </label>
                       <input
+                        id="itin-destination"
                         type="text"
-                        required
                         placeholder="e.g. Manali, Goa, Kashmir, Dubai, Bali..."
                         value={destination}
                         onChange={(e) => setDestination(e.target.value)}
-                        className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-semibold text-slate-900 placeholder:text-slate-400"
+                        className="w-full text-base bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-semibold text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
 
                     {/* Trip Duration */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <label htmlFor="itin-days" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <Calendar size={13} className="text-brand-600" />
                         Trip Duration (Days)
                       </label>
                       <select
+                        id="itin-days"
                         value={days}
                         onChange={(e) => setDays(Number(e.target.value))}
-                        className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-semibold text-slate-900 cursor-pointer"
+                        className="w-full text-base bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-semibold text-slate-900 cursor-pointer"
                       >
                         <option value={1}>1 Day (Day Hike / Day Tour)</option>
                         <option value={2}>2 Days / 1 Night (Weekend Trip)</option>
@@ -557,46 +580,52 @@ export default function FreeItineraryTool({ crmUrl }) {
 
                     {/* Agency Name */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <label htmlFor="itin-agency" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <Building2 size={13} className="text-brand-600" />
                         Agency Name (For PDF Header)
                       </label>
                       <input
+                        id="itin-agency"
                         type="text"
+                        autoComplete="organization"
                         placeholder="e.g. Royal Travels Pvt Ltd"
                         value={agencyName}
                         onChange={(e) => handleAgencyChange(e.target.value)}
-                        className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-medium text-slate-900 placeholder:text-slate-400"
+                        className="w-full text-base bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-medium text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
 
                     {/* WhatsApp / Mobile */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <label htmlFor="itin-phone" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <Phone size={13} className="text-emerald-600" />
                         WhatsApp / Mobile Number
                       </label>
                       <input
+                        id="itin-phone"
+                        autoComplete="tel"
                         type="tel"
                         placeholder="+91 98765 43210"
                         value={phone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
-                        className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-medium text-slate-900 placeholder:text-slate-400"
+                        className="w-full text-base bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-medium text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
 
                     {/* Email */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <label htmlFor="itin-email" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <Mail size={13} className="text-blue-600" />
                         Email Address (Optional)
                       </label>
                       <input
+                        id="itin-email"
+                        autoComplete="email"
                         type="email"
                         placeholder="info@travelagency.com"
                         value={email}
                         onChange={(e) => handleEmailChange(e.target.value)}
-                        className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-medium text-slate-900 placeholder:text-slate-400"
+                        className="w-full text-base bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none transition font-medium text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
 
@@ -699,13 +728,14 @@ export default function FreeItineraryTool({ crmUrl }) {
                     {/* Package Title Field */}
                     <div className="space-y-2 pb-5 border-b border-slate-200">
                       <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <label htmlFor="itin-title" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                           <Edit3 size={12} className="text-brand-600" />
                           Package Title (Editable)
                         </label>
                         <span className="text-[11px] text-slate-400 font-medium">Click text to edit</span>
                       </div>
                       <input
+                        id="itin-title"
                         type="text"
                         value={itinerary.title}
                         onChange={(e) => handleTitleChange(e.target.value)}
@@ -716,7 +746,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                           <MapPin size={13} className="text-brand-600" /> {itinerary.destination}
                         </span>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
-                          <Calendar size={13} className="text-slate-500" /> {itinerary.days.length} Days / {Math.max(1, itinerary.days.length - 1)} Nights
+                          <Calendar size={13} className="text-slate-500" /> {durationLabel(itinerary.days.length)}
                         </span>
                         {itinerary.agencyName && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-700">
@@ -771,6 +801,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                                   type="button"
                                   onClick={() => handleRemoveDay(dIdx)}
                                   title="Remove this day"
+                                  aria-label="Remove this day"
                                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0"
                                 >
                                   <Trash2 size={14} />
@@ -793,6 +824,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveDayPoint(dIdx, pIdx)}
+                                      aria-label={`Remove point ${pIdx + 1} from day ${dIdx + 1}`}
                                       className="p-1.5 text-slate-400 hover:text-rose-500 transition shrink-0 cursor-pointer"
                                     >
                                       <Trash2 size={13} />
@@ -843,6 +875,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveInclusion(iIdx)}
+                                aria-label={`Remove inclusion ${iIdx + 1}`}
                                 className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition"
                               >
                                 <Trash2 size={12} />
@@ -900,6 +933,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveExclusion(eIdx)}
+                                aria-label={`Remove exclusion ${eIdx + 1}`}
                                 className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition"
                               >
                                 <Trash2 size={12} />
@@ -958,6 +992,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                             <button
                               type="button"
                               onClick={() => handleRemoveTip(tIdx)}
+                              aria-label={`Remove tip ${tIdx + 1}`}
                               className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition"
                             >
                               <Trash2 size={12} />
@@ -1035,8 +1070,7 @@ export default function FreeItineraryTool({ crmUrl }) {
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               <div>
                 <p className="font-extrabold text-sm sm:text-base text-white">
-                  {itinerary.destination} ({itinerary.days.length} Days /{" "}
-                  {Math.max(1, itinerary.days.length - 1)} Nights)
+                  {itinerary.destination} ({durationLabel(itinerary.days.length)})
                 </p>
                 <p className="text-xs text-slate-400">
                   Ready to download PDF, print A4, or send on WhatsApp
@@ -1102,7 +1136,7 @@ export default function FreeItineraryTool({ crmUrl }) {
                 </h1>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1.5 font-medium">
                   <span className="inline-flex items-center gap-1.5">
-                    <Calendar size={13} className="text-slate-500" /> {itinerary.days.length} Days / {Math.max(1, itinerary.days.length - 1)} Nights
+                    <Calendar size={13} className="text-slate-500" /> {durationLabel(itinerary.days.length)}
                   </span>
                   <span>•</span>
                   <span className="inline-flex items-center gap-1.5">
