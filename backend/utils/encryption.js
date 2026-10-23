@@ -4,7 +4,7 @@ const env = require("../config/env");
 const ALGORITHM = "aes-256-gcm";
 
 function getKey() {
-    const raw = (env.tokenEncryptionKey || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeg").trim();
+    const raw = (env.tokenEncryptionKey || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").trim();
     const clean = raw.replace(/^['"]|['"]$/g, "");
     if (clean.length === 64 && /^[0-9a-fA-F]+$/.test(clean)) {
         return Buffer.from(clean, "hex");
