@@ -39,6 +39,15 @@ export default function SettingsPage() {
     const code = urlParams.get('code') || hashParams.get('code');
     const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
 
+    const gmailParam = urlParams.get('gmail');
+    if (gmailParam === 'connected') {
+      toast.success('Gmail connected successfully!');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (gmailParam === 'error') {
+      toast.error('Could not finish connecting Gmail. Please try again.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     if (code || accessToken) {
       if (window.opener) {
         window.opener.postMessage({
