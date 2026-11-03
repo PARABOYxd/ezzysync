@@ -5,6 +5,7 @@ metaDescription: What a travel CRM is, what it does day to day, how it differs f
 keyword: what is travel crm
 category: Guide
 excerpt: A plain-language guide to what a travel CRM is, what it replaces, and how to tell whether your agency is ready for one.
+image: /images/blog/what-is-travel-crm-cover.jpg
 date: 2026-11-03
 ---
 
