@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { faqData as defaultFaqData } from "../../data/landingData";
 import ScrollReveal from "../ScrollReveal";
@@ -8,6 +8,7 @@ import { waLink, WA_QUESTION_TEXT } from "@/lib/contact";
 
 export default function FAQ({ items, heading = "Frequently Asked Questions", bgClass = "bg-[#fafafa]" }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const uid = useId();
   const faqData = items || defaultFaqData;
 
   return (
@@ -28,8 +29,10 @@ export default function FAQ({ items, heading = "Frequently Asked Questions", bgC
               >
                 <button
                   type="button"
+                  id={`${uid}-q${idx}`}
                   onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
                   aria-expanded={isOpen}
+                  aria-controls={`${uid}-a${idx}`}
                   className="w-full text-left p-5 sm:p-6 font-semibold text-slate-900 flex justify-between items-center gap-4 cursor-pointer hover:bg-slate-50/60 transition-colors"
                 >
                   <span className="text-sm sm:text-[15px] leading-snug">{item.q}</span>
@@ -40,7 +43,11 @@ export default function FAQ({ items, heading = "Frequently Asked Questions", bgC
                   />
                 </button>
                 {isOpen && (
-                  <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-3">
+                  <div
+                    id={`${uid}-a${idx}`}
+                    role="region"
+                    aria-labelledby={`${uid}-q${idx}`}
+                    className="px-5 sm:px-6 pb-5 sm:pb-6 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-3">
                     {item.a}
                   </div>
                 )}

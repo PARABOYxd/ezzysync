@@ -10,6 +10,8 @@ import {
   fetchTrekDetails,
 } from "@/lib/realtimeTravel";
 
+import { clientIp, rateLimit } from "@/lib/rateLimit";
+
 import fs from "fs";
 import path from "path";
 
@@ -40,19 +42,43 @@ function resolveApiKey(keyName) {
   return "";
 }
 
+const clip = (v, max) => String(v ?? "").slice(0, max);
+
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const {
-      destination = "",
-      days = 4,
-      tripType = "Family Vacation",
-      agencyName = "",
-      email = "",
-      phone = "",
-      description = "",
-      roughNotes = "",
-    } = body;
+    // Public + paid LLM behind it: cap how often one caller can hit it.
+    const limited = rateLimit(`itinerary:${clientIp(req)}`, { limit: 10, windowMs: 10 * 60 * 1000 });
+    if (!limited.ok) {
+      return NextResponse.json(
+        { success: false, message: "Too many requests. Please try again in a few minutes." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+      );
+    }
+
+    let raw;
+    try {
+      raw = await req.json();
+    } catch {
+      return NextResponse.json({ success: false, message: "Invalid request." }, { status: 400 });
+    }
+
+    // Bound every field: they go straight into an LLM prompt (cost + prompt stuffing).
+    const destination = clip(raw?.destination, 120);
+    const requestedDays = Math.round(Number(raw?.days));
+    const days = Number.isFinite(requestedDays) ? Math.min(30, Math.max(1, requestedDays)) : 4;
+    const tripType = clip(raw?.tripType || "Family Vacation", 60);
+    const agencyName = clip(raw?.agencyName, 120);
+    const email = clip(raw?.email, 120);
+    const phone = clip(raw?.phone, 30);
+    const description = clip(raw?.description, 1500);
+    const roughNotes = clip(raw?.roughNotes, 1500);
+
+    if (!destination.trim() && !description.trim() && !roughNotes.trim()) {
+      return NextResponse.json(
+        { success: false, message: "Enter a destination or describe the trip." },
+        { status: 400 }
+      );
+    }
 
     const commandText = description || roughNotes || "";
 
@@ -170,6 +196,7 @@ Format strictly in clean markdown:
             temperature: 0.7,
             max_tokens: 2800,
           }),
+          signal: AbortSignal.timeout(25_000),
         });
         if (oRes.ok) {
           const oData = await oRes.json();
@@ -204,6 +231,7 @@ Format strictly in clean markdown:
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { maxOutputTokens: 2800, temperature: 0.7 },
               }),
+              signal: AbortSignal.timeout(20_000),
             }
           );
           if (apiRes.ok) {

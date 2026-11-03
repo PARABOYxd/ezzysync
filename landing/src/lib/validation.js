@@ -1,5 +1,5 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^[0-9+\-\s()]{7,15}$/;
+const PHONE_CHARS = /^[0-9+\-\s()]+$/;
 
 /**
  * Validates the demo-request form. Returns a field -> message map; an empty
@@ -15,7 +15,8 @@ export function validateDemoForm({ name, agency, email, phone }) {
   } else if (!EMAIL_PATTERN.test(email)) {
     errs.email = "Enter a valid email address.";
   }
-  if (phone && !PHONE_PATTERN.test(phone)) {
+  const phoneDigits = (phone || "").replace(/\D/g, "").length;
+  if (phone && (!PHONE_CHARS.test(phone) || phoneDigits < 7 || phoneDigits > 15)) {
     errs.phone = "Enter a valid phone number (7-15 digits).";
   }
   return errs;

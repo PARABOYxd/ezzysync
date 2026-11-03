@@ -8,9 +8,10 @@ import ScrollReveal from "../ScrollReveal";
 import { waLink, DISPLAY_PHONE, TEL_PHONE } from "@/lib/contact";
 import { getTrialUrl } from "@/lib/crmUrl";
 
-/** Validates an Indian mobile number and returns the normalised +91XXXXXXXXXX form, or null. */
+/** Validates an Indian mobile number and returns the normalised +91XXXXXXXXXX form, or null.
+ * Spaces, dashes and brackets are ignored: people type "+91 98765 43210" or "98765-43210". */
 function validateIndianPhone(raw) {
-  const match = raw.trim().match(/^(?:\+91|91|0)?([6-9]\d{9})$/);
+  const match = raw.replace(/[\s\-().]/g, "").match(/^(?:\+91|91|0)?([6-9]\d{9})$/);
   return match ? `+91${match[1]}` : null;
 }
 
@@ -42,7 +43,7 @@ Agency: ${agencyName.trim() || "-"}
 City: ${city.trim() || "-"}
 WhatsApp: ${normalised}
 Preferred time: ${preferredTime || "Any time"}`;
-    window.open(waLink(msg), "_blank");
+    window.open(waLink(msg), "_blank", "noopener,noreferrer");
     setSubmitted(true);
   };
 
@@ -129,6 +130,7 @@ Preferred time: ${preferredTime || "Any time"}`;
                   <input
                     id="demo-agency"
                     type="text"
+                    autoComplete="organization"
                     placeholder="e.g. Royal Escapes Holidays"
                     value={agencyName}
                     onChange={(e) => setAgencyName(e.target.value)}
@@ -144,6 +146,7 @@ Preferred time: ${preferredTime || "Any time"}`;
                     <input
                       id="demo-phone"
                       type="tel"
+                      autoComplete="tel"
                       required
                       placeholder="+91 98765 43210"
                       value={phone}

@@ -16,7 +16,9 @@ export default function DemoForm() {
   const validate = () => {
     const errs = validateDemoForm(demoData);
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    const firstInvalid = ["name", "agency", "email", "phone"].find((k) => errs[k]);
+    if (firstInvalid) document.getElementById(`demo-${firstInvalid}`)?.focus();
+    return !firstInvalid;
   };
 
   const handleDemoSubmit = async (e) => {
@@ -26,10 +28,10 @@ export default function DemoForm() {
     setSubmitError("");
     try {
       await submitWalkthroughRequest({
-        name: demoData.name,
-        agencyName: demoData.agency,
-        email: demoData.email,
-        phone: demoData.phone,
+        name: demoData.name.trim(),
+        agencyName: demoData.agency.trim(),
+        email: demoData.email.trim(),
+        phone: demoData.phone.trim(),
       });
 
       setDemoRequested(true);
@@ -46,7 +48,7 @@ export default function DemoForm() {
   };
 
   const inputClass = (hasError) =>
-    `w-full bg-white border rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
+    `w-full bg-white border rounded-lg px-3 py-2.5 text-base text-slate-800 focus:outline-none focus-visible:ring-1 transition-colors ${
       hasError ? "border-red-400 focus:border-red-400 focus-visible:ring-red-400" : "border-slate-200 focus:border-brand-500 focus-visible:ring-brand-500"
     }`;
 
@@ -96,6 +98,9 @@ export default function DemoForm() {
                     <label htmlFor="demo-name" className="text-xs font-medium text-slate-500 block">Your name *</label>
                     <input
                       id="demo-name"
+                      autoComplete="name"
+                      aria-invalid={errors.name ? "true" : undefined}
+                      aria-describedby={errors.name ? "demo-name-error" : undefined}
                       type="text"
                       placeholder="John Doe"
                       value={demoData.name}
@@ -105,12 +110,15 @@ export default function DemoForm() {
                       }}
                       className={inputClass(errors.name)}
                     />
-                    {errors.name && <p className="text-[11px] text-red-500 font-medium">{errors.name}</p>}
+                    {errors.name && <p id="demo-name-error" role="alert" className="text-xs text-red-500 font-medium">{errors.name}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="demo-agency" className="text-xs font-medium text-slate-500 block">Agency name *</label>
                     <input
                       id="demo-agency"
+                      autoComplete="organization"
+                      aria-invalid={errors.agency ? "true" : undefined}
+                      aria-describedby={errors.agency ? "demo-agency-error" : undefined}
                       type="text"
                       placeholder="Apex Travels"
                       value={demoData.agency}
@@ -120,7 +128,7 @@ export default function DemoForm() {
                       }}
                       className={inputClass(errors.agency)}
                     />
-                    {errors.agency && <p className="text-[11px] text-red-500 font-medium">{errors.agency}</p>}
+                    {errors.agency && <p id="demo-agency-error" role="alert" className="text-xs text-red-500 font-medium">{errors.agency}</p>}
                   </div>
                 </div>
 
@@ -128,6 +136,9 @@ export default function DemoForm() {
                   <label htmlFor="demo-email" className="text-xs font-medium text-slate-500 block">Work email *</label>
                   <input
                     id="demo-email"
+                      autoComplete="email"
+                      aria-invalid={errors.email ? "true" : undefined}
+                      aria-describedby={errors.email ? "demo-email-error" : undefined}
                     type="email"
                     placeholder="john@agency.com"
                     value={demoData.email}
@@ -137,13 +148,16 @@ export default function DemoForm() {
                     }}
                     className={inputClass(errors.email)}
                   />
-                  {errors.email && <p className="text-[11px] text-red-500 font-medium">{errors.email}</p>}
+                  {errors.email && <p id="demo-email-error" role="alert" className="text-xs text-red-500 font-medium">{errors.email}</p>}
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="demo-phone" className="text-xs font-medium text-slate-500 block">Phone number (optional)</label>
                   <input
                     id="demo-phone"
+                      autoComplete="tel"
+                      aria-invalid={errors.phone ? "true" : undefined}
+                      aria-describedby={errors.phone ? "demo-phone-error" : undefined}
                     type="tel"
                     placeholder="+91 9876543210"
                     value={demoData.phone}
@@ -154,11 +168,11 @@ export default function DemoForm() {
                     }}
                     className={inputClass(errors.phone)}
                   />
-                  {errors.phone && <p className="text-[11px] text-red-500 font-medium">{errors.phone}</p>}
+                  {errors.phone && <p id="demo-phone-error" role="alert" className="text-xs text-red-500 font-medium">{errors.phone}</p>}
                 </div>
 
                 {submitError && (
-                  <p className="text-xs text-red-500 font-medium mt-1">{submitError}</p>
+                  <p role="alert" className="text-xs text-red-500 font-medium mt-1">{submitError}</p>
                 )}
 
                 <button
