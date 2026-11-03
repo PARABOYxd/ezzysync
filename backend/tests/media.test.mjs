@@ -59,7 +59,12 @@ describe('private customer documents', () => {
     const ref = await r2.uploadPrivateFile(Buffer.from('x'), 'a.pdf', 'application/pdf', 'tests/private');
     const { key, exp, sig } = parts(r2.resolveMediaUrl(ref));
 
-    expect(r2.verifyMediaLink(key, exp, `${sig.slice(0, -1)}A`)).toBe(false);
+    // Change a character for certain. Overwriting the last one with a fixed 'A'
+    // left the signature untouched whenever it already ended in 'A' (the last
+    // base64url character carries only 4 bits, so that is about 1 run in 16).
+    const tampered = `${sig[0] === 'A' ? 'B' : 'A'}${sig.slice(1)}`;
+    expect(tampered).not.toBe(sig);
+    expect(r2.verifyMediaLink(key, exp, tampered)).toBe(false);
     expect(r2.verifyMediaLink('tests/private/someone-elses.pdf', exp, sig)).toBe(false);
     expect(r2.verifyMediaLink(key, String(Number(exp) + 3600000), sig)).toBe(false);
 
