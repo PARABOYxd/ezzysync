@@ -4,12 +4,14 @@ import { getFeatures, fetchFeatures } from '../services/featureService';
 import { uploadFile } from '../services/uploadService';
 import { useToast } from '../hooks/useToast.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { Settings, Palette, MessageSquare, Instagram, Link2 } from 'lucide-react';
+import { Settings, Palette, MessageSquare, Instagram, Link2, FileSpreadsheet } from 'lucide-react';
 import GeneralTab from '../components/settings/GeneralTab.jsx';
 import WhatsAppTab from '../components/settings/WhatsAppTab.jsx';
 import InstagramTab from '../components/settings/InstagramTab.jsx';
 import InvoiceTab from '../components/settings/InvoiceTab.jsx';
 import LeadCaptureTab from '../components/settings/LeadCaptureTab.jsx';
+import LeadSheetsTab from '../components/settings/LeadSheetsTab.jsx';
+import MetaLeadsCard from '../components/settings/MetaLeadsCard.jsx';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -227,6 +229,19 @@ export default function SettingsPage() {
             Lead Capture
           </button>
         )}
+        {user?.role === 'ADMIN' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('leadSheets')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition shrink-0 min-h-[44px] ${activeTab === 'leadSheets'
+              ? 'border-brand-600 text-brand-700 dark:text-brand-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
+              }`}
+          >
+            <FileSpreadsheet size={16} />
+            Meta &amp; Google Sheets
+          </button>
+        )}
       </div>
 
       {activeTab === 'general' && (
@@ -263,6 +278,13 @@ export default function SettingsPage() {
 
       {user?.role === 'ADMIN' && activeTab === 'leadCapture' && (
         <LeadCaptureTab />
+      )}
+
+      {user?.role === 'ADMIN' && activeTab === 'leadSheets' && (
+        <div className="space-y-6">
+          <MetaLeadsCard />
+          <LeadSheetsTab />
+        </div>
       )}
     </div>
   );

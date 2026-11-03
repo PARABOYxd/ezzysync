@@ -358,6 +358,23 @@ async function listPhoneKeys(tenantId) {
 }
 
 /**
+ * Phones of everyone who already has a booking, last 10 digits.
+ *
+ * A customer who has travelled with the agency before is not a new enquiry
+ * when the same number turns up in a form sheet, so the live sheet sync
+ * checks this as well as the leads.
+ */
+async function listBookingPhoneKeys(tenantId) {
+  const { rows } = await query(
+    `SELECT DISTINCT RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) AS key
+     FROM bookings
+     WHERE tenant_id = $1 AND deleted = FALSE AND phone IS NOT NULL AND phone <> ''`,
+    [tenantId]
+  );
+  return rows.map((r) => r.key).filter(Boolean);
+}
+
+/**
  * Inserts a batch of imported leads in one statement.
  *
  * `created_at` is per-lead rather than now(): an enquiry from last year
@@ -414,6 +431,7 @@ async function bulkInsertFollowUps(tenantId, entries) {
 module.exports = {
   countLeadsByAssignee,
   listPhoneKeys,
+  listBookingPhoneKeys,
   bulkInsertLeads,
   bulkInsertFollowUps,
   nextLeadSeq,

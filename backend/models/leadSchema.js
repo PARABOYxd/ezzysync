@@ -1,5 +1,5 @@
 const LEAD_STAGES = ['New', 'Contacted', 'Negotiating', 'Won', 'Lost'];
-const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp', 'Excel Import'];
+const LEAD_SOURCES = ['Manual', 'Landing Page', 'Referral', 'Website', 'WhatsApp', 'Excel Import', 'Google Sheet', 'Meta Ads'];
 
 /**
  * Postgres TIMESTAMPTZ accepts 'infinity', which pg hands back as the number
