@@ -22,7 +22,7 @@ const staticPages = [
   { path: "/compare/zoho", updated: "2026-09-01", priority: 0.8 },
   { path: "/about", updated: "2026-09-24", priority: 0.6 },
   { path: "/contact", updated: "2026-09-11", priority: 0.7 },
-  { path: "/blog", updated: "2026-09-11", priority: 0.7 },
+  { path: "/blog", updated: "2026-11-03", priority: 0.7 },
   { path: "/terms", updated: "2026-08-01", priority: 0.2 },
   { path: "/privacy", updated: "2026-08-01", priority: 0.2 },
   { path: "/refund-policy", updated: "2026-08-01", priority: 0.2 },

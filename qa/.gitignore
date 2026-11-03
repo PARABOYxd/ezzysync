@@ -36,3 +36,6 @@ scratch/
 temp/
 *.tmp
 *.log
+
+# Landing Playwright report (regenerated every run)
+reports/landing-html/
