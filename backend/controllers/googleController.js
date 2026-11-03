@@ -67,19 +67,13 @@ exports.googleCallback = async (req, res) => {
             refreshTokenEncrypted: encryptedRefreshToken,
         });
 
-        res.json({
-            success: true,
-            message: "Google account connected successfully.",
-            googleEmail,
-        });
+        const frontendUrl = env.frontendUrl || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/settings?gmail=connected`);
     } catch (err) {
         req.log.error({ err }, 'Google Gmail connection callback failed');
 
-        // Already logged above with full detail; the browser gets something
-        // a person can act on instead of the raw Google/OAuth error.
-        res.status(500).json({
-            message: 'Could not finish connecting Gmail. Please try again from Settings.',
-        });
+        const frontendUrl = env.frontendUrl || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/settings?gmail=error`);
     }
 };
 /**

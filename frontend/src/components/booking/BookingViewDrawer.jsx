@@ -12,6 +12,7 @@ import * as hotelService from '../../services/hotelService';
 
 export default function BookingViewDrawer({ open, onClose, booking, onRefresh }) {
   const toast = useToast();
+  const [followUps, setFollowUps] = useState([]);
   const [note, setNote] = useState('');
   const [noteError, setNoteError] = useState('');
   const [activityType, setActivityType] = useState('note');
