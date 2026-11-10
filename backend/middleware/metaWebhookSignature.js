@@ -89,4 +89,30 @@ async function verifyMetaSignature(req, res, next) {
   return next();
 }
 
-module.exports = { verifyMetaSignature };
+/**
+ * The strict version, for webhooks that carry data we have not already
+ * decided to trust. Unlike verifyMetaSignature this never lets a request
+ * through unsigned: with no platform secret configured the endpoint is off
+ * (503) rather than open. Lead webhooks create leads and fetch with a stored
+ * token, so "accept until configured" is not acceptable here.
+ */
+function requireMetaSignature(req, res, next) {
+  const secret = env.facebook?.appSecret || '';
+  if (!secret) {
+    logger.error('FACEBOOK_APP_SECRET is not set; the Meta leads webhook is refusing every request');
+    return res.sendStatus(503);
+  }
+
+  const header = req.get('X-Hub-Signature-256') || '';
+  if (!header.startsWith('sha256=') || !req.rawBody) {
+    logger.warn({ ip: req.ip }, 'Meta leads webhook rejected: unsigned');
+    return res.sendStatus(401);
+  }
+  if (!signatureMatches(req.rawBody, secret, header.slice('sha256='.length))) {
+    logger.warn({ ip: req.ip }, 'Meta leads webhook rejected: bad signature');
+    return res.sendStatus(401);
+  }
+  return next();
+}
+
+module.exports = { verifyMetaSignature, requireMetaSignature };

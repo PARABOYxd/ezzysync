@@ -18,7 +18,7 @@ const { query } = require('../config/db');
 
 async function getSession(tenantId) {
   const { rows } = await query(
-    `SELECT status, qr_code_data, phone_number, connected_at, ai_autopilot_enabled
+    `SELECT status, qr_code_data, phone_number, connected_at, ai_autopilot_enabled, ignore_saved_contacts
      FROM whatsapp_sessions WHERE tenant_id = $1`,
     [tenantId]
   );
@@ -31,6 +31,72 @@ async function getAutopilotDefault(tenantId) {
     [tenantId]
   );
   return rows[0]?.ai_autopilot_enabled === true;
+}
+
+/* ------------------------------------------------------------------ *
+ * The agent's address book
+ * ------------------------------------------------------------------ */
+
+const phoneKeyOf = (phone) => String(phone || '').replace(/\D/g, '').slice(-10);
+
+async function getIgnoreSavedContacts(tenantId) {
+  const { rows } = await query(
+    `SELECT ignore_saved_contacts FROM whatsapp_sessions WHERE tenant_id = $1`,
+    [tenantId]
+  );
+  return rows[0]?.ignore_saved_contacts === true;
+}
+
+async function setIgnoreSavedContacts(tenantId, enabled) {
+  await query(
+    `INSERT INTO whatsapp_sessions (tenant_id, status, ignore_saved_contacts, updated_at)
+     VALUES ($1, 'disconnected', $2, now())
+     ON CONFLICT (tenant_id) DO UPDATE SET ignore_saved_contacts = $2, updated_at = now()`,
+    [tenantId, Boolean(enabled)]
+  );
+}
+
+/** Remembers contacts WhatsApp reports as saved in the phone. `contacts` is [{ phone, name }]. */
+async function upsertSavedContacts(tenantId, contacts) {
+  const byKey = new Map();
+  for (const c of contacts) {
+    const key = phoneKeyOf(c.phone);
+    const name = String(c.name || '').trim().slice(0, 200);
+    if (key.length >= 7 && name) byKey.set(key, name);
+  }
+  if (byKey.size === 0) return 0;
+
+  const values = [tenantId];
+  const placeholders = [...byKey].map(([key, name]) => {
+    values.push(key, name);
+    return `($1, $${values.length - 1}, $${values.length})`;
+  });
+  await query(
+    `INSERT INTO whatsapp_saved_contacts (tenant_id, phone_key, name) VALUES ${placeholders.join(',')}
+     ON CONFLICT (tenant_id, phone_key) DO UPDATE SET name = EXCLUDED.name, updated_at = now()`,
+    values
+  );
+  return byKey.size;
+}
+
+/** A contact removed from the phone book is no longer "known". */
+async function removeSavedContact(tenantId, phone) {
+  await query(`DELETE FROM whatsapp_saved_contacts WHERE tenant_id = $1 AND phone_key = $2`, [tenantId, phoneKeyOf(phone)]);
+}
+
+async function isSavedContact(tenantId, phone) {
+  const key = phoneKeyOf(phone);
+  if (key.length < 7) return false;
+  const { rows } = await query(
+    `SELECT 1 FROM whatsapp_saved_contacts WHERE tenant_id = $1 AND phone_key = $2`,
+    [tenantId, key]
+  );
+  return rows.length > 0;
+}
+
+async function countSavedContacts(tenantId) {
+  const { rows } = await query(`SELECT COUNT(*)::int AS n FROM whatsapp_saved_contacts WHERE tenant_id = $1`, [tenantId]);
+  return rows[0].n;
 }
 
 async function saveQrCode(tenantId, qrCodeData) {
@@ -624,17 +690,20 @@ async function setChatLeadId(tenantId, chatId, leadUuid) {
   return rows[0] || null;
 }
 
-async function createLeadFromWhatsapp(tenantId, { customerName, phone, assignedTo = null }) {
+async function createLeadFromWhatsapp(tenantId, {
+  customerName, phone, assignedTo = null,
+  source = 'WhatsApp Inbound', interest = '', notes = 'Auto-created from WhatsApp chat',
+}) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const seq = await query(`SELECT nextval('leads_seq') AS num`);
     const leadCode = `LEAD-${seq.rows[0].num}`;
 
     try {
       const { rows } = await query(
-        `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, assigned_to, source, stage, notes, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, 'WhatsApp Inbound', 'New', 'Auto-created from WhatsApp chat', now(), now())
+        `INSERT INTO leads (tenant_id, lead_id, customer_name, phone, assigned_to, source, interest, stage, notes, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'New', $8, now(), now())
          RETURNING id`,
-        [tenantId, leadCode, customerName, phone, assignedTo || null]
+        [tenantId, leadCode, customerName, phone, assignedTo || null, source, interest, notes]
       );
       return { id: rows[0]?.id || null, leadCode };
     } catch (err) {
@@ -688,6 +757,12 @@ module.exports = {
   setChatOptedOut,
   getSession,
   getAutopilotDefault,
+  getIgnoreSavedContacts,
+  setIgnoreSavedContacts,
+  upsertSavedContacts,
+  removeSavedContact,
+  isSavedContact,
+  countSavedContacts,
   saveQrCode,
   markConnected,
   markLoggedOut,

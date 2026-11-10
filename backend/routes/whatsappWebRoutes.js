@@ -25,6 +25,7 @@ router.get('/overview', ctrl.getConnectionOverview);
 router.post('/connect', requirePermission('whatsapp', 'manage'), ctrl.startSession);
 router.post('/disconnect', requirePermission('whatsapp', 'manage'), ctrl.disconnect);
 router.post('/toggle-autopilot', requirePermission('whatsapp', 'manage'), requireFeature('canUseAi'), toggleValidators, validate, ctrl.toggleAiAutopilot);
+router.post('/ignore-saved-contacts', requirePermission('whatsapp', 'manage'), toggleValidators, validate, ctrl.setIgnoreSavedContacts);
 router.post('/ai-all-chats', requirePermission('whatsapp', 'manage'), requireFeature('canUseAi'), toggleValidators, validate, ctrl.setAiForAllChats);
 router.get('/chats', ctrl.listChats);
 router.post('/start-chat', ctrl.startChat);
