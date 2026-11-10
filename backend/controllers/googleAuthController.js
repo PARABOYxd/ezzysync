@@ -29,6 +29,18 @@ exports.googleLoginCallback = async (req, res) => {
       googleId,
     });
 
+    if (user.role !== 'ADMIN' && !user.is_super_admin) {
+      const planService = require('../services/planService');
+      const limits = await planService.getTenantPlanLimits(user.tenantId);
+      if (limits.id === 'SOLO' || limits.maxTeamMembers === 1 || limits.isExpired) {
+        return res.redirect(
+          `${env.frontendUrl}/login?error=${encodeURIComponent(
+            'Your account is locked. Please ask your admin to unlock your account.'
+          )}`
+        );
+      }
+    }
+
     // Sign JWT + issue a refresh token, same as the regular email/password login
     const { token, refreshToken } = await tokenService.issueTokenPair(user);
 
