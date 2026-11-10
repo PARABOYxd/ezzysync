@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import * as userService from '../services/userService';
 import { getMyPlanStatus } from '../services/planService';
 import Input from '../components/ui/Input.jsx';
 import Drawer from '../components/common/Drawer.jsx';
-import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search } from 'lucide-react';
+import { User, Shield, Key, FileText, CheckCircle2, ShieldAlert, Edit2, Trash2, Plus, Users, Search, Lock, Sparkles } from 'lucide-react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/common/Table.jsx';
 import { PERMISSION_MODULES, ACTION_LABELS, DEFAULT_TEAM_MEMBER_PERMISSIONS } from '../constants/permissions.js';
 
@@ -49,6 +49,7 @@ function PermissionMatrix({ permissions, onToggle }) {
 export default function Team() {
   const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +82,10 @@ export default function Team() {
   const [reassignPrompt, setReassignPrompt] = useState(null);
   const [reassignTarget, setReassignTarget] = useState('');
   const [reassigning, setReassigning] = useState(false);
+
+  const isSoloPlan =
+    planInfo?.plan?.id === 'SOLO' ||
+    planInfo?.limits?.maxTeamMembers === 1;
 
   // -1 means unlimited, so only a positive limit can actually be full.
   const seatsFull =
@@ -274,26 +279,35 @@ export default function Team() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Team Management</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-zinc-100">Team Management</h1>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
             Add your staff and choose what each person can see and change.
           </p>
           {planInfo && (
-            <p className="text-xs mt-2 flex items-center gap-1.5">
-              <span className="text-slate-500">
-                {planInfo.plan.name} —{' '}
-                <strong className={seatsFull ? 'text-rose-600' : 'text-slate-700'}>
-                  {planInfo.usage.teamMembers}
-                  {planInfo.limits.maxTeamMembers === -1 ? '' : ` / ${planInfo.limits.maxTeamMembers}`}
-                </strong>{' '}
-                {planInfo.limits.maxTeamMembers === -1 ? 'logins (unlimited)' : 'logins used'}
-              </span>
-              {seatsFull && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                  Limit reached
+            <div className="text-xs mt-2 flex flex-wrap items-center gap-2">
+              {isSoloPlan ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-900/50 font-semibold">
+                  <Lock size={12} className="text-amber-600 dark:text-amber-400" />
+                  Upgrade to Pro Plan to access team members
                 </span>
+              ) : (
+                <p className="text-xs flex items-center gap-1.5">
+                  <span className="text-slate-500">
+                    {planInfo.plan.name} —{' '}
+                    <strong className={seatsFull ? 'text-rose-600' : 'text-slate-700'}>
+                      {planInfo.usage.teamMembers}
+                      {planInfo.limits.maxTeamMembers === -1 ? '' : ` / ${planInfo.limits.maxTeamMembers}`}
+                    </strong>{' '}
+                    {planInfo.limits.maxTeamMembers === -1 ? 'logins (unlimited)' : 'logins used'}
+                  </span>
+                  {seatsFull && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                      Limit reached
+                    </span>
+                  )}
+                </p>
               )}
-            </p>
+            </div>
           )}
         </div>
         <button
@@ -301,14 +315,48 @@ export default function Team() {
             setFormErrors({});
             setShowAddModal(true);
           }}
-          disabled={seatsFull}
-          title={seatsFull ? `Your ${planInfo?.plan?.name} includes ${planInfo?.limits?.maxTeamMembers} login(s). Upgrade to add more.` : 'Add a team member'}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-md shadow-brand-500/10 transition text-sm self-start sm:self-auto"
+          disabled={seatsFull || isSoloPlan}
+          title={
+            isSoloPlan
+              ? 'Upgrade to Pro Plan to add team members.'
+              : seatsFull
+              ? `Your ${planInfo?.plan?.name} includes ${planInfo?.limits?.maxTeamMembers} login(s). Upgrade to add more.`
+              : 'Add a team member'
+          }
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-md shadow-brand-500/10 transition text-sm self-start sm:self-auto cursor-pointer"
         >
           <Plus size={16} />
           Add Member
         </button>
       </div>
+
+      {/* Solo Agent Plan Locked Notice */}
+      {isSoloPlan && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-900/60 rounded-2xl p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-zinc-100 text-sm sm:text-base">
+                  Team Management is Locked
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 mt-0.5">
+                  Upgrade to Pro Plan to access and manage team members.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/profile?upgrade=true')}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition shrink-0 cursor-pointer"
+            >
+              <Sparkles size={15} />
+              Upgrade to Pro Plan
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Team Table Grid */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm overflow-hidden">
@@ -364,14 +412,21 @@ export default function Team() {
                             </div>
                           </Td>
                           <Td>
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              member.role === 'ADMIN'
-                                ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                                : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
-                            }`}>
-                              {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
-                              {member.role === 'ADMIN' ? 'Admin' : 'Team member'}
-                            </span>
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                member.role === 'ADMIN'
+                                  ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                              }`}>
+                                {member.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />}
+                                {member.role === 'ADMIN' ? 'Admin' : 'Team member'}
+                              </span>
+                              {isSoloPlan && member.role !== 'ADMIN' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100/90 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/60">
+                                  <Lock size={10} /> Locked
+                                </span>
+                              )}
+                            </div>
                           </Td>
                           <Td>
                             {member.role === 'ADMIN' ? (
@@ -448,14 +503,21 @@ export default function Team() {
                         </div>
                       </div>
 
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0 ${
-                        member.role === 'ADMIN'
-                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
-                          : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
-                      }`}>
-                        {member.role === 'ADMIN' ? <Shield size={11} /> : <User size={11} />}
-                        {member.role === 'ADMIN' ? 'Admin' : 'Team member'}
-                      </span>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                          member.role === 'ADMIN'
+                            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50'
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                        }`}>
+                          {member.role === 'ADMIN' ? <Shield size={11} /> : <User size={11} />}
+                          {member.role === 'ADMIN' ? 'Admin' : 'Team member'}
+                        </span>
+                        {isSoloPlan && member.role !== 'ADMIN' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100/90 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/60">
+                            <Lock size={10} /> Locked
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Permissions summary */}

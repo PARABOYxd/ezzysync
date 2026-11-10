@@ -49,6 +49,24 @@ async function requireAuth(req, res, next) {
       });
     }
 
+    // Lock out team members if the agency is on Solo Agent Plan (1 login only) or plan has expired
+    if (role !== 'ADMIN' && !isSuperAdmin) {
+      const planService = require('../services/planService');
+      const limits = await planService.getTenantPlanLimits(decoded.tenantId);
+      if (limits.id === 'SOLO' || limits.maxTeamMembers === 1) {
+        return res.status(403).json({
+          message: 'Your account is locked. Please ask your admin to unlock your account.',
+          code: 'SOLO_PLAN_TEAM_LOCKED',
+        });
+      }
+      if (limits.isExpired) {
+        return res.status(403).json({
+          message: 'Your account is locked. Please ask your admin to unlock your account.',
+          code: limits.lapsedPlanId ? 'SUBSCRIPTION_EXPIRED' : 'TRIAL_EXPIRED',
+        });
+      }
+    }
+
     req.user = {
       userId: decoded.userId,
       tenantId: decoded.tenantId,
