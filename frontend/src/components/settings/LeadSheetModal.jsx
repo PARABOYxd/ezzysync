@@ -189,11 +189,14 @@ export default function LeadSheetModal({ sheet, options, onClose, onSaved }) {
           <div>
             <label className="label" htmlFor="sheet-assign">Assign leads to</label>
             <select id="sheet-assign" className="input"
-              value={form.assignMode === 'agent' ? form.assignedTo : '__rr'}
-              onChange={(e) => (e.target.value === '__rr'
-                ? setForm((f) => ({ ...f, assignMode: 'round_robin', assignedTo: '' }))
-                : setForm((f) => ({ ...f, assignMode: 'agent', assignedTo: e.target.value })))}>
-              <option value="__rr">Auto-distribute (Round-Robin)</option>
+              value={form.assignMode === 'agent' ? form.assignedTo : form.assignMode === 'unassigned' ? '__unassigned' : '__rr'}
+              onChange={(e) => {
+                if (e.target.value === '__rr') setForm((f) => ({ ...f, assignMode: 'round_robin', assignedTo: '' }));
+                else if (e.target.value === '__unassigned') setForm((f) => ({ ...f, assignMode: 'unassigned', assignedTo: '' }));
+                else setForm((f) => ({ ...f, assignMode: 'agent', assignedTo: e.target.value }));
+              }}>
+              <option value="__rr">Auto-distribute</option>
+              <option value="__unassigned">Unassigned</option>
               {(options.team || []).map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </div>

@@ -72,11 +72,14 @@ function PageModal({ page, options, onClose, onSaved }) {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="label" htmlFor="meta-assign">Assign leads to</label>
-            <select id="meta-assign" className="input" value={form.assignMode === 'agent' ? form.assignedTo : '__rr'}
-              onChange={(e) => (e.target.value === '__rr'
-                ? setForm((f) => ({ ...f, assignMode: 'round_robin', assignedTo: '' }))
-                : setForm((f) => ({ ...f, assignMode: 'agent', assignedTo: e.target.value })))}>
-              <option value="__rr">Auto-distribute (Round-Robin)</option>
+            <select id="meta-assign" className="input" value={form.assignMode === 'agent' ? form.assignedTo : form.assignMode === 'unassigned' ? '__unassigned' : '__rr'}
+              onChange={(e) => {
+                if (e.target.value === '__rr') setForm((f) => ({ ...f, assignMode: 'round_robin', assignedTo: '' }));
+                else if (e.target.value === '__unassigned') setForm((f) => ({ ...f, assignMode: 'unassigned', assignedTo: '' }));
+                else setForm((f) => ({ ...f, assignMode: 'agent', assignedTo: e.target.value }));
+              }}>
+              <option value="__rr">Auto-distribute</option>
+              <option value="__unassigned">Unassigned</option>
               {(options.team || []).map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </div>
@@ -203,7 +206,7 @@ export default function MetaLeadsCard() {
                   {active && (
                     <p className="text-xs text-slate-400 mt-1">
                       {page.totalLeads} lead{page.totalLeads === 1 ? '' : 's'} · {page.lastLeadAt ? `last ${timeAgo(page.lastLeadAt)}` : 'none yet'} ·{' '}
-                      {page.tripName || 'trip from the ad'} · {page.assignMode === 'agent' ? page.assignedTo : 'Round-Robin'}
+                      {page.tripName || 'trip from the ad'} · {page.assignMode === 'agent' ? page.assignedTo : page.assignMode === 'unassigned' ? 'Unassigned' : 'Auto-distribute'}
                     </p>
                   )}
                   {page.lastError && <p className="text-xs text-red-600 mt-1">{page.lastError}</p>}

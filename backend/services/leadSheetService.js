@@ -247,6 +247,7 @@ async function importRows(source, columns, rows, { timelineNote, actor }) {
   const fixedAgent = source.assignMode === 'agent' && team.includes(source.assignedTo) ? source.assignedTo : '';
   kept.forEach((cells, i) => {
     if (source.assignMode === 'agent') cells[IMPORT_SHAPE.assignedTo] = fixedAgent;
+    else if (source.assignMode === 'unassigned') cells[IMPORT_SHAPE.assignedTo] = '';
     else if (team.length > 0) cells[IMPORT_SHAPE.assignedTo] = team[(out.rrCursor + i) % team.length];
   });
   if (source.assignMode === 'round_robin' && team.length > 0) out.rrCursor = (out.rrCursor + kept.length) % team.length;
@@ -381,7 +382,7 @@ async function normalizeConfig(tenantId, body = {}) {
   const tripColumn = clampText(body.tripColumn, 200);
   if (tripMode === 'column' && !tripColumn) throw badRequest('Choose the sheet column that holds the destination.');
 
-  const assignMode = body.assignMode === 'agent' ? 'agent' : 'round_robin';
+  const assignMode = body.assignMode === 'agent' ? 'agent' : body.assignMode === 'unassigned' ? 'unassigned' : 'round_robin';
   const assignedTo = assignMode === 'agent' ? clampText(body.assignedTo, 120) : '';
   if (assignMode === 'agent') {
     if (!assignedTo) throw badRequest('Choose which team member gets these leads, or pick Round-Robin.');
