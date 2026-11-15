@@ -160,6 +160,7 @@ async function runQueries(client) {
     await client.query('rollback').catch(() => {});
     record('Write permission', false, errText(err), 'User cannot write. DB may be read-only or suspended for exceeding storage.');
   }
+  
 
   await q(
     'Can create in public schema',
