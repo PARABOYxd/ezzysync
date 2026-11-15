@@ -109,7 +109,7 @@ function clampText(value, max) {
 }
 
 async function normalizeConfig(tenantId, body = {}) {
-  const assignMode = body.assignMode === 'agent' ? 'agent' : 'round_robin';
+  const assignMode = body.assignMode === 'agent' ? 'agent' : body.assignMode === 'unassigned' ? 'unassigned' : 'round_robin';
   const assignedTo = assignMode === 'agent' ? clampText(body.assignedTo, 120) : '';
   if (assignMode === 'agent') {
     if (!assignedTo) throw badRequest('Choose which team member gets these leads, or pick Round-Robin.');

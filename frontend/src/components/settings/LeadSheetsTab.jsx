@@ -37,7 +37,7 @@ function StatusPill({ sheet }) {
 }
 
 /** Which team member or round-robin a sheet's leads go to. */
-const assigneeLabel = (sheet) => (sheet.assignMode === 'agent' ? sheet.assignedTo : 'Round-Robin');
+const assigneeLabel = (sheet) => (sheet.assignMode === 'agent' ? sheet.assignedTo : sheet.assignMode === 'unassigned' ? 'Unassigned' : 'Auto-distribute');
 const tripLabel = (sheet) => (sheet.tripMode === 'column' ? `From column "${sheet.tripColumn}"` : (sheet.tripName || 'Not set'));
 
 export default function LeadSheetsTab() {
