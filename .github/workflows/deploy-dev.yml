@@ -39,6 +39,43 @@ jobs:
           npm ci
           node --check server.js
 
+  db-health-check:
+    # Diagnostic only: runs alongside the deploy and never blocks it.
+    # Open this job's log (or the run's Summary tab) to see which layer fails:
+    # DNS -> TCP -> login -> queries.
+    name: Database Health Check (Dev)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci --omit=dev
+
+      - name: Runner public IP (allowlist this in Render Access Control if login is reset)
+        run: echo "Runner IP: $(curl -s --max-time 10 https://api.ipify.org || echo unknown)"
+
+      - name: Run DB diagnostics
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+          PGSSL: ${{ vars.DEV_PGSSL }}
+          DB_REGION: ${{ vars.DEV_DB_REGION || 'oregon' }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DEV_DATABASE_URL secret is not set. Skipping DB health check."
+            exit 0
+          fi
+          node scripts/db-check.js
+
   deploy-backend-render:
     name: Deploy Backend to Render (Dev)
     needs: ci-validate
