@@ -81,7 +81,7 @@ export default function Home() {
         "contactType": "customer service"
       },
       "sameAs": [
-        "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
+        "https://www.instagram.com/ezzysync/",
         "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr"
       ]
     },

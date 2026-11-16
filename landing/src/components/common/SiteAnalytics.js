@@ -10,7 +10,12 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID;   // Microsoft Clarity pr
 function track(event, params) {
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event, ...params });
-  if (typeof window.gtag === "function") window.gtag("event", event, params);
+  if (GA_ID) {
+    // Same queue stub the GA snippet defines, so an event sent before
+    // gtag.js has loaded is replayed instead of lost.
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    window.gtag("event", event, params);
+  }
 }
 
 /**
@@ -20,7 +25,35 @@ function track(event, params) {
  *   demo_click  - any wa.me link (demo / question on WhatsApp)
  * Actual signups happen in the CRM app, so mark `sign_up` there.
  */
+// Visits that came from an AI assistant's answer, by referrer host.
+// GA files most of these under "referral", mixed with everything else;
+// this event makes AI-search traffic its own number.
+const AI_REFERRERS = [
+  [/(^|\.)chatgpt\.com$|(^|\.)openai\.com$/, "chatgpt"],
+  [/(^|\.)perplexity\.ai$/, "perplexity"],
+  [/^gemini\.google\.com$/, "gemini"],
+  [/(^|\.)claude\.ai$/, "claude"],
+  [/^copilot\.microsoft\.com$/, "copilot"],
+  [/(^|\.)deepseek\.com$/, "deepseek"],
+  [/(^|\.)meta\.ai$/, "meta_ai"],
+  [/(^|\.)you\.com$/, "you"],
+];
+
 export default function SiteAnalytics() {
+  useEffect(() => {
+    // Once per tab session, on the landing page of the visit.
+    try {
+      if (document.referrer && !sessionStorage.getItem("ai_ref_seen")) {
+        const host = new URL(document.referrer).hostname;
+        const hit = AI_REFERRERS.find(([re]) => re.test(host));
+        sessionStorage.setItem("ai_ref_seen", "1");
+        if (hit) track("ai_referral", { ai_source: hit[1], referrer_host: host, page_path: location.pathname });
+      }
+    } catch {
+      // Storage blocked or bad referrer URL: skip, analytics must never break the page.
+    }
+  }, []);
+
   useEffect(() => {
     const onClick = (e) => {
       const a = e.target.closest?.("a[href]");

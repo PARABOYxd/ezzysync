@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
 import SiteAnalytics from "@/components/common/SiteAnalytics";
+import { PLAN_PRICE_RUPEES } from "@/data/plans";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -59,7 +60,7 @@ export default function RootLayout({ children }) {
         "contactType": "customer service"
       },
       "sameAs": [
-        "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
+        "https://www.instagram.com/ezzysync/",
         "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr" 
       ]
     },
@@ -76,11 +77,14 @@ export default function RootLayout({ children }) {
       "name": "EzzySync Travel CRM",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "All (Cloud-Based SaaS)",
+      // Real plan prices, same as /pricing. This block is on every page, so a
+      // "price: 0" here told Google and AI answers the product is free.
       "offers": {
-        "@type": "Offer",
-        "price": "0",
+        "@type": "AggregateOffer",
         "priceCurrency": "INR",
-        "description": "Free Evaluation Account"
+        "lowPrice": PLAN_PRICE_RUPEES.SOLO,
+        "highPrice": PLAN_PRICE_RUPEES.PRO,
+        "offerCount": "2"
       },
       "description": "All-in-one Travel CRM software with direct WhatsApp lead capture, day-wise itinerary builder, GST invoice generator, and booking management for tour operators and travel agencies.",
       "featureList": [
