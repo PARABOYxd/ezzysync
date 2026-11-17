@@ -1,189 +1,204 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, ArrowRight } from "lucide-react";
-import { waLink, WA_BOOK_DEMO_TEXT } from "@/lib/contact";
+import { ArrowUpRight } from "lucide-react";
+import Pill from "../ui/Pill";
+import { waLink, WA_BOOK_DEMO_TEXT, DISPLAY_PHONE, SUPPORT_EMAIL, TEL_PHONE } from "@/lib/contact";
 import { getLoginUrl, getTrialUrl } from "@/lib/crmUrl";
 
 const NAV_LINKS = [
+  { href: "/", label: "Home" },
   { href: "/features", label: "Features" },
   { href: "/solutions", label: "Solutions" },
-  { href: "/free-itinerary-builder", label: "Itinerary Builder" },
+  { href: "/free-itinerary-builder", label: "Itinerary builder" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
-  { href: "/contact", label: "Contact Sales" },
+  { href: "/contact", label: "Contact sales" },
+];
+
+const SOCIALS = [
+  { href: "https://www.instagram.com/ezzysync", label: "Instagram" },
+  { href: "https://www.facebook.com/share/1BtkdG3H7G/", label: "Facebook" },
 ];
 
 export default function Navbar({ crmUrl }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const menuButton = useRef(null);
+  const firstLink = useRef(null);
 
-  // Close the drawer whenever the route changes (link tap, back, forward).
+  // Close the menu whenever the route changes.
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
-    setMobileMenuOpen(false);
+    setOpen(false);
   }
 
+  // Hide on scroll down, show on scroll up.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 12);
+      setHidden(y > 160 && y > last);
+      last = y;
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Menu open: stop page scroll, focus the first link, Esc closes.
   useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const onKey = (e) => e.key === 'Escape' && setMobileMenuOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [mobileMenuOpen]);
-
-  const isCurrent = (path) => pathname === path || pathname.startsWith(path + '/');
-  const getLinkClass = (path) => {
-    const isActive = isCurrent(path);
-    return isActive
-      ? "text-brand-600 font-semibold focus-visible:outline-none"
-      : "hover:text-slate-950 transition-colors focus-visible:outline-none focus-visible:text-slate-950";
-  };
+    if (!open) return;
+    window.__lenis?.stop();
+    document.body.style.overflow = "hidden";
+    const t = setTimeout(() => firstLink.current?.focus(), 350);
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    const button = menuButton.current;
+    return () => {
+      clearTimeout(t);
+      window.__lenis?.start();
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+      button?.focus();
+    };
+  }, [open]);
 
   const loginUrl = getLoginUrl(crmUrl);
   const trialUrl = getTrialUrl(crmUrl);
+  const isCurrent = (path) => (path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(path + "/"));
 
   return (
-    <header
-      className={`sticky top-0 z-50 h-16 flex items-center transition-all duration-300 ${
-        scrolled
-          ? "backdrop-blur-md bg-white/95 border-b border-slate-200/90 shadow-2xs"
-          : "bg-white border-b border-slate-200/60"
-      }`}
-    >
-      <div className="max-w-[1240px] w-full mx-auto px-5 sm:px-6">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg group"
-          >
-            <img
-              src="/logo-icon.png"
-              alt="EzzySync"
-              className="h-9 sm:h-10 w-auto object-contain"
-            />
-            <span className="font-extrabold tracking-tight text-[19px] text-[#091f44] leading-tight">
-              Ezzy<span className="text-[#ed5528]">Sync</span>
-            </span>
+    <>
+      <header
+        style={{ viewTransitionName: "site-header" }}
+        className={`fixed top-0 inset-x-0 z-50 transition-[transform,background-color,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          hidden && !open ? "-translate-y-full" : "translate-y-0"
+        } ${scrolled && !open ? "bg-paper/85 backdrop-blur-md border-b border-line" : "border-b border-transparent"}`}
+      >
+        <div className="wrap h-[76px] flex items-center justify-between gap-6">
+          <Link href="/" aria-label="EzzySync home" className="flex items-center gap-2.5">
+            <img src="/logo-icon.png" alt="" width={386} height={177} className="h-8 w-auto object-contain" />
+            <span className="font-display text-[22px] tracking-[-0.04em] text-ink-900">EzzySync</span>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav
-            aria-label="Main"
-            className="hidden lg:flex items-center gap-7 text-[14px] font-medium text-slate-600"
-          >
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} className={getLinkClass(href)} aria-current={isCurrent(href) ? "page" : undefined}>
-                {label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a href={loginUrl} className="hidden md:inline-flex items-center h-11 px-3 text-[15px] text-ink-700 hover:text-ink-900">
+              <span className="link-line">Sign in</span>
+            </a>
+            <span className="hidden sm:inline-flex">
+              <Pill href={trialUrl} size="sm">Start free trial</Pill>
+            </span>
+            <button
+              ref={menuButton}
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-expanded={open}
+              aria-controls="site-menu"
+              className="group inline-flex items-center gap-3 h-11 pl-4 pr-3 rounded-full text-[15px] text-ink-900 hover:bg-ink-900/5 transition-colors"
+            >
+              Menu
+              <span aria-hidden="true" className="flex flex-col gap-[5px] w-5">
+                <span className="h-px bg-current transition-transform duration-500 group-hover:translate-x-1" />
+                <span className="h-px bg-current w-3/4 ml-auto transition-[width] duration-500 group-hover:w-full" />
+              </span>
+            </button>
+          </div>
+        </div>
+      </header>
 
-          {/* Navigation CTAs */}
-          <div className="hidden sm:flex items-center gap-3">
-            <a
-              href={loginUrl}
-              className="text-[14px] font-medium text-slate-700 hover:text-slate-950 px-3 py-2 rounded-lg transition-colors"
+      {/* Full-screen menu */}
+      <div
+        id="site-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site menu"
+        data-theme="dark"
+        inert={!open}
+        className={`fixed inset-0 z-[60] bg-ink-900 text-paper transition-[clip-path] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          open ? "[clip-path:inset(0_0_0_0)]" : "[clip-path:inset(0_0_100%_0)]"
+        }`}
+      >
+        <div className="wrap h-full flex flex-col">
+          <div className="h-[76px] shrink-0 flex items-center justify-between">
+            <span className="font-display text-[22px] tracking-[-0.04em]">EzzySync</span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center gap-3 h-11 px-4 rounded-full text-[15px] hover:bg-white/10 transition-colors"
             >
-              Sign In
-            </a>
-            <a
-              href={waLink(WA_BOOK_DEMO_TEXT)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Book Demo</span>
-            </a>
-            <a
-              href={trialUrl}
-              className="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold transition-all shadow-xs flex items-center gap-1.5"
-            >
-              <span>Start Free Trial</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+              Close
+              <span aria-hidden="true" className="relative w-4 h-4">
+                <span className="absolute inset-x-0 top-1/2 h-px bg-current rotate-45" />
+                <span className="absolute inset-x-0 top-1/2 h-px bg-current -rotate-45" />
+              </span>
+            </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle navigation menu"
-              aria-expanded={mobileMenuOpen}
-              className="p-2.5 -mr-2.5 rounded-lg text-slate-700 hover:text-slate-950 hover:bg-slate-100 focus:outline-none"
+          <div className="flex-1 overflow-y-auto grid gap-12 lg:grid-cols-12 py-6 lg:py-10" data-lenis-prevent>
+            <nav aria-label="Main" className="lg:col-span-8">
+              <ul>
+                {NAV_LINKS.map(({ href, label }, i) => (
+                  <li key={href} className="overflow-hidden">
+                    <Link
+                      ref={i === 0 ? firstLink : undefined}
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      aria-current={isCurrent(href) ? "page" : undefined}
+                      style={{ transitionDelay: open ? `${150 + i * 55}ms` : "0ms" }}
+                      className={`flex items-baseline gap-4 py-1 font-display tracking-[-0.045em] leading-[1.04] text-[clamp(36px,min(6.2vw,8.4vh),92px)] transition-[transform,color] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        open ? "translate-y-0" : "translate-y-full"
+                      } ${isCurrent(href) ? "text-accent" : "text-paper hover:text-accent"}`}
+                    >
+                      <span className="t-label text-white/40 tabular-nums w-8 shrink-0">0{i + 1}</span>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <div
+              className={`lg:col-span-4 lg:pt-6 flex flex-col gap-10 pb-10 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                open ? "opacity-100 translate-y-0 delay-500" : "opacity-0 translate-y-6"
+              }`}
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                {mobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
-            </button>
+              <div className="flex flex-col items-start gap-3">
+                <Pill href={trialUrl} variant="light">Start free trial</Pill>
+                <Pill href={waLink(WA_BOOK_DEMO_TEXT)} variant="ghost-light">Book a demo on WhatsApp</Pill>
+              </div>
+              <div className="space-y-2 text-[17px]">
+                <p className="t-label text-white/50 mb-3">Get in touch</p>
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="block w-fit link-line">{SUPPORT_EMAIL}</a>
+                <a href={`tel:${TEL_PHONE}`} className="block w-fit link-line">{DISPLAY_PHONE}</a>
+                <a href={loginUrl} className="inline-flex items-center gap-1.5 w-fit text-white/75 hover:text-paper">
+                  <span className="link-line">Agency sign in</span>
+                  <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
+                </a>
+              </div>
+              <ul className="flex gap-6 text-[15px] text-white/75">
+                {SOCIALS.map((s) => (
+                  <li key={s.href}>
+                    <a href={s.href} target="_blank" rel="noopener noreferrer" className="link-line hover:text-paper">
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-16 inset-x-0 border-b border-slate-200 bg-white px-5 pt-3 pb-6 space-y-2 shadow-lg">
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMobileMenuOpen(false)}
-              aria-current={isCurrent(href) ? "page" : undefined}
-              className={`block px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 ${isCurrent(href) ? "text-brand-600 bg-brand-50/60" : "text-slate-700"}`}
-            >
-              {label}
-            </Link>
-          ))}
-
-          <div className="grid grid-cols-2 gap-3 pt-3 mt-2 border-t border-slate-100">
-            <a
-              href={loginUrl}
-              className="flex justify-center items-center h-10 rounded-lg border border-slate-300 text-slate-700 font-medium text-xs hover:bg-slate-50"
-            >
-              Sign In
-            </a>
-            <a
-              href={trialUrl}
-              className="flex justify-center items-center h-10 rounded-lg bg-brand-600 text-white font-medium text-xs hover:bg-brand-700"
-            >
-              Start Free Trial
-            </a>
-          </div>
-        </div>
-      )}
-    </header>
+      {/* Spacer for the fixed header */}
+      <div aria-hidden="true" className="h-[76px]" />
+    </>
   );
 }

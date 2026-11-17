@@ -21,23 +21,21 @@ const suggestions = [
 export default function NotFound() {
   const crmUrl = getCrmUrl();
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans flex flex-col">
       <Navbar crmUrl={crmUrl} />
-      <main className="flex-1 max-w-[760px] w-full mx-auto px-5 sm:px-6 py-20 sm:py-28">
-        <p className="text-sm font-semibold text-slate-500">404</p>
-        <h1 className="mt-2 font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">This page doesn&apos;t exist</h1>
-        <p className="mt-4 text-slate-600 text-lg">
+      <main className="flex-1 wrap section-y">
+        <p className="t-label text-ink-600">Error 404</p>
+        <h1 className="t-display mt-8 text-ink-900 max-w-[11ch]">This page doesn&apos;t exist</h1>
+        <p className="mt-8 t-lead text-ink-600 max-w-xl">
           The link may be old or mistyped. Looking for your CRM account?{" "}
-          <a href={getLoginUrl(crmUrl)} className="text-brand-600 font-semibold hover:underline">Sign in here</a>.
+          <a href={getLoginUrl(crmUrl)} className="text-ink-900 link-line">Sign in here</a>.
         </p>
-        <ul className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <ul className="mt-16 border-t border-ink-900 max-w-3xl">
           {suggestions.map((s) => (
-            <li key={s.href}>
-              <Link
-                href={s.href}
-                className="block rounded-xl border border-slate-200 px-4 py-3 font-medium text-slate-800 hover:border-brand-400 hover:text-brand-700"
-              >
-                {s.label}
+            <li key={s.href} className="border-b border-line">
+              <Link href={s.href} className="group flex items-center justify-between py-5 font-display text-[clamp(22px,2.2vw,32px)] tracking-[-0.03em] text-ink-900">
+                <span className="transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-2">{s.label}</span>
+                <span aria-hidden="true" className="text-ink-600 transition-transform duration-500 group-hover:translate-x-1">&rarr;</span>
               </Link>
             </li>
           ))}

@@ -1,12 +1,23 @@
-import { Geist } from "next/font/google";
+import { Geist, Funnel_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
 import SiteAnalytics from "@/components/common/SiteAnalytics";
+import MotionProvider from "@/components/motion/MotionProvider";
+import Cursor from "@/components/motion/Cursor";
+import { SITE_URL } from "@/lib/siteLinks";
 
+// Body: quiet and clean.
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist",
+  display: "swap",
+});
+
+// Display: the one voice for every large headline.
+const funnel = Funnel_Display({
+  subsets: ["latin"],
+  variable: "--font-funnel",
   display: "swap",
 });
 
@@ -14,9 +25,9 @@ export const metadata = {
   title: "Travel CRM for Travel Agencies & Tour Operators | EzzySync",
   description: "Travel CRM for Indian agencies and tour operators: WhatsApp leads, day-wise itineraries, GST quotes and payment tracking in one place. Start a free trial.",
   metadataBase: new URL("https://www.ezzysync.com"),
-  alternates: {
-    canonical: "/",
-  },
+  // No site-wide canonical here: a child page that forgot to set its own
+  // would inherit "/" and tell Google it is a duplicate of the homepage.
+  // Every page declares its own `alternates.canonical`.
   robots: {
     index: true,
     follow: true,
@@ -43,61 +54,48 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  // Site-wide entities only. The product (SoftwareApplication + prices) and
+  // FAQ live on the homepage; @id lets those reference this Organization
+  // instead of declaring a second, conflicting copy.
   const jsonLd = [
     {
       "@context": "https://schema.org",
       "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
       "name": "EzzySync",
       "alternateName": ["EzzySync CRM", "EzzySync Travel CRM", "EasySync Travel CRM"],
-      "url": "https://www.ezzysync.com",
-      "logo": "https://www.ezzysync.com/logo.png",
+      "url": SITE_URL,
+      "logo": `${SITE_URL}/logo.png`,
       "telephone": TEL_PHONE,
+      "email": SUPPORT_EMAIL,
       "contactPoint": {
         "@type": "ContactPoint",
         "telephone": TEL_PHONE,
         "email": SUPPORT_EMAIL,
-        "contactType": "customer service"
+        "contactType": "customer service",
+        "areaServed": "IN"
       },
       "sameAs": [
-        "https://www.instagram.com/ezzysync?igsh=MXRpcmJlYnR2aHc4NQ==",
-        "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr" 
+        "https://www.instagram.com/ezzysync",
+        "https://www.facebook.com/share/1BtkdG3H7G/"
       ]
     },
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
       "name": "EzzySync Travel CRM",
       "alternateName": ["EzzySync", "EzzySync CRM"],
-      "url": "https://www.ezzysync.com"
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "EzzySync Travel CRM",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "All (Cloud-Based SaaS)",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "INR",
-        "description": "Free Evaluation Account"
-      },
-      "description": "All-in-one Travel CRM software with direct WhatsApp lead capture, day-wise itinerary builder, GST invoice generator, and booking management for tour operators and travel agencies.",
-      "featureList": [
-        "Official Meta WhatsApp Cloud API Integration",
-        "Day-Wise Travel Itinerary Generator with PDF",
-        "Tour Operator SAC 998555 GST Invoicing & Quotations",
-        "Lead Management & Follow-up Tracking Pipeline",
-        "Hotel & Driver Service Vouchers",
-        "Razorpay Webhook Milestone Payment Sync"
-      ]
+      "url": SITE_URL,
+      "inLanguage": "en-IN",
+      "publisher": { "@id": `${SITE_URL}/#organization` }
     }
   ];
 
   return (
     <html
-      lang="en"
-      className={`${geist.variable} h-full antialiased`}
+      lang="en-IN"
+      className={`${geist.variable} ${funnel.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
@@ -108,7 +106,8 @@ export default function RootLayout({ children }) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {children}
+        <MotionProvider>{children}</MotionProvider>
+        <Cursor />
         <Analytics />
         <SiteAnalytics />
       </body>

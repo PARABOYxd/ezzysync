@@ -1,75 +1,70 @@
 import React from "react";
-import Link from "next/link";
-import { Check } from "lucide-react";
-import ScrollReveal from "../ScrollReveal";
+import SectionHeading from "../common/SectionHeading";
+import Pill from "../ui/Pill";
 import { PLANS as plans } from "@/data/plans";
 import { getTrialUrl } from "@/lib/crmUrl";
 
-export default function Pricing({ crmUrl }) {
+/**
+ * Plans as three columns of a single sheet (thin rules, no cards). The
+ * featured plan is inverted to ink rather than lifted with a shadow.
+ */
+export default function Pricing({ crmUrl, index = "07" }) {
   const trialUrl = getTrialUrl(crmUrl);
 
   return (
-    <section id="pricing" className="py-20 sm:py-28 bg-white text-slate-900 scroll-mt-16">
-      <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-12">
-        <ScrollReveal className="text-center max-w-2xl mx-auto space-y-3">
-          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">Pricing</h2>
-          <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Every plan starts with a free trial. No credit card, cancel or switch plans anytime.
-          </p>
-        </ScrollReveal>
+    <section id="pricing" className="section-y scroll-mt-20">
+      <div className="wrap">
+        <SectionHeading
+          index={index}
+          label="Pricing"
+          title="Simple monthly plans, every feature included"
+          intro="Every plan starts with a free trial. No credit card, cancel or switch plans anytime."
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
-          {plans.map((plan, i) => (
-            <ScrollReveal key={plan.name} delay={i * 80}>
-              <div
-                className={`h-full bg-white p-7 sm:p-8 rounded-2xl flex flex-col ${
-                  plan.featured ? "border-2 border-brand-500 shadow-lg" : "border border-slate-200"
+        <div data-stagger className="mt-[clamp(56px,7vw,112px)] grid grid-cols-1 lg:grid-cols-3 border-t border-ink-900">
+          {plans.map((plan) => {
+            const featured = plan.featured;
+            const isContact = plan.cta === "contact";
+            return (
+              <article
+                key={plan.name}
+                {...(featured && { "data-theme": "dark" })}
+                className={`flex flex-col p-7 sm:p-10 border-b border-line lg:border-b-0 lg:border-r last:border-r-0 ${
+                  featured ? "bg-ink-900 text-paper lg:-mt-px" : ""
                 }`}
               >
-                <h3 className="font-bold text-lg text-slate-900 tracking-tight">{plan.name}</h3>
-                <p className="text-slate-500 text-sm mt-1">{plan.blurb}</p>
+                <p className="h-7">
+                  {featured && <span className="t-label whitespace-nowrap rounded-full bg-accent text-ink-900 px-3 py-1.5">Most popular</span>}
+                </p>
+                <h3 className="mt-4 font-display text-[clamp(26px,2.4vw,36px)] tracking-[-0.04em] leading-none">{plan.name}</h3>
+                <p className={`mt-3 text-[15px] ${featured ? "text-white/65" : "text-ink-600"}`}>{plan.blurb}</p>
 
-                <div className="mt-6 flex items-baseline text-slate-950">
-                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight">{plan.price}</span>
-                  <span className="ml-1.5 text-sm text-slate-500 font-medium">{plan.period}</span>
+                <div className="mt-10 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="font-display text-[clamp(56px,6vw,88px)] tracking-[-0.05em] leading-none tabular-nums">{plan.price}</span>
+                  <span className={`text-[15px] ${featured ? "text-white/65" : "text-ink-600"}`}>{plan.period}</span>
                 </div>
 
-                <ul className="mt-6 space-y-3 text-sm text-slate-700 flex-1">
+                <ul className={`mt-10 flex-1 border-t ${featured ? "border-white/15" : "border-line"}`}>
                   {plan.features.map((f) => (
-                    <li key={f} className="flex gap-2 items-start">
-                      <Check className="w-4 h-4 mt-0.5 text-brand-600 shrink-0" />
-                      <span>{f}</span>
+                    <li key={f} className={`py-3 border-b text-[15px] ${featured ? "border-white/15 text-white/85" : "border-line text-ink-800"}`}>
+                      {f}
                     </li>
                   ))}
                 </ul>
 
-                {plan.cta === "contact" ? (
-                  <Link
-                    href="/contact"
-                    className="mt-8 block w-full text-center py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-900 font-semibold text-sm transition-colors"
-                  >
-                    Talk to sales
-                  </Link>
-                ) : (
-                  <a
-                    href={trialUrl}
-                    className={`mt-8 block w-full text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
-                      plan.featured
-                        ? "bg-brand-600 hover:bg-brand-700 text-white"
-                        : "border border-slate-300 hover:bg-slate-50 text-slate-900"
-                    }`}
-                  >
-                    Start free trial
-                  </a>
-                )}
-              </div>
-            </ScrollReveal>
-          ))}
+                <div className="mt-10">
+                  {isContact ? (
+                    <Pill href="/contact" variant={featured ? "ghost-light" : "ghost"}>Talk to sales</Pill>
+                  ) : (
+                    <Pill href={trialUrl} variant={featured ? "light" : "ghost"}>Start free trial</Pill>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
 
-        <p className="text-center text-sm text-slate-500">
-          Payments via Razorpay. Export your data whenever you want.
-        </p>
+        <p className="mt-8 text-[14px] text-ink-600">Payments via Razorpay. Export your data whenever you want.</p>
       </div>
     </section>
   );

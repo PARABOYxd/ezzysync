@@ -1,68 +1,44 @@
 import React from "react";
-import { Quote } from "lucide-react";
-import ScrollReveal from "../ScrollReveal";
 
 /**
  * Real customer quotes only, each with the customer's written permission to
- * publish their name, agency and photo. The section renders nothing while
+ * publish their name, agency and logo. The section renders nothing while
  * this list is empty - do not fill it with placeholder or invented people.
  *
- * Shape: { quote, name, role, agency, city, photo?: "/images/testimonials/x.jpg", metric?: "Quote time 1 hr → 5 min" }
+ * Shape: { quote, name, role, agency, city, logo?: "/images/clients/x.svg", metric?: "Quote time 1 hr → 5 min" }
+ * The agency's logo is shown instead of a portrait.
  */
 export const testimonials = [];
-
-function initials(name) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 export default function Testimonials() {
   if (testimonials.length === 0) return null;
 
   return (
-    <section id="testimonials" className="py-20 sm:py-28 bg-slate-50 border-y border-slate-200">
-      <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-12">
-        <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">Customers</span>
-          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
-            Agencies that switched from Excel &amp; WhatsApp
-          </h2>
-        </ScrollReveal>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-          {testimonials.map((t, i) => (
-            <ScrollReveal key={t.name} delay={i * 80}>
-              <figure className="h-full bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 flex flex-col">
-                <Quote className="w-7 h-7 text-brand-200" aria-hidden="true" />
-                {t.metric && (
-                  <div className="mt-4 inline-block self-start px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-semibold">
-                    {t.metric}
-                  </div>
-                )}
-                <blockquote className="mt-4 text-slate-800 text-base leading-relaxed flex-1">“{t.quote}”</blockquote>
-                <figcaption className="mt-6 flex items-center gap-3">
-                  {t.photo ? (
-                    <img src={t.photo} alt="" className="w-11 h-11 rounded-full object-cover" loading="lazy" />
+    <section id="testimonials" className="section-y">
+      <div className="wrap">
+        <p className="t-label text-ink-600">Customers</p>
+        <ul className="mt-[clamp(48px,6vw,96px)] space-y-[clamp(64px,8vw,128px)]">
+          {testimonials.map((t) => (
+            <li key={t.name}>
+              <figure className="grid-12 gap-y-8">
+                <div className="col-span-12 lg:col-span-3">
+                  {t.logo ? (
+                    <img src={t.logo} alt={t.agency} className="h-10 w-auto grayscale opacity-80" loading="lazy" />
                   ) : (
-                    <span className="w-11 h-11 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center">
-                      {initials(t.name)}
-                    </span>
+                    <span className="font-display text-2xl tracking-[-0.03em] text-ink-600">{t.agency}</span>
                   )}
-                  <div className="leading-tight">
-                    <div className="font-semibold text-slate-900">{t.name}</div>
-                    <div className="text-sm text-slate-500">
-                      {t.role}, {t.agency} · {t.city}
-                    </div>
-                  </div>
+                  {t.metric && <p className="mt-6 t-label text-ink-900">{t.metric}</p>}
+                </div>
+                <blockquote className="col-span-12 lg:col-span-9 font-display text-[clamp(28px,3.4vw,52px)] leading-[1.12] tracking-[-0.03em] text-ink-900">
+                  &ldquo;{t.quote}&rdquo;
+                </blockquote>
+                <figcaption className="col-span-12 lg:col-start-4 lg:col-span-9 text-[15px] text-ink-600">
+                  {t.name}, {t.role} · {t.agency}, {t.city}
                 </figcaption>
               </figure>
-            </ScrollReveal>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   );

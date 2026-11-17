@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { UserPlus, BellRing, Map, FileCheck, IndianRupee, Ticket } from "lucide-react";
-import ScrollReveal from "../ScrollReveal";
+import { UserPlus, BellRing, Map, FileCheck, IndianRupee, Ticket, Check } from "lucide-react";
+import SectionHeading from "../common/SectionHeading";
 
 // Sample trip used across every step so the story reads as one booking.
 const steps = [
@@ -110,9 +110,14 @@ export default function FlowDiagram() {
   const userHasClickedRef = useRef(false);
   const activeRef = useRef(0);
 
-  // Keep activeRef in sync with state
+  // Keep activeRef in sync with state; when the keyboard moved the
+  // selection, move focus with it (roving tabindex).
   useEffect(() => {
     activeRef.current = active;
+    const focused = document.activeElement;
+    if (focused?.getAttribute("role") === "tab" && focused.id.startsWith("flow-tab-")) {
+      document.getElementById(`flow-tab-${steps[active].id}`)?.focus();
+    }
   }, [active]);
 
   useEffect(() => {
@@ -154,11 +159,11 @@ export default function FlowDiagram() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "ArrowRight") {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
       userHasClickedRef.current = true;
       setActive((prev) => (prev + 1) % steps.length);
-    } else if (e.key === "ArrowLeft") {
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
       userHasClickedRef.current = true;
       setActive((prev) => (prev - 1 + steps.length) % steps.length);
@@ -166,113 +171,110 @@ export default function FlowDiagram() {
   };
 
   return (
-    <section
-      id="how-it-works"
-      ref={sectionRef}
-      className="py-20 sm:py-28 bg-[#090d16] text-white scroll-mt-16"
-    >
-      <div className="max-w-[1140px] mx-auto px-5 sm:px-6 space-y-12">
-        <ScrollReveal className="text-center max-w-3xl mx-auto space-y-3">
-          <h2 className="font-bold text-3xl sm:text-4xl tracking-tight">
-            One booking, six steps, one system
-          </h2>
-          <p className="text-slate-400 text-base sm:text-lg leading-relaxed">
-            Follow a Goa family trip from the first WhatsApp message to the hotel voucher.
-          </p>
-        </ScrollReveal>
+    <section id="how-it-works" ref={sectionRef} data-theme="dark" className="section-y bg-ink-900 text-paper scroll-mt-20">
+      <div className="wrap">
+        <SectionHeading
+          tone="dark"
+          index="03"
+          label="How it works"
+          title="One booking, six steps, one system"
+          intro="Follow a Goa family trip from the first WhatsApp message to the hotel voucher."
+        />
 
-        {/* Pause auto-advance while user hovers or focuses */}
+        {/* Pause auto-advance while the visitor hovers or focuses */}
         <div
+          className="mt-[clamp(56px,7vw,112px)] grid-12 gap-y-12"
           onMouseEnter={() => { pausedRef.current = true; }}
           onMouseLeave={() => { pausedRef.current = false; }}
           onFocus={() => { pausedRef.current = true; }}
           onBlur={() => { pausedRef.current = false; }}
         >
-          {/* Step rail */}
-          <div className="relative">
-            <div className="hidden md:block absolute left-[8%] right-[8%] top-7 h-px bg-slate-700" aria-hidden="true" />
-            <div
-              className="hidden md:block absolute left-[8%] top-7 h-px bg-brand-500 transition-[width] duration-700 ease-in-out"
-              style={{ width: `${(active / (steps.length - 1)) * 84}%` }}
-              aria-hidden="true"
-            />
-            <div
-              role="tablist"
-              aria-label="Booking steps"
-              className="relative grid grid-cols-3 md:grid-cols-6 gap-y-6 gap-x-2"
-              onKeyDown={handleKeyDown}
-            >
-              {steps.map((s, i) => {
-                const Icon = s.icon;
-                const isActive = i === active;
-                const isDone = i < active;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    role="tab"
-                    id={`flow-tab-${s.id}`}
-                    aria-selected={isActive}
-                    aria-controls="flow-panel"
-                    aria-label={`Step ${i + 1}: ${s.label}`}
-                    onClick={() => handleStepClick(i)}
-                    className="flex flex-col items-center gap-2.5 group cursor-pointer"
-                  >
-                    <span
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${
-                        isActive
-                          ? "bg-brand-600 border-brand-500 text-white shadow-[0_0_0_6px_rgba(234,88,12,0.2)]"
-                          : isDone
-                            ? "bg-slate-800 border-brand-500/60 text-brand-400"
-                            : "bg-slate-900 border-slate-700 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-200"
-                      }`}
-                    >
-                      <Icon className="w-6 h-6" />
-                    </span>
-                    <span className={`text-sm font-semibold ${isActive ? "text-white" : "text-slate-400"}`}>
-                      <span className="text-slate-500 mr-1">{i + 1}.</span>
-                      {s.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Step list */}
+          <div
+            role="tablist"
+            aria-label="Booking steps"
+            aria-orientation="vertical"
+            onKeyDown={handleKeyDown}
+            className="col-span-12 lg:col-span-5 border-t border-white/15"
+          >
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              const isActive = i === active;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="tab"
+                  id={`flow-tab-${s.id}`}
+                  aria-selected={isActive}
+                  aria-controls="flow-panel"
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => handleStepClick(i)}
+                  className={`group relative w-full flex items-center gap-5 py-5 border-b border-white/15 text-left transition-colors duration-500 ${
+                    isActive ? "text-paper" : "text-white/45 hover:text-white/80"
+                  }`}
+                >
+                  {/* progress bar for the active step */}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute left-0 bottom-[-1px] h-px bg-accent transition-[width] duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      isActive ? "w-full" : "w-0"
+                    }`}
+                  />
+                  <span className="t-label tabular-nums w-8">0{i + 1}</span>
+                  <span className="font-display text-[clamp(26px,2.6vw,40px)] tracking-[-0.04em] leading-none flex-1">{s.label}</span>
+                  <Icon
+                    aria-hidden="true"
+                    strokeWidth={1.5}
+                    className={`w-5 h-5 transition-[opacity,transform] duration-500 ${isActive ? "opacity-100 text-accent" : "opacity-0 -translate-x-2"}`}
+                  />
+                </button>
+              );
+            })}
           </div>
 
-          {/* Active step panel */}
+          {/* Active step */}
           <div
             id="flow-panel"
             role="tabpanel"
             aria-labelledby={`flow-tab-${step.id}`}
-            className="mt-10 grid md:grid-cols-2 gap-8 md:gap-12 items-center bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-10"
+            className="col-span-12 lg:col-start-7 lg:col-span-6"
           >
-            <div className="space-y-4">
-              <span className="text-xs font-semibold uppercase tracking-wider text-brand-400">
+            <div key={step.id} className="fade-in-up">
+              <p className="t-label text-white/50">
                 Step {active + 1} of {steps.length}
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">{step.title}</h3>
-              <p className="text-slate-300 text-base leading-relaxed">{step.body}</p>
+              </p>
+              <h3 className="t-h3 mt-5 text-paper">{step.title}</h3>
+              <p className="mt-5 text-[17px] leading-relaxed text-white/65 max-w-lg">{step.body}</p>
+
+              <div className="mt-10 rounded-2xl bg-paper text-ink-900 p-6 sm:p-8">
+                <div className="flex items-center justify-between gap-4 pb-5 border-b border-line">
+                  <span className="font-display text-[22px] tracking-[-0.03em]">{step.card.heading}</span>
+                  <span className="t-label text-ink-600 shrink-0">{step.label}</span>
+                </div>
+                <dl>
+                  {step.card.rows.map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between gap-4 py-3.5 border-b border-line last:border-0 text-[15px]">
+                      <dt className="text-ink-600">{k}</dt>
+                      <dd className="font-medium text-right inline-flex items-center gap-1.5">
+                        {v.replace(" ✓", "")}
+                        {v.endsWith("✓") && <Check className="w-4 h-4 text-emerald-700" strokeWidth={2} aria-label="done" />}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
               {active < steps.length - 1 && (
                 <button
                   type="button"
                   onClick={() => handleStepClick(active + 1)}
-                  className="text-sm font-semibold text-brand-400 hover:text-brand-300 cursor-pointer"
+                  className="mt-8 inline-flex items-center gap-2 min-h-11 text-[16px] text-paper"
                 >
-                  Next: {steps[active + 1].label} →
+                  <span className="link-line">Next: {steps[active + 1].label}</span>
+                  <span aria-hidden="true">&rarr;</span>
                 </button>
               )}
-            </div>
-
-            <div className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 shadow-2xl">
-              <div className="pb-3 mb-3 border-b border-slate-100 font-bold text-base">{step.card.heading}</div>
-              <dl className="divide-y divide-slate-100">
-                {step.card.rows.map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between gap-4 py-2.5 text-sm">
-                    <dt className="text-slate-500">{k}</dt>
-                    <dd className="font-semibold text-slate-900 text-right">{v}</dd>
-                  </div>
-                ))}
-              </dl>
             </div>
           </div>
         </div>

@@ -25,7 +25,7 @@ export default function RefundPolicyPage() {
   const crmUrl = getCrmUrl();
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <Navbar crmUrl={crmUrl} />
       <main>
         <LegalContent title="Refund & Cancellation Policy" updated="6 September 2026">

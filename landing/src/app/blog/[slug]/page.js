@@ -41,6 +41,7 @@ export async function generateMetadata({ params }) {
       siteName: "EzzySync",
       type: "article",
       publishedTime: new Date(article.date).toISOString(),
+      modifiedTime: new Date(article.updated || article.date).toISOString(),
       ...(article.image && { images: [{ url: article.image }] }),
     },
     twitter: {
@@ -63,31 +64,30 @@ export default async function BlogPostPage({ params }) {
   const related = getAllPosts().filter((p) => p.slug !== slug).slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <Navbar crmUrl={crmUrl} />
       
-      <main className="relative pt-24 pb-20 sm:pt-32 bg-white bg-grid-pattern overflow-hidden">
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-brand-100/20 filter blur-[110px] -z-10" aria-hidden="true"></div>
+      <main className="relative pt-[clamp(40px,6vw,96px)] pb-20">
         
-        <div className="max-w-[700px] mx-auto px-5 sm:px-6 relative z-10 space-y-8">
-          <Link href="/blog" className="text-xs font-bold text-slate-400 hover:text-slate-900 uppercase tracking-wider flex items-center gap-1.5 transition-colors">
+        <div className="max-w-[760px] mx-auto px-5 sm:px-6 relative z-10 space-y-10">
+          <Link href="/blog" className="t-label text-ink-600 hover:text-ink-900 flex items-center gap-2 min-h-11 w-fit transition-colors">
             <span>&larr;</span>
             <span>Back to Insights</span>
           </Link>
 
           {/* Article Header */}
-          <div className="space-y-4 border-b border-slate-100 pb-6">
-            <div className="flex items-center gap-3 text-xs font-semibold">
-              <span className="uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded border border-brand-100">{article.category}</span>
+          <div className="space-y-6 border-b border-line pb-8">
+            <div className="flex flex-wrap items-center gap-3 text-[14px] text-ink-600">
+              <span className="t-label rounded-full border border-ink-900 text-ink-900 px-3 py-1">{article.category}</span>
               <span className="text-slate-400">{article.date}</span>
               <span className="text-slate-300">&bull;</span>
               <span className="text-slate-400">{article.readTime}</span>
             </div>
-            <h1 className="font-semibold text-slate-950 text-2xl sm:text-3xl tracking-[-0.02em] leading-tight">
+            <h1 className="font-display text-ink-900 text-[clamp(36px,4.6vw,64px)] tracking-[-0.04em] leading-[1.02] text-balance">
               {article.title}
             </h1>
             {author && (
-              <div className="flex items-center gap-3 pt-4 mt-4 border-t border-slate-100">
+              <div className="flex items-center gap-3 pt-6 border-t border-line">
                 <img src={author.avatar} alt={author.name} className="w-10 h-10 rounded-full" />
                 <div>
                   <div className="text-sm font-bold text-slate-900">{author.name}</div>
@@ -118,6 +118,7 @@ export default async function BlogPostPage({ params }) {
                   }],
                   "publisher": {
                     "@type": "Organization",
+                    "@id": `${SITE}/#organization`,
                     "name": "EzzySync",
                     "logo": { "@type": "ImageObject", "url": `${SITE}/logo.png` }
                   }

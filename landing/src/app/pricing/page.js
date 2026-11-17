@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import Pricing from "../../components/sections/Pricing";
@@ -6,7 +7,7 @@ import FAQ from "../../components/sections/FAQ";
 import { faqData } from "../../data/landingData";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
-import { Clock, TrendingUp } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { withSeo } from "@/lib/seoOverrides";
 
 export const metadata = withSeo("/pricing", {
@@ -50,10 +51,12 @@ export default function PricingPage() {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "EzzySync",
+      "@id": "https://www.ezzysync.com/#software",
+      "name": "EzzySync Travel CRM",
+      "publisher": { "@id": "https://www.ezzysync.com/#organization" },
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
-      "url": "https://www.ezzysync.com/pricing",
+      "url": "https://www.ezzysync.com",
       "description": "Scale your travel agency. Centralize leads, build professional itineraries, generate invoices, and automate WhatsApp updates. Start for free.",
       "offers": {
         "@type": "AggregateOffer",
@@ -100,80 +103,25 @@ export default function PricingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="relative pt-12 pb-12 sm:pt-16 sm:pb-16 bg-white bg-grid-pattern overflow-hidden">
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-brand-100/20 filter blur-[110px] -z-10" aria-hidden="true"></div>
-          
-          <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-              
-              {/* Left Column: Pricing Text */}
-              <div className="lg:col-span-5 text-center lg:text-left space-y-4">
-                <h1 className="load-in font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] leading-[1.2] tracking-tight" style={{ "--reveal-delay": "0ms" }}>
-                  Travel CRM pricing for every agency size
-                </h1>
-                <p className="load-in text-slate-600 text-sm sm:text-base leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
-                  Try everything free for 30 days, then pick the plan that fits your booking volume. No hidden setup fees or markup charges on any plan.
-                </p>
-                <div className="load-in flex flex-wrap justify-center lg:justify-start gap-2 pt-2" style={{ "--reveal-delay": "160ms" }}>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">30-day free trial</span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">Nothing auto-renews</span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">No card required</span>
-                </div>
-              </div>
-              
-              {/* Right Column: Pricing ROI / Value Unlock Mockup Card */}
-              <div className="lg:col-span-7 load-in mt-8 lg:mt-0 relative" style={{ "--reveal-delay": "220ms" }}>
-                <div className="absolute -inset-4 bg-brand-500/5 rounded-3xl filter blur-xl -z-10" aria-hidden="true"></div>
-                
-                <div className="max-w-md mx-auto p-6 rounded-2xl border border-slate-200 bg-white text-slate-800 text-left space-y-4 shadow-soft relative overflow-hidden">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent rounded-t-2xl" aria-hidden="true"></div>
-                  
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Efficiency Index</span>
-                    <span className="text-[10px] font-bold text-brand-600">Value Unleashed</span>
-                  </div>
-
-                    <div className="grid grid-cols-2 gap-3.5">
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
-                        <div className="w-8 h-8 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
-                          <Clock className="w-4 h-4" />
-                        </div>
-                        <div className="mt-3">
-                          <p className="text-lg font-bold text-slate-900 leading-tight">Hours</p>
-                          <p className="text-[10px] text-slate-500 font-medium">Saved each week</p>
-                        </div>
-                      </div>
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex flex-col justify-between">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                          <TrendingUp className="w-4 h-4" />
-                        </div>
-                        <div className="mt-3">
-                          <p className="text-lg font-bold text-slate-900 leading-tight">Higher</p>
-                          <p className="text-[10px] text-slate-500 font-medium">Lead Conversion</p>
-                        </div>
-                      </div>
-                    </div>
-
-                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900">WhatsApp Cloud API</p>
-                      <p className="text-[9px] text-slate-400">Zero additional markup fee</p>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-600 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100">Unlimited Reminders</span>
-                  </div>
-                </div>
-              </div>
-              
-            </div>
-          </div>
-        </section>
+        <PageHero
+          code="Fares"
+          label="Pricing"
+          title="Travel CRM pricing for every agency size"
+          intro="Try everything free for 30 days, then pick the plan that fits your booking volume. No hidden setup fees or markup charges on any plan."
+          facts={["30-day free trial", "Nothing auto-renews", "No card required"]}
+          actions={
+            <a href={`${crmUrl}/register`} className={heroPrimaryClass}>
+              Start free trial <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            </a>
+          }
+        />
         <Pricing crmUrl={crmUrl} />
         <FAQ items={pricingFaqs} heading="Pricing questions, answered" />
       </main>

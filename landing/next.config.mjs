@@ -8,6 +8,10 @@ const nextConfig = {
     // keep them small: `npm run images:optimize` after adding any.
     unoptimized: true,
   },
+  experimental: {
+    // Route transitions through React's <ViewTransition> (see app/template.js).
+    viewTransition: true,
+  },
   async redirects() {
     return redirects;
   },

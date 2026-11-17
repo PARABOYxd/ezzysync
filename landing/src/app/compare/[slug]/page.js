@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
@@ -55,22 +56,16 @@ export default async function ComparePage({ params }) {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="bg-[#fafbfc] border-b border-slate-200">
-          <div className="max-w-[1000px] mx-auto px-5 sm:px-6 pt-10 pb-14 sm:pt-14 sm:pb-16">
-            <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
-              <Link href="/" className="hover:text-slate-900">Home</Link> <span aria-hidden="true">/</span>{" "}
-              <span className="text-slate-700" aria-current="page">{page.label}</span>
-            </nav>
-            <h1 className="mt-5 font-bold text-slate-950 text-3xl sm:text-5xl leading-[1.12] tracking-tight text-balance max-w-3xl">
-              {page.h1}
-            </h1>
-            <p className="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">{page.intro}</p>
-          </div>
-        </section>
+        <PageHero
+          code="Compare"
+          label={page.label}
+          title={page.h1}
+          intro={page.intro}
+        />
 
         <section className="py-14 sm:py-20 border-b border-slate-200">
           <div className="max-w-[1000px] mx-auto px-5 sm:px-6">

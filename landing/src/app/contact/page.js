@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import DemoForm from "../../components/sections/DemoForm";
@@ -44,86 +45,39 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <section className="relative pt-12 pb-12 sm:pt-16 sm:pb-16 bg-white bg-grid-pattern overflow-hidden">
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-brand-100/20 filter blur-[110px] -z-10" aria-hidden="true"></div>
-          
-          <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-              
-              {/* Left Column: Contact Text Details */}
-              <div className="lg:col-span-5 text-center lg:text-left space-y-4">
-                <h1 className="load-in font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] leading-[1.2] tracking-tight" style={{ "--reveal-delay": "0ms" }}>
-                  Talk to EzzySync
-                </h1>
-                <p className="load-in text-slate-600 text-sm sm:text-base leading-relaxed" style={{ "--reveal-delay": "100ms" }}>
-                  Book a free walkthrough and we'll show you how EzzySync fits your agency's booking workflow. Let's configure your isolated workspace together.
-                </p>
-                <div className="load-in flex flex-wrap justify-center lg:justify-start gap-2 pt-2" style={{ "--reveal-delay": "160ms" }}>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">Response within 24 hours</span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-brand-50 border border-brand-200 text-brand-700">1-on-1 walkthrough</span>
-                </div>
-              </div>
-              
-              {/* Right Column: Creative Walkthrough Next Steps Flowchart */}
-              <div className="lg:col-span-7 load-in mt-8 lg:mt-0 relative" style={{ "--reveal-delay": "220ms" }}>
-                <div className="absolute -inset-4 bg-brand-500/5 rounded-3xl filter blur-xl -z-10" aria-hidden="true"></div>
-                
-                <div className="max-w-md mx-auto space-y-3.5 relative z-10 font-sans text-xs">
-                  {/* Step 1 */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600">
-                      <ClipboardList className="w-4 h-4" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 1</div>
-                      <p className="font-semibold text-slate-900 text-xs">Submit the walkthrough form below</p>
-                    </div>
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-100">1 Min</span>
-                  </div>
-
-                  {/* Connector */}
-                  <div className="w-px h-6 bg-gradient-to-b from-brand-300 to-brand-500 mx-auto"></div>
-
-                  {/* Step 2 */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 2</div>
-                      <p className="font-semibold text-slate-900 text-xs">Schedule a slot for your live demo meet</p>
-                    </div>
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">Pick Date</span>
-                  </div>
-
-                  {/* Connector */}
-                  <div className="w-px h-6 bg-gradient-to-b from-brand-300 to-brand-500 mx-auto"></div>
-
-                  {/* Step 3 */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-soft flex items-center gap-3.5 text-left relative overflow-hidden">
-                    <div className="w-8.5 h-8.5 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-                      <KeyRound className="w-4 h-4" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <div className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Step 3</div>
-                      <p className="font-semibold text-slate-900 text-xs">Get your custom sandbox database credentials</p>
-                    </div>
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">Instant</span>
-                  </div>
-                </div>
-
-              </div>
-              
+        <PageHero
+          code="Help desk"
+          label="Contact sales"
+          title="Talk to EzzySync"
+          intro="Book a free walkthrough and we'll show you how EzzySync fits your agency's booking workflow. Let's configure your isolated workspace together."
+          facts={["Response within 24 hours", "1-on-1 walkthrough"]}
+          aside={
+            <div>
+              <p className="t-label text-ink-600">What happens next</p>
+              <ol className="mt-6 border-t border-ink-900">
+                {[
+                  [ClipboardList, "Submit the walkthrough form below", "1 min"],
+                  [Calendar, "Schedule a slot for your live demo", "Pick a date"],
+                  [KeyRound, "Get your own sandbox workspace", "Instant"],
+                ].map(([Icon, text, tag], i) => (
+                  <li key={text} className="flex items-center gap-4 py-5 border-b border-line">
+                    <span className="t-label text-ink-600 w-6 tabular-nums">0{i + 1}</span>
+                    <Icon className="w-5 h-5 text-ink-900 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                    <span className="flex-1 text-[16px] text-ink-900">{text}</span>
+                    <span className="text-[13px] text-ink-600">{tag}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
-          </div>
-        </section>
+          }
+        />
         <DemoForm />
       </main>
       <Footer crmUrl={crmUrl} />
