@@ -98,7 +98,7 @@ async function listUsersByTenant(tenantId) {
        (SELECT COUNT(*) FROM leads WHERE assigned_to = u.name AND tenant_id = u.tenant_id AND stage = 'Won' AND deleted = FALSE) AS won_leads
      FROM users u
      WHERE u.tenant_id = $1
-     ORDER BY u.created_at DESC`,
+     ORDER BY u.created_at DESC, u.id DESC`,
     [tenantId]
   );
   return rows;

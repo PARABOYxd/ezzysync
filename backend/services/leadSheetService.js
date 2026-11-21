@@ -199,12 +199,19 @@ const IMPORT_SHAPE = {
   assignedTo: 5, departureDate: 6, travelers: 7, createdAt: 8,
 };
 
-/** Team in a stable order, so round-robin walks the same loop every time. */
+/**
+ * Team in join order (oldest first), so round-robin walks the same loop every time.
+ *
+ * The order comes from Postgres (newest first, microsecond precision, id as the
+ * tie-break) and is reversed here. Do not re-sort on `new Date(created_at)`:
+ * a JS Date keeps only milliseconds, so members added in the same millisecond
+ * tie and the loop order silently flips.
+ */
 async function teamNames(tenantId) {
   const users = await userRepository.listUsersByTenant(tenantId);
   return users
     .slice()
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .reverse()
     .map((u) => u.name)
     .filter(Boolean);
 }
