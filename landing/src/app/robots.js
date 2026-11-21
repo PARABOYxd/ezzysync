@@ -15,7 +15,18 @@ export default function robots() {
         disallow: PRIVATE,
       },
       {
-        userAgent: ["GPTBot", "ChatGPT-User", "ClaudeBot", "Claude-User", "anthropic-ai", "PerplexityBot", "Perplexity-User", "Google-Extended", "Bingbot"],
+        // AI search and assistant crawlers, named explicitly so a future
+        // catch-all block can't silently drop us from AI answers.
+        // OAI-SearchBot is the one that builds ChatGPT Search's index;
+        // GPTBot alone does not get pages cited there.
+        userAgent: [
+          "OAI-SearchBot", "GPTBot", "ChatGPT-User",
+          "ClaudeBot", "Claude-SearchBot", "Claude-User", "anthropic-ai",
+          "PerplexityBot", "Perplexity-User",
+          "Google-Extended", "Bingbot",
+          "Applebot", "Applebot-Extended",
+          "DuckAssistBot", "Meta-ExternalAgent", "Amazonbot", "MistralAI-User",
+        ],
         allow: "/",
         disallow: PRIVATE,
       },
