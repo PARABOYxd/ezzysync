@@ -60,8 +60,11 @@ async function initDb() {
     await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_extended_days INT DEFAULT 0;`);
     await query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS admin_notes TEXT DEFAULT '';`);
 
-    // Ensure admin@gmail.com is elevated
-    await query(`UPDATE users SET is_super_admin = TRUE WHERE LOWER(email) = 'admin@gmail.com';`);
+    // Elevate the configured super admin (never hardcode — anyone could sign up with that email)
+    const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
+    if (superAdminEmail) {
+      await query(`UPDATE users SET is_super_admin = TRUE WHERE LOWER(email) = $1;`, [superAdminEmail]);
+    }
 
     console.log('✅ [AdminBE DB] PostgreSQL tables & migrations verified');
   } catch (err) {
