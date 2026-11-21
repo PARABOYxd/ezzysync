@@ -17,6 +17,7 @@ const r2Service = require('./services/r2Service');
 const authRoutes = require('./routes/authRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const leadRoutes = require('./routes/leadRoutes');
+const leadSheetRoutes = require('./routes/leadSheetRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const whatsappRoutes = require('./routes/whatsappRoutes');
@@ -128,6 +129,10 @@ app.use(
 app.use(requestLogger);
 app.use(trackInFlight);
 app.use(flattenQuery);
+// Registered ahead of the IP rate limit on purpose: a busy ad day delivers
+// hundreds of leads from Meta's few addresses, and a throttled lead is lost.
+// The signature check is what guards this route.
+app.use('/api/webhooks/meta-leads', require('./routes/metaLeadWebhookRoutes'));
 app.use('/api', apiLimiter);
 app.use("/api/google", googleRoutes);
 const { requireActiveSubscription } = require('./middleware/planMiddleware');
@@ -177,6 +182,8 @@ app.use('/api/super-admin', superAdminRoutes);
 // Core CRM business routes (Accessible by tenants; AI is strictly gated by active subscription)
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/leads', leadRoutes);
+app.use('/api/lead-sheets', leadSheetRoutes);
+app.use('/api/meta-leads', require('./routes/metaLeadRoutes'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/whatsapp', whatsappRoutes);

@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Link from "next/link";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
@@ -86,7 +87,7 @@ export default function FeaturesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
@@ -97,84 +98,43 @@ export default function FeaturesPage() {
         {/* ========================================================================= */}
         {/* HERO SECTION */}
         {/* ========================================================================= */}
-        <section className="relative pt-12 pb-12 sm:pt-16 sm:pb-16 bg-[#fafbfc] border-b border-slate-200">
-          <div className="max-w-[1240px] mx-auto px-5 sm:px-6">
-            <div className="text-center space-y-4 max-w-3xl mx-auto">
-              
-              {/* Eyebrow */}
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-600 block">
-                Complete Travel CRM Capability Suite
-              </span>
+        <PageHero
+          code="Cabin"
+          label="Complete travel CRM capability suite"
+          title="The Complete Travel Operating System Built for Daily Agency Operations"
+          intro="From initial WhatsApp inquiry to final driver duty slip and payment reconciliation: explore every purpose-built module engineered for tour operators and travel agencies."
+          facts={["No credit card required", "Setup in 5 minutes", "Official Meta Cloud API"]}
+          actions={
+            <>
+              <a href={trialUrl} className={heroPrimaryClass}>
+                Start free evaluation <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              </a>
+              <a href={waLink(WA_FEATURES_WALKTHROUGH_TEXT)} target="_blank" rel="noopener noreferrer" className={heroSecondaryClass}>
+                <MessageSquare className="w-4 h-4 text-emerald-400" aria-hidden="true" /> Schedule 1-on-1 walkthrough
+              </a>
+            </>
+          }
+        />
 
-              {/* Title */}
-              <h1 className="font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] leading-[1.2] tracking-tight">
-                The Complete Travel Operating System <br className="hidden sm:inline" />
-                Built for Daily Agency Operations
-              </h1>
-
-              {/* Subheadline */}
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto">
-                From initial WhatsApp inquiry to final driver duty slip and payment reconciliation — explore every purpose-built module engineered for tour operators and travel agencies.
-              </p>
-
-              {/* Action CTAs */}
-              <div className="flex flex-col sm:flex-row justify-center items-center gap-3.5 pt-2">
+        {/* Jump bar to each module */}
+        <nav aria-label="Jump to a module" className="border-b border-line">
+          <div className="wrap py-5 flex items-center gap-2 overflow-x-auto">
+            <span className="t-label text-ink-600 mr-3 shrink-0">Jump to</span>
+            {quickNav.map((item, idx) => {
+              const Icon = item.icon;
+              return (
                 <a
-                  href={trialUrl}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group cursor-pointer"
+                  key={idx}
+                  href={item.href}
+                  className="flex items-center gap-2 min-h-11 px-4 rounded-full border border-line hover:border-ink-900 hover:bg-ink-900 hover:text-paper text-ink-900 text-[14px] whitespace-nowrap transition-colors duration-500"
                 >
-                  <span>Start Free Evaluation</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  <Icon className="w-4 h-4" strokeWidth={1.5} aria-hidden="true" />
+                  <span>{item.name}</span>
                 </a>
-                <a
-                  href={waLink(WA_FEATURES_WALKTHROUGH_TEXT)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-[15px] shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <MessageSquare className="w-4 h-4 text-emerald-600" />
-                  <span>Schedule 1-on-1 Walkthrough</span>
-                </a>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-xs text-slate-500 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> No credit card required
-                </span>
-                <span className="text-slate-300 hidden sm:inline">•</span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Setup in 5 minutes
-                </span>
-                <span className="text-slate-300 hidden sm:inline">•</span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Official Meta Cloud API
-                </span>
-              </div>
-
-            </div>
-
-            {/* Quick Sticky In-Page Navigation Bar */}
-            <div className="mt-12 pt-6 border-t border-slate-200/80">
-              <div className="flex items-center justify-start lg:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                {quickNav.map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <a
-                      key={idx}
-                      href={item.href}
-                      className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold whitespace-nowrap transition-colors shadow-2xs"
-                    >
-                      <Icon className="w-3.5 h-3.5 text-brand-600" />
-                      <span>{item.name}</span>
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-
+              );
+            })}
           </div>
-        </section>
+        </nav>
 
         <nav aria-label="Feature pages" className="border-b border-slate-200 bg-white">
           <ul className="max-w-[1240px] mx-auto px-5 sm:px-6 py-6 flex flex-wrap justify-center gap-2.5">
@@ -240,7 +200,7 @@ export default function FeaturesPage() {
         {/* ========================================================================= */}
         {/* FAQ SECTION (SEO Schema Enabled) */}
         {/* ========================================================================= */}
-        <FAQ items={featureFaqs} heading="Frequently Asked Feature Questions" />
+        <FAQ items={featureFaqs} heading="Questions about features" />
       </main>
 
       <Footer crmUrl={crmUrl} />

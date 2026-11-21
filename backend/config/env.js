@@ -64,6 +64,12 @@ function loadEnv() {
       appId: process.env.FACEBOOK_APP_ID || '',
       appSecret: process.env.FACEBOOK_APP_SECRET || '',
     },
+    // Meta Lead Ads webhook. No default verify token: it is a secret that
+    // decides who may subscribe a URL to leads, so an unset one means "off".
+    metaLeads: {
+      webhookVerifyToken: process.env.META_LEADS_WEBHOOK_VERIFY_TOKEN || '',
+      graphVersion: process.env.META_GRAPH_VERSION || 'v20.0',
+    },
     // Whether BACKEND_URL was actually set, as opposed to backendUrl below
     // having fallen back to a default - some call sites need to tell those
     // two cases apart (e.g. "are we definitely reachable at a real public

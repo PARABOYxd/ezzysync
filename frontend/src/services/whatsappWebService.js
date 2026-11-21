@@ -34,6 +34,11 @@ export const whatsappWebService = {
     return res.data;
   },
 
+  setIgnoreSavedContacts: async (enabled) => {
+    const res = await api.post('/whatsapp-web/ignore-saved-contacts', { enabled });
+    return res.data;
+  },
+
   listChats: async (search = '') => {
     const res = await api.get(`/whatsapp-web/chats${search ? `?search=${encodeURIComponent(search)}` : ''}`);
     return res.data;

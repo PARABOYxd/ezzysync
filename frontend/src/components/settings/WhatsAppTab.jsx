@@ -28,6 +28,7 @@ export default function WhatsAppTab({ settings, setSettings }) {
   // separate cards.
   const [overview, setOverview] = useState(null);
   const [togglingAutopilot, setTogglingAutopilot] = useState(false);
+  const [togglingContacts, setTogglingContacts] = useState(false);
   const [applyingToAll, setApplyingToAll] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [disconnectingQr, setDisconnectingQr] = useState(false);
@@ -94,6 +95,21 @@ export default function WhatsAppTab({ settings, setSettings }) {
       toast.error(err.response?.data?.message || 'Could not update the existing chats.');
     } finally {
       setApplyingToAll(false);
+    }
+  };
+
+  const handleToggleSavedContacts = async () => {
+    if (!overview) return;
+    const next = !overview.leads?.ignoreSavedContacts;
+    setTogglingContacts(true);
+    try {
+      await whatsappWebService.setIgnoreSavedContacts(next);
+      setOverview((prev) => ({ ...prev, leads: { ...prev.leads, ignoreSavedContacts: next } }));
+      toast.success(next ? 'Saved contacts will no longer become leads.' : 'Every new number will become a lead again.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not change this setting.');
+    } finally {
+      setTogglingContacts(false);
     }
   };
 
@@ -418,6 +434,36 @@ export default function WhatsAppTab({ settings, setSettings }) {
               message came in on, so a conversation never answers back on the wrong number.
             </p>
           </div>
+
+          {overview.leads && overview.qr.status === 'connected' && (
+            <div className="p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-700">Keep personal contacts out of your leads</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    A new number that is saved in this phone&apos;s contacts (family, friends) will not become a lead or a chat.
+                    Anyone who taps one of your Meta ads still does.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={overview.leads.ignoreSavedContacts ? 'danger' : 'primary'}
+                  onClick={handleToggleSavedContacts}
+                  disabled={togglingContacts}
+                  className="text-xs px-4 shrink-0"
+                >
+                  {togglingContacts ? 'Saving...' : overview.leads.ignoreSavedContacts ? 'Turn off' : 'Turn on'}
+                </Button>
+              </div>
+              <p className="text-[11px] text-slate-500 pt-2.5 border-t border-slate-100">
+                {overview.leads.savedContacts > 0
+                  ? `${overview.leads.savedContacts} saved contacts known so far. `
+                  : 'No saved contacts received from WhatsApp yet. They sync when the phone is linked. '}
+                If you save a customer&apos;s number after speaking to them, their next message still reaches you
+                as long as they are already a lead or a chat. A brand-new number you saved before they wrote in is the only one skipped.
+              </p>
+            </div>
+          )}
 
           <div className="p-3.5 rounded-xl border border-slate-200 space-y-2.5">
             <div className="flex items-start justify-between gap-3">

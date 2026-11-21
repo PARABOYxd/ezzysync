@@ -70,6 +70,17 @@ async function toggleAiAutopilot(req, res, next) {
   }
 }
 
+/** Whether numbers saved in the agent's phone are left out of the CRM. */
+async function setIgnoreSavedContacts(req, res, next) {
+  try {
+    const enabled = req.body.enabled === true || req.body.enabled === 'true';
+    await whatsappWebRepository.setIgnoreSavedContacts(req.user.tenantId, enabled);
+    res.json({ success: true, ignoreSavedContacts: enabled });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listChats(req, res, next) {
   try {
     const { search } = req.query;
@@ -523,6 +534,7 @@ module.exports = {
   startSession,
   disconnect,
   toggleAiAutopilot,
+  setIgnoreSavedContacts,
   listChats,
   getChatMessages,
   createLeadFromChat,

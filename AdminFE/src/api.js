@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-export const API_BASE = 'http://localhost:5005/api';
+export const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:5005/api').replace(/\/$/, '');
+export const CRM_URL = (import.meta.env.VITE_CRM_URL || 'http://localhost:5173').replace(/\/$/, '');
+export const CRM_LOGIN_URL = `${CRM_URL}/login`;
 
 const api = axios.create({
   baseURL: API_BASE,

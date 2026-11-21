@@ -32,7 +32,7 @@ import {
   AlertCircle,
   User,
 } from 'lucide-react';
-import api from '../api';
+import api, { CRM_LOGIN_URL } from '../api';
 
 export default function AccessRequestsTab({ onApproved }) {
   const [requests, setRequests] = useState([]);
@@ -321,7 +321,7 @@ export default function AccessRequestsTab({ onApproved }) {
     const phoneWithCode = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const msg = encodeURIComponent(
       `Congratulations ${creds.name}! 🎉 Your EzzySync Travel CRM account for *${creds.companyName}* has been verified & approved!\n\n` +
-      `🔗 *Login Portal:* http://localhost:5173/login\n` +
+      `🔗 *Login Portal:* ${CRM_LOGIN_URL}\n` +
       `👤 *Email:* ${creds.email}\n` +
       `🔑 *Temporary Password:* ${creds.temporaryPassword}\n\n` +
       `You can log in now to manage travel leads, automated AI itineraries, and client quotations. Let us know if you need any assistance!`

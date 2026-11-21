@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -106,44 +107,29 @@ export default function CompareTeleCrmPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       <Navbar crmUrl={crmUrl} />
 
-      <main className="relative pt-24 pb-20 sm:pt-32 bg-slate-50">
-        <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 space-y-16">
-          
-          {/* Header */}
-          <div className="text-center max-w-[800px] mx-auto space-y-4">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-200">
-              2026 Competitive Analysis
-            </span>
-            <h1 className="font-extrabold text-slate-950 text-3xl sm:text-5xl tracking-[-0.02em] leading-[1.15]">
-              EzzySync vs TeleCRM
-            </h1>
-            <p className="text-lg text-slate-600 leading-relaxed">
-              Looking for a <strong>TeleCRM alternative</strong> built specifically for travel agents? 
-              Discover why tour operators across India and Dubai are moving from generic calling tools to EzzySync.
-            </p>
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
-              <a
-                href={`${crmUrl}/register`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-500/20 transition"
-              >
-                <span>Start Free 30-Day Trial</span>
-                <ArrowRight className="w-4 h-4" />
+      <main className="relative pb-20 bg-paper">
+        <PageHero
+          code="ESY vs TEL"
+          label="2026 Competitive Analysis"
+          title="EzzySync vs TeleCRM"
+          intro={<>Looking for a <strong className="text-ink-900 font-medium">TeleCRM alternative</strong> built specifically for travel agents? Discover why tour operators across India and Dubai are moving from generic calling tools to EzzySync.</>}
+          actions={
+            <>
+              <a href={`${crmUrl}/register`} className={heroPrimaryClass}>
+                Start free 30-day trial <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </a>
-              <Link
-                href="/pricing"
-                className="px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-sm transition"
-              >
-                View Transparent Pricing
-              </Link>
-            </div>
-          </div>
+              <Link href="/pricing" className={heroSecondaryClass}>View transparent pricing</Link>
+            </>
+          }
+        />
+        <div className="max-w-[1100px] mx-auto px-5 sm:px-6 relative z-10 space-y-16 pt-16 sm:pt-20">
 
           {/* Comparison Table */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">

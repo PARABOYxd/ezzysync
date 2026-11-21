@@ -1,57 +1,52 @@
 import React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight } from "lucide-react";
-import ScrollReveal from "../ScrollReveal";
+import Pill from "../ui/Pill";
 
-const examples = ["Goa beach holiday", "Kerala backwaters", "Rajasthan heritage", "Manali & Himachal"];
+const sampleDays = [
+  ["Day 1", "Kochi", "Fort Kochi walk, Chinese fishing nets, Kathakali show"],
+  ["Day 2", "Munnar", "Tea gardens, Eravikulam National Park"],
+  ["Day 3", "Thekkady", "Spice plantation, Periyar boat ride"],
+  ["Day 4", "Alleppey", "Overnight houseboat on the backwaters"],
+];
 
+/** Full-bleed accent band: the free itinerary tool, no sign-up needed. */
 export default function FreeItineraryTeaser() {
   return (
-    <section className="pb-16 sm:pb-24 bg-white">
-      <div className="max-w-[1140px] mx-auto px-5 sm:px-6">
-        <ScrollReveal>
-          <div className="relative overflow-hidden rounded-3xl bg-slate-50 border border-slate-200 p-7 sm:p-12 grid md:grid-cols-[1.2fr_1fr] gap-8 md:gap-12 items-center">
-            <div className="space-y-4 z-10">
-              <h2 className="font-bold text-3xl sm:text-4xl tracking-tight text-slate-950">
-                Try the itinerary builder without signing up
-              </h2>
-              <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
-                Enter a destination and number of days. You get a day-wise plan you can download as a PDF and send to
-                your client today.
-              </p>
-              <Link
-                href="/free-itinerary-builder"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[15px] transition-colors group btn-press"
-              >
-                Build a free itinerary
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white">
-              <div className="relative h-48 sm:h-56 w-full">
-                <Image
-                  src="/images/destinations.jpg"
-                  alt="Popular Indian holiday destinations including Goa, Kerala, Kashmir, Rajasthan and Manali"
-                  fill
-                  className="object-cover object-center"
-                  sizes="(max-width: 768px) 100vw, 480px"
-                />
-              </div>
-              <div className="p-4 sm:p-5 space-y-2.5">
-                <div className="text-sm text-slate-500">Try it for</div>
-                <div className="flex flex-wrap gap-2">
-                  {examples.map((e) => (
-                    <span key={e} className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium text-slate-700">
-                      {e}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+    <section className="bg-accent text-ink-900">
+      <div className="wrap py-[clamp(88px,11vw,176px)] grid-12 gap-y-14 items-end">
+        <div className="col-span-12 lg:col-span-7">
+          <p className="t-label">Free tool · No sign-up needed</p>
+          <h2 data-split className="t-h2 mt-8">Try the itinerary builder without signing up</h2>
+          <p className="mt-8 t-lead max-w-xl">
+            Enter a destination and number of days. You get a day-wise plan you can download as a PDF and send to your
+            client today.
+          </p>
+          <div className="mt-10">
+            <Pill href="/free-itinerary-builder" className="[--btn-fill:var(--paper)] [--btn-fill-fg:var(--ink)]">
+              Build a free itinerary
+            </Pill>
           </div>
-        </ScrollReveal>
+        </div>
+
+        {/* What the tool produces */}
+        <div aria-hidden="true" data-reveal="fade" className="col-span-12 lg:col-start-9 lg:col-span-4">
+          <div className="rounded-2xl bg-paper-100 p-6 sm:p-7">
+            <div className="flex items-baseline justify-between">
+              <span className="font-display text-[28px] tracking-[-0.04em] leading-none">Kerala, 4 days</span>
+              <span className="t-label text-ink-600">PDF</span>
+            </div>
+            <ol className="mt-6">
+              {sampleDays.map(([d, place, plan]) => (
+                <li key={d} className="grid grid-cols-[4rem_1fr] gap-3 py-3 border-t border-line">
+                  <span className="text-[13px] text-ink-600 pt-0.5">{d}</span>
+                  <span>
+                    <span className="block text-[15px] font-medium">{place}</span>
+                    <span className="block text-[13px] text-ink-600 leading-snug">{plan}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       </div>
     </section>
   );

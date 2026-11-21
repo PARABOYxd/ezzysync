@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -373,29 +374,16 @@ export default function BlogDashboard() {
   const crmUrl = rawCrmUrl;
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <Navbar crmUrl={crmUrl} />
       <main className="relative overflow-hidden">
         {/* Banner Hero Section */}
-        <section className="bg-slate-50 border-b border-slate-200/80 pt-24 pb-16 sm:pt-32 sm:pb-24 relative overflow-hidden">
-          {/* Subtle Grid Backdrop */}
-          <div className="absolute inset-0 bg-grid-pattern opacity-4 pointer-events-none"></div>
-          {/* Blur Glows */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-brand-500/10 filter blur-[90px] pointer-events-none"></div>
-          
-          <div className="max-w-[700px] mx-auto px-5 sm:px-6 relative z-10 text-center space-y-6 flex flex-col items-center justify-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-600"></span>
-              Travel Agency Insights
-            </span>
-            <h1 className="font-bold text-[clamp(2.25rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.03em] text-slate-950">
-              Mastering CRM Security &amp; Booking Automation
-            </h1>
-            <p className="text-slate-500 text-sm sm:text-base leading-relaxed max-w-[55ch] mx-auto">
-              Explore high-impact guides, operations blueprints, and tutorials built to scale travel networks, auto-schedule itineraries, and secure financial data logs.
-            </p>
-          </div>
-        </section>
+        <PageHero
+          code="Logbook"
+          label="Travel agency insights"
+          title="Mastering CRM Security & Booking Automation"
+          intro="Explore high-impact guides, operations blueprints, and tutorials built to scale travel networks, auto-schedule itineraries, and secure financial data logs."
+        />
 
         {/* Blog Posts Grid Section */}
         <section className="max-w-[1100px] mx-auto px-5 sm:px-6 py-16 relative z-10 space-y-12">

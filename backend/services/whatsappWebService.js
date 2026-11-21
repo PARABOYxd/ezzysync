@@ -23,6 +23,8 @@ const planService = require('./planService');
 const whatsappAuthState = require('./whatsappAuthState');
 const whatsappRateLimiter = require('./whatsappRateLimiter');
 const aiPolicy = require('./whatsappAiPolicy');
+const adReferral = require('./whatsappAdReferral');
+const leadRepository = require('../repositories/leadRepository');
 
 // aiService emits this exact token instead of a reply when the model decides a
 // human should take over. It must never reach the customer.
@@ -93,6 +95,51 @@ async function resolvePhoneFromJid(sock, jid) {
   }
 
   return rawDigits;
+}
+
+/**
+ * The phone number of an address-book entry, or '' when it cannot be told.
+ * An entry known only by a @lid id with no mapped number is skipped rather
+ * than stored under a number nobody could ever match.
+ */
+async function savedContactPhone(sock, contact) {
+  if (contact.phoneNumber) return cleanPhone(jidNormalizedUser(contact.phoneNumber).split('@')[0]);
+  const id = contact.id;
+  if (!id || isJidGroup(id) || isJidBroadcast(id) || isJidNewsletter(id)) return '';
+  if (!isLidUser(id)) return cleanPhone(jidNormalizedUser(id).split('@')[0]);
+  try {
+    const pn = await sock.signalRepository?.lidMapping?.getPNForLID(id);
+    return pn ? cleanPhone(jidNormalizedUser(pn).split('@')[0]) : '';
+  } catch {
+    return '';
+  }
+}
+
+const SAVED_CONTACT_CHUNK = 1000;
+
+/**
+ * Remembers who is saved in the agent's phone.
+ *
+ * WhatsApp gives two names per contact: `name`, which the agent typed when
+ * saving the number, and `notify`, which the person chose for themselves. Only
+ * a `name` means the number is in the address book. Failure here is never
+ * fatal - the worst case is a personal contact being treated as a new enquiry,
+ * which is what happened before this existed.
+ */
+async function rememberAddressBook(sock, tenantId, contacts) {
+  try {
+    const saved = [];
+    for (const contact of contacts || []) {
+      if (!contact?.name) continue;
+      const phone = await savedContactPhone(sock, contact);
+      if (phone) saved.push({ phone, name: contact.name });
+    }
+    for (let i = 0; i < saved.length; i += SAVED_CONTACT_CHUNK) {
+      await whatsappWebRepository.upsertSavedContacts(tenantId, saved.slice(i, i + SAVED_CONTACT_CHUNK));
+    }
+  } catch (err) {
+    logger.warn({ err, tenantId }, 'Could not remember the contacts WhatsApp reported');
+  }
 }
 
 /** Chat-list preview text for a message that carries no caption. */
@@ -519,6 +566,7 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
           mediaUrl,
           allowAiReply,
           sentAt: msg.messageTimestamp ? Number(msg.messageTimestamp) : null,
+          ad: adReferral.fromBaileys(getRawMessage(msg)),
         });
       } catch (err) {
         logger.error({ err, tenantId, senderPhone }, 'Error processing inbound WhatsApp message');
@@ -542,6 +590,11 @@ async function initWhatsAppSession(tenantId, forceNew = false) {
       }
     }
   });
+
+  // The agent's address book, so a message from family is not mistaken for an enquiry.
+  sock.ev.on('contacts.upsert', (contacts) => { rememberAddressBook(sock, tenantId, contacts); });
+  sock.ev.on('contacts.update', (contacts) => { rememberAddressBook(sock, tenantId, contacts); });
+  sock.ev.on('messaging-history.set', ({ contacts }) => { rememberAddressBook(sock, tenantId, contacts); });
 
   return sock;
 }
@@ -588,7 +641,40 @@ async function recordOwnOutgoingMessage(tenantId, { senderPhone, messageText, me
 /**
  * Handles inbound message processing, chat upsert, lead auto-creation, and Gemini AI auto-reply.
  */
-async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true, sentAt = null }) {
+/**
+ * Creates the lead for a number that has just written in. A message that came
+ * from a Meta ad is filed as Meta Ads, with the ad's headline as the trip the
+ * person is interested in and the ad on the lead's timeline.
+ */
+async function captureLeadFromWhatsapp(tenantId, { pushName, senderPhone, messageText, ad }) {
+  const created = await whatsappWebRepository.createLeadFromWhatsapp(tenantId, ad
+    ? {
+      customerName: pushName,
+      phone: senderPhone,
+      source: adReferral.AD_SOURCE,
+      interest: ad.headline,
+      notes: adReferral.notesFor(ad, messageText),
+    }
+    : { customerName: pushName, phone: senderPhone });
+
+  if (ad && created.id) {
+    await leadRepository.bulkInsertFollowUps(tenantId, [
+      { leadUuid: created.id, note: adReferral.describe(ad), createdBy: 'WhatsApp' },
+    ]);
+  }
+  return created;
+}
+
+/**
+ * True for a number saved in the agent's phone that the CRM has never seen.
+ * Only used when the agency has asked for it; see migration 023.
+ */
+async function isPersonalContact(tenantId, phone) {
+  if (!(await whatsappWebRepository.getIgnoreSavedContacts(tenantId))) return false;
+  return whatsappWebRepository.isSavedContact(tenantId, phone);
+}
+
+async function processInboundMessage(tenantId, { senderJid, senderPhone, pushName, messageText, messageId, sock, messageType = 'text', mediaUrl = null, allowAiReply = true, sentAt = null, ad = null }) {
   // What the chat list shows. A caption when there is one, otherwise a short
   // stand-in so an attachment-only message is not a blank row.
   const preview = messageText || mediaPreview(messageType);
@@ -598,15 +684,28 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
     let leadId = await whatsappWebRepository.findLeadIdByPhone(tenantId, senderPhone);
 
     if (!leadId) {
+      // Family and friends write to the same number customers do. A number
+      // saved in the phone, never seen by the CRM, is not an enquiry: no chat
+      // and no lead are made. An ad click is the exception - whoever taps an
+      // ad is asking about a trip, whatever their name is saved as.
+      if (!ad && await isPersonalContact(tenantId, senderPhone)) {
+        logger.info({ tenantId, phone: senderPhone }, 'Ignoring a message from a saved personal contact');
+        return;
+      }
+
       try {
-        const created = await whatsappWebRepository.createLeadFromWhatsapp(tenantId, {
-          customerName: pushName,
-          phone: senderPhone,
-        });
+        const created = await captureLeadFromWhatsapp(tenantId, { pushName, senderPhone, messageText, ad });
         leadId = created.id;
-        logger.info({ tenantId, leadId: created.leadCode, phone: senderPhone }, 'Auto-created new lead from WhatsApp');
+        logger.info({ tenantId, leadId: created.leadCode, phone: senderPhone, fromAd: Boolean(ad) }, 'Auto-created new lead from WhatsApp');
       } catch (e) {
         logger.warn({ err: e }, 'Failed to auto-create lead from WhatsApp');
+      }
+    } else if (ad) {
+      // A returning customer tapped an ad: keep the lead, note which trip.
+      try {
+        await leadRepository.bulkInsertFollowUps(tenantId, [{ leadUuid: leadId, note: adReferral.describe(ad), createdBy: 'WhatsApp' }]);
+      } catch (e) {
+        logger.warn({ err: e }, 'Could not note the ad on the existing lead');
       }
     }
 
@@ -629,9 +728,11 @@ async function processInboundMessage(tenantId, { senderJid, senderPhone, pushNam
       let leadId = await whatsappWebRepository.findLeadIdByPhone(tenantId, senderPhone);
       if (!leadId) {
         try {
-          const created = await whatsappWebRepository.createLeadFromWhatsapp(tenantId, {
-            customerName: pushName || chat.customer_name || 'WhatsApp Contact',
-            phone: senderPhone,
+          const created = await captureLeadFromWhatsapp(tenantId, {
+            pushName: pushName || chat.customer_name || 'WhatsApp Contact',
+            senderPhone,
+            messageText,
+            ad,
           });
           leadId = created.id;
           logger.info({ tenantId, leadId: created.leadCode, phone: senderPhone }, 'Auto-created new lead from WhatsApp for existing chat');
@@ -1147,6 +1248,7 @@ async function getSessionStatus(tenantId) {
     phoneNumber: dbSession?.phone_number || cleanPhone(jidNormalizedUser(inMemory?.sock?.user?.id || '').split('@')[0]) || '',
     connectedAt: dbSession?.connected_at || null,
     aiAutopilotEnabled: dbSession?.ai_autopilot_enabled === true,
+    ignoreSavedContacts: dbSession?.ignore_saved_contacts === true,
   };
 }
 
@@ -1289,6 +1391,10 @@ async function getConnectionOverview(tenantId) {
       // channel the customer's own last message arrived on.
       rule: 'existing-chats-follow-the-customer',
     },
+    leads: {
+      ignoreSavedContacts: Boolean(qr.ignoreSavedContacts),
+      savedContacts: await whatsappWebRepository.countSavedContacts(tenantId),
+    },
     ai: {
       autopilotForNewChats: Boolean(qr.aiAutopilotEnabled),
       chatsWithAiOn: aiCounts.aiOn,
@@ -1301,6 +1407,8 @@ async function getConnectionOverview(tenantId) {
 module.exports = {
   // Exported for tests: these decide whether a message is recorded at all.
   extractMessageText,
+  processInboundMessage,
+  rememberAddressBook,
   getConnectionOverview,
   shutdownAllSessions,
   initWhatsAppSession,

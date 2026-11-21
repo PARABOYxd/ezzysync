@@ -1,6 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import Pill from "../ui/Pill";
+import FAQ from "../sections/FAQ";
 import Navbar from "../layout/Navbar";
 import Footer from "../layout/Footer";
 import WhatsAppIcon from "../common/WhatsAppIcon";
@@ -61,55 +63,58 @@ export default function SeoLandingPage({ page, kind }) {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Navbar crmUrl={crmUrl} />
 
       <main>
-        <section className="bg-[#fafbfc] border-b border-slate-200">
-          <div className="max-w-[1000px] mx-auto px-5 sm:px-6 pt-10 pb-14 sm:pt-14 sm:pb-20">
-            <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
-              <ol className="flex flex-wrap items-center gap-1.5">
-                <li><Link href="/" className="hover:text-slate-900">Home</Link></li>
+        {/* Hero */}
+        <section className="pt-[clamp(40px,7vw,112px)] pb-[clamp(56px,7vw,112px)] border-b border-line">
+          <div className="wrap">
+            <nav aria-label="Breadcrumb" className="t-label text-ink-600 fade-in-up">
+              <ol className="flex flex-wrap items-center gap-2.5">
+                <li><Link href="/" className="link-line hover:text-ink-900">Home</Link></li>
                 <li aria-hidden="true">/</li>
-                <li><Link href={`/${kind}`} className="hover:text-slate-900">{SECTION_NAME[kind]}</Link></li>
+                <li><Link href={`/${kind}`} className="link-line hover:text-ink-900">{SECTION_NAME[kind]}</Link></li>
                 <li aria-hidden="true">/</li>
-                <li className="text-slate-700" aria-current="page">{page.label}</li>
+                <li className="text-ink-900" aria-current="page">{page.label}</li>
               </ol>
             </nav>
-            <h1 className="mt-5 font-bold text-slate-950 text-3xl sm:text-5xl leading-[1.12] tracking-tight text-balance max-w-3xl">
-              {page.h1}
+            <h1 className="t-h1 mt-8 text-ink-900 max-w-[18ch] text-balance" aria-label={page.h1}>
+              {page.h1.split(" ").map((w, i) => (
+                <React.Fragment key={i}>
+                  <span className="word-mask" aria-hidden="true"><span style={{ "--i": i }}>{w}</span></span>{" "}
+                </React.Fragment>
+              ))}
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">{page.intro}</p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <a
-                href={trialUrl}
-                className="px-7 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] flex items-center justify-center gap-2 btn-press"
-              >
-                Start free trial <ArrowRight className="w-4 h-4" />
-              </a>
-              <a
-                href={waLink(WA_DEMO_TEXT)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-[15px] flex items-center justify-center gap-2 btn-press"
-              >
-                <WhatsAppIcon className="w-4 h-4 text-emerald-600" /> Get a demo on WhatsApp
-              </a>
+            <div className="grid-12 gap-y-8 mt-[clamp(40px,5vw,72px)] items-end">
+              <p className="col-span-12 md:col-span-7 lg:col-span-6 t-lead text-ink-600 fade-in-up" style={{ "--d": "400ms" }}>
+                {page.intro}
+              </p>
+              <div className="col-span-12 md:col-span-5 lg:col-start-8 lg:col-span-5 flex flex-wrap items-center gap-x-6 gap-y-4 md:justify-end fade-in-up" style={{ "--d": "500ms" }}>
+                <Pill href={trialUrl}>Start free trial</Pill>
+                <a href={waLink(WA_DEMO_TEXT)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 min-h-11 text-[16px] text-ink-900">
+                  <WhatsAppIcon className="w-4 h-4 text-emerald-700" />
+                  <span className="link-line">Get a demo on WhatsApp</span>
+                </a>
+              </div>
             </div>
           </div>
         </section>
 
         {page.pains && (
-          <section className="py-14 sm:py-20 border-b border-slate-200">
-            <div className="max-w-[1000px] mx-auto px-5 sm:px-6">
-              <h2 className="font-bold text-2xl sm:text-3xl tracking-tight text-slate-950">What usually goes wrong</h2>
-              <ol className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <section className="section-y">
+            <div className="wrap">
+              <div className="grid-12 gap-y-8">
+                <p className="col-span-12 lg:col-span-3 t-label text-ink-600 pt-3">(01) The problem</p>
+                <h2 data-split className="col-span-12 lg:col-span-9 t-h2 text-ink-900">What usually goes wrong</h2>
+              </div>
+              <ol className="mt-[clamp(48px,6vw,96px)]">
                 {page.pains.map((p, i) => (
-                  <li key={p.title} className="border-t-2 border-slate-300 pt-5">
-                    <span className="text-sm font-semibold text-slate-400">0{i + 1}</span>
-                    <h3 className="mt-2 font-bold text-lg text-slate-900">{p.title}</h3>
-                    <p className="mt-2 text-[15px] text-slate-600 leading-relaxed">{p.body}</p>
+                  <li key={p.title} className="grid-12 gap-y-4 py-10 border-t border-line last:border-b">
+                    <span className="col-span-12 lg:col-span-1 t-label text-ink-600 pt-2 tabular-nums">0{i + 1}</span>
+                    <h3 data-split className="col-span-12 md:col-span-6 lg:col-span-5 t-h3 text-ink-900">{p.title}</h3>
+                    <p data-reveal="fade" className="col-span-12 md:col-span-6 lg:col-start-8 lg:col-span-5 text-[17px] leading-relaxed text-ink-600">{p.body}</p>
                   </li>
                 ))}
               </ol>
@@ -118,62 +123,66 @@ export default function SeoLandingPage({ page, kind }) {
         )}
 
         {page.fit && (
-          <section className="py-14 sm:py-20 bg-slate-50 border-b border-slate-200">
-            <div className="max-w-[1000px] mx-auto px-5 sm:px-6">
-              <h2 className="font-bold text-2xl sm:text-3xl tracking-tight text-slate-950">How EzzySync fits</h2>
-              <ul className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <section data-theme="dark" className="section-y bg-ink-900 text-paper">
+            <div className="wrap">
+              <div className="grid-12 gap-y-8">
+                <p className="col-span-12 lg:col-span-3 t-label text-white/50 pt-3">(02) The fit</p>
+                <h2 data-split className="col-span-12 lg:col-span-9 t-h2">How EzzySync fits</h2>
+              </div>
+              <ul data-stagger className="mt-[clamp(48px,6vw,96px)] border-t border-white/15">
                 {page.fit.map((f) => (
-                  <li key={f.title}>
-                    <Link
-                      href={f.href}
-                      className="block h-full bg-white rounded-2xl border border-slate-200 p-6 hover:border-brand-400 transition-colors group"
-                    >
-                      <h3 className="font-bold text-slate-900 group-hover:text-brand-700">{f.title}</h3>
-                      <p className="mt-2 text-sm text-slate-600 leading-relaxed">{f.body}</p>
+                  <li key={f.title} className="border-b border-white/15">
+                    <Link href={f.href} data-cursor="Explore" className="group grid-12 gap-y-3 py-9 items-baseline">
+                      <h3 className="col-span-12 md:col-span-5 font-display text-[clamp(26px,2.6vw,40px)] tracking-[-0.035em] leading-[1.05] transition-[color,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-accent group-hover:translate-x-2">
+                        {f.title}
+                      </h3>
+                      <p className="col-span-11 md:col-start-7 md:col-span-5 text-[17px] leading-relaxed text-white/65">{f.body}</p>
+                      <ArrowUpRight aria-hidden="true" strokeWidth={1.5} className="col-span-1 justify-self-end w-6 h-6 transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
                     </Link>
                   </li>
                 ))}
               </ul>
-              <p className="mt-8 text-[15px] text-slate-700">
-                <span className="font-semibold">Suggested plan:</span> {page.plan}{" "}
-                <Link href="/pricing" className="text-brand-600 font-semibold hover:underline">See pricing</Link>
+              <p className="mt-10 text-[17px] text-white/75">
+                <span className="text-paper">Suggested plan:</span> {page.plan}{" "}
+                <Link href="/pricing" className="text-paper link-line">See pricing</Link>
               </p>
             </div>
           </section>
         )}
 
         {page.sections && (
-          <section className="py-14 sm:py-20 border-b border-slate-200">
-            <div className="max-w-[1000px] mx-auto px-5 sm:px-6 space-y-14">
-              {page.sections.map((s) => (
-                <div key={s.title} className="grid md:grid-cols-[1.3fr_1fr] gap-6 md:gap-12">
-                  <div>
-                    <h2 className="font-bold text-2xl tracking-tight text-slate-950">{s.title}</h2>
-                    <p className="mt-3 text-slate-600 leading-relaxed">{s.body}</p>
+          <section className="section-y">
+            <div className="wrap space-y-[clamp(64px,8vw,128px)]">
+              {page.sections.map((s, i) => (
+                <article key={s.title} className="grid-12 gap-y-8">
+                  <p className="col-span-12 lg:col-span-1 t-label text-ink-600 pt-3 tabular-nums">0{i + 1}</p>
+                  <div className="col-span-12 lg:col-span-6">
+                    <h2 data-split className="t-h3 text-ink-900 !text-[clamp(32px,3.6vw,56px)]">{s.title}</h2>
+                    <p data-reveal="fade" className="mt-6 text-[17px] leading-relaxed text-ink-600 max-w-xl">{s.body}</p>
                   </div>
-                  <ul className="space-y-2.5 md:pt-1">
+                  <ul data-stagger className="col-span-12 lg:col-start-8 lg:col-span-5 border-t border-line self-start">
                     {s.points.map((pt) => (
-                      <li key={pt} className="flex items-start gap-2.5 text-[15px] text-slate-800">
-                        <Check className="w-5 h-5 text-emerald-600 shrink-0" />
-                        {pt}
-                      </li>
+                      <li key={pt} className="py-4 border-b border-line text-[16px] text-ink-900">{pt}</li>
                     ))}
                   </ul>
-                </div>
+                </article>
               ))}
             </div>
           </section>
         )}
 
         {page.steps && (
-          <section className="py-14 sm:py-20 bg-[#090d16] text-white">
-            <div className="max-w-[1000px] mx-auto px-5 sm:px-6">
-              <h2 className="font-bold text-2xl sm:text-3xl tracking-tight">How it works</h2>
-              <ol className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <section data-theme="dark" className="section-y bg-ink-900 text-paper">
+            <div className="wrap">
+              <div className="grid-12 gap-y-8">
+                <p className="col-span-12 lg:col-span-3 t-label text-white/50 pt-3">How it works</p>
+                <h2 data-split className="col-span-12 lg:col-span-9 t-h2">In {page.steps.length} steps</h2>
+              </div>
+              <ol data-stagger className="mt-[clamp(48px,6vw,96px)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
                 {page.steps.map((step, i) => (
-                  <li key={step} className="border-t border-slate-700 pt-4">
-                    <span className="text-sm font-semibold text-brand-400">Step {i + 1}</span>
-                    <p className="mt-2 text-slate-200 leading-relaxed">{step}</p>
+                  <li key={step} className="border-t border-white/15 pt-6">
+                    <span className="t-stat !text-[clamp(64px,7vw,112px)] text-accent tabular-nums">{i + 1}</span>
+                    <p className="mt-6 text-[17px] leading-relaxed text-white/75">{step}</p>
                   </li>
                 ))}
               </ol>
@@ -181,42 +190,31 @@ export default function SeoLandingPage({ page, kind }) {
           </section>
         )}
 
-        <section className="py-14 sm:py-20 border-b border-slate-200">
-          <div className="max-w-[760px] mx-auto px-5 sm:px-6">
-            <h2 className="font-bold text-2xl sm:text-3xl tracking-tight text-slate-950">Questions</h2>
-            <dl className="mt-8 divide-y divide-slate-200 border-y border-slate-200">
-              {page.faqs.map((f) => (
-                <div key={f.q} className="py-5">
-                  <dt className="font-semibold text-slate-900">{f.q}</dt>
-                  <dd className="mt-2 text-[15px] text-slate-600 leading-relaxed">{f.a}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
+        <FAQ items={page.faqs} heading="Questions" index="03" />
 
-        <section className="py-14 sm:py-16 bg-slate-50">
-          <div className="max-w-[1000px] mx-auto px-5 sm:px-6 flex flex-col md:flex-row md:items-start md:justify-between gap-10">
-            <div className="max-w-md">
-              <h2 className="font-bold text-2xl tracking-tight text-slate-950">Try it on your own inquiries</h2>
-              <p className="mt-2 text-slate-600">
+        {/* Closing */}
+        <section className="section-y border-t border-line">
+          <div className="wrap grid-12 gap-y-14">
+            <div className="col-span-12 lg:col-span-7">
+              <p className="t-label text-ink-600">Start today</p>
+              <h2 data-split className="t-h2 mt-6 text-ink-900">Try it on your own inquiries</h2>
+              <p className="mt-8 t-lead text-ink-600 max-w-xl">
                 Free trial, no credit card. Import your Excel leads and send your first quote today. Plans from{" "}
-                {PLAN_PRICE_MONTHLY.SOLO} — <Link href="/pricing" className="text-brand-600 font-semibold hover:underline">see pricing</Link>.
+                {PLAN_PRICE_MONTHLY.SOLO}.
               </p>
-              <a
-                href={trialUrl}
-                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm btn-press"
-              >
-                Start free trial <ArrowRight className="w-4 h-4" />
-              </a>
+              <div className="mt-10 flex flex-wrap gap-3">
+                <Pill href={trialUrl}>Start free trial</Pill>
+                <Pill href="/pricing" variant="ghost">See pricing</Pill>
+              </div>
             </div>
-            <nav aria-label="Related pages">
-              <h2 className="text-sm font-semibold text-slate-500">Related</h2>
-              <ul className="mt-3 space-y-2">
+            <nav aria-label="Related pages" className="col-span-12 lg:col-start-9 lg:col-span-4 self-end">
+              <h2 className="t-label !font-sans !tracking-[0.14em] text-ink-600">Related</h2>
+              <ul className="mt-6 border-t border-line">
                 {page.related.map((href) => (
-                  <li key={href}>
-                    <Link href={href} className="text-brand-700 font-medium hover:underline">
-                      {linkLabel(href) || href}
+                  <li key={href} className="border-b border-line">
+                    <Link href={href} className="group flex items-center justify-between gap-4 py-4 text-[17px] text-ink-900">
+                      <span className="link-line">{linkLabel(href) || href}</span>
+                      <ArrowUpRight aria-hidden="true" strokeWidth={1.5} className="w-5 h-5 shrink-0 transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
                     </Link>
                   </li>
                 ))}

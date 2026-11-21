@@ -1,4 +1,5 @@
 import React from "react";
+import PageHero, { heroPrimaryClass, heroSecondaryClass } from "@/components/common/PageHero";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import FAQ from "../../components/sections/FAQ";
@@ -64,7 +65,10 @@ export default function AboutPage() {
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "EzzySync Travel CRM",
+      // Same @id as the site-wide entity in app/layout.js, so this adds the
+      // address to it instead of declaring a second organisation.
+      "@id": "https://www.ezzysync.com/#organization",
+      name: "EzzySync",
       url: "https://www.ezzysync.com",
       logo: "https://www.ezzysync.com/logo.png",
       description: "Dedicated Travel CRM for Tour Operators and Travel Agencies in India.",
@@ -78,7 +82,7 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
@@ -87,41 +91,22 @@ export default function AboutPage() {
 
       <main>
         {/* Hero Section */}
-        <section className="pt-14 pb-16 sm:pt-20 sm:pb-24 bg-[#fafbfc] border-b border-slate-200">
-          <div className="max-w-[1140px] mx-auto px-5 sm:px-6 text-center space-y-6">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block">
-              About EzzySync
-            </span>
-
-            <h1 className="font-bold text-slate-950 text-3xl sm:text-5xl lg:text-[3.2rem] leading-[1.15] tracking-tight max-w-4xl mx-auto">
-              Built specifically for Indian tour operators &amp; travel agencies
-            </h1>
-
-            <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              We started EzzySync with one straightforward goal: replace messy Excel files, personal WhatsApp chaos,
-              and generic foreign CRMs with simple, fast software designed for how Indian travel businesses actually operate.
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2">
-              <a
-                href={trialUrl}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 btn-press"
-              >
-                <span>Start Free Trial</span>
-                <ArrowRight className="w-4 h-4" />
+        <PageHero
+          code="Crew"
+          label="About EzzySync"
+          title="Built specifically for Indian tour operators & travel agencies"
+          intro="We started EzzySync with one straightforward goal: replace messy Excel files, personal WhatsApp chaos, and generic foreign CRMs with simple, fast software designed for how Indian travel businesses actually operate."
+          actions={
+            <>
+              <a href={trialUrl} className={heroPrimaryClass}>
+                Start free trial <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </a>
-              <a
-                href={waLink(WA_ABOUT_INQUIRY_TEXT)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm transition-all flex items-center justify-center gap-2 btn-press"
-              >
-                <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
-                <span>Chat with our team</span>
+              <a href={waLink(WA_ABOUT_INQUIRY_TEXT)} target="_blank" rel="noopener noreferrer" className={heroSecondaryClass}>
+                <WhatsAppIcon className="w-4 h-4 text-emerald-400" /> Chat with our team
               </a>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         {/* Why EzzySync Exists */}
         <section className="py-16 sm:py-24 bg-white border-b border-slate-200">
@@ -309,7 +294,7 @@ export default function AboutPage() {
         </section>
 
         {/* FAQ Section */}
-        <FAQ items={generalFaqs} heading="Frequently Asked Questions" />
+        <FAQ items={generalFaqs} heading="Frequently asked questions" />
       </main>
 
       <Footer crmUrl={crmUrl} />

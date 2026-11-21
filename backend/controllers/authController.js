@@ -4,6 +4,7 @@ const userService = require('../services/userService');
 const otpService = require('../services/otpService');
 const emailService = require('../services/emailService');
 const tokenService = require('../services/tokenService');
+const planService = require('../services/planService');
 const refreshTokenRepository = require('../repositories/refreshTokenRepository');
 
 function publicUser(user) {
@@ -135,6 +136,24 @@ async function login(req, res, next) {
     if (!valid) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
+
+    // Check if team member logins are disabled under the agency's plan (e.g. Solo Agent Plan)
+    if (user.role !== 'ADMIN' && !user.is_super_admin) {
+      const limits = await planService.getTenantPlanLimits(user.tenantId);
+      if (limits.id === 'SOLO' || limits.maxTeamMembers === 1) {
+        return res.status(403).json({
+          message: 'Your account is locked. Please ask your admin to unlock your account.',
+          code: 'SOLO_PLAN_TEAM_LOCKED',
+        });
+      }
+      if (limits.isExpired) {
+        return res.status(403).json({
+          message: 'Your account is locked. Please ask your admin to unlock your account.',
+          code: limits.lapsedPlanId ? 'SUBSCRIPTION_EXPIRED' : 'TRIAL_EXPIRED',
+        });
+      }
+    }
+
     const { token, refreshToken } = await tokenService.issueTokenPair(user);
     res.json({ token, refreshToken, user: publicUser(user) });
   } catch (err) {
@@ -178,6 +197,16 @@ async function refresh(req, res) {
     const user = await userService.findUserById(stored.user_id);
     if (!user) {
       return res.status(401).json({ message: 'Invalid or expired session. Please log in again.' });
+    }
+
+    if (user.role !== 'ADMIN' && !user.is_super_admin) {
+      const limits = await planService.getTenantPlanLimits(user.tenantId);
+      if (limits.id === 'SOLO' || limits.maxTeamMembers === 1) {
+        return res.status(403).json({
+          message: 'Your account is locked. Please ask your admin to unlock your account.',
+          code: 'SOLO_PLAN_TEAM_LOCKED',
+        });
+      }
     }
 
     await refreshTokenRepository.revokeRefreshToken(tokenHash);

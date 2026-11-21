@@ -1,22 +1,26 @@
 import React from "react";
 import Navbar from "../components/layout/Navbar";
-import Hero from "../components/sections/Hero";
-import TrustStrip from "../components/sections/TrustStrip";
+import HomeHero from "../components/home/HomeHero";
+import WorksWith from "../components/home/WorksWith";
 import Problem from "../components/sections/Problem";
-import FlowDiagram from "../components/sections/FlowDiagram";
 import FeatureZigZag from "../components/sections/FeatureZigZag";
-import FreeItineraryTeaser from "../components/sections/FreeItineraryTeaser";
+import FlowDiagram from "../components/sections/FlowDiagram";
+import Stats from "../components/home/Stats";
+import WhoItsFor from "../components/home/WhoItsFor";
 import Testimonials from "../components/sections/Testimonials";
 import ComparisonMatrix from "../components/sections/ComparisonMatrix";
+import FreeItineraryTeaser from "../components/sections/FreeItineraryTeaser";
 import Pricing from "../components/sections/Pricing";
-import LiveDemoSection from "../components/sections/LiveDemoSection";
+import Insights from "../components/home/Insights";
 import FAQ from "../components/sections/FAQ";
+import LiveDemoSection from "../components/sections/LiveDemoSection";
+import FinalCta from "../components/home/FinalCta";
 import Footer from "../components/layout/Footer";
 import StickyWidgets from "../components/common/StickyWidgets";
 import { getCrmUrl } from "@/lib/crmUrl";
 import { PLAN_PRICE_RUPEES } from "@/data/plans";
 import { faqData } from "@/data/landingData";
-import { TEL_PHONE, SUPPORT_EMAIL } from "@/lib/contact";
+import { SITE_URL } from "@/lib/siteLinks";
 import { withSeo } from "@/lib/seoOverrides";
 
 const HOME_TITLE = "Travel CRM for Travel Agencies & Tour Operators | EzzySync";
@@ -69,29 +73,21 @@ export default function Home() {
     },
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "EzzySync Travel CRM",
-      "url": "https://www.ezzysync.com",
-      "logo": "https://www.ezzysync.com/logo.png",
-      "telephone": TEL_PHONE,
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": TEL_PHONE,
-        "email": SUPPORT_EMAIL,
-        "contactType": "customer service"
-      },
-      "sameAs": [
-        "https://www.instagram.com/ezzysync/",
-        "https://www.facebook.com/share/1BtkdG3H7G/?mibextid=wwXIfr"
-      ]
-    },
-    {
-      "@context": "https://schema.org",
       "@type": "SoftwareApplication",
+      "@id": `${SITE_URL}/#software`,
       "name": "EzzySync Travel CRM",
+      "publisher": { "@id": `${SITE_URL}/#organization` },
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
-      "url": "https://www.ezzysync.com",
+      "url": SITE_URL,
+      "featureList": [
+        "Official Meta WhatsApp Cloud API integration",
+        "Day-wise travel itinerary builder with PDF",
+        "GST quotations and invoices (SAC 998555)",
+        "Lead management and follow-up pipeline",
+        "Hotel and driver service vouchers",
+        "Razorpay milestone payment sync"
+      ],
       "description": "Travel CRM software for tour operators and travel agents in India. Capture WhatsApp leads, generate day-wise itineraries, issue GST quotations, and track bookings.",
       "offers": {
         "@type": "AggregateOffer",
@@ -118,28 +114,32 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
       <Navbar crmUrl={crmUrl} />
       <main>
-        <Hero crmUrl={crmUrl} />
-        <TrustStrip />
+        <HomeHero crmUrl={crmUrl} />
+        <WorksWith />
         <Problem />
-        <FlowDiagram />
         <FeatureZigZag />
-        <FreeItineraryTeaser />
+        <FlowDiagram />
+        <Stats />
+        <WhoItsFor />
         <Testimonials />
         <ComparisonMatrix />
+        <FreeItineraryTeaser />
         <Pricing crmUrl={crmUrl} />
-        <FAQ items={homeFaqs} bgClass="bg-slate-50" />
+        <Insights />
+        <FAQ items={homeFaqs} />
         <LiveDemoSection crmUrl={crmUrl} />
+        <FinalCta crmUrl={crmUrl} />
       </main>
       <Footer crmUrl={crmUrl} />
       {/* Keeps the footer clear of the mobile sticky CTA bar */}
-      <div className="md:hidden h-20 bg-slate-950" aria-hidden="true" />
+      <div className="md:hidden h-20 bg-ink-900" aria-hidden="true" />
       <StickyWidgets crmUrl={crmUrl} />
     </div>
   );

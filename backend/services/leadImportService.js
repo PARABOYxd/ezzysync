@@ -432,9 +432,10 @@ function importLeadId(index) {
  * has been appended to for years repeats the same customer.
  *
  * @param {'skip'|'import'} opts.duplicateAction what to do with a phone already on file
+ * @param {string} [opts.timelineNote] first line of each lead's timeline; the live sheet sync names its sheet here
  * @returns {Promise<{imported: number, skippedDuplicates: number, skippedInvalid: number, issues: Array, leads: Array}>}
  */
-async function importLeads(tenantId, { rows, mapping, defaults = {}, duplicateAction = 'skip' }, actor) {
+async function importLeads(tenantId, { rows, mapping, defaults = {}, duplicateAction = 'skip', timelineNote }, actor) {
   if (!Array.isArray(rows) || rows.length === 0) throw badRequest('There are no rows to import.');
   if (rows.length > MAX_ROWS) throw badRequest(`Only ${MAX_ROWS} rows can be imported at a time. Please split the file.`);
 
@@ -508,7 +509,7 @@ async function importLeads(tenantId, { rows, mapping, defaults = {}, duplicateAc
       tenantId,
       rowsInserted.map((row) => ({
         leadUuid: row.id,
-        note: `Lead imported from a spreadsheet.${row.notes ? `\nNote: ${row.notes}` : ''}`,
+        note: `${timelineNote || 'Lead imported from a spreadsheet.'}${row.notes ? `\nNote: ${row.notes}` : ''}`,
         createdBy: actor || 'System',
       }))
     );
@@ -553,6 +554,7 @@ module.exports = {
   analyze,
   importLeads,
   buildTemplate,
+  headerKey,
   // exported for tests
   parseCsv,
   normalizeDate,

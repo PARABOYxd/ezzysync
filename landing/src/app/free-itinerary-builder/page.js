@@ -87,7 +87,7 @@ export default function FreeItineraryBuilderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-paper text-ink-900 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
@@ -99,19 +99,17 @@ export default function FreeItineraryBuilderPage() {
       <Navbar crmUrl={crmUrl} />
 
       <main className="relative pt-8 pb-14 sm:pt-12 sm:pb-16">
-        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-8 sm:space-y-10">
+        <div className="wrap relative z-10 space-y-8 sm:space-y-10">
           
           {/* Header */}
-          <div id="generator-hero" className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-600 block">
-              Free AI Travel Utility
-            </span>
-            <h1 className="font-bold text-slate-950 text-2xl sm:text-4xl lg:text-[2.5rem] tracking-tight leading-[1.2]">
-              Free AI Travel Itinerary Builder
-            </h1>
-            <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto">
-              Create structured, day-wise travel itineraries with AI in moments. 
-              Add your agency branding, download a printable PDF, or copy formatted text for WhatsApp — no login required.
+          <div id="generator-hero" className="pt-[clamp(24px,5vw,72px)] pb-[clamp(24px,4vw,56px)] grid-12 gap-y-8 items-end">
+            <div className="col-span-12 lg:col-span-8">
+              <p className="t-label text-ink-600 fade-in-up">(Free tool) No login required</p>
+              <h1 className="t-h1 mt-8 text-ink-900 max-w-[16ch]">Free AI Travel Itinerary Builder</h1>
+            </div>
+            <p className="col-span-12 lg:col-start-9 lg:col-span-4 t-lead text-ink-600 fade-in-up" style={{ "--d": "300ms" }}>
+              Create structured, day-wise travel itineraries with AI in moments. Add your agency branding, download a
+              printable PDF, or copy formatted text for WhatsApp.
             </p>
           </div>
 

@@ -6,6 +6,8 @@ const userRepository = require('../repositories/userRepository');
 const leadRepository = require('../repositories/leadRepository');
 const emailService = require('../services/emailService');
 const reminderService = require('../services/reminderService');
+const leadSheetService = require('../services/leadSheetService');
+const metaLeadService = require('../services/metaLeadService');
 const logger = require('../utils/logger').child({ module: 'cron' });
 
 /**
@@ -89,6 +91,30 @@ function initScheduler() {
       logger.info({ updated }, 'Lead priority recompute complete');
     } catch (err) {
       logger.error({ err }, 'Error running lead priority recompute job');
+    }
+  });
+
+  // Job 5: Connected Google Sheets (every 10 minutes). Reads the rows added
+  // since the last pass and turns them into leads. A sheet is skipped while
+  // another sync holds it, so a slow run never overlaps itself.
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      const totals = await leadSheetService.syncDueSheets(9);
+      if (totals.sheets > 0) logger.info(totals, 'Lead sheet sync complete');
+    } catch (err) {
+      logger.error({ err }, 'Error running lead sheet sync job');
+    }
+  });
+
+  // Job 6: Meta lead-ad leads whose fetch failed (every 5 minutes). Meta
+  // announces each lead once; this is what stops an outage on its side or ours
+  // from losing it.
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      const totals = await metaLeadService.retryPending();
+      if (totals.retried > 0) logger.info(totals, 'Meta lead retry complete');
+    } catch (err) {
+      logger.error({ err }, 'Error running Meta lead retry job');
     }
   });
 

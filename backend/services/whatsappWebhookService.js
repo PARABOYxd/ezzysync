@@ -6,6 +6,7 @@ const whatsappRepo = require('../repositories/whatsappRepository');
 const leadRepository = require('../repositories/leadRepository');
 const bookingRepository = require('../repositories/bookingRepository');
 const aiPolicy = require('./whatsappAiPolicy');
+const adReferral = require('./whatsappAdReferral');
 const whatsappWindow = require('./whatsappWindowService');
 const aiService = require('./aiService');
 const { broadcastToTenant } = require('./websocketService');
@@ -134,6 +135,9 @@ async function processIncomingWebhook(body) {
           bookingRepository.existsByPhone(tenantId, cleanPhone),
         ]);
 
+        // A message from a Meta "Click to WhatsApp" ad names the ad it came from.
+        const ad = adReferral.fromCloud(message.referral);
+
         if (!leadExists && !bookingExists) {
           const leadService = require('./leadService');
           await leadService.createLead(
@@ -141,10 +145,10 @@ async function processIncomingWebhook(body) {
             {
               customerName: contactName || 'WhatsApp Contact',
               phone: cleanPhone,
-              interest: 'Inquiry via WhatsApp',
-              source: 'WhatsApp',
+              interest: ad?.headline || 'Inquiry via WhatsApp',
+              source: ad ? adReferral.AD_SOURCE : 'WhatsApp',
               stage: 'New',
-              notes: `Auto-captured from first WhatsApp message: "${text}"`,
+              notes: ad ? adReferral.notesFor(ad, text) : `Auto-captured from first WhatsApp message: "${text}"`,
               bypassDuplicateCheck: true,
             },
             'WhatsApp Bot'
@@ -161,6 +165,16 @@ async function processIncomingWebhook(body) {
             }
           } catch (linkErr) {
             logger.warn({ err: linkErr }, '[WhatsApp Webhook] Could not link chat to its new lead');
+          }
+        }
+
+        // An ad click leaves a mark on the timeline, new lead or returning customer.
+        if (ad) {
+          const leadRow = await leadRepository.findByPhone(tenantId, cleanPhone);
+          if (leadRow) {
+            await leadRepository.bulkInsertFollowUps(tenantId, [
+              { leadUuid: leadRow.id, note: adReferral.describe(ad), createdBy: 'WhatsApp' },
+            ]);
           }
         }
       } catch (leadErr) {

@@ -2,10 +2,10 @@ import React from "react";
 
 export default function LegalContent({ title, updated, children }) {
   return (
-    <section className="py-16 sm:py-24 bg-white">
+    <section className="section-y">
       <div className="max-w-[720px] mx-auto px-5 sm:px-6">
         <header className="mb-10 space-y-2">
-          <h1 className="font-semibold text-3xl sm:text-4xl tracking-[-0.02em] text-slate-950">
+          <h1 className="t-h2 text-ink-900">
             {title}
           </h1>
           <p className="text-sm text-slate-400">Last updated: {updated}</p>
