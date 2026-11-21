@@ -10,8 +10,15 @@ const app = express();
 const PORT = process.env.PORT || 5005;
 
 // Middleware
+// ALLOWED_ORIGINS: comma-separated list, e.g. "https://admin.ezzysync.com,http://localhost:5174"
+// If unset, all origins are allowed (local dev only — always set it in production).
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: allowedOrigins.length ? allowedOrigins : true,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

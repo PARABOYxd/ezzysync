@@ -27,7 +27,7 @@ import {
   MessageSquare,
   Copy,
 } from 'lucide-react';
-import api from '../api';
+import api, { CRM_LOGIN_URL } from '../api';
 
 export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
   const [tenants, setTenants] = useState([]);
@@ -231,7 +231,7 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
       setImpersonating(true);
       const res = await api.post(`/tenants/${impersonateTarget.id}/impersonate`);
       window.open(
-        `http://localhost:5173/login?impersonateToken=${res.data.token}&impersonateRefresh=${res.data.refreshToken}&impersonateUser=${encodeURIComponent(
+        `${CRM_LOGIN_URL}?impersonateToken=${res.data.token}&impersonateRefresh=${res.data.refreshToken}&impersonateUser=${encodeURIComponent(
           JSON.stringify(res.data.user)
         )}`,
         '_blank'
@@ -333,7 +333,7 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
     const msg = encodeURIComponent(
       `Hello ${creds.name || 'Travel Partner'}! 👋\n\n` +
       `Here are your updated login credentials for *${creds.companyName}* on EzzySync Travel CRM:\n\n` +
-      `🔗 *Login Portal:* ${creds.loginUrl || 'http://localhost:5173/login'}\n` +
+      `🔗 *Login Portal:* ${creds.loginUrl || CRM_LOGIN_URL}\n` +
       `👤 *Email:* ${creds.email}\n` +
       `🔑 *New Password:* ${creds.temporaryPassword}\n\n` +
       `You can log in now and manage leads, client itineraries, and quotations. Let us know if you need any assistance!`
@@ -351,7 +351,7 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
     const body = encodeURIComponent(
       `Hello ${creds.name},\n\n` +
       `Here are your updated login credentials for EzzySync Travel CRM:\n\n` +
-      `Login Portal: ${creds.loginUrl || 'http://localhost:5173/login'}\n` +
+      `Login Portal: ${creds.loginUrl || CRM_LOGIN_URL}\n` +
       `Email: ${creds.email}\n` +
       `New Password: ${creds.temporaryPassword}\n\n` +
       `You can log in now to access your workspace.\n\n` +
@@ -362,7 +362,7 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
   };
 
   const handleCopyCredentials = (creds) => {
-    const text = `EzzySync Travel CRM Credentials:\nAgency: ${creds.companyName}\nLogin Portal: ${creds.loginUrl || 'http://localhost:5173/login'}\nEmail: ${creds.email}\nPassword: ${creds.temporaryPassword}`;
+    const text = `EzzySync Travel CRM Credentials:\nAgency: ${creds.companyName}\nLogin Portal: ${creds.loginUrl || CRM_LOGIN_URL}\nEmail: ${creds.email}\nPassword: ${creds.temporaryPassword}`;
     navigator.clipboard.writeText(text);
     setCopiedPassword(true);
     showToast('Credentials copied to clipboard!');
@@ -1288,7 +1288,7 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
                           const cleanPhone = (selectedTenant.phone || '').replace(/[^0-9]/g, '');
                           const phoneWithCode = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
                           const msg = encodeURIComponent(
-                            `Hi ${selectedTenant.name}! 👋 Here is your EzzySync Travel CRM login portal: http://localhost:5173/login\nRegistered Email: ${selectedTenant.email}\n\nLet us know if you need assistance logging in!`
+                            `Hi ${selectedTenant.name}! 👋 Here is your EzzySync Travel CRM login portal: ${CRM_LOGIN_URL}\nRegistered Email: ${selectedTenant.email}\n\nLet us know if you need assistance logging in!`
                           );
                           window.open(`https://wa.me/${phoneWithCode}?text=${msg}`, '_blank');
                         }}
@@ -1302,7 +1302,7 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
                         onClick={() => {
                           const subject = encodeURIComponent(`EzzySync Travel CRM Login Details`);
                           const body = encodeURIComponent(
-                            `Hi ${selectedTenant.name},\n\nHere is your EzzySync Travel CRM login portal:\nURL: http://localhost:5173/login\nEmail: ${selectedTenant.email}\n\nBest regards,\nTeam EzzySync`
+                            `Hi ${selectedTenant.name},\n\nHere is your EzzySync Travel CRM login portal:\nURL: ${CRM_LOGIN_URL}\nEmail: ${selectedTenant.email}\n\nBest regards,\nTeam EzzySync`
                           );
                           window.open(`mailto:${selectedTenant.email}?subject=${subject}&body=${body}`, '_blank');
                         }}
