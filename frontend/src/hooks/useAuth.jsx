@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { token, refreshToken, user: u } = await authService.login(email, password);
+    localStorage.removeItem('hf_impersonator');
     localStorage.setItem('hf_token', token);
     localStorage.setItem('hf_refresh_token', refreshToken);
     localStorage.setItem('hf_user', JSON.stringify(u));
@@ -59,6 +60,8 @@ export function AuthProvider({ children }) {
     // Best-effort: revoke the refresh token server-side so it can't be
     // silently used again. Never blocks clearing the local session on it.
     if (refreshToken) authService.logout(refreshToken).catch(() => {});
+    // Holds the admin's saved session - must not survive into the next login.
+    localStorage.removeItem('hf_impersonator');
     localStorage.removeItem('hf_token');
     localStorage.removeItem('hf_user');
     localStorage.removeItem('hf_refresh_token');

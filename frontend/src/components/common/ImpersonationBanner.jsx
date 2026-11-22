@@ -19,6 +19,21 @@ export default function ImpersonationBanner() {
 
   const handleExit = () => {
     if (!parsed) return;
+    // Opened from the separate admin panel: put back whatever session was here, if any.
+    if (parsed.external) {
+      const saved = {
+        hf_token: parsed.token,
+        hf_refresh_token: parsed.refreshToken,
+        hf_user: parsed.user && JSON.stringify(parsed.user),
+      };
+      Object.entries(saved).forEach(([key, value]) => {
+        if (value) localStorage.setItem(key, value);
+        else localStorage.removeItem(key);
+      });
+      localStorage.removeItem('hf_impersonator');
+      window.location.href = parsed.token ? '/dashboard' : '/login';
+      return;
+    }
     localStorage.setItem('hf_token', parsed.token);
     localStorage.setItem('hf_refresh_token', parsed.refreshToken);
     localStorage.setItem('hf_user', JSON.stringify(parsed.user));

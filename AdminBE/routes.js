@@ -834,18 +834,10 @@ router.post('/tenants/:id/impersonate', requireSuperAdmin, async (req, res) => {
       { expiresIn: '2h' }
     );
 
-    const refreshToken = jwt.sign(
-      {
-        userId: targetUser.id,
-        tenantId: targetUser.tenant_id,
-      },
-      MAIN_CRM_JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
+    // No refresh token: anything signed with this secret is a valid CRM access
+    // token, so a "refresh" JWT would be 24h of access without impersonatedBy.
     return res.json({
       token,
-      refreshToken,
       user: {
         userId: targetUser.id,
         tenantId: targetUser.tenant_id,
