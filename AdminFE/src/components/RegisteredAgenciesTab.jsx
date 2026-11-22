@@ -231,10 +231,10 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
       setImpersonating(true);
       const res = await api.post(`/tenants/${impersonateTarget.id}/impersonate`);
       window.open(
-        `${CRM_LOGIN_URL}?impersonateToken=${res.data.token}&impersonateRefresh=${res.data.refreshToken}&impersonateUser=${encodeURIComponent(
-          JSON.stringify(res.data.user)
-        )}`,
-        '_blank'
+        // Fragment, not query: it is never sent to a server, so it stays out of logs.
+        `${CRM_LOGIN_URL}#impersonateToken=${res.data.token}`,
+        '_blank',
+        'noopener,noreferrer'
       );
       setImpersonateTarget(null);
       showToast(`Logged into ${impersonateTarget.company_name || impersonateTarget.name}`, 'success');

@@ -4,9 +4,12 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import { ToastProvider } from './hooks/useToast.jsx';
+import consumeImpersonationHandoff from './utils/impersonationHandoff.js';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
+consumeImpersonationHandoff().finally(() => root.render(
   <React.StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ToastProvider>
@@ -16,4 +19,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>
-);
+));
