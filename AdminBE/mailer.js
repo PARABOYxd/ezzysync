@@ -2,11 +2,80 @@ const nodemailer = require('nodemailer');
 
 const SMTP_TIMEOUT_MS = 8000;
 
+function isResendConfigured() {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  return Boolean(apiKey && from && !from.includes('your-'));
+}
+
 function isSmtpConfigured() {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   return Boolean(host && user && pass && !user.includes('your-') && pass !== 'your_app_password');
+}
+
+/**
+ * Send email via Resend HTTPS API (Port 443)
+ * Completely immune to cloud provider outbound SMTP port 587/465 blocks.
+ */
+async function sendViaResend({ to, subject, html }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM;
+  const fromName = process.env.EMAIL_FROM_NAME || 'EzzySync HQ';
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Resend API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log(`[Email] Credentials email successfully sent via Resend API to ${to} (id: ${data.id})`);
+  return { success: true, mode: 'resend', id: data.id };
+}
+
+/**
+ * Send email via SMTP (Nodemailer)
+ */
+async function sendViaSMTP({ to, subject, html }) {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+  });
+
+  const fromName = process.env.EMAIL_FROM_NAME || 'EzzySync HQ';
+  const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+
+  console.log(`[Email] Credentials email successfully sent via SMTP to ${to}`);
+  return { success: true, mode: 'smtp' };
 }
 
 /**
@@ -88,39 +157,27 @@ async function sendCredentialsEmail({ to, name, agencyName, password, loginUrl, 
     </html>
   `;
 
+  // 1. Try Resend API first (HTTPS port 443 - zero cloud port blocking)
+  if (isResendConfigured()) {
+    try {
+      return await sendViaResend({ to, subject, html });
+    } catch (err) {
+      console.error(`[Email Error] Failed to send credentials via Resend API:`, err.message);
+      // Fall through to SMTP if configured
+    }
+  }
+
+  // 2. Try SMTP (Nodemailer)
   if (isSmtpConfigured()) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-        connectionTimeout: SMTP_TIMEOUT_MS,
-        greetingTimeout: SMTP_TIMEOUT_MS,
-      });
-
-      const fromName = process.env.EMAIL_FROM_NAME || 'EzzySync HQ';
-      const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER;
-
-      await transporter.sendMail({
-        from: `"${fromName}" <${fromEmail}>`,
-        to,
-        subject,
-        html,
-      });
-
-      console.log(`[Email] Credentials email successfully sent to ${to}`);
-      return { success: true, mode: 'smtp' };
+      return await sendViaSMTP({ to, subject, html });
     } catch (err) {
       console.error(`[Email Error] Failed to send credentials via SMTP:`, err.message);
       // Fall through to dev log
     }
   }
 
-  // Dev / Fallback log
+  // 3. Dev / Fallback log
   console.log(`\n============================================================`);
   console.log(`📧 [EMAIL DISPATCH - DEV LOG]`);
   console.log(`To: ${to}`);
