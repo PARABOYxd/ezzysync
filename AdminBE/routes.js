@@ -536,6 +536,14 @@ router.post('/tenants', requireSuperAdmin, async (req, res) => {
       trialDays = 30,
       adminNotes = 'Created manually by Master Admin',
       sendEmail = false,
+      instagramLink = '',
+      websiteLink = '',
+      gstNumber = '',
+      visitingCardUrl = '',
+      city = '',
+      state = '',
+      address = '',
+      travelSpeciality = '',
     } = req.body;
 
     if (!companyName || !companyName.trim()) {
@@ -552,6 +560,14 @@ router.post('/tenants', requireSuperAdmin, async (req, res) => {
     const cleanCompany = companyName.trim();
     const cleanName = name.trim();
     const cleanPhone = (phone || '').trim();
+    const cleanInstagram = (instagramLink || '').trim();
+    const cleanWebsite = (websiteLink || '').trim();
+    const cleanGst = (gstNumber || '').trim().toUpperCase();
+    const cleanCardUrl = (visitingCardUrl || '').trim();
+    const cleanCity = (city || '').trim();
+    const cleanState = (state || '').trim();
+    const cleanAddress = (address || '').trim() || [cleanCity, cleanState].filter(Boolean).join(', ');
+    const cleanSpeciality = (travelSpeciality || '').trim();
 
     // Check if agency or user already exists with this email
     const existingTenant = await query('SELECT id FROM tenants WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
@@ -594,12 +610,16 @@ router.post('/tenants', requireSuperAdmin, async (req, res) => {
     ]);
     const tenant = tenantRes.rows[0];
 
-    // 2. Ensure default settings row
+    // 2. Ensure settings row with business details (GST, address, WhatsApp)
     await query(`
-      INSERT INTO settings (tenant_id, company_name, whatsapp_number)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (tenant_id) DO NOTHING
-    `, [tenant.id, cleanCompany, cleanPhone]);
+      INSERT INTO settings (tenant_id, company_name, whatsapp_number, gst_number, address)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (tenant_id) DO UPDATE SET
+        company_name = EXCLUDED.company_name,
+        whatsapp_number = COALESCE(NULLIF(EXCLUDED.whatsapp_number, ''), settings.whatsapp_number),
+        gst_number = COALESCE(NULLIF(EXCLUDED.gst_number, ''), settings.gst_number),
+        address = COALESCE(NULLIF(EXCLUDED.address, ''), settings.address)
+    `, [tenant.id, cleanCompany, cleanPhone, cleanGst, cleanAddress]);
 
     // 3. Create primary ADMIN User
     await query(`
@@ -612,6 +632,41 @@ router.post('/tenants', requireSuperAdmin, async (req, res) => {
       passwordHash,
       cleanName,
     ]);
+
+    // 4. Also create a verified record in walkthrough_requests for audit & footprint tracking
+    try {
+      const socialLink = cleanInstagram || cleanWebsite || '';
+      await query(`
+        INSERT INTO walkthrough_requests (
+          name, agency_name, email, phone, city, state, travel_speciality,
+          website_or_instagram, instagram_link, website_link, gst_number,
+          visiting_card_url, visiting_card_verified, email_verified,
+          whatsapp_verified, social_verified, status, approved_at,
+          created_tenant_id, admin_notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, TRUE, $14, $15, 'approved', NOW(), $16, $17)
+      `, [
+        cleanName,
+        cleanCompany,
+        cleanEmail,
+        cleanPhone,
+        cleanCity,
+        cleanState,
+        cleanSpeciality,
+        socialLink,
+        cleanInstagram,
+        cleanWebsite,
+        cleanGst,
+        cleanCardUrl,
+        Boolean(cleanCardUrl),
+        Boolean(cleanPhone),
+        Boolean(socialLink),
+        tenant.id,
+        adminNotes,
+      ]);
+    } catch (auditErr) {
+      console.warn('Could not insert audit walkthrough_requests entry:', auditErr.message);
+    }
 
     const loginUrl = `${process.env.MAIN_CRM_URL || 'http://localhost:5173'}/login`;
     let emailSent = false;

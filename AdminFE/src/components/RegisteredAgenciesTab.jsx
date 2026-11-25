@@ -27,6 +27,11 @@ import {
   MessageSquare,
   Copy,
   PlusCircle,
+  Instagram,
+  Globe,
+  FileText,
+  Upload,
+  MapPin,
 } from 'lucide-react';
 import api, { CRM_LOGIN_URL } from '../api';
 
@@ -100,6 +105,14 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
     planId: 'FREE',
     trialDays: 30,
     sendEmail: true,
+    instagramLink: '',
+    websiteLink: '',
+    gstNumber: '',
+    visitingCardUrl: '',
+    city: '',
+    state: '',
+    address: '',
+    travelSpeciality: '',
   });
   const [creatingAgency, setCreatingAgency] = useState(false);
   const [createdResult, setCreatedResult] = useState(null);
@@ -131,6 +144,14 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
         planId: createForm.planId,
         trialDays: Number(createForm.trialDays) || 30,
         sendEmail: createForm.sendEmail,
+        instagramLink: createForm.instagramLink.trim(),
+        websiteLink: createForm.websiteLink.trim(),
+        gstNumber: createForm.gstNumber.trim(),
+        visitingCardUrl: createForm.visitingCardUrl,
+        city: createForm.city.trim(),
+        state: createForm.state.trim(),
+        address: createForm.address.trim(),
+        travelSpeciality: createForm.travelSpeciality.trim(),
       });
 
       showToast(res.data.message || 'Agency created successfully!');
@@ -1336,6 +1357,18 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <button
                         type="button"
+                        onClick={() => {
+                          const text = `EzzySync Travel CRM Details:\nAgency: ${selectedTenant.company_name || selectedTenant.name}\nOwner Name: ${selectedTenant.name}\nLogin Email: ${selectedTenant.email}\nPhone: ${selectedTenant.phone || 'N/A'}\nLogin Portal: ${CRM_LOGIN_URL}`;
+                          navigator.clipboard.writeText(text);
+                          showToast('Agency details copied to clipboard!');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Copy size={12} />
+                        <span>Copy Agency Info</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => openResetPasswordModal(selectedTenant)}
                         className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                       >
@@ -1515,7 +1548,41 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2">
+                {/* 1-Click Copy All Details & Sharing Options */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `🎉 Welcome to EzzySync Travel CRM!\n\nAgency: ${createdResult.companyName}\nOwner Name: ${createdResult.name}\nLogin Email: ${createdResult.email}\nTemporary Password: ${createdResult.temporaryPassword}\nLogin Portal: ${createdResult.loginUrl || CRM_LOGIN_URL}\n\nPlease change your password after your first login.`;
+                      navigator.clipboard.writeText(text);
+                      setCopiedCreatedPassword(true);
+                      showToast('Full agency credentials copied to clipboard!');
+                      setTimeout(() => setCopiedCreatedPassword(false), 2500);
+                    }}
+                    className="flex-1 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                  >
+                    {copiedCreatedPassword ? <Check size={14} className="text-white" /> : <Copy size={14} />}
+                    <span>{copiedCreatedPassword ? 'Copied Details!' : 'Copy Full Details'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cleanPhone = (createdResult.phone || '').replace(/[^0-9]/g, '');
+                      const phoneWithCode = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                      const msg = encodeURIComponent(
+                        `Hi ${createdResult.name}! 👋 Welcome to EzzySync Travel CRM.\n\nHere are your login credentials:\n🏢 Agency: ${createdResult.companyName}\n📧 Email: ${createdResult.email}\n🔑 Password: ${createdResult.temporaryPassword}\n🌐 Login Portal: ${createdResult.loginUrl || CRM_LOGIN_URL}\n\nPlease change your password after logging in!`
+                      );
+                      window.open(`https://wa.me/${phoneWithCode}?text=${msg}`, '_blank');
+                    }}
+                    className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                  >
+                    <MessageSquare size={13} />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
                   <button
                     type="button"
                     onClick={() => {
@@ -1529,6 +1596,14 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
                         planId: 'FREE',
                         trialDays: 30,
                         sendEmail: true,
+                        instagramLink: '',
+                        websiteLink: '',
+                        gstNumber: '',
+                        visitingCardUrl: '',
+                        city: '',
+                        state: '',
+                        address: '',
+                        travelSpeciality: '',
                       });
                       setCreateModalOpen(false);
                     }}
@@ -1637,6 +1712,162 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
                       onChange={(e) => setCreateForm({ ...createForm, trialDays: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
                     />
+                  </div>
+                </div>
+
+                {/* Additional Business Proof & Footprint Fields */}
+                <div className="pt-2 border-t border-slate-100 dark:border-zinc-800 space-y-3">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                    Business Proof & Location (Optional)
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1 flex items-center gap-1">
+                        <Instagram size={12} className="text-purple-500" />
+                        Instagram Link
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. instagram.com/agency"
+                        value={createForm.instagramLink}
+                        onChange={(e) => setCreateForm({ ...createForm, instagramLink: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1 flex items-center gap-1">
+                        <Globe size={12} className="text-blue-500" />
+                        Website Link
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. https://agency.com"
+                        value={createForm.websiteLink}
+                        onChange={(e) => setCreateForm({ ...createForm, websiteLink: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        GST Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 08AABCS1429B1Z8"
+                        value={createForm.gstNumber}
+                        onChange={(e) => setCreateForm({ ...createForm, gstNumber: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        Travel Speciality
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Honeymoon, Domestic Tours"
+                        value={createForm.travelSpeciality}
+                        onChange={(e) => setCreateForm({ ...createForm, travelSpeciality: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Mumbai"
+                        value={createForm.city}
+                        onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Maharashtra"
+                        value={createForm.state}
+                        onChange={(e) => setCreateForm({ ...createForm, state: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1 flex items-center gap-1">
+                      <MapPin size={12} className="text-rose-500" />
+                      Office Address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Shop 4, Galleria Mall, MG Road"
+                      value={createForm.address}
+                      onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  {/* Visiting Card Upload */}
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1 flex items-center gap-1">
+                      <FileText size={12} className="text-amber-500" />
+                      Visiting Card / Business Proof
+                    </label>
+                    {createForm.visitingCardUrl ? (
+                      <div className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl">
+                        <img
+                          src={createForm.visitingCardUrl}
+                          alt="Card preview"
+                          className="w-12 h-10 object-cover rounded-lg border border-slate-200 dark:border-zinc-800"
+                        />
+                        <span className="text-[11px] text-emerald-600 font-semibold flex-1">
+                          Card attached ✓
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCreateForm({ ...createForm, visitingCardUrl: '' })}
+                          className="text-xs text-rose-500 hover:underline cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-950 transition">
+                        <Upload size={14} className="text-slate-400" />
+                        <span className="text-xs text-slate-500 dark:text-zinc-400 font-semibold">
+                          Upload Visiting Card (PNG, JPG, PDF)
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) {
+                              showToast('Card file size must be under 5MB', 'error');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setCreateForm({ ...createForm, visitingCardUrl: reader.result });
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
                 </div>
 
