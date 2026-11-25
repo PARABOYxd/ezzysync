@@ -523,6 +523,137 @@ router.delete('/requests/:id', requireSuperAdmin, async (req, res) => {
 // 3. REGISTERED AGENCIES MANAGEMENT
 // -------------------------------------------------------------
 
+// Manually Provision / Create New Agency Account
+router.post('/tenants', requireSuperAdmin, async (req, res) => {
+  try {
+    const {
+      companyName,
+      name,
+      email,
+      phone = '',
+      password,
+      planId = 'FREE',
+      trialDays = 30,
+      adminNotes = 'Created manually by Master Admin',
+      sendEmail = false,
+    } = req.body;
+
+    if (!companyName || !companyName.trim()) {
+      return res.status(400).json({ error: 'Agency / Company name is required' });
+    }
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Owner / Admin name is required' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'Owner email is required' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanCompany = companyName.trim();
+    const cleanName = name.trim();
+    const cleanPhone = (phone || '').trim();
+
+    // Check if agency or user already exists with this email
+    const existingTenant = await query('SELECT id FROM tenants WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    if (existingTenant.rows.length > 0) {
+      return res.status(400).json({ error: 'An agency with this email is already registered' });
+    }
+
+    const existingUser = await query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'A user account with this email already exists' });
+    }
+
+    // Temporary password (custom or generated)
+    const rawPassword = password && password.trim() ? password.trim() : `Ezzy@${Math.floor(1000 + Math.random() * 9000)}`;
+    if (rawPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+    const bonusTrialDays = Number(trialDays) > 30 ? Number(trialDays) - 30 : 0;
+    const finalPlanId = planId === 'TRIAL' ? 'FREE' : planId;
+
+    // 1. Insert Tenant
+    const tenantRes = await query(`
+      INSERT INTO tenants (
+        name, email, password_hash, company_name, phone, plan_id,
+        is_suspended, is_paused, trial_extended_days, admin_notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE, FALSE, $7, $8)
+      RETURNING *
+    `, [
+      cleanName,
+      cleanEmail,
+      passwordHash,
+      cleanCompany,
+      cleanPhone,
+      finalPlanId,
+      bonusTrialDays,
+      adminNotes,
+    ]);
+    const tenant = tenantRes.rows[0];
+
+    // 2. Ensure default settings row
+    await query(`
+      INSERT INTO settings (tenant_id, company_name, whatsapp_number)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (tenant_id) DO NOTHING
+    `, [tenant.id, cleanCompany, cleanPhone]);
+
+    // 3. Create primary ADMIN User
+    await query(`
+      INSERT INTO users (tenant_id, email, password_hash, name, role, is_super_admin)
+      VALUES ($1, $2, $3, $4, 'ADMIN', FALSE)
+      ON CONFLICT (email) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, password_hash = EXCLUDED.password_hash
+    `, [
+      tenant.id,
+      cleanEmail,
+      passwordHash,
+      cleanName,
+    ]);
+
+    const loginUrl = `${process.env.MAIN_CRM_URL || 'http://localhost:5173'}/login`;
+    let emailSent = false;
+    let emailError = null;
+
+    if (sendEmail) {
+      try {
+        await sendCredentialsEmail({
+          to: cleanEmail,
+          name: cleanName,
+          agencyName: cleanCompany,
+          password: rawPassword,
+          loginUrl,
+          isReset: false,
+        });
+        emailSent = true;
+      } catch (mErr) {
+        console.error('Failed to send welcome email for new agency:', mErr);
+        emailError = mErr.message;
+      }
+    }
+
+    return res.status(201).json({
+      message: `Agency "${cleanCompany}" created successfully!`,
+      credentials: {
+        email: cleanEmail,
+        temporaryPassword: rawPassword,
+        companyName: cleanCompany,
+        name: cleanName,
+        phone: cleanPhone,
+        loginUrl,
+      },
+      tenant,
+      emailSent,
+      emailError,
+    });
+  } catch (err) {
+    console.error('Error creating agency manually:', err);
+    return res.status(500).json({ error: err.message || 'Failed to create agency account' });
+  }
+});
+
 // List registered agencies with filters
 router.get('/tenants', requireSuperAdmin, async (req, res) => {
   try {

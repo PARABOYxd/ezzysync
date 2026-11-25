@@ -26,6 +26,7 @@ import {
   RotateCcw,
   MessageSquare,
   Copy,
+  PlusCircle,
 } from 'lucide-react';
 import api, { CRM_LOGIN_URL } from '../api';
 
@@ -88,11 +89,59 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
   const [resetResult, setResetResult] = useState(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
+  // Add Agency modal
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    companyName: '',
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    planId: 'FREE',
+    trialDays: 30,
+    sendEmail: true,
+  });
+  const [creatingAgency, setCreatingAgency] = useState(false);
+  const [createdResult, setCreatedResult] = useState(null);
+  const [copiedCreatedPassword, setCopiedCreatedPassword] = useState(false);
+
   // Toast
   const [toast, setToast] = useState(null);
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  // Handle Add Agency Submission
+  const handleCreateAgency = async (e) => {
+    e.preventDefault();
+    if (!createForm.companyName.trim() || !createForm.name.trim() || !createForm.email.trim()) {
+      showToast('Company name, owner name, and email are required', 'error');
+      return;
+    }
+
+    try {
+      setCreatingAgency(true);
+      const res = await api.post('/tenants', {
+        companyName: createForm.companyName.trim(),
+        name: createForm.name.trim(),
+        email: createForm.email.trim(),
+        phone: createForm.phone.trim(),
+        password: createForm.password.trim(),
+        planId: createForm.planId,
+        trialDays: Number(createForm.trialDays) || 30,
+        sendEmail: createForm.sendEmail,
+      });
+
+      showToast(res.data.message || 'Agency created successfully!');
+      setCreatedResult(res.data.credentials);
+      fetchTenants();
+      if (onAgencyUpdated) onAgencyUpdated();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to create agency account', 'error');
+    } finally {
+      setCreatingAgency(false);
+    }
   };
 
   const fetchTenants = async () => {
@@ -395,6 +444,17 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCreatedResult(null);
+                setCreateModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+            >
+              <PlusCircle size={14} />
+              <span>Add Agency</span>
+            </button>
             <button
               type="button"
               onClick={fetchTenants}
@@ -1371,6 +1431,246 @@ export default function RegisteredAgenciesTab({ onAgencyUpdated }) {
           >
             <X size={13} />
           </button>
+        </div>
+      )}
+
+      {/* ADD AGENCY MODAL */}
+      {createModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                  <PlusCircle size={18} className="text-amber-600" />
+                  Add New Travel Agency
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                  Directly provision an agency tenant and owner credentials
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreateModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {createdResult ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-sm">
+                    <CheckCircle2 size={18} />
+                    <span>Agency Account Created!</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                    The agency has been successfully provisioned. Share these login credentials with the owner:
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-2 text-xs">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-zinc-800">
+                    <span className="text-slate-500 dark:text-zinc-400 font-medium">Agency Name:</span>
+                    <span className="font-bold text-slate-900 dark:text-zinc-100">{createdResult.companyName}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-zinc-800">
+                    <span className="text-slate-500 dark:text-zinc-400 font-medium">Owner Name:</span>
+                    <span className="font-semibold text-slate-800 dark:text-zinc-200">{createdResult.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-zinc-800">
+                    <span className="text-slate-500 dark:text-zinc-400 font-medium">Login Email:</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-zinc-100">{createdResult.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-zinc-800">
+                    <span className="text-slate-500 dark:text-zinc-400 font-medium">Password:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded">
+                        {createdResult.temporaryPassword}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdResult.temporaryPassword);
+                          setCopiedCreatedPassword(true);
+                          setTimeout(() => setCopiedCreatedPassword(false), 2000);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1"
+                        title="Copy password"
+                      >
+                        {copiedCreatedPassword ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-slate-500 dark:text-zinc-400 font-medium">Login URL:</span>
+                    <a
+                      href={createdResult.loginUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1 font-mono"
+                    >
+                      {createdResult.loginUrl} <ExternalLink size={12} />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreatedResult(null);
+                      setCreateForm({
+                        companyName: '',
+                        name: '',
+                        email: '',
+                        phone: '',
+                        password: '',
+                        planId: 'FREE',
+                        trialDays: 30,
+                        sendEmail: true,
+                      });
+                      setCreateModalOpen(false);
+                    }}
+                    className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateAgency} className="space-y-3.5 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                    Agency / Company Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Skyline Holidays"
+                    value={createForm.companyName}
+                    onChange={(e) => setCreateForm({ ...createForm, companyName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                      Owner / Admin Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rajesh Kumar"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                      Contact Phone
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. +91 9876543210"
+                      value={createForm.phone}
+                      onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                    Login Email <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="owner@agency.com"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                    Password <span className="text-slate-400 font-normal">(Leave blank to auto-generate)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Leave blank or enter custom password (min 8 chars)"
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500 font-mono"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                      Initial Plan
+                    </label>
+                    <select
+                      value={createForm.planId}
+                      onChange={(e) => setCreateForm({ ...createForm, planId: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="FREE">Free Trial (Default)</option>
+                      <option value="SOLO">Solo Plan</option>
+                      <option value="PRO">Pro Plan</option>
+                      <option value="PRO_ACTIVE">Pro Active (Full Suite)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                      Trial Duration (Days)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={createForm.trialDays}
+                      onChange={(e) => setCreateForm({ ...createForm, trialDays: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={createForm.sendEmail}
+                      onChange={(e) => setCreateForm({ ...createForm, sendEmail: e.target.checked })}
+                      className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span>Send welcome email with login credentials</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setCreateModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingAgency}
+                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  >
+                    {creatingAgency ? 'Creating Agency...' : 'Create Agency'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
     </div>
