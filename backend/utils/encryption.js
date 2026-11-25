@@ -3,13 +3,21 @@ const env = require("../config/env");
 
 const ALGORITHM = "aes-256-gcm";
 
-// 32-byte key from hex string
-const KEY = Buffer.from(env.tokenEncryptionKey, "hex");
+function getKey() {
+    if (!env.tokenEncryptionKey) {
+        throw new Error(
+            "Missing TOKEN_ENCRYPTION_KEY environment variable. " +
+            "Please configure a 64-character hex key (32 bytes) in your environment variables."
+        );
+    }
+    return Buffer.from(env.tokenEncryptionKey, "hex");
+}
 
 function encrypt(text) {
+    const key = getKey();
     const iv = crypto.randomBytes(16);
 
-    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
     let encrypted = cipher.update(text, "utf8", "hex");
     encrypted += cipher.final("hex");
@@ -24,11 +32,12 @@ function encrypt(text) {
 }
 
 function decrypt(payload) {
+    const key = getKey();
     const [ivHex, tagHex, encrypted] = payload.split(":");
 
     const decipher = crypto.createDecipheriv(
         ALGORITHM,
-        KEY,
+        key,
         Buffer.from(ivHex, "hex")
     );
 
