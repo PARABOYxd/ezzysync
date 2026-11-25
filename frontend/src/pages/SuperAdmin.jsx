@@ -87,6 +87,16 @@ export default function SuperAdmin() {
   // Impersonating
   const [impersonatingId, setImpersonatingId] = useState(null);
 
+  // Create Agency modal
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    companyName: '',
+    email: '',
+    password: '',
+  });
+  const [creatingAgency, setCreatingAgency] = useState(false);
+
   // Fetch KPI Stats
   const fetchStats = async () => {
     try {
@@ -291,6 +301,35 @@ export default function SuperAdmin() {
     }
   };
 
+  // Handle Create Agency
+  const handleCreateAgency = async (e) => {
+    e.preventDefault();
+    if (!createForm.name.trim() || !createForm.companyName.trim() || !createForm.email.trim() || !createForm.password) {
+      toast.error('All fields are required');
+      return;
+    }
+
+    try {
+      setCreatingAgency(true);
+      const res = await superAdminService.createTenant({
+        name: createForm.name.trim(),
+        companyName: createForm.companyName.trim(),
+        email: createForm.email.trim(),
+        password: createForm.password,
+      });
+      toast.success(res.message || 'Agency created successfully!');
+      setCreateModalOpen(false);
+      setCreateForm({ name: '', companyName: '', email: '', password: '' });
+      fetchTenants();
+      fetchStats();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Failed to create agency';
+      toast.error(msg);
+    } finally {
+      setCreatingAgency(false);
+    }
+  };
+
   // Quick Extend Helper
   const quickExtend = (days) => {
     setPlanForm((prev) => ({
@@ -320,6 +359,14 @@ export default function SuperAdmin() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+          >
+            <PlusCircle size={15} />
+            <span>Add Agency</span>
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -740,6 +787,110 @@ export default function SuperAdmin() {
           </table>
         </div>
       </div>
+
+      {/* CREATE AGENCY MODAL */}
+      {createModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                  <PlusCircle size={18} className="text-amber-600" />
+                  Add New Agency
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                  Directly provision an agency tenant and owner account
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreateModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAgency} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Company / Agency Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Acme Travels"
+                  value={createForm.companyName}
+                  onChange={(e) => setCreateForm({ ...createForm, companyName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Owner / Admin Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Owner Email <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="owner@agency.com"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Temporary Password <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Min 8 chars, 1 uppercase, 1 number, 1 symbol"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Must be at least 8 characters with lowercase, uppercase, number & symbol (e.g. !@#$).
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingAgency}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  {creatingAgency ? 'Creating...' : 'Create Agency'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* PLAN & TRIAL EXTENSION MODAL */}
       {planModalOpen && selectedTenant && (

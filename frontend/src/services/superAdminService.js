@@ -6,6 +6,9 @@ export const superAdminService = {
   listTenants: (params = {}) => 
     api.get('/super-admin/tenants', { params }).then((r) => r.data),
 
+  createTenant: (payload) =>
+    api.post('/super-admin/tenants', payload).then((r) => r.data),
+
   getTenantDetails: (id) => 
     api.get(`/super-admin/tenants/${id}`).then((r) => r.data.tenant),
 
